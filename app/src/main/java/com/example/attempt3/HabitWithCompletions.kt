@@ -10,7 +10,4 @@ data class HabitWithCompletions(
         entityColumn = "habitId"
     )
     val completions: List<Completion>
-) {
-    val streak: Int
-        get() = StreakCalculator.calculateStreak(habit, completions)
-}
+)

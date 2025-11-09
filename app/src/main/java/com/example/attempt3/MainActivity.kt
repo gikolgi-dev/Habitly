@@ -23,7 +23,8 @@ class MainActivity : ComponentActivity() {
 
     private val db by lazy {
         Room.databaseBuilder(applicationContext, HabitDatabase::class.java, "habits.db")
-            .addMigrations(MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+            .addMigrations(MIGRATION_5_6, MIGRATION_6_7, MIGRATION_8_9)
+            .fallbackToDestructiveMigration()
             .build()
     }
 

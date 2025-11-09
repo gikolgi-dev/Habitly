@@ -36,7 +36,6 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Restore
-import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
@@ -80,9 +79,6 @@ import java.util.concurrent.TimeUnit
 fun HabitDetailScreen(habit: Habit, habitDao: HabitDao, isArchivedView: Boolean, animatedVisibilityScope: AnimatedVisibilityScope, onDismiss: () -> Unit, onEditHabit: (Habit) -> Unit) {
     val scope = rememberCoroutineScope()
     val completions by habitDao.getCompletionsForHabit(habit.id).collectAsState(initial = emptyList())
-    val streak = remember(completions, habit) {
-        HabitWithCompletions(habit, completions).streak
-    }
     val haptic = LocalHapticFeedback.current
     var showDeleteConfirmation by remember { mutableStateOf(false) } // State for delete confirmation dialog
 
@@ -296,63 +292,27 @@ fun HabitDetailScreen(habit: Habit, habitDao: HabitDao, isArchivedView: Boolean,
                             }
                         }
 
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        // Delete button (right-aligned), only visible in archived view
+                        if (isArchivedView) {
                             Box(
                                 modifier = Modifier
-                                    .height(35.dp)
+                                    .size(35.dp)
                                     .clip(RoundedCornerShape(8.dp))
-                                    .background(
-                                        MaterialTheme.colorScheme.onSurface.copy(
-                                            alpha = 0.1f
-                                        )
-                                    )
+                                    .background(Color.Red.copy(alpha = 0.8f))
                                     .border(
                                         1.dp,
-                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f),
+                                        Color.Red,
                                         RoundedCornerShape(8.dp)
                                     )
-                                    .padding(horizontal = 8.dp),
+                                    .clickable { showDeleteConfirmation = true }, // Set state to true on click
                                 contentAlignment = Alignment.Center
                             ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        text = "$streak",
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Icon(
-                                        imageVector = Icons.Default.Whatshot,
-                                        contentDescription = "Current Streak",
-                                        modifier = Modifier.size(20.dp),
-                                        tint = Color(0xFFFFA500)
-                                    )
-                                }
-                            }
-
-                            // Delete button (right-aligned), only visible in archived view
-                            if (isArchivedView) {
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Box(
-                                    modifier = Modifier
-                                        .size(35.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(Color.Red.copy(alpha = 0.8f))
-                                        .border(
-                                            1.dp,
-                                            Color.Red,
-                                            RoundedCornerShape(8.dp)
-                                        )
-                                        .clickable { showDeleteConfirmation = true }, // Set state to true on click
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Delete,
-                                        contentDescription = "Delete Habit",
-                                        modifier = Modifier.size(16.dp),
-                                        tint = Color.White
-                                    )
-                                 }
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Delete Habit",
+                                    modifier = Modifier.size(16.dp),
+                                    tint = Color.White
+                                )
                             }
                         }
                     }

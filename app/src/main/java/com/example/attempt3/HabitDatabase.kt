@@ -29,7 +29,6 @@ data class Habit(
     val isInverse: Boolean,
     val emoji: String?,
     val completionsPerInterval: Int = 1,
-    val intervalValue: Int = 1,
     val intervalUnit: String = "day"
 )
 
@@ -98,7 +97,7 @@ interface HabitDao {
     suspend fun deleteCompletionsForHabitOnDay(habitId: String, startOfDay: Long, endOfDay: Long)
 }
 
-@Database(entities = [Habit::class, Completion::class], version = 8)
+@Database(entities = [Habit::class, Completion::class], version = 9)
 abstract class HabitDatabase : RoomDatabase() {
     abstract fun habitDao(): HabitDao
 }
@@ -113,10 +112,37 @@ val MIGRATION_6_7 = object : Migration(6, 7) {
         database.execSQL("ALTER TABLE Completion ADD COLUMN amountOfCompletions INTEGER NOT NULL DEFAULT 1")
     }
 }
-val MIGRATION_7_8 = object : Migration(7, 8) {
+val MIGRATION_8_9 = object : Migration(8, 9) {
     override fun migrate(database: SupportSQLiteDatabase) {
-        database.execSQL("ALTER TABLE Habit ADD COLUMN completionsPerInterval INTEGER NOT NULL DEFAULT 1")
-        database.execSQL("ALTER TABLE Habit ADD COLUMN intervalValue INTEGER NOT NULL DEFAULT 1")
-        database.execSQL("ALTER TABLE Habit ADD COLUMN intervalUnit TEXT NOT NULL DEFAULT 'day'")
+        // Create a new table with the desired schema
+        database.execSQL("""
+            CREATE TABLE Habit_new (
+                id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                description TEXT NOT NULL,
+                icon TEXT NOT NULL,
+                color INTEGER NOT NULL,
+                archived INTEGER NOT NULL,
+                orderIndex INTEGER NOT NULL,
+                createdAt TEXT NOT NULL,
+                isInverse INTEGER NOT NULL,
+                emoji TEXT,
+                completionsPerInterval INTEGER NOT NULL,
+                intervalUnit TEXT NOT NULL,
+                PRIMARY KEY(id)
+            )
+        """.trimIndent())
+
+        // Copy the data from the old table to the new table
+        database.execSQL("""
+            INSERT INTO Habit_new (id, name, description, icon, color, archived, orderIndex, createdAt, isInverse, emoji, completionsPerInterval, intervalUnit)
+            SELECT id, name, description, icon, color, archived, orderIndex, createdAt, isInverse, emoji, completionsPerInterval, intervalUnit FROM Habit
+        """.trimIndent())
+
+        // Drop the old table
+        database.execSQL("DROP TABLE Habit")
+
+        // Rename the new table to the original table name
+        database.execSQL("ALTER TABLE Habit_new RENAME TO Habit")
     }
 }

@@ -13,6 +13,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -25,6 +26,7 @@ import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -38,6 +40,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -53,6 +56,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -82,45 +86,33 @@ fun HabitSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     var completionsPerInterval by remember { mutableStateOf(habit?.completionsPerInterval?.toString() ?: "1") }
-    var intervalValue by remember { mutableStateOf(habit?.intervalValue?.toString() ?: "1") }
     var intervalUnit by remember { mutableStateOf(habit?.intervalUnit ?: "day") }
-    var validationResult by remember { mutableStateOf(IntervalValidationResult()) }
+    var completionsError by remember { mutableStateOf<String?>(null) }
 
-    fun validate(completionsText: String, valueText: String, unit: String) {
+    fun validate(completionsText: String) {
+        if (intervalUnit == "day") {
+            completionsError = null
+            return
+        }
         val completions = completionsText.toIntOrNull()
-        val value = valueText.toIntOrNull()
-        var completionsError: String? = null
-        var intervalValueError: String? = null
-
         if (completions == null) {
             completionsError = "Must be a number"
+        } else if (completions <= 0) {
+            completionsError = "Must be > 0"
+        } else {
+            completionsError = null
         }
-        if (value == null) {
-            intervalValueError = "Must be a number"
-        }
-
-        if (completions != null && value != null) {
-            val maxCompletions = when (unit) {
-                "day" -> value
-                "week" -> value * 7
-                "month" -> value * 28
-                else -> 0
-            }
-            if (completions > maxCompletions) {
-                completionsError = "Max: $maxCompletions"
-            }
-            if (completions <= 0) {
-                completionsError = "Must be > 0"
-            }
-            if (value <= 0) {
-                intervalValueError = "Must be > 0"
-            }
-        }
-        validationResult = IntervalValidationResult(completionsError, intervalValueError)
     }
 
-    LaunchedEffect(completionsPerInterval, intervalValue, intervalUnit) {
-        validate(completionsPerInterval, intervalValue, intervalUnit)
+    LaunchedEffect(intervalUnit) {
+        if (intervalUnit == "day") {
+            completionsPerInterval = "1"
+        }
+        validate(completionsPerInterval)
+    }
+
+    LaunchedEffect(completionsPerInterval, intervalUnit) {
+        validate(completionsPerInterval)
     }
 
     LaunchedEffect(habit) {
@@ -130,7 +122,6 @@ fun HabitSheet(
             habitColor = Color(habit.color)
             habitIconKey = habit.icon
             completionsPerInterval = habit.completionsPerInterval.toString()
-            intervalValue = habit.intervalValue.toString()
             intervalUnit = habit.intervalUnit
         }
     }
@@ -191,14 +182,26 @@ fun HabitSheet(
 
             Text("Interval", style = MaterialTheme.typography.titleMedium)
             Spacer(modifier = Modifier.height(8.dp))
-            IntervalPicker(
-                completionsPerInterval = completionsPerInterval,
-                onCompletionsPerIntervalChange = { completionsPerInterval = it },
-                intervalValue = intervalValue,
-                onIntervalValueChange = { intervalValue = it },
-                intervalUnit = intervalUnit,
-                onIntervalUnitChange = { intervalUnit = it },
-                validationResult = validationResult
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                TextButton(onClick = { intervalUnit = "day" }, modifier = if (intervalUnit == "day") Modifier.border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp)) else Modifier) {
+                    Text("Daily")
+                }
+                TextButton(onClick = { intervalUnit = "week" }, modifier = if (intervalUnit == "week") Modifier.border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp)) else Modifier) {
+                    Text("Weekly")
+                }
+                TextButton(onClick = { intervalUnit = "month" }, modifier = if (intervalUnit == "month") Modifier.border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp)) else Modifier) {
+                    Text("Monthly")
+                }
+            }
+            OutlinedTextField(
+                value = completionsPerInterval,
+                onValueChange = { completionsPerInterval = it },
+                label = { Text("Completions per ${intervalUnit.replaceFirstChar { it.uppercase() }}")},
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                isError = completionsError != null,
+                supportingText = { if (completionsError != null) Text(completionsError!!) },
+                enabled = intervalUnit != "day",
+                modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -347,7 +350,6 @@ fun HabitSheet(
                                     icon = habitIconKey,
                                     color = (customColor ?: habitColor).toArgb(),
                                     completionsPerInterval = completionsPerInterval.toIntOrNull() ?: 1,
-                                    intervalValue = intervalValue.toIntOrNull() ?: 1,
                                     intervalUnit = intervalUnit
                                 )
                                 habitDao.updateHabit(updatedHabit)
@@ -368,7 +370,6 @@ fun HabitSheet(
                                     isInverse = false,
                                     emoji = null,
                                     completionsPerInterval = completionsPerInterval.toIntOrNull() ?: 1,
-                                    intervalValue = intervalValue.toIntOrNull() ?: 1,
                                     intervalUnit = intervalUnit
                                 )
                                 habitDao.insertHabit(newHabit)
@@ -377,7 +378,7 @@ fun HabitSheet(
                         }
                     }
                 },
-                enabled = habitName.trim().isNotBlank() && validationResult.completionsError == null && validationResult.intervalValueError == null,
+                enabled = habitName.trim().isNotBlank() && completionsError == null,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(buttonText)
