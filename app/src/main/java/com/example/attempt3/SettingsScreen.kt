@@ -1,13 +1,22 @@
 package com.example.attempt3
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -20,11 +29,13 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Modifier
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -32,10 +43,15 @@ import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase) {
+fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: SettingsDataStore) {
     val scope = rememberCoroutineScope()
     val showConfirmationDialog = remember { mutableStateOf(false) }
     val showSecondConfirmationDialog = remember { mutableStateOf(false) }
+    var showAppearanceScreen by remember { mutableStateOf(false) }
+
+    BackHandler(enabled = showAppearanceScreen) {
+        showAppearanceScreen = false
+    }
 
     if (showConfirmationDialog.value) {
         AlertDialog(
@@ -57,7 +73,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase) {
                             showSecondConfirmationDialog.value = true
                         }
                     ) {
-                        Text("Clear Data",color = Color.Red)
+                        Text("Clear Data", color = Color.Red)
                     }
                 }
             },
@@ -102,10 +118,16 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Settings") },
+                title = { Text(if (showAppearanceScreen) "Appearance" else "Settings") },
                 navigationIcon = {
-                    IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "Close")
+                    if (showAppearanceScreen) {
+                        IconButton(onClick = { showAppearanceScreen = false }) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        }
+                    } else {
+                        IconButton(onClick = onDismiss) {
+                            Icon(Icons.Default.Close, contentDescription = "Close")
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -116,16 +138,43 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase) {
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier.padding(paddingValues)
-        ) {
-            item {
-                ModernSettingsItem(
-                    title = "Clear all data",
-                    subtitle = "Delete all habits and their completions",
-                    icon = Icons.Default.Delete,
-                    iconBackgroundColor = Color.Red,
-                    onClick = { showConfirmationDialog.value = true }
+        Box(modifier = Modifier
+            .padding(paddingValues)
+            .fillMaxSize()) {
+            AnimatedVisibility(
+                visible = !showAppearanceScreen,
+                exit = slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(300)),
+                enter = slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(300))
+            ) {
+                LazyColumn {
+                    item {
+                        ModernSettingsItem(
+                            title = "Appearance",
+                            subtitle = "Change the look and feel of the app",
+                            icon = Icons.Default.Palette,
+                            iconBackgroundColor = MaterialTheme.colorScheme.primary,
+                            onClick = { showAppearanceScreen = true }
+                        )
+                    }
+                    item {
+                        ModernSettingsItem(
+                            title = "Clear all data",
+                            subtitle = "Delete all habits and their completions",
+                            icon = Icons.Default.Delete,
+                            iconBackgroundColor = Color.Red,
+                            onClick = { showConfirmationDialog.value = true }
+                        )
+                    }
+                }
+            }
+
+            AnimatedVisibility(
+                visible = showAppearanceScreen,
+                enter = slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(300)),
+                exit = slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(300))
+            ) {
+                AppearanceScreen(
+                    settingsDataStore = settingsDataStore
                 )
             }
         }

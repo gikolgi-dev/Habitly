@@ -203,8 +203,8 @@ fun HabitDetailScreen(habit: Habit, habitDao: HabitDao, isArchivedView: Boolean,
                             Icon(
                                 imageVector =Icons.Default.Close,
                                 contentDescription = "Close",
-                                modifier = Modifier.size(16.dp),
-                                tint = Color.White
+                                modifier = Modifier.size(20.dp),
+                                tint = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }
@@ -229,7 +229,7 @@ fun HabitDetailScreen(habit: Habit, habitDao: HabitDao, isArchivedView: Boolean,
                                 style = MaterialTheme.typography.bodyMedium,
                                 maxLines = if (isExpanded) Int.MAX_VALUE else 2,
                                 overflow = TextOverflow.Ellipsis,
-                                color = Color.LightGray,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                                 onTextLayout = { textLayoutResult ->
                                     if (!isOverflowing && !isExpanded) {
                                         isOverflowing = textLayoutResult.hasVisualOverflow

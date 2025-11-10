@@ -1,5 +1,6 @@
 package com.example.attempt3
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -77,7 +78,12 @@ fun HabitItemCard(
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
-        )
+
+        ),
+        border = BorderStroke(
+            1.dp,
+            Color.Gray.copy(alpha = 0.15f)
+        ),
     ) {
         Column(modifier = Modifier.padding(8.dp)) {
             Row(

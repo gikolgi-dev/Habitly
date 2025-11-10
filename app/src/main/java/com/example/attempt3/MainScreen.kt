@@ -41,7 +41,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -50,7 +49,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -72,6 +70,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
@@ -82,7 +81,6 @@ import com.github.skydoves.colorpicker.compose.ColorEnvelope
 import com.github.skydoves.colorpicker.compose.HsvColorPicker
 import com.github.skydoves.colorpicker.compose.rememberColorPickerController
 import androidx.compose.material3.ContainedLoadingIndicator
-import androidx.compose.ui.graphics.Shadow
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import java.util.UUID
@@ -93,9 +91,8 @@ import kotlin.math.roundToInt
     ExperimentalFoundationApi::class
 )
 @Composable
-fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: HabitDatabase) {
+fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: HabitDatabase, settingsDataStore: SettingsDataStore) {
     val scope = rememberCoroutineScope()
-    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val haptic = LocalHapticFeedback.current
 
     val habitsUiState by viewModel.habitsUiState.collectAsState()
@@ -242,31 +239,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
 
         Box(Modifier.fillMaxSize()) {
             Scaffold(
-                modifier = mainContentModifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+                modifier = mainContentModifier,
                 contentWindowInsets = WindowInsets.safeDrawing,
-                topBar = {
-                    Box(modifier = Modifier.background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Black,
-                                Color.Transparent
-                            )
-                        )
-                    )) {
-                        CenterAlignedTopAppBar(
-                            title = {
-                                Text(
-                                    "",
-                                )
-                            },
-                            scrollBehavior = scrollBehavior,
-                            colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                                containerColor = Color.Transparent,
-                                scrolledContainerColor = Color.Transparent
-                            )
-                        )
-                    }
-                },
                 floatingActionButton = {
                     AnimatedVisibility(
                         visible = habitsUiState is HabitsUiState.Success,
@@ -486,7 +460,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 enter = slideInVertically(animationSpec = tween(durationMillis = 250)) { it },
                 exit = slideOutVertically(animationSpec = tween(durationMillis = 250)) { it }
             ) {
-                SettingsScreen(onDismiss = { showSettingsScreen = false }, db = db)
+                SettingsScreen(onDismiss = { showSettingsScreen = false }, db = db, settingsDataStore = settingsDataStore)
             }
 
             AnimatedVisibility(
