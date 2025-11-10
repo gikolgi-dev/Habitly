@@ -51,15 +51,15 @@ dependencies {
     implementation("com.github.skydoves:colorpicker-compose:1.0.0")
     implementation("androidx.core:core-splashscreen:1.0.1")
 
-
     // Compose BOM — this controls all compose versions automatically
-    implementation(platform("androidx.compose:compose-bom:2024.10.00")) // or newer
+    implementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(platform(libs.androidx.compose.bom))
 
     // Core Compose libraries
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.ui:ui-graphics")
-    implementation("androidx.compose.ui:ui-tooling-preview")
-    implementation("androidx.compose.material3:material3")
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.ui.graphics)
+    implementation(libs.androidx.compose.ui.tooling.preview)
+    implementation(libs.androidx.compose.material3)
     implementation("androidx.compose.animation:animation") // includes sharedElement
 
     // Extra icons, etc.
@@ -73,6 +73,7 @@ dependencies {
     // Room database
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
+    implementation(libs.material)
     ksp("androidx.room:room-compiler:2.6.1")
 
     // GSON
@@ -91,8 +92,7 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform("androidx.compose:compose-bom:2024.10.00"))
-    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
-    debugImplementation("androidx.compose.ui:ui-tooling")
-    debugImplementation("androidx.compose.ui:ui-test-manifest")
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    debugImplementation(libs.androidx.compose.ui.tooling)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
 }

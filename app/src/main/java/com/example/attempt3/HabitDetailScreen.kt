@@ -13,6 +13,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -32,6 +33,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Archive
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Refresh
@@ -44,6 +46,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.remember
@@ -181,6 +184,29 @@ fun HabitDetailScreen(habit: Habit, habitDao: HabitDao, isArchivedView: Boolean,
                                 overflow = TextOverflow.Ellipsis
                             )
                         }
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.1f))
+                                .border(
+                                    1.dp,
+                                    Color.Gray.copy(alpha = 0.25f),
+                                    RoundedCornerShape(8.dp)
+                                )
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = ripple()
+                                ) { onDismiss() },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector =Icons.Default.Close,
+                                contentDescription = "Close",
+                                modifier = Modifier.size(16.dp),
+                                tint = Color.White
+                            )
+                        }
                     }
 
                     if (habit.description.isNotBlank()) {
@@ -240,10 +266,10 @@ fun HabitDetailScreen(habit: Habit, habitDao: HabitDao, isArchivedView: Boolean,
                                 modifier = Modifier
                                     .size(35.dp)
                                     .clip(RoundedCornerShape(8.dp))
-                                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+                                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.1f))
                                     .border(
                                         1.dp,
-                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f),
+                                        Color.Gray.copy(alpha = 0.25f),
                                         RoundedCornerShape(8.dp)
                                     )
                                     .clickable {
@@ -268,10 +294,10 @@ fun HabitDetailScreen(habit: Habit, habitDao: HabitDao, isArchivedView: Boolean,
                                 modifier = Modifier
                                     .size(35.dp)
                                     .clip(RoundedCornerShape(8.dp))
-                                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+                                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.1f))
                                     .border(
                                         1.dp,
-                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f),
+                                        Color.Gray.copy(alpha = 0.25f),
                                         RoundedCornerShape(8.dp)
                                     )
                                     .clickable {
