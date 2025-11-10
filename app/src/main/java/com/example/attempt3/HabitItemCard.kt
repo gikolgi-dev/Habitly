@@ -16,10 +16,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -60,9 +63,11 @@ fun HabitItemCard(
     habit: Habit,
     isCompleted: Boolean,
     completions: List<Completion>,
-    showCheckbox: Boolean, // New parameter
+    showCheckbox: Boolean,
     onComplete: () -> Unit,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onUnarchive: (() -> Unit)? = null,
+    onDelete: (() -> Unit)? = null
 ) {
     Card(
         modifier = Modifier
@@ -151,15 +156,30 @@ fun HabitItemCard(
                             modifier = Modifier.size(32.dp)
                         )
                     }
+                } else {
+                    Row {
+                        onUnarchive?.let {
+                            IconButton(onClick = it) {
+                                Icon(Icons.Default.Restore, contentDescription = "Unarchive")
+                            }
+                        }
+                        onDelete?.let {
+                            IconButton(onClick = it) {
+                                Icon(Icons.Default.Delete, contentDescription = "Delete")
+                            }
+                        }
+                    }
                 }
             }
-            Spacer(modifier = Modifier.height(8.dp))
-            Heatmap(
-                completions = completions,
-                habitColor = Color(habit.color),
-                modifier = Modifier.fillMaxWidth(),
-                isScrollable = false
-            )
+            if (showCheckbox) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Heatmap(
+                    completions = completions,
+                    habitColor = Color(habit.color),
+                    modifier = Modifier.fillMaxWidth(),
+                    isScrollable = false
+                )
+            }
         }
     }
 }
