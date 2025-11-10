@@ -44,6 +44,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FabPosition
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -248,6 +249,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                         exit = fadeOut()
                     ) {
                         FabMenu(
+                            modifier = Modifier.offset(x = 8.dp, y = 20.dp),
                             onAddHabit = {
                                 habitToEdit = null
                                 showHabitSheet = true
@@ -257,6 +259,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                         )
                     }
                 },
+                floatingActionButtonPosition = FabPosition.End,
                 content = { paddingValues ->
                     Box(modifier = Modifier.fillMaxSize()) {
                         AnimatedVisibility(
@@ -356,6 +359,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                             isCompleted = optimisticCompletionChanges[habitWithCompletions.habit.id] ?: completedHabitIds.contains(habitWithCompletions.habit.id),
                                             completions = habitWithCompletions.completions,
                                             showCheckbox = true,
+                                            monthLabelsFlow = settingsDataStore.monthLabels,
                                             onComplete = {
                                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                                 optimisticCompletionChanges = optimisticCompletionChanges + (habitWithCompletions.habit.id to !(optimisticCompletionChanges[habitWithCompletions.habit.id] ?: completedHabitIds.contains(habitWithCompletions.habit.id)))
@@ -403,7 +407,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 ArchiveScreen(
                     uiState = archivedHabitsUiState,
                     habitDao = habitDao,
-                    onBack = { showArchiveSheet = false }
+                    onBack = { showArchiveSheet = false },
+                    settingsDataStore = settingsDataStore
                 )
             }
 
@@ -436,7 +441,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                         onEditHabit = {
                             habitToEdit = it
                             showHabitSheet = true
-                        }
+                        },
+                        settingsDataStore = settingsDataStore
                     )
                 }
             }
@@ -605,6 +611,14 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                     intervalUnit = intervalUnit
                                 )
                                 habitDao.insertHabit(newHabit)
+                                // Reset the state for the next new habit
+                                habitName = ""
+                                habitDescription = ""
+                                habitColor = habitColors.first()
+                                habitIconKey = defaultHabitIconKey
+                                completionsPerInterval = "1"
+                                intervalUnit = "day"
+                                completionsError = null
                             }
                             showHabitSheet = false
                             habitToEdit = null

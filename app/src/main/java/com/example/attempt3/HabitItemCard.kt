@@ -34,7 +34,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-
+import kotlinx.coroutines.flow.Flow
 
 
 @Composable
@@ -42,6 +42,7 @@ fun HabitList(
     habitsWithCompletions: List<Pair<Habit, List<Completion>>>,
     isHabitCompleted: (Habit) -> Boolean,
     showCheckbox: Boolean,
+    monthLabelsFlow: Flow<Boolean>,
     onComplete: (Habit) -> Unit,
     onClick: (Habit) -> Unit
 ) {
@@ -52,6 +53,7 @@ fun HabitList(
                 isCompleted = isHabitCompleted(habit),
                 completions = completions,
                 showCheckbox = showCheckbox,
+                monthLabelsFlow = monthLabelsFlow,
                 onComplete = { onComplete(habit) },
                 onClick = { onClick(habit) }
             )
@@ -65,11 +67,13 @@ fun HabitItemCard(
     isCompleted: Boolean,
     completions: List<Completion>,
     showCheckbox: Boolean,
+    monthLabelsFlow: Flow<Boolean>,
     onComplete: () -> Unit,
     onClick: () -> Unit,
     onUnarchive: (() -> Unit)? = null,
     onDelete: (() -> Unit)? = null
 ) {
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -183,7 +187,8 @@ fun HabitItemCard(
                     completions = completions,
                     habitColor = Color(habit.color),
                     modifier = Modifier.fillMaxWidth(),
-                    isScrollable = false
+                    isScrollable = false,
+                    showMonthLabelsFlow = monthLabelsFlow,
                 )
             }
         }

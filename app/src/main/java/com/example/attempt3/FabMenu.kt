@@ -2,6 +2,14 @@
 
 package com.example.attempt3
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Archive
@@ -20,7 +28,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 
 @Composable
@@ -36,9 +46,9 @@ fun FabMenu(
 
     val items = listOf(
         FabItem(
-            text = "New habit",
-            icon = Icons.Default.Add,
-            onClick = onAddHabit
+            text = "Settings",
+            icon = Icons.Default.Settings,
+            onClick = onShowSettings
         ),
         FabItem(
             text = "Archived",
@@ -46,45 +56,68 @@ fun FabMenu(
             onClick = onShowArchived
         ),
         FabItem(
-            text = "Settings",
-            icon = Icons.Default.Settings,
-            onClick = onShowSettings
-        )
-    )
+            text = "New habit",
+            icon = Icons.Default.Add,
+            onClick = onAddHabit
+        ),
 
-    FloatingActionButtonMenu(
-        expanded = expanded,
-        button = {
-            ToggleFloatingActionButton(
-                checked = expanded,
-                onCheckedChange = { expanded = it }
-            ) {
-                Icon(
-                    imageVector = if (expanded) Icons.Default.Close else Icons.Default.Menu,
-                    contentDescription = if (expanded) "Close menu" else "Open menu",
-                    tint = if (expanded) {
-                        MaterialTheme.colorScheme.onPrimary
-                    } else {
-                        MaterialTheme.colorScheme.onPrimaryContainer
+        )
+
+    Box(
+        modifier = modifier,
+        contentAlignment = Alignment.BottomEnd
+    ) {
+        AnimatedVisibility(
+            visible = expanded,
+            enter = fadeIn(),
+            exit = fadeOut()
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.6f))
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = { expanded = false }
+                    )
+            )
+        }
+
+        FloatingActionButtonMenu(
+            expanded = expanded,
+            button = {
+                ToggleFloatingActionButton(
+                    checked = expanded,
+                    onCheckedChange = { expanded = it }
+                ) {
+                    Icon(
+                        imageVector = if (expanded) Icons.Default.Close else Icons.Default.Menu,
+                        contentDescription = if (expanded) "Close menu" else "Open menu",
+                        tint = if (expanded) {
+                            MaterialTheme.colorScheme.onPrimary
+                        } else {
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        }
+                    )
+                }
+            },
+        ) {
+            items.forEach { item ->
+                FloatingActionButtonMenuItem(
+                    onClick = {
+                        item.onClick()
+                        expanded = false
+                    },
+                    text = { Text(item.text) },
+                    icon = {
+                        Icon(
+                            imageVector = item.icon,
+                            contentDescription = item.text
+                        )
                     }
                 )
             }
-        },
-    ) {
-        items.forEach { item ->
-            FloatingActionButtonMenuItem(
-                onClick = {
-                    item.onClick()
-                    expanded = false
-                },
-                text = { Text(item.text) },
-                icon = {
-                    Icon(
-                        imageVector = item.icon,
-                        contentDescription = item.text
-                    )
-                }
-            )
         }
     }
 }

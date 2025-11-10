@@ -5,12 +5,15 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -26,6 +29,7 @@ import kotlinx.coroutines.launch
 fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsDataStore) {
     val scope = rememberCoroutineScope()
     val currentTheme by settingsDataStore.theme.collectAsState(initial = "system")
+    val showMonthLabels by settingsDataStore.monthLabels.collectAsState(initial = true)
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -80,6 +84,54 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
                             )
                         }
                     }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "Heatmap",
+                style = MaterialTheme.typography.titleSmall,
+                color = Color.Gray,
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(
+                        1.dp,
+                        Color.Gray.copy(alpha = 0.25f),
+                        RoundedCornerShape(8.dp)
+                    )
+                    .background(MaterialTheme.colorScheme.surface)
+            ) {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .selectable(
+                            selected = showMonthLabels,
+                            onClick = {
+                                scope.launch {
+                                    settingsDataStore.setMonthLabels(!showMonthLabels)
+                                }
+                            }
+                        )
+                        .padding(horizontal = 4.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Switch(
+                        checked = showMonthLabels,
+                        onCheckedChange = {
+                            scope.launch {
+                                settingsDataStore.setMonthLabels(it)
+                            }
+                        }
+                    )
+                    Text(
+                        text = "Toggle month labels",
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.padding(start = 16.dp)
+                    )
                 }
             }
         }

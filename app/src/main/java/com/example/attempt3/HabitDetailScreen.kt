@@ -79,11 +79,12 @@ import java.util.concurrent.TimeUnit
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-fun HabitDetailScreen(habit: Habit, habitDao: HabitDao, isArchivedView: Boolean, animatedVisibilityScope: AnimatedVisibilityScope, onDismiss: () -> Unit, onEditHabit: (Habit) -> Unit) {
+fun HabitDetailScreen(habit: Habit, habitDao: HabitDao, isArchivedView: Boolean, animatedVisibilityScope: AnimatedVisibilityScope, onDismiss: () -> Unit, onEditHabit: (Habit) -> Unit, settingsDataStore: SettingsDataStore) {
     val scope = rememberCoroutineScope()
     val completions by habitDao.getCompletionsForHabit(habit.id).collectAsState(initial = emptyList())
     val haptic = LocalHapticFeedback.current
     var showDeleteConfirmation by remember { mutableStateOf(false) } // State for delete confirmation dialog
+
 
     if (showDeleteConfirmation) {
         AlertDialog(
@@ -251,7 +252,8 @@ fun HabitDetailScreen(habit: Habit, habitDao: HabitDao, isArchivedView: Boolean,
                     Heatmap(
                         completions = completions,
                         habitColor = Color(habit.color),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        showMonthLabelsFlow = settingsDataStore.monthLabels
                     )
 
                     //Spacer(modifier = Modifier.height(10.dp))

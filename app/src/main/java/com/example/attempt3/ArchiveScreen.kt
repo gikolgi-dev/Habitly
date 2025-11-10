@@ -35,11 +35,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ArchiveScreen(uiState: HabitsUiState, habitDao: HabitDao, onBack: () -> Unit) {
+fun ArchiveScreen(uiState: HabitsUiState, habitDao: HabitDao, onBack: () -> Unit, settingsDataStore: SettingsDataStore) {
     val scope = rememberCoroutineScope()
     var habitToDelete by remember { mutableStateOf<Habit?>(null) }
 
@@ -121,6 +122,7 @@ fun ArchiveScreen(uiState: HabitsUiState, habitDao: HabitDao, onBack: () -> Unit
                                         isCompleted = false, // Not relevant for archived habits
                                         completions = habitWithCompletions.completions,
                                         showCheckbox = false,
+                                        monthLabelsFlow = settingsDataStore.monthLabels,
                                         onComplete = { },
                                         onClick = { },
                                         onUnarchive = {

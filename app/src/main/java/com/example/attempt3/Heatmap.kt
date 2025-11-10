@@ -8,28 +8,40 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.flow.Flow
+import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Locale
+import kotlin.math.roundToInt
 
 @Composable
 fun Heatmap(
     completions: List<Completion>,
     habitColor: Color,
     modifier: Modifier = Modifier,
-    isScrollable: Boolean = true
+    isScrollable: Boolean = true,
+    showMonthLabelsFlow: Flow<Boolean>
 ) {
+    val showMonthLabels by showMonthLabelsFlow.collectAsState(initial = true)
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
         val cellSize = 10.dp
         val minSpacing = 4.dp
@@ -114,48 +126,94 @@ fun Heatmap(
                         cal
                     }
 
+                    val monthLabel = remember(weekStartDate, weekIndex, totalWeeks) {
+                        val monthFormat = SimpleDateFormat("MMM", Locale.getDefault())
+                        val tempCal = weekStartDate.clone() as Calendar
+                        // Show month label if the week contains the first day of a month
+                        for (i in 0..6) {
+                            if (tempCal.get(Calendar.DAY_OF_MONTH) == 1) {
+                                return@remember monthFormat.format(tempCal.time)
+                            }
+                            tempCal.add(Calendar.DAY_OF_YEAR, 1)
+                        }
+                        // Also show month label for the oldest week shown
+                        if (weekIndex == totalWeeks - 1 && isScrollable) {
+                            return@remember monthFormat.format(weekStartDate.time)
+                        }
+                        null
+                    }
+
                     Column(
-                        verticalArrangement = Arrangement.spacedBy(minSpacing)
+                        modifier = Modifier.layout { measurable, constraints ->
+                            val placeable = measurable.measure(constraints)
+                            val cellWidthPx = cellSize.toPx().roundToInt()
+                            layout(cellWidthPx, placeable.height) {
+                                val x = (cellWidthPx - placeable.width) / 2
+                                placeable.placeRelative(x, 0)
+                            }
+                        },
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        (0..6).forEach { dayIndex ->
-                            val day = remember(weekStartDate) {
-                                val dayCal = weekStartDate.clone() as Calendar
-                                dayCal.add(Calendar.DAY_OF_YEAR, dayIndex)
-                                dayCal.set(Calendar.HOUR_OF_DAY, 0)
-                                dayCal.set(Calendar.MINUTE, 0)
-                                dayCal.set(Calendar.SECOND, 0)
-                                dayCal.set(Calendar.MILLISECOND, 0)
-                                dayCal
-                            }
-
-                            val isCompleted = completions.any {
-                                val completionCal = Calendar.getInstance().apply { timeInMillis = it.date }
-                                completionCal.get(Calendar.YEAR) == day.get(Calendar.YEAR) &&
-                                        completionCal.get(
-                                            Calendar.DAY_OF_YEAR
-                                        ) == day.get(Calendar.DAY_OF_YEAR)
-                            }
-
-                            val isTodayCell = day.get(Calendar.YEAR) == today.get(Calendar.YEAR) &&
-                                    day.get(Calendar.DAY_OF_YEAR) == today.get(Calendar.DAY_OF_YEAR)
-
-                            val cellColor = when {
-                                isCompleted -> habitColor
-                                day.after(today) -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
-                                else -> habitColor.copy(alpha = 0.15f)
-                            }
-
+                        if (showMonthLabels) {
                             Box(
-                                modifier = Modifier
-                                    .size(cellSize)
-                                    .background(cellColor, RoundedCornerShape(2.dp))
-                                    .aspectRatio(1f) // Maintain aspect ratio
-                                    .border(
-                                        width = 1.dp,
-                                        color = if (isTodayCell) Color.White else Color.Transparent,
-                                        shape = RoundedCornerShape(2.dp)
+                                modifier = Modifier.height(16.dp),
+                                contentAlignment = Alignment.BottomCenter
+                            ) {
+                                monthLabel?.let {
+                                    Text(
+                                        text = it,
+                                        fontSize = 10.sp,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                        maxLines = 1
                                     )
-                            )
+                                }
+                            }
+                        }
+
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(minSpacing)
+                        ) {
+                            (0..6).forEach { dayIndex ->
+                                val day = remember(weekStartDate) {
+                                    val dayCal = weekStartDate.clone() as Calendar
+                                    dayCal.add(Calendar.DAY_OF_YEAR, dayIndex)
+                                    dayCal.set(Calendar.HOUR_OF_DAY, 0)
+                                    dayCal.set(Calendar.MINUTE, 0)
+                                    dayCal.set(Calendar.SECOND, 0)
+                                    dayCal.set(Calendar.MILLISECOND, 0)
+                                    dayCal
+                                }
+
+                                val isCompleted = completions.any {
+                                    val completionCal = Calendar.getInstance().apply { timeInMillis = it.date }
+                                    completionCal.get(Calendar.YEAR) == day.get(Calendar.YEAR) &&
+                                            completionCal.get(
+                                                Calendar.DAY_OF_YEAR
+                                            ) == day.get(Calendar.DAY_OF_YEAR)
+                                }
+
+                                val isTodayCell = day.get(Calendar.YEAR) == today.get(Calendar.YEAR) &&
+                                        day.get(Calendar.DAY_OF_YEAR) == today.get(Calendar.DAY_OF_YEAR)
+
+                                val cellColor = when {
+                                    isCompleted -> habitColor
+                                    day.after(today) -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
+                                    else -> habitColor.copy(alpha = 0.15f)
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .size(cellSize)
+                                        .background(cellColor, RoundedCornerShape(2.dp))
+                                        .aspectRatio(1f) // Maintain aspect ratio
+                                        .border(
+                                            width = 1.dp,
+                                            color = if (isTodayCell) Color.White else Color.Transparent,
+                                            shape = RoundedCornerShape(2.dp)
+                                        )
+                                )
+                            }
                         }
                     }
                 }
