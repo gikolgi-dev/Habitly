@@ -22,16 +22,19 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -79,6 +82,7 @@ import com.github.skydoves.colorpicker.compose.ColorEnvelope
 import com.github.skydoves.colorpicker.compose.HsvColorPicker
 import com.github.skydoves.colorpicker.compose.rememberColorPickerController
 import androidx.compose.material3.ContainedLoadingIndicator
+import androidx.compose.ui.graphics.Shadow
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import java.util.UUID
@@ -203,14 +207,18 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
             title = { Text("Choose a color") },
             text = {
                 HsvColorPicker(
-                    modifier = Modifier.fillMaxWidth().height(300.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(300.dp),
                     controller = controller,
                     onColorChanged = { colorEnvelope: ColorEnvelope -> tempColor = colorEnvelope.color }
                 )
             },
             confirmButton = {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp),
                     horizontalArrangement = Arrangement.End
                 ) {
                     TextButton(onClick = { showColorPicker = false }) { Text("Cancel") }
@@ -235,15 +243,29 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
         Box(Modifier.fillMaxSize()) {
             Scaffold(
                 modifier = mainContentModifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+                contentWindowInsets = WindowInsets.safeDrawing,
                 topBar = {
-                    CenterAlignedTopAppBar(
-                        title = { Text("Habitly", fontWeight = FontWeight.SemiBold) },
-                        scrollBehavior = scrollBehavior,
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = Color.Transparent,
-                            scrolledContainerColor = MaterialTheme.colorScheme.background
+                    Box(modifier = Modifier.background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Black,
+                                Color.Transparent
+                            )
                         )
-                    )
+                    )) {
+                        CenterAlignedTopAppBar(
+                            title = {
+                                Text(
+                                    "",
+                                )
+                            },
+                            scrollBehavior = scrollBehavior,
+                            colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                                containerColor = Color.Transparent,
+                                scrolledContainerColor = Color.Transparent
+                            )
+                        )
+                    }
                 },
                 floatingActionButton = {
                     AnimatedVisibility(
@@ -262,7 +284,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                     }
                 },
                 content = { paddingValues ->
-                    Box(modifier = Modifier.padding(paddingValues)) {
+                    Box(modifier = Modifier.fillMaxSize()) {
                         AnimatedVisibility(
                             visible = habitsUiState is HabitsUiState.Loading,
                             exit = fadeOut(animationSpec = tween(durationMillis = 500))
@@ -315,21 +337,27 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .verticalScroll(scrollState, enabled = habitToView == null && habitToEdit == null)
-                                    .padding(PaddingValues(bottom = 80.dp)),
+                                    .padding(top = paddingValues.calculateTopPadding()),
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 ElevatedCard(
-                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp, vertical = 2.dp),
                                     shape = RoundedCornerShape(16.dp),
                                     elevation = CardDefaults.elevatedCardElevation()
                                 ) {
                                     Box(
-                                        modifier = Modifier.fillMaxWidth().height(140.dp).background(
-                                            brush = Brush.linearGradient(
-                                                colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.surface),
-                                                start = Offset.Zero, end = Offset.Infinite
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(140.dp)
+                                            .background(
+                                                brush = Brush.linearGradient(
+                                                    colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.surface),
+                                                    start = Offset.Zero, end = Offset.Infinite
+                                                )
                                             )
-                                        ).padding(16.dp)
+                                            .padding(16.dp)
                                     ) {
                                         Column {
                                             Text("Welcome back", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
@@ -337,9 +365,13 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                             Text("Track your habits, build your future.", style = MaterialTheme.typography.bodyMedium)
                                         }
                                         Box(
-                                            modifier = Modifier.size(72.dp).align(Alignment.CenterEnd).clip(CircleShape).background(
-                                                brush = Brush.radialGradient(colors = listOf(Color.White.copy(alpha = 0.06f), Color.Transparent))
-                                            )
+                                            modifier = Modifier
+                                                .size(72.dp)
+                                                .align(Alignment.CenterEnd)
+                                                .clip(CircleShape)
+                                                .background(
+                                                    brush = Brush.radialGradient(colors = listOf(Color.White.copy(alpha = 0.06f), Color.Transparent))
+                                                )
                                         )
                                     }
                                 }
@@ -367,6 +399,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                         )
                                     }
                                 }
+                                Spacer(modifier = Modifier.height(80.dp))
+                                Spacer(modifier = Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
                             }
                         }
                     }
@@ -405,7 +439,10 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 exit = fadeOut()
             ) {
                 Box(
-                    modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)).clickable { habitToView = null }
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.5f))
+                        .clickable { habitToView = null }
                 )
             }
 
@@ -436,7 +473,10 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 exit = fadeOut()
             ) {
                 Box(
-                    modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)).clickable { showSettingsScreen = false }
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.5f))
+                        .clickable { showSettingsScreen = false }
                 )
             }
 
@@ -455,7 +495,10 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 exit = fadeOut()
             ) {
                 Box(
-                    modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)).clickable { showHabitSheet = false }
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.5f))
+                        .clickable { showHabitSheet = false }
                 )
             }
 
@@ -500,15 +543,22 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 }
 
                 Surface(
-                    modifier = Modifier.fillMaxHeight(0.9f).offset { IntOffset(0, sheetOffsetY.value.roundToInt()) }.nestedScroll(nestedScrollConnection),
+                    modifier = Modifier
+                        .fillMaxHeight(0.9f)
+                        .offset { IntOffset(0, sheetOffsetY.value.roundToInt()) }
+                        .nestedScroll(nestedScrollConnection),
                     shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
                     color = MaterialTheme.colorScheme.surface
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Box(
-                            modifier = Modifier.padding(vertical = 10.dp).fillMaxWidth(0.15f).height(4.dp).background(
-                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f), shape = CircleShape
-                            )
+                            modifier = Modifier
+                                .padding(vertical = 10.dp)
+                                .fillMaxWidth(0.15f)
+                                .height(4.dp)
+                                .background(
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f), shape = CircleShape
+                                )
                         )
                         HabitSheetContent(
                             title = title,

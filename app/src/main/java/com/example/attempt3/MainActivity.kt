@@ -1,9 +1,12 @@
 package com.example.attempt3
 
+import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,8 +18,10 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.core.view.WindowCompat
 import androidx.room.Room
 
 class MainActivity : ComponentActivity() {
@@ -34,6 +39,21 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         installSplashScreen()
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        val isSystemInDarkTheme = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+                Configuration.UI_MODE_NIGHT_YES
+        enableEdgeToEdge(
+            navigationBarStyle = if (isSystemInDarkTheme) {
+                SystemBarStyle.dark(
+                    Color.Transparent.toArgb()
+                )
+            } else {
+                SystemBarStyle.light(
+                    Color.Transparent.toArgb(),
+                    Color.Transparent.toArgb()
+                )
+            }
+        )
         setContent {
             // App theme and content
             ExpressiveDarkApp(viewModel = viewModel, habitDao = db.habitDao(), db = db)
