@@ -169,8 +169,8 @@ fun HabitDetailScreen(habit: Habit, habitDao: HabitDao, isArchivedView: Boolean,
                             Icon(
                                 imageVector = icon,
                                 contentDescription = habit.icon,
-                                modifier = Modifier.size(48.dp),
-                                tint = Color(habit.color)
+                                modifier = Modifier.size(40.dp),
+                                tint = Color(habit.color).copy(alpha = 0.85f)
                             )
                         }
                         Spacer(modifier = Modifier.size(16.dp))
