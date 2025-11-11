@@ -1,9 +1,13 @@
+@file:OptIn(ExperimentalLayoutApi::class)
+
 package com.example.attempt3
+import androidx.compose.animation.animateColorAsState
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -20,19 +24,20 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items as gridItems
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -41,26 +46,25 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.fromColorLong
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.lazy.grid.items as gridItems
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
@@ -123,8 +127,7 @@ fun HabitSheetContent(
                 unfocusedTextColor = MaterialTheme.colorScheme.onSurface
             )
         )
-        Spacer(modifier = Modifier.height(16.dp))
-
+        Spacer(modifier = Modifier.height(8.dp))
         Text("Interval", style = MaterialTheme.typography.titleMedium)
         Spacer(modifier = Modifier.height(8.dp))
         AnimatedVisibility(
@@ -177,9 +180,12 @@ fun HabitSheetContent(
                 }
             }
         }
-        Spacer(modifier = Modifier.height(16.dp))
-
-
+        Spacer(modifier = Modifier.height(8.dp))
+        HorizontalDivider(
+            thickness = 1.dp,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+        )
+        Spacer(modifier = Modifier.height(8.dp))
         Text("Choose an Icon", style = MaterialTheme.typography.titleMedium)
         Spacer(modifier = Modifier.height(8.dp))
         LazyVerticalGrid(
@@ -192,24 +198,34 @@ fun HabitSheetContent(
         ) {
             gridItems(habitIconMap.keys.toList()) { iconKey ->
                 val isSelected = habitIconKey == iconKey
+                val animatedBorderWidth by animateDpAsState(targetValue = if (isSelected) 2.dp else 1.dp, label = "borderWidth")
+                val animatedBorderColor by animateColorAsState(
+                    targetValue = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray.copy(alpha = 0.3f),
+                    label = "borderColor"
+                )
+                val animatedBackgroundColor by animateColorAsState(
+                    targetValue = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+                    label = "backgroundColor"
+                )
+
                 val icon = habitIconMap[iconKey] ?: Icons.Default.Refresh // Fallback icon
                 Box(
                     modifier = Modifier
                         .aspectRatio(1f)
                         .clip(RoundedCornerShape(6.dp))
                         .background(
-                            if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
+                            animatedBackgroundColor
                         )
                         .clickable {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            onHabitIconKeyChanged(iconKey)
+                            if (!isSelected) {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                onHabitIconKeyChanged(iconKey)
+                            }
                         }
                         .border(
-                            width = if (isSelected) 2.dp else 1.dp,
-                            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray.copy(
-                                alpha = 0.3f
-                            ),
+                            width = animatedBorderWidth,
+                            color = animatedBorderColor,
                             shape = RoundedCornerShape(6.dp)
                         ),
                     contentAlignment = Alignment.Center
@@ -308,7 +324,6 @@ fun HabitSheetContent(
                 }
             }
         }
-        Spacer(modifier = Modifier.height(80.dp)) // Spacer for the floating button
     }
 }
 
@@ -318,7 +333,10 @@ fun SaveHabitButton(
     isEnabled: Boolean,
     onClick: () -> Unit
 ) {
+    val isKeyboardOpen by rememberUpdatedState(WindowInsets.isImeVisible)
     val haptic = LocalHapticFeedback.current
+    val padding by animateDpAsState(targetValue = if (isKeyboardOpen) 8.dp else 20.dp, label = "buttonPadding")
+
     Button(
         onClick = {
             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
@@ -327,9 +345,10 @@ fun SaveHabitButton(
         enabled = isEnabled,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
+            .padding(padding)
+            .imePadding(),
         colors = ButtonDefaults.buttonColors(
-            disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 1f),
+            disabledContainerColor = Color.Gray,
             disabledContentColor = MaterialTheme.colorScheme.primary.copy(alpha = 1f)
         )
     ) {
