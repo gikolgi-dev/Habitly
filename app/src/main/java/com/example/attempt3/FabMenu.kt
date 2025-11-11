@@ -32,6 +32,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 
 @Composable
 fun FabMenu(
@@ -43,7 +45,7 @@ fun FabMenu(
     var expanded by remember {
         mutableStateOf(false)
     }
-
+    val haptic = LocalHapticFeedback.current
     val items = listOf(
         FabItem(
             text = "Settings",
@@ -89,7 +91,10 @@ fun FabMenu(
             button = {
                 ToggleFloatingActionButton(
                     checked = expanded,
-                    onCheckedChange = { expanded = it }
+                    onCheckedChange = { expanded = it
+                        haptic.performHapticFeedback(if(expanded) HapticFeedbackType.ToggleOff else HapticFeedbackType.ToggleOn)
+                    }
+
                 ) {
                     Icon(
                         imageVector = if (expanded) Icons.Default.Close else Icons.Default.Menu,
@@ -108,6 +113,7 @@ fun FabMenu(
                     onClick = {
                         item.onClick()
                         expanded = false
+                        haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
                     },
                     text = { Text(item.text) },
                     icon = {

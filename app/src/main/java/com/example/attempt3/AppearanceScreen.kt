@@ -21,7 +21,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 
@@ -30,6 +32,7 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
     val scope = rememberCoroutineScope()
     val currentTheme by settingsDataStore.theme.collectAsState(initial = "system")
     val showMonthLabels by settingsDataStore.monthLabels.collectAsState(initial = true)
+    val haptic = LocalHapticFeedback.current
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -59,14 +62,16 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
                             Modifier
                                 .fillMaxWidth()
                                 .selectable(
-                                    selected = (theme.lowercase() == currentTheme),
+                                    selected = (theme.lowercase() == currentTheme), // (1)
                                     onClick = {
                                         scope.launch {
                                             settingsDataStore.setTheme(theme.lowercase())
                                         }
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+
                                     }
                                 )
-                                .padding(horizontal = 4.dp, vertical = 4.dp),
+                                .padding(start = 8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             RadioButton(
@@ -75,19 +80,20 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
                                     scope.launch {
                                         settingsDataStore.setTheme(theme.lowercase())
                                     }
+                                    haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
                                 }
                             )
                             Text(
                                 text = theme,
                                 style = MaterialTheme.typography.bodyLarge,
-                                modifier = Modifier.padding(start = 16.dp)
+                                modifier = Modifier.padding(start = 8.dp)
                             )
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             Text(
                 text = "Heatmap",
@@ -114,6 +120,7 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
                                 scope.launch {
                                     settingsDataStore.setMonthLabels(!showMonthLabels)
                                 }
+                                haptic.performHapticFeedback(if(!showMonthLabels) HapticFeedbackType.ToggleOff else HapticFeedbackType.ToggleOn)
                             }
                         )
                         .padding(horizontal = 4.dp, vertical = 4.dp),
@@ -121,10 +128,12 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
                 ) {
                     Switch(
                         checked = showMonthLabels,
+                        modifier = Modifier.padding(start = 16.dp),
                         onCheckedChange = {
                             scope.launch {
                                 settingsDataStore.setMonthLabels(it)
                             }
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         }
                     )
                     Text(

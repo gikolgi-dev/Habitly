@@ -115,6 +115,7 @@ fun HabitSheetContent(
             onValueChange = onHabitDescriptionChanged,
             label = { Text("Description") },
             modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.onSurface,
                 unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
@@ -138,6 +139,7 @@ fun HabitSheetContent(
                     label = { Text("Completions per ${intervalUnit.replaceFirstChar { it.uppercase() }}") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     isError = completionsError != null,
+                    singleLine = true,
                     supportingText = { if (completionsError != null) Text(completionsError) },
                     modifier = Modifier.fillMaxWidth()
                 )
