@@ -264,6 +264,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                     Box(modifier = Modifier.fillMaxSize()) {
                         AnimatedVisibility(
                             visible = habitsUiState is HabitsUiState.Loading,
+                            enter = fadeIn(animationSpec = tween(durationMillis = 500)),
                             exit = fadeOut(animationSpec = tween(durationMillis = 500))
                         ) {
                             Column(
