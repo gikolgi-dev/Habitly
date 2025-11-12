@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 sealed interface HabitsUiState {
     data object Loading : HabitsUiState
@@ -38,6 +39,11 @@ class HabitViewModel(private val habitDao: HabitDao) : ViewModel() {
                 started = SharingStarted.WhileSubscribed(5000),
                 initialValue = HabitsUiState.Loading
             )
+    fun reorderHabits(habits: List<Habit>) {
+        viewModelScope.launch {
+            habitDao.updateHabits(habits)
+        }
+    }
 }
 
 class HabitViewModelFactory(private val habitDao: HabitDao) : ViewModelProvider.Factory {

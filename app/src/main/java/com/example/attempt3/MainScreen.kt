@@ -459,7 +459,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 enter = slideInHorizontally(animationSpec = tween(durationMillis = 250)) { -it },
                 exit = slideOutHorizontally(animationSpec = tween(durationMillis = 250)) { -it }
             ) {
-                ReorderScreen(onBack = { showReorderSheet = false })
+                ReorderScreen(habitViewModel = viewModel, onBack = { showReorderSheet = false })
             }
 
             AnimatedVisibility(
