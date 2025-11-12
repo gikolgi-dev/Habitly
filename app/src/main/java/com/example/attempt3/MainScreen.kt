@@ -131,6 +131,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     var pickerInitialColor by remember { mutableStateOf<Color?>(null) }
     var showSettingsScreen by remember { mutableStateOf(false) }
     var showArchiveSheet by remember { mutableStateOf(false) }
+    var isFabMenuExpanded by remember { mutableStateOf(false) }
 
     val isEditMode = habitToEdit != null
     val title = if (isEditMode) "Edit Habit" else "Add New Habit"
@@ -194,12 +195,13 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
         }
     }
 
-    if (showHabitSheet || showSettingsScreen || habitToView != null || showArchiveSheet) {
+    if (showHabitSheet || showSettingsScreen || habitToView != null || showArchiveSheet || isFabMenuExpanded) {
         BackHandler {
             showHabitSheet = false
             showSettingsScreen = false
             habitToView = null
             showArchiveSheet = false
+            isFabMenuExpanded = false
         }
     }
 
@@ -238,7 +240,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     }
 
     SharedTransitionLayout {
-        val mainContentModifier = if ((habitToView != null || habitToEdit != null || showArchiveSheet) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        val mainContentModifier = if ((habitToView != null || habitToEdit != null || showArchiveSheet || isFabMenuExpanded) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             Modifier.blur(16.dp)
         } else {
             Modifier
@@ -246,7 +248,6 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
 
         Box(Modifier.fillMaxSize()) {
             Scaffold(
-                modifier = mainContentModifier,
                 contentWindowInsets = WindowInsets.safeDrawing,
                 floatingActionButton = {
                     AnimatedVisibility(
@@ -256,6 +257,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                     ) {
                         FabMenu(
                             modifier = Modifier.offset(x = 8.dp, y = 20.dp),
+                            expanded = isFabMenuExpanded,
+                            onExpandedChange = { isFabMenuExpanded = it },
                             onAddHabit = {
                                 habitToEdit = null
                                 showHabitSheet = true
@@ -268,125 +271,141 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 floatingActionButtonPosition = FabPosition.End,
                 content = { paddingValues ->
                     Box(modifier = Modifier.fillMaxSize()) {
-                        AnimatedVisibility(
-                            visible = habitsUiState is HabitsUiState.Loading,
-                            enter = fadeIn(animationSpec = tween(durationMillis = 500)),
-                            exit = fadeOut(animationSpec = tween(durationMillis = 500))
-                        ) {
-                            Column(
-                                modifier = Modifier.fillMaxSize(),
-                                verticalArrangement = Arrangement.Center,
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                ContainedLoadingIndicator()
+                        Surface(modifier = mainContentModifier.fillMaxSize()) {
+                            Box(modifier = Modifier.fillMaxSize()) {
+                                AnimatedVisibility(
+                                    visible = habitsUiState is HabitsUiState.Loading,
+                                    enter = fadeIn(animationSpec = tween(durationMillis = 500)),
+                                    exit = fadeOut(animationSpec = tween(durationMillis = 500))
+                                ) {
+                                    Column(
+                                        modifier = Modifier.fillMaxSize(),
+                                        verticalArrangement = Arrangement.Center,
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        ContainedLoadingIndicator()
+                                    }
+                                }
+                                AnimatedVisibility(
+                                    visible = habitsUiState is HabitsUiState.Success,
+                                    modifier = Modifier.fillMaxSize()
+                                ) {
+                                    val habitsWithCompletions = (habitsUiState as? HabitsUiState.Success)?.habits ?: emptyList()
+
+                                    val optimisticallyUpdatedHabitsWithCompletions = remember(habitsWithCompletions, optimisticCompletionChanges) {
+                                        if (optimisticCompletionChanges.isEmpty()) {
+                                            habitsWithCompletions
+                                        } else {
+                                            habitsWithCompletions.map { habitWithCompletions ->
+                                                val habitId = habitWithCompletions.habit.id
+                                                val change = optimisticCompletionChanges[habitId]
+                                                if (change == null) {
+                                                    habitWithCompletions
+                                                } else if (change) { // Completed
+                                                    val alreadyCompletedToday = habitWithCompletions.completions.any { it.date in startOfDay..endOfDay }
+                                                    if (alreadyCompletedToday) habitWithCompletions else {
+                                                        val newCompletion = Completion(
+                                                            id = UUID.randomUUID().toString(),
+                                                            habitId = habitId,
+                                                            date = System.currentTimeMillis(),
+                                                            timezoneOffsetInMinutes = timezoneOffsetInMinutes,
+                                                            amountOfCompletions = 1
+                                                        )
+                                                        habitWithCompletions.copy(completions = habitWithCompletions.completions + newCompletion)
+                                                    }
+                                                } else { // Un-completed
+                                                    habitWithCompletions.copy(completions = habitWithCompletions.completions.filterNot { it.date in startOfDay..endOfDay })
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    val scrollState = rememberScrollState()
+
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .verticalScroll(scrollState, enabled = habitToView == null && habitToEdit == null)
+                                            .padding(top = paddingValues.calculateTopPadding()),
+                                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        ElevatedCard(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 12.dp, vertical = 2.dp),
+                                            shape = RoundedCornerShape(16.dp),
+                                            elevation = CardDefaults.elevatedCardElevation()
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .height(140.dp)
+                                                    .background(
+                                                        brush = Brush.linearGradient(
+                                                            colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.surface),
+                                                            start = Offset.Zero, end = Offset.Infinite
+                                                        )
+                                                    )
+                                                    .padding(16.dp)
+                                            ) {
+                                                Column {
+                                                    Text("Welcome back", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                                                    Spacer(modifier = Modifier.height(4.dp))
+                                                    Text("Track your habits, build your future.", style = MaterialTheme.typography.bodyMedium)
+                                                }
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(72.dp)
+                                                        .align(Alignment.CenterEnd)
+                                                        .clip(CircleShape)
+                                                        .background(
+                                                            brush = Brush.radialGradient(colors = listOf(Color.White.copy(alpha = 0.06f), Color.Transparent))
+                                                        )
+                                                )
+                                            }
+                                        }
+                                        optimisticallyUpdatedHabitsWithCompletions.forEach { habitWithCompletions ->
+                                            key(habitWithCompletions.habit.id) {
+                                                HabitItemCard(
+                                                    habit = habitWithCompletions.habit,
+                                                    isCompleted = optimisticCompletionChanges[habitWithCompletions.habit.id] ?: completedHabitIds.contains(habitWithCompletions.habit.id),
+                                                    completions = habitWithCompletions.completions,
+                                                    showCheckbox = true,
+                                                    monthLabelsFlow = settingsDataStore.monthLabels,
+                                                    onComplete = {
+                                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                        optimisticCompletionChanges = optimisticCompletionChanges + (habitWithCompletions.habit.id to !(optimisticCompletionChanges[habitWithCompletions.habit.id] ?: completedHabitIds.contains(habitWithCompletions.habit.id)))
+                                                        scope.launch {
+                                                            if (!(optimisticCompletionChanges[habitWithCompletions.habit.id] ?: completedHabitIds.contains(habitWithCompletions.habit.id))) {
+                                                                habitDao.insertCompletion(
+                                                                    Completion(id = UUID.randomUUID().toString(), habitId = habitWithCompletions.habit.id, date = System.currentTimeMillis(), timezoneOffsetInMinutes = timezoneOffsetInMinutes, amountOfCompletions = 1)
+                                                                )
+                                                            } else {
+                                                                habitDao.deleteCompletionsForHabitOnDay(habitWithCompletions.habit.id, startOfDay, endOfDay)
+                                                            }
+                                                        }
+                                                    },
+                                                    onClick = { habitToView = habitWithCompletions.habit }
+                                                )
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.height(80.dp))
+                                        Spacer(modifier = Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
+                                    }
+                                }
                             }
                         }
                         AnimatedVisibility(
-                            visible = habitsUiState is HabitsUiState.Success,
-                            modifier = Modifier.fillMaxSize()
+                            visible = isFabMenuExpanded,
+                            enter = fadeIn(),
+                            exit = fadeOut()
                         ) {
-                            val habitsWithCompletions = (habitsUiState as? HabitsUiState.Success)?.habits ?: emptyList()
-
-                            val optimisticallyUpdatedHabitsWithCompletions = remember(habitsWithCompletions, optimisticCompletionChanges) {
-                                if (optimisticCompletionChanges.isEmpty()) {
-                                    habitsWithCompletions
-                                } else {
-                                    habitsWithCompletions.map { habitWithCompletions ->
-                                        val habitId = habitWithCompletions.habit.id
-                                        val change = optimisticCompletionChanges[habitId]
-                                        if (change == null) {
-                                            habitWithCompletions
-                                        } else if (change) { // Completed
-                                            val alreadyCompletedToday = habitWithCompletions.completions.any { it.date in startOfDay..endOfDay }
-                                            if (alreadyCompletedToday) habitWithCompletions else {
-                                                val newCompletion = Completion(
-                                                    id = UUID.randomUUID().toString(),
-                                                    habitId = habitId,
-                                                    date = System.currentTimeMillis(),
-                                                    timezoneOffsetInMinutes = timezoneOffsetInMinutes,
-                                                    amountOfCompletions = 1
-                                                )
-                                                habitWithCompletions.copy(completions = habitWithCompletions.completions + newCompletion)
-                                            }
-                                        } else { // Un-completed
-                                            habitWithCompletions.copy(completions = habitWithCompletions.completions.filterNot { it.date in startOfDay..endOfDay })
-                                        }
-                                    }
-                                }
-                            }
-
-                            val scrollState = rememberScrollState()
-
-                            Column(
+                            Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .verticalScroll(scrollState, enabled = habitToView == null && habitToEdit == null)
-                                    .padding(top = paddingValues.calculateTopPadding()),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                ElevatedCard(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 12.dp, vertical = 2.dp),
-                                    shape = RoundedCornerShape(16.dp),
-                                    elevation = CardDefaults.elevatedCardElevation()
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(140.dp)
-                                            .background(
-                                                brush = Brush.linearGradient(
-                                                    colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.surface),
-                                                    start = Offset.Zero, end = Offset.Infinite
-                                                )
-                                            )
-                                            .padding(16.dp)
-                                    ) {
-                                        Column {
-                                            Text("Welcome back", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                                            Spacer(modifier = Modifier.height(4.dp))
-                                            Text("Track your habits, build your future.", style = MaterialTheme.typography.bodyMedium)
-                                        }
-                                        Box(
-                                            modifier = Modifier
-                                                .size(72.dp)
-                                                .align(Alignment.CenterEnd)
-                                                .clip(CircleShape)
-                                                .background(
-                                                    brush = Brush.radialGradient(colors = listOf(Color.White.copy(alpha = 0.06f), Color.Transparent))
-                                                )
-                                        )
-                                    }
-                                }
-                                optimisticallyUpdatedHabitsWithCompletions.forEach { habitWithCompletions ->
-                                    key(habitWithCompletions.habit.id) {
-                                        HabitItemCard(
-                                            habit = habitWithCompletions.habit,
-                                            isCompleted = optimisticCompletionChanges[habitWithCompletions.habit.id] ?: completedHabitIds.contains(habitWithCompletions.habit.id),
-                                            completions = habitWithCompletions.completions,
-                                            showCheckbox = true,
-                                            monthLabelsFlow = settingsDataStore.monthLabels,
-                                            onComplete = {
-                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                optimisticCompletionChanges = optimisticCompletionChanges + (habitWithCompletions.habit.id to !(optimisticCompletionChanges[habitWithCompletions.habit.id] ?: completedHabitIds.contains(habitWithCompletions.habit.id)))
-                                                scope.launch {
-                                                    if (!(optimisticCompletionChanges[habitWithCompletions.habit.id] ?: completedHabitIds.contains(habitWithCompletions.habit.id))) {
-                                                        habitDao.insertCompletion(
-                                                            Completion(id = UUID.randomUUID().toString(), habitId = habitWithCompletions.habit.id, date = System.currentTimeMillis(), timezoneOffsetInMinutes = timezoneOffsetInMinutes, amountOfCompletions = 1)
-                                                        )
-                                                    } else {
-                                                        habitDao.deleteCompletionsForHabitOnDay(habitWithCompletions.habit.id, startOfDay, endOfDay)
-                                                    }
-                                                }
-                                            },
-                                            onClick = { habitToView = habitWithCompletions.habit }
-                                        )
-                                    }
-                                }
-                                Spacer(modifier = Modifier.height(80.dp))
-                                Spacer(modifier = Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
-                            }
+                                    .background(Color.Black.copy(alpha = 0.5f))
+                                    .clickable { isFabMenuExpanded = false }
+                            )
                         }
                     }
                 }

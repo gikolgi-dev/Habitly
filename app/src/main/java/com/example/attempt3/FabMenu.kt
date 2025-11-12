@@ -38,13 +38,12 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 @Composable
 fun FabMenu(
     modifier: Modifier = Modifier,
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
     onAddHabit: () -> Unit,
     onShowArchived: () -> Unit,
     onShowSettings: () -> Unit
 ) {
-    var expanded by remember {
-        mutableStateOf(false)
-    }
     val haptic = LocalHapticFeedback.current
     val items = listOf(
         FabItem(
@@ -69,29 +68,13 @@ fun FabMenu(
         modifier = modifier,
         contentAlignment = Alignment.BottomEnd
     ) {
-        AnimatedVisibility(
-            visible = expanded,
-            enter = fadeIn(),
-            exit = fadeOut()
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.6f))
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = { expanded = false }
-                    )
-            )
-        }
-
         FloatingActionButtonMenu(
             expanded = expanded,
             button = {
                 ToggleFloatingActionButton(
                     checked = expanded,
-                    onCheckedChange = { expanded = it
+                    onCheckedChange = {
+                        onExpandedChange(it)
                         haptic.performHapticFeedback(if(expanded) HapticFeedbackType.ToggleOff else HapticFeedbackType.ToggleOn)
                     }
 
@@ -112,7 +95,7 @@ fun FabMenu(
                 FloatingActionButtonMenuItem(
                     onClick = {
                         item.onClick()
-                        expanded = false
+                        onExpandedChange(false)
                         haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
                     },
                     text = { Text(item.text) },
