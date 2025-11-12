@@ -1,6 +1,5 @@
 package com.example.attempt3
 
-import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Database
 import androidx.room.Delete
