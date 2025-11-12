@@ -30,7 +30,8 @@ fun FabMenu(
     onExpandedChange: (Boolean) -> Unit,
     onAddHabit: () -> Unit,
     onShowArchived: () -> Unit,
-    onShowSettings: () -> Unit
+    onShowSettings: () -> Unit,
+    onShowReorder: () -> Unit
 ) {
     val haptic = LocalHapticFeedback.current
     val items = listOf(
@@ -38,6 +39,11 @@ fun FabMenu(
             text = "Settings",
             icon = Icons.Default.Settings,
             onClick = onShowSettings
+        ),
+        FabItem(
+            text = "Reorder",
+            icon = Icons.Default.Menu,
+            onClick = onShowReorder
         ),
         FabItem(
             text = "Archived",

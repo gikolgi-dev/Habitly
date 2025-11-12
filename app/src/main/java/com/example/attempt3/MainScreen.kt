@@ -130,6 +130,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     var pickerInitialColor by remember { mutableStateOf<Color?>(null) }
     var showSettingsScreen by remember { mutableStateOf(false) }
     var showArchiveSheet by remember { mutableStateOf(false) }
+    var showReorderSheet by remember { mutableStateOf(false) }
     var isFabMenuExpanded by remember { mutableStateOf(false) }
 
     val isEditMode = habitToEdit != null
@@ -194,13 +195,14 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
         }
     }
 
-    if (showHabitSheet || showSettingsScreen || habitToView != null || showArchiveSheet || isFabMenuExpanded) {
+    if (showHabitSheet || showSettingsScreen || habitToView != null || showArchiveSheet || isFabMenuExpanded || showReorderSheet) {
         BackHandler {
             showHabitSheet = false
             showSettingsScreen = false
             habitToView = null
             showArchiveSheet = false
             isFabMenuExpanded = false
+            showReorderSheet = false
         }
     }
 
@@ -239,7 +241,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     }
 
     SharedTransitionLayout {
-        val mainContentModifier = if ((habitToView != null || habitToEdit != null || showArchiveSheet || isFabMenuExpanded) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        val mainContentModifier = if ((habitToView != null || habitToEdit != null || showArchiveSheet || isFabMenuExpanded || showReorderSheet) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             Modifier.blur(16.dp)
         } else {
             Modifier
@@ -263,14 +265,15 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                 showHabitSheet = true
                             },
                             onShowArchived = { showArchiveSheet = true },
-                            onShowSettings = { showSettingsScreen = true }
+                            onShowSettings = { showSettingsScreen = true },
+                            onShowReorder = { showReorderSheet = true }
                         )
                     }
                 },
                 floatingActionButtonPosition = FabPosition.End,
                 content = { paddingValues ->
                     Box(modifier = Modifier.fillMaxSize()) {
-                        Surface(modifier = mainContentModifier.fillMaxSize()) {
+                        Surface(modifier = mainContentModifier.fillMaxSize(),color = MaterialTheme.colorScheme.background) {
                             Box(modifier = Modifier.fillMaxSize()) {
                                 AnimatedVisibility(
                                     visible = habitsUiState is HabitsUiState.Loading,
@@ -391,7 +394,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                         Spacer(modifier = Modifier.height(80.dp))
                                         Spacer(modifier = Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
                                     }
-                                }
+                                 }
                             }
                         }
                         AnimatedVisibility(
@@ -435,6 +438,28 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                     onBack = { showArchiveSheet = false },
                     settingsDataStore = settingsDataStore
                 )
+            }
+            
+            AnimatedVisibility(
+                visible = showReorderSheet,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.5f))
+                        .clickable { showReorderSheet = false }
+                )
+            }
+
+            AnimatedVisibility(
+                visible = showReorderSheet,
+                modifier = Modifier.fillMaxSize(),
+                enter = slideInHorizontally(animationSpec = tween(durationMillis = 250)) { -it },
+                exit = slideOutHorizontally(animationSpec = tween(durationMillis = 250)) { -it }
+            ) {
+                ReorderScreen(onBack = { showReorderSheet = false })
             }
 
             AnimatedVisibility(
@@ -488,8 +513,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
             AnimatedVisibility(
                 visible = showSettingsScreen,
                 modifier = Modifier.fillMaxSize(),
-                enter = slideInVertically(animationSpec = tween(durationMillis = 250)) { it },
-                exit = slideOutVertically(animationSpec = tween(durationMillis = 250)) { it }
+                enter = slideInHorizontally(animationSpec = tween(durationMillis = 250)) { it },
+                exit = slideOutHorizontally(animationSpec = tween(durationMillis = 250)) { it }
             ) {
                 SettingsScreen(onDismiss = { showSettingsScreen = false }, db = db, settingsDataStore = settingsDataStore)
             }
