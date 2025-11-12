@@ -5,11 +5,15 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -48,25 +52,29 @@ fun ArchiveScreen(uiState: HabitsUiState, habitDao: HabitDao, onBack: () -> Unit
         AlertDialog(
             onDismissRequest = { habitToDelete = null },
             title = { Text("Are you sure?") },
-            text = { Text("Are you sure you want to delete this habit? This action cannot be undone.") },
+            text = { Text("Are you sure you want to delete this habit? This action cannot be undone.",color = MaterialTheme.colorScheme.onSurface) },
             confirmButton = {
-                Button(
-                    onClick = {
-                        scope.launch {
-                            habitToDelete?.let {
-                                habitDao.deleteHabit(it)
-                            }
-                            habitToDelete = null
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Delete")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { habitToDelete = null }) {
-                    Text("Cancel")
+                    TextButton(onClick = { habitToDelete = null }) {
+                        Text("Cancel")
+                    }
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                habitToDelete?.let {
+                                    habitDao.deleteHabit(it)
+                                }
+                                habitToDelete = null
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                    ) {
+                        Text("Delete", color = MaterialTheme.colorScheme.onSurface)
+                    }
                 }
             },
             containerColor = MaterialTheme.colorScheme.surface
@@ -83,7 +91,7 @@ fun ArchiveScreen(uiState: HabitsUiState, habitDao: HabitDao, onBack: () -> Unit
                     title = { Text("Archived Habits", fontWeight = FontWeight.SemiBold) },
                     actions = {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.Default.ArrowForward, contentDescription = "Back")
+                            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(32.dp))
                         }
                     },
                     colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
