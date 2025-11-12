@@ -1,4 +1,6 @@
-@file:OptIn(ExperimentalLayoutApi::class)
+@file:OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class,
+    ExperimentalMaterial3ExpressiveApi::class
+)
 
 package com.example.attempt3
 import androidx.compose.animation.animateColorAsState
@@ -16,7 +18,6 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -34,7 +35,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.isImeVisible
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -46,13 +46,17 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ButtonGroupDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.ToggleButton
+import androidx.compose.material3.ToggleButtonColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
@@ -62,6 +66,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.lazy.grid.items as gridItems
@@ -76,7 +83,7 @@ fun HabitSheetContent(
     onHabitDescriptionChanged: (String) -> Unit,
     completionsPerInterval: String,
     onCompletionsPerIntervalChanged: (String) -> Unit,
-    intervalUnit: String,
+    intervalUnit: String = "day",
     onIntervalUnitChanged: (String) -> Unit,
     completionsError: String?,
     habitIconKey: String,
@@ -153,30 +160,31 @@ fun HabitSheetContent(
         val items = listOf("Daily", "Weekly", "Monthly")
         val intervalValues = listOf("day", "week", "month")
         Row(
-            modifier = Modifier.fillMaxWidth()
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
         ) {
-            items.forEachIndexed { index, item ->
-                OutlinedButton(
-                    onClick = { onIntervalUnitChanged(intervalValues[index]) },
-                    shape = when (index) {
-                        0 -> RoundedCornerShape(topStartPercent = 50, bottomStartPercent = 50)
-                        items.lastIndex -> RoundedCornerShape(topEndPercent = 50, bottomEndPercent = 50)
-                        else -> RoundedCornerShape(0.dp)
+            items.forEachIndexed { index, label ->
+                val isSelected = intervalValues[index] == intervalUnit
+                ToggleButton(
+                    checked = isSelected,
+                    onCheckedChange = { if (it) onIntervalUnitChanged(intervalValues[index]) },
+                    modifier = Modifier.weight(1f).semantics { role = Role.RadioButton },
+                    colors = ToggleButtonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        disabledContainerColor = Color.Gray,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                        disabledContentColor = Color.Gray,
+                        checkedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                        checkedContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    ),
+                    shapes =
+                    when (index) {
+                        0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+                        items.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
+                        else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
                     },
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
-                    colors = if (intervalUnit == intervalValues[index]) {
-                        ButtonDefaults.outlinedButtonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        )
-                    } else {
-                        ButtonDefaults.outlinedButtonColors()
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .offset(x = (-1 * index).dp)
                 ) {
-                    Text(text = item)
+                    Text(label)
                 }
             }
         }
@@ -290,7 +298,7 @@ fun HabitSheetContent(
                     modifier = Modifier
                         .aspectRatio(1f)
                         .clip(RoundedCornerShape(6.dp))
-                        .background(backgroundForCustomButton)
+                        .background(Color.Transparent)
                         .border(
                             width = 1.dp,
                             color = borderForCustomButton,

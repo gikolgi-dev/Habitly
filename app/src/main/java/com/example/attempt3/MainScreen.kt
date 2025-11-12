@@ -154,7 +154,11 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
             completionsError = "Must be a number"
         } else if (completions <= 0) {
             completionsError = "Must be > 0"
-        } else {
+        } else if (completions > 7 && intervalUnit == "week") {
+            completionsError = "Must be ≤ 7"
+        } else if (completions > 28 && intervalUnit == "month") {
+            completionsError = "Must be ≤ 28"
+        }else {
             completionsError = null
         }
     }
@@ -170,21 +174,23 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
         validate(completionsPerInterval)
     }
 
-    LaunchedEffect(habitToEdit) {
-        if (habitToEdit != null) {
-            habitName = habitToEdit!!.name
-            habitDescription = habitToEdit!!.description
-            habitColor = Color(habitToEdit!!.color)
-            habitIconKey = habitToEdit!!.icon
-            completionsPerInterval = habitToEdit!!.completionsPerInterval.toString()
-            intervalUnit = habitToEdit!!.intervalUnit
-        } else {
-            habitName = ""
-            habitDescription = ""
-            habitColor = habitColors.first()
-            habitIconKey = defaultHabitIconKey
-            completionsPerInterval = "1"
-            intervalUnit = "day"
+    LaunchedEffect(habitToEdit, showHabitSheet) {
+        if (showHabitSheet) {
+            if (habitToEdit != null) {
+                habitName = habitToEdit!!.name
+                habitDescription = habitToEdit!!.description
+                habitColor = Color(habitToEdit!!.color)
+                habitIconKey = habitToEdit!!.icon
+                completionsPerInterval = habitToEdit!!.completionsPerInterval.toString()
+                intervalUnit = habitToEdit!!.intervalUnit
+            } else {
+                habitName = ""
+                habitDescription = ""
+                habitColor = habitColors.first()
+                habitIconKey = defaultHabitIconKey
+                completionsPerInterval = "1"
+                intervalUnit = "day"
+            }
         }
     }
 
