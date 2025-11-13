@@ -54,8 +54,9 @@ import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ReorderScreen(habitViewModel: HabitViewModel, onBack: () -> Unit) {
+fun ReorderScreen(habitViewModel: HabitViewModel, onBack: () -> Unit, settingsDataStore: SettingsDataStore) {
     val habitsUiState by habitViewModel.habitsUiState.collectAsState()
+    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -119,7 +120,9 @@ fun ReorderScreen(habitViewModel: HabitViewModel, onBack: () -> Unit) {
                                                     detectDragGesturesAfterLongPress(
                                                         onDragStart = {
                                                             draggedItemIndex = latestIndex
-                                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                            if (vibrationsEnabled) {
+                                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                            }
                                                         },
                                                         onDragEnd = {
                                                             draggedItemIndex?.let {
@@ -127,7 +130,9 @@ fun ReorderScreen(habitViewModel: HabitViewModel, onBack: () -> Unit) {
                                                                     h.copy(orderIndex = newIndex)
                                                                 }
                                                                 habitViewModel.reorderHabits(reorderedHabits)
-                                                                haptic.performHapticFeedback(HapticFeedbackType.GestureEnd)
+                                                                if (vibrationsEnabled) {
+                                                                    haptic.performHapticFeedback(HapticFeedbackType.GestureEnd)
+                                                                }
                                                             }
                                                             draggedItemIndex = null
                                                             verticalDragOffset = 0f
@@ -155,7 +160,9 @@ fun ReorderScreen(habitViewModel: HabitViewModel, onBack: () -> Unit) {
                                                                     }
                                                                     verticalDragOffset -= itemHeightPx
                                                                     draggedItemIndex = newIndexDown
-                                                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                                    if (vibrationsEnabled) {
+                                                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                                    }
                                                                 } else if (verticalDragOffset < -itemHeightPx * 0.5f && it != newIndexUp) {
                                                                     habits = habits.toMutableList().apply {
                                                                         removeAt(it)
@@ -163,7 +170,9 @@ fun ReorderScreen(habitViewModel: HabitViewModel, onBack: () -> Unit) {
                                                                     }
                                                                     verticalDragOffset += itemHeightPx
                                                                     draggedItemIndex = newIndexUp
-                                                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                                    if (vibrationsEnabled) {
+                                                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                                    }
                                                                 }
                                                             }
                                                         }

@@ -17,6 +17,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.ToggleFloatingActionButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -31,9 +33,11 @@ fun FabMenu(
     onAddHabit: () -> Unit,
     onShowArchived: () -> Unit,
     onShowSettings: () -> Unit,
-    onShowReorder: () -> Unit
+    onShowReorder: () -> Unit,
+    settingsDataStore: SettingsDataStore
 ) {
     val haptic = LocalHapticFeedback.current
+    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
     val items = listOf(
         FabItem(
             text = "Settings",
@@ -69,7 +73,9 @@ fun FabMenu(
                     checked = expanded,
                     onCheckedChange = {
                         onExpandedChange(it)
-                        haptic.performHapticFeedback(if(expanded) HapticFeedbackType.ToggleOff else HapticFeedbackType.ToggleOn)
+                        if (vibrationsEnabled) {
+                            haptic.performHapticFeedback(if(expanded) HapticFeedbackType.ToggleOff else HapticFeedbackType.ToggleOn)
+                        }
                     }
 
                 ) {
@@ -90,7 +96,9 @@ fun FabMenu(
                     onClick = {
                         item.onClick()
                         onExpandedChange(false)
-                        haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
+                        if (vibrationsEnabled) {
+                            haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
+                        }
                     },
                     text = { Text(item.text) },
                     icon = {

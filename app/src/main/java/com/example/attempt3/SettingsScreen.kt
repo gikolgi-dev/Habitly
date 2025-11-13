@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -50,9 +51,15 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
     val showConfirmationDialog = remember { mutableStateOf(false) }
     val showSecondConfirmationDialog = remember { mutableStateOf(false) }
     var showAppearanceScreen by remember { mutableStateOf(false) }
+    var showGeneralScreen by remember { mutableStateOf(false) }
 
-    BackHandler(enabled = showAppearanceScreen) {
-        showAppearanceScreen = false
+    BackHandler(enabled = showAppearanceScreen || showGeneralScreen) {
+        if (showAppearanceScreen) {
+            showAppearanceScreen = false
+        }
+        if (showGeneralScreen) {
+            showGeneralScreen = false
+        }
     }
 
     if (showConfirmationDialog.value) {
@@ -122,8 +129,11 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
             CenterAlignedTopAppBar(
                 title = { Text("Settings", fontWeight = FontWeight.SemiBold) },
                 navigationIcon = {
-                    if (showAppearanceScreen) {
-                        IconButton(onClick = { showAppearanceScreen = false }) {
+                    if (showAppearanceScreen || showGeneralScreen) {
+                        IconButton(onClick = {
+                            if (showAppearanceScreen) showAppearanceScreen = false
+                            if (showGeneralScreen) showGeneralScreen = false
+                        }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onBackground)
                         }
                     } else {
@@ -144,27 +154,40 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
             .padding(paddingValues)
             .fillMaxSize()) {
             AnimatedVisibility(
-                visible = !showAppearanceScreen,
+                visible = !showAppearanceScreen && !showGeneralScreen,
                 exit = slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(300)),
                 enter = slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(300))
             ) {
                 LazyColumn {
                     item {
-                        ModernSettingsItem(
-                            title = "Appearance",
-                            subtitle = "Change the look and feel of the app",
-                            icon = Icons.Default.Palette,
-                            iconBackgroundColor = MaterialTheme.colorScheme.primary,
-                            onClick = { showAppearanceScreen = true }
-                        )
+                        SettingsGroup {
+                            GroupedSettingsItem(
+                                title = "General",
+                                subtitle = "Toggle vibrations",
+                                icon = Icons.Default.Tune,
+                                iconBackgroundColor = MaterialTheme.colorScheme.primaryContainer,
+                                onClick = { showGeneralScreen = true },
+                                iconColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            GroupedSettingsItem(
+                                title = "Appearance",
+                                subtitle = "Change the look and feel of the app",
+                                icon = Icons.Default.Palette,
+                                iconBackgroundColor = MaterialTheme.colorScheme.secondaryContainer,
+                                onClick = { showAppearanceScreen = true },
+                                iconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                isLastItem = true
+                            )
+                        }
                     }
                     item {
                         ModernSettingsItem(
                             title = "Clear all data",
                             subtitle = "Delete all habits and their completions",
                             icon = Icons.Default.Delete,
-                            iconBackgroundColor = Color.Red,
-                            onClick = { showConfirmationDialog.value = true }
+                            iconBackgroundColor = MaterialTheme.colorScheme.errorContainer,
+                            onClick = { showConfirmationDialog.value = true },
+                            iconColor = MaterialTheme.colorScheme.onErrorContainer
                         )
                     }
                 }
@@ -176,6 +199,16 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                 exit = slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(300))
             ) {
                 AppearanceScreen(
+                    settingsDataStore = settingsDataStore
+                )
+            }
+
+            AnimatedVisibility(
+                visible = showGeneralScreen,
+                enter = slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(300)),
+                exit = slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(300))
+            ) {
+                GeneralSettingsScreen(
                     settingsDataStore = settingsDataStore
                 )
             }

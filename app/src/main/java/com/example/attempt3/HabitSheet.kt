@@ -58,6 +58,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.ToggleButton
 import androidx.compose.material3.ToggleButtonColors
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
@@ -94,9 +95,11 @@ fun HabitSheetContent(
     onShowColorPicker: (Boolean, Color?) -> Unit,
     onClearCustomColor: () -> Unit,
     livePreviewColor: Color?,
-    scrollState: ScrollState
+    scrollState: ScrollState,
+    settingsDataStore: SettingsDataStore
 ) {
     val haptic = LocalHapticFeedback.current
+    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
 
     Column(
         modifier = Modifier
@@ -227,7 +230,9 @@ fun HabitSheetContent(
                         )
                         .clickable {
                             if (!isSelected) {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                if (vibrationsEnabled) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                }
                                 onHabitIconKeyChanged(iconKey)
                             }
                         }
@@ -268,7 +273,9 @@ fun HabitSheetContent(
                         .clip(RoundedCornerShape(6.dp))
                         .background(color)
                         .clickable {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            if (vibrationsEnabled) {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            }
                             onHabitColorChanged(color)
                             onClearCustomColor()
                         },
@@ -339,15 +346,19 @@ fun HabitSheetContent(
 fun SaveHabitButton(
     buttonText: String,
     isEnabled: Boolean,
+    settingsDataStore: SettingsDataStore,
     onClick: () -> Unit
 ) {
     val isKeyboardOpen by rememberUpdatedState(WindowInsets.isImeVisible)
     val haptic = LocalHapticFeedback.current
+    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
     val padding by animateDpAsState(targetValue = if (isKeyboardOpen) 8.dp else 20.dp, label = "buttonPadding")
 
     Button(
         onClick = {
-            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            if (vibrationsEnabled) {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            }
             onClick()
         },
         enabled = isEnabled,

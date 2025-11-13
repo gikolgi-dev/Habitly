@@ -65,6 +65,7 @@ fun HabitDetailScreen(habit: Habit, habitDao: HabitDao, isArchivedView: Boolean,
     val scope = rememberCoroutineScope()
     val completions by habitDao.getCompletionsForHabit(habit.id).collectAsState(initial = emptyList())
     val haptic = LocalHapticFeedback.current
+    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
     var showDeleteConfirmation by remember { mutableStateOf(false) } // State for delete confirmation dialog
 
 
@@ -257,7 +258,9 @@ fun HabitDetailScreen(habit: Habit, habitDao: HabitDao, isArchivedView: Boolean,
                                         RoundedCornerShape(8.dp)
                                     )
                                     .clickable {
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        if (vibrationsEnabled) {
+                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        }
                                         onEditHabit(habit)
                                     },
                                 contentAlignment = Alignment.Center
@@ -285,7 +288,9 @@ fun HabitDetailScreen(habit: Habit, habitDao: HabitDao, isArchivedView: Boolean,
                                         RoundedCornerShape(8.dp)
                                     )
                                     .clickable {
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        if (vibrationsEnabled) {
+                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        }
                                         scope.launch {
                                             habitDao.updateHabit(habit.copy(archived = !isArchivedView))
                                         }
@@ -336,7 +341,9 @@ fun HabitDetailScreen(habit: Habit, habitDao: HabitDao, isArchivedView: Boolean,
                         completions = completions,
                         habitColor = Color(habit.color),
                         onDateClick = { date, _ ->
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            if (vibrationsEnabled) {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            }
                             scope.launch {
                                 val startOfDay = (date.clone() as Calendar).apply {
                                     set(Calendar.HOUR_OF_DAY, 0)

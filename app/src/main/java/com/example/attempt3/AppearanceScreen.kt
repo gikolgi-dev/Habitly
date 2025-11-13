@@ -1,7 +1,11 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.example.attempt3
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,18 +15,25 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
@@ -32,7 +43,11 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
     val scope = rememberCoroutineScope()
     val currentTheme by settingsDataStore.theme.collectAsState(initial = "system")
     val showMonthLabels by settingsDataStore.monthLabels.collectAsState(initial = true)
+    val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
+    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
     val haptic = LocalHapticFeedback.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val isDragged by interactionSource.collectIsDraggedAsState()
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -47,10 +62,11 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
             )
             Box(
                 modifier = Modifier
+                    .clip(shape = RoundedCornerShape(8.dp))
                     .fillMaxWidth()
                     .border(
                         1.dp,
-                        Color.Gray.copy(alpha = 0.25f),
+                        Color.Gray.copy(alpha = borderContrast),
                         RoundedCornerShape(8.dp)
                     )
                     .background(MaterialTheme.colorScheme.surface)
@@ -67,8 +83,9 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
                                         scope.launch {
                                             settingsDataStore.setTheme(theme.lowercase())
                                         }
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-
+                                        if (vibrationsEnabled) {
+                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        }
                                     }
                                 )
                                 .padding(start = 8.dp),
@@ -80,7 +97,9 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
                                     scope.launch {
                                         settingsDataStore.setTheme(theme.lowercase())
                                     }
-                                    haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                    if (vibrationsEnabled) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                    }
                                 }
                             )
                             Text(
@@ -103,10 +122,11 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
             )
             Box(
                 modifier = Modifier
+                    .clip(shape = RoundedCornerShape(8.dp))
                     .fillMaxWidth()
                     .border(
                         1.dp,
-                        Color.Gray.copy(alpha = 0.25f),
+                        Color.Gray.copy(alpha = borderContrast),
                         RoundedCornerShape(8.dp)
                     )
                     .background(MaterialTheme.colorScheme.surface)
@@ -120,7 +140,9 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
                                 scope.launch {
                                     settingsDataStore.setMonthLabels(!showMonthLabels)
                                 }
-                                haptic.performHapticFeedback(if(!showMonthLabels) HapticFeedbackType.ToggleOff else HapticFeedbackType.ToggleOn)
+                                if (vibrationsEnabled) {
+                                    haptic.performHapticFeedback(if(!showMonthLabels) HapticFeedbackType.ToggleOff else HapticFeedbackType.ToggleOn)
+                                }
                             }
                         )
                         .padding(horizontal = 4.dp, vertical = 4.dp),
@@ -133,13 +155,102 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
                             scope.launch {
                                 settingsDataStore.setMonthLabels(it)
                             }
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            if (vibrationsEnabled) {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            }
                         }
                     )
                     Text(
                         text = "Toggle month labels",
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier.padding(start = 16.dp)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "Accessibility",
+                style = MaterialTheme.typography.titleSmall,
+                color = Color.Gray,
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
+            Box(
+                modifier = Modifier
+                    .clip(shape = RoundedCornerShape(8.dp))
+                    .fillMaxWidth()
+                    .border(
+                        1.dp,
+                        Color.Gray.copy(alpha = borderContrast),
+                        RoundedCornerShape(8.dp)
+                    )
+                    .background(MaterialTheme.colorScheme.surface)
+            ){
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    Text(
+                        text = "Set border contrast",
+                        style = MaterialTheme.typography.bodyLarge
+
+                    )
+                    Slider(
+                        value = borderContrast,
+                        onValueChange = {
+                            scope.launch {
+                                settingsDataStore.setBorders(it)
+                            }
+                        },
+                        valueRange = 0f..1f,
+                        steps = 19,
+                        interactionSource = interactionSource,
+                        thumb = {
+                            Layout(
+                                content = {
+                                    if (isDragged) {
+                                        Surface(
+                                            shape = RoundedCornerShape(4.dp),
+                                            color = MaterialTheme.colorScheme.primary,
+
+                                            ) {
+                                            Text(
+                                                text = "%.2f".format(borderContrast),
+                                                modifier = Modifier.padding(4.dp),
+                                                color = MaterialTheme.colorScheme.onPrimary,
+                                                style = MaterialTheme.typography.bodySmall
+                                            )
+                                        }
+                                    }
+                                    SliderDefaults.Thumb(
+                                        interactionSource = interactionSource,
+                                        colors = SliderDefaults.colors(),
+                                        enabled = true
+                                    )
+                                }
+                            ) { measurables, constraints ->
+                                val thumbPlaceable = measurables.last().measure(constraints)
+                                val indicatorPlaceable = if (isDragged) {
+                                    measurables.first().measure(constraints.copy(minWidth = 0, minHeight = 0))
+                                } else {
+                                    null
+                                }
+
+                                layout(thumbPlaceable.width, thumbPlaceable.height) {
+                                    thumbPlaceable.placeRelative(0, 0)
+                                    indicatorPlaceable?.let {
+                                        val indicatorY = (thumbPlaceable.height - it.height) / 2
+                                        val indicatorX = if (borderContrast > 0.5f) {
+                                            -it.width - 8.dp.roundToPx()
+                                        } else {
+                                            thumbPlaceable.width + 8.dp.roundToPx()
+                                        }
+                                        it.placeRelative(indicatorX, indicatorY)
+                                    }
+                                }
+                            }
+                        }
                     )
                 }
             }

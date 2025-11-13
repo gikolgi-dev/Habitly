@@ -120,6 +120,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
         completionsToday.map { it.habitId }.toSet()
     }
 
+    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
     var optimisticCompletionChanges by remember { mutableStateOf<Map<String, Boolean>>(emptyMap()) }
     var showHabitSheet by remember { mutableStateOf(false) }
     var habitToView by remember { mutableStateOf<Habit?>(null) }
@@ -266,7 +267,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                             },
                             onShowArchived = { showArchiveSheet = true },
                             onShowSettings = { showSettingsScreen = true },
-                            onShowReorder = { showReorderSheet = true }
+                            onShowReorder = { showReorderSheet = true },
+                            settingsDataStore = settingsDataStore
                         )
                     }
                 },
@@ -375,7 +377,9 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                     showCheckbox = true,
                                                     monthLabelsFlow = settingsDataStore.monthLabels,
                                                     onComplete = {
-                                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                        if (vibrationsEnabled) {
+                                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                        }
                                                         optimisticCompletionChanges = optimisticCompletionChanges + (habitWithCompletions.habit.id to !(optimisticCompletionChanges[habitWithCompletions.habit.id] ?: completedHabitIds.contains(habitWithCompletions.habit.id)))
                                                         scope.launch {
                                                             if (!(optimisticCompletionChanges[habitWithCompletions.habit.id] ?: completedHabitIds.contains(habitWithCompletions.habit.id))) {
@@ -459,7 +463,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 enter = slideInHorizontally(animationSpec = tween(durationMillis = 250)) { -it },
                 exit = slideOutHorizontally(animationSpec = tween(durationMillis = 250)) { -it }
             ) {
-                ReorderScreen(habitViewModel = viewModel, onBack = { showReorderSheet = false })
+                ReorderScreen(habitViewModel = viewModel, onBack = { showReorderSheet = false }, settingsDataStore = settingsDataStore)
             }
 
             AnimatedVisibility(
@@ -615,7 +619,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                             },
                             onClearCustomColor = { customColor = null },
                             livePreviewColor = if (showColorPicker) { if (pickerInitialColor == null) tempColor else pickerInitialColor } else customColor,
-                            scrollState = scrollState
+                            scrollState = scrollState,
+                            settingsDataStore = settingsDataStore
                         )
                     }
                 }
@@ -630,7 +635,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 val habits = (habitsUiState as? HabitsUiState.Success)?.habits ?: emptyList()
                 SaveHabitButton(
                     buttonText = buttonText,
-                    isEnabled = habitName.trim().isNotBlank() && completionsError == null
+                    isEnabled = habitName.trim().isNotBlank() && completionsError == null,
+                    settingsDataStore = settingsDataStore
                 ) {
                     val trimmedName = habitName.trim()
                     if (trimmedName.isNotBlank()) {
