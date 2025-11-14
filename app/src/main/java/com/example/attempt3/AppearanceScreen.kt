@@ -43,6 +43,8 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
     val scope = rememberCoroutineScope()
     val currentTheme by settingsDataStore.theme.collectAsState(initial = "system")
     val showMonthLabels by settingsDataStore.monthLabels.collectAsState(initial = true)
+    val showDayLabels by settingsDataStore.dayOfWeekLabelsVisible.collectAsState(initial = true)
+    val showAllDayOfWeekLabels by settingsDataStore.showAllDayOfWeekLabels.collectAsState(initial = true)
     val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
     val haptic = LocalHapticFeedback.current
@@ -131,39 +133,71 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
                     )
                     .background(MaterialTheme.colorScheme.surface)
             ) {
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .selectable(
-                            selected = showMonthLabels,
-                            onClick = {
+                Column {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .selectable(
+                                selected = showMonthLabels,
+                                onClick = {
+                                    scope.launch {
+                                        settingsDataStore.setMonthLabels(!showMonthLabels)
+                                    }
+                                    if (vibrationsEnabled) {
+                                        haptic.performHapticFeedback(if (!showMonthLabels) HapticFeedbackType.ToggleOff else HapticFeedbackType.ToggleOn)
+                                    }
+                                }
+                            )
+                            .padding(horizontal = 4.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Switch(
+                            checked = showMonthLabels,
+                            modifier = Modifier.padding(start = 16.dp),
+                            onCheckedChange = {
                                 scope.launch {
-                                    settingsDataStore.setMonthLabels(!showMonthLabels)
+                                    settingsDataStore.setMonthLabels(it)
                                 }
                                 if (vibrationsEnabled) {
-                                    haptic.performHapticFeedback(if(!showMonthLabels) HapticFeedbackType.ToggleOff else HapticFeedbackType.ToggleOn)
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 }
                             }
                         )
-                        .padding(horizontal = 4.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Switch(
-                        checked = showMonthLabels,
-                        modifier = Modifier.padding(start = 16.dp),
-                        onCheckedChange = {
+                        Text(
+                            text = "Toggle month labels",
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.padding(start = 16.dp)
+                        )
+                    }
+                    val dayLabelDisplay = when {
+                        !showDayLabels -> DayLabelDisplayOptions.Off
+                        !showAllDayOfWeekLabels -> DayLabelDisplayOptions.Some
+                        else -> DayLabelDisplayOptions.All
+                    }
+
+                    DayLabelSelector(
+                        selectedOption = dayLabelDisplay,
+                        onOptionSelected = {
                             scope.launch {
-                                settingsDataStore.setMonthLabels(it)
+                                when (it) {
+                                    DayLabelDisplayOptions.Off -> {
+                                        settingsDataStore.setDayOfWeekLabelsVisible(false)
+                                    }
+                                    DayLabelDisplayOptions.Some -> {
+                                        settingsDataStore.setDayOfWeekLabelsVisible(true)
+                                        settingsDataStore.setShowAllDayOfWeekLabels(false)
+                                    }
+                                    DayLabelDisplayOptions.All -> {
+                                        settingsDataStore.setDayOfWeekLabelsVisible(true)
+                                        settingsDataStore.setShowAllDayOfWeekLabels(true)
+                                    }
+                                }
                             }
                             if (vibrationsEnabled) {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             }
-                        }
-                    )
-                    Text(
-                        text = "Toggle month labels",
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.padding(start = 16.dp)
+                        },
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
                     )
                 }
             }
@@ -206,6 +240,10 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
                         valueRange = 0f..1f,
                         steps = 19,
                         interactionSource = interactionSource,
+                        colors = SliderDefaults.colors(
+                            activeTickColor = MaterialTheme.colorScheme.onSurface.copy(alpha = .5f),
+                            inactiveTickColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+                        ),
                         thumb = {
                             Layout(
                                 content = {
