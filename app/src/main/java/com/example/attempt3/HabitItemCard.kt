@@ -43,6 +43,7 @@ fun HabitList(
     isHabitCompleted: (Habit) -> Boolean,
     showCheckbox: Boolean,
     monthLabelsFlow: Flow<Boolean>,
+    borderContrast: Float,
     onComplete: (Habit) -> Unit,
     onClick: (Habit) -> Unit
 ) {
@@ -54,6 +55,7 @@ fun HabitList(
                 completions = completions,
                 showCheckbox = showCheckbox,
                 monthLabelsFlow = monthLabelsFlow,
+                borderContrast = borderContrast,
                 onComplete = { onComplete(habit) },
                 onClick = { onClick(habit) }
             )
@@ -68,6 +70,7 @@ fun HabitItemCard(
     completions: List<Completion>,
     showCheckbox: Boolean,
     monthLabelsFlow: Flow<Boolean>,
+    borderContrast: Float,
     onComplete: () -> Unit,
     onClick: () -> Unit,
     onUnarchive: (() -> Unit)? = null,
@@ -86,7 +89,7 @@ fun HabitItemCard(
         ),
         border = BorderStroke(
             1.dp,
-            Color.Gray.copy(alpha = 0.15f)
+            Color.Gray.copy(alpha = borderContrast)
         ),
     ) {
         Column(modifier = Modifier.padding(8.dp)) {
@@ -103,7 +106,7 @@ fun HabitItemCard(
                         .background(Color(habit.color).copy(alpha = 0.1f))
                         .border(
                             1.dp,
-                            Color(habit.color).copy(alpha = 0.25f),
+                            Color(habit.color).copy(borderContrast),
                             RoundedCornerShape(8.dp)
                         )
                         .clickable { onComplete() },
@@ -151,7 +154,7 @@ fun HabitItemCard(
                             .background(backgroundColor)
                             .border(
                                 1.dp,
-                                if (isCompleted) color else color.copy(alpha = 0.25f),
+                                if (isCompleted) color else color.copy(borderContrast),
                                 RoundedCornerShape(8.dp)
                             )
                             .clickable { onComplete() },

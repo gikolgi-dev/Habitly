@@ -1,5 +1,6 @@
 package com.example.attempt3
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -18,6 +19,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,16 +31,18 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun SettingsGroup(
     modifier: Modifier = Modifier,
+    settingsDataStore: SettingsDataStore,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
     Card(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp),
-/*        border = BorderStroke(
+        border = BorderStroke(
             1.dp,
-            Color.Gray.copy(alpha = 0.25f)
-        ),*/
+            Color.Gray.copy(alpha = borderContrast)
+        ),
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
@@ -105,18 +110,19 @@ fun ModernSettingsItem(
     icon: ImageVector,
     iconBackgroundColor: Color,
     iconColor: Color,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    settingsDataStore: SettingsDataStore
 ) {
+    val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
             .clickable(onClick = onClick),
-/*        border = BorderStroke(
+        border = BorderStroke(
             1.dp,
-            Color.Gray.copy(alpha = 0.25f)
-        ),*/
-
+            Color.Gray.copy(alpha = borderContrast)
+        ),
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {

@@ -66,6 +66,7 @@ fun HabitDetailScreen(habit: Habit, habitDao: HabitDao, isArchivedView: Boolean,
     val completions by habitDao.getCompletionsForHabit(habit.id).collectAsState(initial = emptyList())
     val haptic = LocalHapticFeedback.current
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
+    val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
     var showDeleteConfirmation by remember { mutableStateOf(false) } // State for delete confirmation dialog
 
 
@@ -144,7 +145,7 @@ fun HabitDetailScreen(habit: Habit, habitDao: HabitDao, isArchivedView: Boolean,
                                 .background(Color(habit.color).copy(alpha = 0.1f))
                                 .border(
                                     1.dp,
-                                    Color(habit.color).copy(alpha = 0.25f),
+                                    Color(habit.color).copy(borderContrast),
                                     RoundedCornerShape(8.dp)
                                 ),
                             contentAlignment = Alignment.Center
@@ -175,7 +176,7 @@ fun HabitDetailScreen(habit: Habit, habitDao: HabitDao, isArchivedView: Boolean,
                                 .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.1f))
                                 .border(
                                     1.dp,
-                                    Color.Gray.copy(alpha = 0.25f),
+                                    Color.Gray.copy(alpha = borderContrast),
                                     RoundedCornerShape(8.dp)
                                 )
                                 .clickable(
@@ -254,7 +255,7 @@ fun HabitDetailScreen(habit: Habit, habitDao: HabitDao, isArchivedView: Boolean,
                                     .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.1f))
                                     .border(
                                         1.dp,
-                                        Color.Gray.copy(alpha = 0.25f),
+                                        Color.Gray.copy(alpha = borderContrast),
                                         RoundedCornerShape(8.dp)
                                     )
                                     .clickable {
@@ -284,7 +285,7 @@ fun HabitDetailScreen(habit: Habit, habitDao: HabitDao, isArchivedView: Boolean,
                                     .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.1f))
                                     .border(
                                         1.dp,
-                                        Color.Gray.copy(alpha = 0.25f),
+                                        Color.Gray.copy(alpha = borderContrast),
                                         RoundedCornerShape(8.dp)
                                     )
                                     .clickable {

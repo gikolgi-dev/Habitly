@@ -28,6 +28,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,6 +46,7 @@ import kotlinx.coroutines.launch
 fun ArchiveScreen(uiState: HabitsUiState, habitDao: HabitDao, onBack: () -> Unit, settingsDataStore: SettingsDataStore) {
     val scope = rememberCoroutineScope()
     var habitToDelete by remember { mutableStateOf<Habit?>(null) }
+    val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
 
     if (habitToDelete != null) {
         AlertDialog(
@@ -129,6 +131,7 @@ fun ArchiveScreen(uiState: HabitsUiState, habitDao: HabitDao, onBack: () -> Unit
                                         completions = habitWithCompletions.completions,
                                         showCheckbox = false,
                                         monthLabelsFlow = settingsDataStore.monthLabels,
+                                        borderContrast = borderContrast,
                                         onComplete = { },
                                         onClick = { },
                                         onUnarchive = {

@@ -121,6 +121,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     }
 
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
+    val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
     var optimisticCompletionChanges by remember { mutableStateOf<Map<String, Boolean>>(emptyMap()) }
     var showHabitSheet by remember { mutableStateOf(false) }
     var habitToView by remember { mutableStateOf<Habit?>(null) }
@@ -289,7 +290,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                     ) {
                                         ContainedLoadingIndicator()
                                     }
-                                }
+                                 }
                                 AnimatedVisibility(
                                     visible = habitsUiState is HabitsUiState.Success,
                                     modifier = Modifier.fillMaxSize()
@@ -376,6 +377,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                     completions = habitWithCompletions.completions,
                                                     showCheckbox = true,
                                                     monthLabelsFlow = settingsDataStore.monthLabels,
+                                                    borderContrast = borderContrast,
                                                     onComplete = {
                                                         if (vibrationsEnabled) {
                                                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)

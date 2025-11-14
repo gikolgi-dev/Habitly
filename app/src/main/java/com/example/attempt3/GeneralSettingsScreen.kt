@@ -28,6 +28,7 @@ import kotlinx.coroutines.launch
 fun GeneralSettingsScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsDataStore) {
     val scope = rememberCoroutineScope()
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
+    val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
     val haptic = LocalHapticFeedback.current
 
     Column(
@@ -46,7 +47,7 @@ fun GeneralSettingsScreen(modifier: Modifier = Modifier, settingsDataStore: Sett
                     .fillMaxWidth()
                     .border(
                         1.dp,
-                        Color.Gray.copy(alpha = 0.25f),
+                        Color.Gray.copy(alpha = borderContrast),
                         RoundedCornerShape(8.dp)
                     )
                     .background(MaterialTheme.colorScheme.surface)

@@ -160,7 +160,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
             ) {
                 LazyColumn {
                     item {
-                        SettingsGroup {
+                        SettingsGroup(settingsDataStore = settingsDataStore) {
                             GroupedSettingsItem(
                                 title = "General",
                                 subtitle = "Toggle vibrations",
@@ -187,7 +187,8 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                             icon = Icons.Default.Delete,
                             iconBackgroundColor = MaterialTheme.colorScheme.errorContainer,
                             onClick = { showConfirmationDialog.value = true },
-                            iconColor = MaterialTheme.colorScheme.onErrorContainer
+                            iconColor = MaterialTheme.colorScheme.onErrorContainer,
+                            settingsDataStore = settingsDataStore
                         )
                     }
                 }

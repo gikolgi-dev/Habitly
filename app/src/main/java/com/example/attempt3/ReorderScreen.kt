@@ -1,5 +1,6 @@
 package com.example.attempt3
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
@@ -57,6 +58,7 @@ import androidx.compose.ui.unit.dp
 fun ReorderScreen(habitViewModel: HabitViewModel, onBack: () -> Unit, settingsDataStore: SettingsDataStore) {
     val habitsUiState by habitViewModel.habitsUiState.collectAsState()
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
+    val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -111,6 +113,7 @@ fun ReorderScreen(habitViewModel: HabitViewModel, onBack: () -> Unit, settingsDa
 
                                         ReorderHabitItem(
                                             habit = habit,
+                                            borderContrast = borderContrast,
                                             modifier = Modifier
                                                 .graphicsLayer {
                                                     translationY = displacement
@@ -191,7 +194,7 @@ fun ReorderScreen(habitViewModel: HabitViewModel, onBack: () -> Unit, settingsDa
 }
 
 @Composable
-fun ReorderHabitItem(habit: Habit, modifier: Modifier = Modifier) {
+fun ReorderHabitItem(habit: Habit, borderContrast: Float, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -199,7 +202,8 @@ fun ReorderHabitItem(habit: Habit, modifier: Modifier = Modifier) {
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
-        )
+        ),
+        border = BorderStroke(1.dp, Color.Gray.copy(alpha = borderContrast))
     ) {
         Row(
             modifier = Modifier.padding(8.dp),
@@ -213,7 +217,7 @@ fun ReorderHabitItem(habit: Habit, modifier: Modifier = Modifier) {
                     .background(Color(habit.color).copy(alpha = 0.1f))
                     .border(
                         1.dp,
-                        Color(habit.color).copy(alpha = 0.25f),
+                        Color(habit.color).copy(borderContrast),
                         RoundedCornerShape(8.dp)
                     ),
                 contentAlignment = Alignment.Center
