@@ -43,6 +43,9 @@ fun HabitList(
     isHabitCompleted: (Habit) -> Boolean,
     showCheckbox: Boolean,
     monthLabelsFlow: Flow<Boolean>,
+    dayOfWeekLabelsVisibleFlow: Flow<Boolean>,
+    dayOfWeekLabelsOnRightFlow: Flow<Boolean>,
+    showAllDayOfWeekLabelsFlow: Flow<Boolean>,
     borderContrast: Float,
     onComplete: (Habit) -> Unit,
     onClick: (Habit) -> Unit
@@ -55,6 +58,9 @@ fun HabitList(
                 completions = completions,
                 showCheckbox = showCheckbox,
                 monthLabelsFlow = monthLabelsFlow,
+                dayOfWeekLabelsVisibleFlow = dayOfWeekLabelsVisibleFlow,
+                dayOfWeekLabelsOnRightFlow = dayOfWeekLabelsOnRightFlow,
+                showAllDayOfWeekLabelsFlow = showAllDayOfWeekLabelsFlow,
                 borderContrast = borderContrast,
                 onComplete = { onComplete(habit) },
                 onClick = { onClick(habit) }
@@ -70,6 +76,9 @@ fun HabitItemCard(
     completions: List<Completion>,
     showCheckbox: Boolean,
     monthLabelsFlow: Flow<Boolean>,
+    dayOfWeekLabelsVisibleFlow: Flow<Boolean>,
+    dayOfWeekLabelsOnRightFlow: Flow<Boolean>,
+    showAllDayOfWeekLabelsFlow: Flow<Boolean>,
     borderContrast: Float,
     onComplete: () -> Unit,
     onClick: () -> Unit,
@@ -192,6 +201,9 @@ fun HabitItemCard(
                     modifier = Modifier.fillMaxWidth(),
                     isScrollable = false,
                     showMonthLabelsFlow = monthLabelsFlow,
+                    dayOfWeekLabelsVisibleFlow = dayOfWeekLabelsVisibleFlow,
+                    dayOfWeekLabelsOnRightFlow = dayOfWeekLabelsOnRightFlow,
+                    showAllDayOfWeekLabelsFlow = showAllDayOfWeekLabelsFlow
                 )
             }
         }

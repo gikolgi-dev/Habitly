@@ -21,6 +21,9 @@ class SettingsDataStore(private val context: Context) {
         val VIBRATIONS_KEY = booleanPreferencesKey("vibrations")
         val BORDERS_KEY = floatPreferencesKey("borders_float") // Renamed key
         val OLD_BORDERS_KEY = booleanPreferencesKey("borders") // Old key
+        val DAY_OF_WEEK_LABELS_VISIBLE_KEY = booleanPreferencesKey("day_of_week_labels_visible")
+        val DAY_OF_WEEK_LABELS_ON_RIGHT_KEY = booleanPreferencesKey("day_of_week_labels_on_right")
+        val SHOW_ALL_DAY_OF_WEEK_LABELS_KEY = booleanPreferencesKey("show_all_day_of_week_labels")
     }
 
     val theme: Flow<String> = context.dataStore.data
@@ -76,6 +79,39 @@ class SettingsDataStore(private val context: Context) {
     suspend fun setBorders(alpha: Float) {
         context.dataStore.edit { settings ->
             settings[BORDERS_KEY] = alpha
+        }
+    }
+
+    val dayOfWeekLabelsVisible: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[DAY_OF_WEEK_LABELS_VISIBLE_KEY] ?: true
+        }
+
+    suspend fun setDayOfWeekLabelsVisible(visible: Boolean) {
+        context.dataStore.edit { settings ->
+            settings[DAY_OF_WEEK_LABELS_VISIBLE_KEY] = visible
+        }
+    }
+
+    val dayOfWeekLabelsOnRight: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[DAY_OF_WEEK_LABELS_ON_RIGHT_KEY] ?: false // Default to left
+        }
+
+    suspend fun setDayOfWeekLabelsOnRight(onRight: Boolean) {
+        context.dataStore.edit { settings ->
+            settings[DAY_OF_WEEK_LABELS_ON_RIGHT_KEY] = onRight
+        }
+    }
+
+    val showAllDayOfWeekLabels: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[SHOW_ALL_DAY_OF_WEEK_LABELS_KEY] ?: true // Default to all
+        }
+
+    suspend fun setShowAllDayOfWeekLabels(showAll: Boolean) {
+        context.dataStore.edit { settings ->
+            settings[SHOW_ALL_DAY_OF_WEEK_LABELS_KEY] = showAll
         }
     }
 }

@@ -237,7 +237,10 @@ fun HabitDetailScreen(habit: Habit, habitDao: HabitDao, isArchivedView: Boolean,
                         completions = completions,
                         habitColor = Color(habit.color),
                         modifier = Modifier.fillMaxWidth(),
-                        showMonthLabelsFlow = settingsDataStore.monthLabels
+                        showMonthLabelsFlow = settingsDataStore.monthLabels,
+                        dayOfWeekLabelsVisibleFlow = settingsDataStore.dayOfWeekLabelsVisible,
+                        dayOfWeekLabelsOnRightFlow = settingsDataStore.dayOfWeekLabelsOnRight,
+                        showAllDayOfWeekLabelsFlow = settingsDataStore.showAllDayOfWeekLabels
                     )
 
                     //Spacer(modifier = Modifier.height(10.dp))

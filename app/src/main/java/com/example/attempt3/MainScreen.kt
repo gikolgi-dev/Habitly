@@ -377,6 +377,9 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                     completions = habitWithCompletions.completions,
                                                     showCheckbox = true,
                                                     monthLabelsFlow = settingsDataStore.monthLabels,
+                                                    dayOfWeekLabelsVisibleFlow = settingsDataStore.dayOfWeekLabelsVisible,
+                                                    dayOfWeekLabelsOnRightFlow = settingsDataStore.dayOfWeekLabelsOnRight,
+                                                    showAllDayOfWeekLabelsFlow = settingsDataStore.showAllDayOfWeekLabels,
                                                     borderContrast = borderContrast,
                                                     onComplete = {
                                                         if (vibrationsEnabled) {
