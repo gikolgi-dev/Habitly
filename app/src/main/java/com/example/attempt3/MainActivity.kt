@@ -124,7 +124,7 @@ fun ExpressiveDarkApp(
         }
         baseColorScheme.copy(
             background = Color(0xFFFFFFFF),
-            surface = Color(0xFFF0F0F0),
+            surface = Color(0xFFF5F5F5),
             onSurface = Color(0xFF121216),
             onBackground = Color(0xFF121216)
         )
