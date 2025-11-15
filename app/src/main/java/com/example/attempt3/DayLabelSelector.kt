@@ -15,7 +15,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 
 enum class DayLabelDisplayOptions {
     Off, Some, All
@@ -28,7 +30,13 @@ fun DayLabelSelector(
     modifier: Modifier = Modifier
 ) {
     val options = DayLabelDisplayOptions.entries.map { it.name }
-
+    Text(
+        text = "Day label display:",
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+        color = Color.Gray,
+        style = MaterialTheme.typography.bodySmall,
+        textAlign = androidx.compose.ui.text.style.TextAlign.Left)
+    //Spacer(modifier = Modifier.height(4.dp))
     TabRow(
         selectedTabIndex = selectedOption.ordinal,
         modifier = modifier
@@ -42,8 +50,9 @@ fun DayLabelSelector(
                     .tabIndicatorOffset(tabPositions[selectedOption.ordinal])
                     .fillMaxHeight()
                     .padding(4.dp)
-                    .clip(RoundedCornerShape(6.dp))
+                    .clip(RoundedCornerShape(8.dp))
                     .background(MaterialTheme.colorScheme.primary)
+                    .zIndex(-1f)
             )
         },
         divider = {}
@@ -53,13 +62,11 @@ fun DayLabelSelector(
             Tab(
                 selected = selected,
                 onClick = { onOptionSelected(DayLabelDisplayOptions.entries[index]) },
-                text = {
-                    Text(
-                        text = text,
-                        color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-                    )
-                }
+                text = { Text(text = text) },
+                selectedContentColor = MaterialTheme.colorScheme.onPrimary,
+                unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
+
 }
