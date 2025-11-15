@@ -34,7 +34,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.flow.Flow
 
 
 @Composable
@@ -42,10 +41,10 @@ fun HabitList(
     habitsWithCompletions: List<Pair<Habit, List<Completion>>>,
     isHabitCompleted: (Habit) -> Boolean,
     showCheckbox: Boolean,
-    monthLabelsFlow: Flow<Boolean>,
-    dayOfWeekLabelsVisibleFlow: Flow<Boolean>,
-    dayOfWeekLabelsOnRightFlow: Flow<Boolean>,
-    showAllDayOfWeekLabelsFlow: Flow<Boolean>,
+    showMonthLabels: Boolean,
+    dayOfWeekLabelsVisible: Boolean,
+    dayOfWeekLabelsOnRight: Boolean,
+    showAllDayOfWeekLabels: Boolean,
     borderContrast: Float,
     onComplete: (Habit) -> Unit,
     onClick: (Habit) -> Unit
@@ -57,10 +56,10 @@ fun HabitList(
                 isCompleted = isHabitCompleted(habit),
                 completions = completions,
                 showCheckbox = showCheckbox,
-                monthLabelsFlow = monthLabelsFlow,
-                dayOfWeekLabelsVisibleFlow = dayOfWeekLabelsVisibleFlow,
-                dayOfWeekLabelsOnRightFlow = dayOfWeekLabelsOnRightFlow,
-                showAllDayOfWeekLabelsFlow = showAllDayOfWeekLabelsFlow,
+                showMonthLabels = showMonthLabels,
+                dayOfWeekLabelsVisible = dayOfWeekLabelsVisible,
+                dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight,
+                showAllDayOfWeekLabels = showAllDayOfWeekLabels,
                 borderContrast = borderContrast,
                 onComplete = { onComplete(habit) },
                 onClick = { onClick(habit) }
@@ -75,19 +74,20 @@ fun HabitItemCard(
     isCompleted: Boolean,
     completions: List<Completion>,
     showCheckbox: Boolean,
-    monthLabelsFlow: Flow<Boolean>,
-    dayOfWeekLabelsVisibleFlow: Flow<Boolean>,
-    dayOfWeekLabelsOnRightFlow: Flow<Boolean>,
-    showAllDayOfWeekLabelsFlow: Flow<Boolean>,
+    showMonthLabels: Boolean,
+    dayOfWeekLabelsVisible: Boolean,
+    dayOfWeekLabelsOnRight: Boolean,
+    showAllDayOfWeekLabels: Boolean,
     borderContrast: Float,
     onComplete: () -> Unit,
     onClick: () -> Unit,
     onUnarchive: (() -> Unit)? = null,
-    onDelete: (() -> Unit)? = null
+    onDelete: (() -> Unit)? = null,
+    modifier: Modifier = Modifier
 ) {
 
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 4.dp)
             .clickable(onClick = onClick),
@@ -200,10 +200,10 @@ fun HabitItemCard(
                     habitColor = Color(habit.color),
                     modifier = Modifier.fillMaxWidth(),
                     isScrollable = false,
-                    showMonthLabelsFlow = monthLabelsFlow,
-                    dayOfWeekLabelsVisibleFlow = dayOfWeekLabelsVisibleFlow,
-                    dayOfWeekLabelsOnRightFlow = dayOfWeekLabelsOnRightFlow,
-                    showAllDayOfWeekLabelsFlow = showAllDayOfWeekLabelsFlow
+                    showMonthLabels = showMonthLabels,
+                    dayOfWeekLabelsVisible = dayOfWeekLabelsVisible,
+                    dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight,
+                    showAllDayOfWeekLabels = showAllDayOfWeekLabels
                 )
             }
         }

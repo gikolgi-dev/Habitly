@@ -175,7 +175,8 @@ fun MonthCalendar(
     modifier: Modifier = Modifier,
     completions: List<Completion>,
     habitColor: Color,
-    onDateClick: (Calendar, Boolean) -> Unit
+    onDateClick: (Calendar, Boolean) -> Unit,
+    showMonthLabels: Boolean
 ) {
     var displayedMonth by remember { mutableStateOf(Calendar.getInstance()) }
     var dragAmount by remember { mutableStateOf(0f) }
@@ -206,28 +207,30 @@ fun MonthCalendar(
                 Icon(Icons.Default.ArrowBackIosNew, contentDescription = "Previous Month")
             }
 
-            AnimatedContent(
-                targetState = displayedMonth,
-                transitionSpec = {
-                    if (targetState.after(initialState)) {
-                        slideInHorizontally(initialOffsetX = { it }) + fadeIn() togetherWith
-                                slideOutHorizontally(targetOffsetX = { -it }) + fadeOut()
-                    } else {
-                        slideInHorizontally(initialOffsetX = { -it }) + fadeIn() togetherWith
-                                slideOutHorizontally(targetOffsetX = { it }) + fadeOut()
-                    }
-                }, label = "Month"
-            ) { month ->
-                Text(
-                    text = "${
-                        month.getDisplayName(
-                            Calendar.MONTH,
-                            Calendar.LONG,
-                            Locale.getDefault()
-                        )
-                    } ${month.get(Calendar.YEAR)}",
-                    style = MaterialTheme.typography.titleMedium,
-                )
+            if (showMonthLabels) {
+                AnimatedContent(
+                    targetState = displayedMonth,
+                    transitionSpec = {
+                        if (targetState.after(initialState)) {
+                            slideInHorizontally(initialOffsetX = { it }) + fadeIn() togetherWith
+                                    slideOutHorizontally(targetOffsetX = { -it }) + fadeOut()
+                        } else {
+                            slideInHorizontally(initialOffsetX = { -it }) + fadeIn() togetherWith
+                                    slideOutHorizontally(targetOffsetX = { it }) + fadeOut()
+                        }
+                    }, label = "Month"
+                ) { month ->
+                    Text(
+                        text = "${
+                            month.getDisplayName(
+                                Calendar.MONTH,
+                                Calendar.LONG,
+                                Locale.getDefault()
+                            )
+                        } ${month.get(Calendar.YEAR)}",
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                }
             }
 
 

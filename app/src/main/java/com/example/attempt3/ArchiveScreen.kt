@@ -47,6 +47,10 @@ fun ArchiveScreen(uiState: HabitsUiState, habitDao: HabitDao, onBack: () -> Unit
     val scope = rememberCoroutineScope()
     var habitToDelete by remember { mutableStateOf<Habit?>(null) }
     val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
+    val showMonthLabels by settingsDataStore.monthLabels.collectAsState(initial = false)
+    val dayOfWeekLabelsVisible by settingsDataStore.dayOfWeekLabelsVisible.collectAsState(initial = false)
+    val dayOfWeekLabelsOnRight by settingsDataStore.dayOfWeekLabelsOnRight.collectAsState(initial = false)
+    val showAllDayOfWeekLabels by settingsDataStore.showAllDayOfWeekLabels.collectAsState(initial = false)
 
     if (habitToDelete != null) {
         AlertDialog(
@@ -130,10 +134,10 @@ fun ArchiveScreen(uiState: HabitsUiState, habitDao: HabitDao, onBack: () -> Unit
                                         isCompleted = false, // Not relevant for archived habits
                                         completions = habitWithCompletions.completions,
                                         showCheckbox = false,
-                                        monthLabelsFlow = settingsDataStore.monthLabels,
-                                        dayOfWeekLabelsVisibleFlow = settingsDataStore.dayOfWeekLabelsVisible,
-                                        dayOfWeekLabelsOnRightFlow = settingsDataStore.dayOfWeekLabelsOnRight,
-                                        showAllDayOfWeekLabelsFlow = settingsDataStore.showAllDayOfWeekLabels,
+                                        showMonthLabels = showMonthLabels,
+                                        dayOfWeekLabelsVisible = dayOfWeekLabelsVisible,
+                                        dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight,
+                                        showAllDayOfWeekLabels = showAllDayOfWeekLabels,
                                         borderContrast = borderContrast,
                                         onComplete = { },
                                         onClick = { },

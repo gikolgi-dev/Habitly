@@ -20,8 +20,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,7 +30,6 @@ import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.flow.Flow
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -44,16 +41,11 @@ fun Heatmap(
     habitColor: Color,
     modifier: Modifier = Modifier,
     isScrollable: Boolean = true,
-    showMonthLabelsFlow: Flow<Boolean>,
-    dayOfWeekLabelsVisibleFlow: Flow<Boolean>,
-    dayOfWeekLabelsOnRightFlow: Flow<Boolean>,
-    showAllDayOfWeekLabelsFlow: Flow<Boolean>
+    showMonthLabels: Boolean,
+    dayOfWeekLabelsVisible: Boolean,
+    dayOfWeekLabelsOnRight: Boolean,
+    showAllDayOfWeekLabels: Boolean
 ) {
-    val showMonthLabels by showMonthLabelsFlow.collectAsState(initial = true)
-    val dayOfWeekLabelsVisible by dayOfWeekLabelsVisibleFlow.collectAsState(initial = true)
-    val dayOfWeekLabelsOnRight by dayOfWeekLabelsOnRightFlow.collectAsState(initial = false)
-    val showAllDayOfWeekLabels by showAllDayOfWeekLabelsFlow.collectAsState(initial = true)
-
     val dayOfWeekLabels = remember {
         val format = SimpleDateFormat("E", Locale.getDefault())
         val cal = Calendar.getInstance()
@@ -191,20 +183,18 @@ fun Heatmap(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            if (showMonthLabels) {
-                                Box(
-                                    modifier = Modifier.height(16.dp),
-                                    contentAlignment = Alignment.BottomCenter
-                                ) {
-                                    monthLabel?.let {
-                                        Text(
-                                            text = it,
-                                            fontSize = 10.sp,
-                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                                            maxLines = 1,
-                                            softWrap = false
-                                        )
-                                    }
+                            Box(
+                                modifier = Modifier.height(16.dp),
+                                contentAlignment = Alignment.BottomCenter
+                            ) {
+                                monthLabel?.let {
+                                    Text(
+                                        text = it,
+                                        fontSize = 10.sp,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (showMonthLabels) 0.6f else 0f),
+                                        maxLines = 1,
+                                        softWrap = false
+                                    )
                                 }
                             }
 

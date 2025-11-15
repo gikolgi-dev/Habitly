@@ -122,6 +122,11 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
 
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
     val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
+    val showMonthLabels by settingsDataStore.monthLabels.collectAsState(initial = false)
+    val dayOfWeekLabelsVisible by settingsDataStore.dayOfWeekLabelsVisible.collectAsState(initial = false)
+    val dayOfWeekLabelsOnRight by settingsDataStore.dayOfWeekLabelsOnRight.collectAsState(initial = false)
+    val showAllDayOfWeekLabels by settingsDataStore.showAllDayOfWeekLabels.collectAsState(initial = false)
+
     var optimisticCompletionChanges by remember { mutableStateOf<Map<String, Boolean>>(emptyMap()) }
     var showHabitSheet by remember { mutableStateOf(false) }
     var habitToView by remember { mutableStateOf<Habit?>(null) }
@@ -372,14 +377,18 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                         optimisticallyUpdatedHabitsWithCompletions.forEach { habitWithCompletions ->
                                             key(habitWithCompletions.habit.id) {
                                                 HabitItemCard(
+                                                    modifier = Modifier.sharedElementWithCallerManagedVisibility(
+                                                        rememberSharedContentState(key = "card-${habitWithCompletions.habit.id}"),
+                                                        visible = habitToView?.id != habitWithCompletions.habit.id
+                                                    ),
                                                     habit = habitWithCompletions.habit,
                                                     isCompleted = optimisticCompletionChanges[habitWithCompletions.habit.id] ?: completedHabitIds.contains(habitWithCompletions.habit.id),
                                                     completions = habitWithCompletions.completions,
                                                     showCheckbox = true,
-                                                    monthLabelsFlow = settingsDataStore.monthLabels,
-                                                    dayOfWeekLabelsVisibleFlow = settingsDataStore.dayOfWeekLabelsVisible,
-                                                    dayOfWeekLabelsOnRightFlow = settingsDataStore.dayOfWeekLabelsOnRight,
-                                                    showAllDayOfWeekLabelsFlow = settingsDataStore.showAllDayOfWeekLabels,
+                                                    showMonthLabels = showMonthLabels,
+                                                    dayOfWeekLabelsVisible = dayOfWeekLabelsVisible,
+                                                    dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight,
+                                                    showAllDayOfWeekLabels = showAllDayOfWeekLabels,
                                                     borderContrast = borderContrast,
                                                     onComplete = {
                                                         if (vibrationsEnabled) {
