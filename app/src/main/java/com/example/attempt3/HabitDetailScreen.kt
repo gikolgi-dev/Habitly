@@ -213,7 +213,7 @@ fun SharedTransitionScope.HabitDetailScreen(habit: Habit, habitDao: HabitDao, is
                     val isClickable = (isOverflowing || isExpanded)
                     Column(
                         modifier = Modifier
-                            .animateContentSize() // Animate the size change of the Column
+                            .animateContentSize(animationSpec = tween(durationMillis = 300)) // Animate the size change of the Column
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null,
