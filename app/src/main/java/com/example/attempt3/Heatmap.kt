@@ -7,10 +7,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
@@ -60,13 +61,15 @@ fun Heatmap(
 
     Row(
         modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.Top
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         if (dayOfWeekLabelsVisible && !dayOfWeekLabelsOnRight) {
             DayOfWeekLabels(
                 labels = dayOfWeekLabels,
                 showAll = showAllDayOfWeekLabels,
-                showMonthLabels = showMonthLabels
+                showMonthLabels = showMonthLabels,
+                modifier = Modifier.offset(y = (8).dp),
             )
         }
 
@@ -180,22 +183,25 @@ fun Heatmap(
                                     placeable.placeRelative(x, 0)
                                 }
                             },
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Box(
-                                modifier = Modifier.height(16.dp),
-                                contentAlignment = Alignment.BottomCenter
-                            ) {
-                                monthLabel?.let {
-                                    Text(
-                                        text = it,
-                                        fontSize = 10.sp,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (showMonthLabels) 0.6f else 0f),
-                                        maxLines = 1,
-                                        softWrap = false
-                                    )
+                            if (showMonthLabels) {
+                                Box(
+                                    modifier = Modifier.height(20.dp),
+                                    contentAlignment = Alignment.BottomCenter
+                                ) {
+                                    monthLabel?.let {
+                                        Text(
+                                            text = it,
+                                            fontSize = 10.sp,
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                            maxLines = 1,
+                                            softWrap = false,
+                                            modifier = Modifier.offset(y = (1).dp),
+                                        )
+                                    }
                                 }
+                                Spacer(modifier = Modifier.height(4.dp))
                             }
 
                             Column(
@@ -278,12 +284,12 @@ private fun DayOfWeekLabels(
     val cellSize = 10.dp
 
     Column(
-        modifier = modifier.padding(horizontal = 4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         if (showMonthLabels) {
-            Box(modifier = Modifier.height(16.dp))
+            Box(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(4.dp))
         }
 
         Column(
@@ -300,22 +306,21 @@ private fun DayOfWeekLabels(
                     modifier = Modifier.height(cellSize),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (isVisible) {
-                        Text(
-                            text = label,
-                            fontSize = 8.sp,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                            style = LocalTextStyle.current.copy(
-                                platformStyle = PlatformTextStyle(
-                                    includeFontPadding = false
-                                ),
-                                lineHeightStyle = LineHeightStyle(
-                                    alignment = LineHeightStyle.Alignment.Center,
-                                    trim = LineHeightStyle.Trim.Both
-                                )
+                    Text(
+                        text = label,
+                        fontSize = 8.sp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (isVisible) 0.6f else 0f),
+                        style = LocalTextStyle.current.copy(
+                            platformStyle = PlatformTextStyle(
+                                includeFontPadding = false
+                            ),
+                            lineHeightStyle = LineHeightStyle(
+                                alignment = LineHeightStyle.Alignment.Center,
+                                trim = LineHeightStyle.Trim.Both
                             )
                         )
-                    }
+
+                    )
                 }
             }
         }

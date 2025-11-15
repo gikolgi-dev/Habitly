@@ -39,7 +39,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -192,7 +191,7 @@ fun SharedTransitionScope.HabitDetailScreen(habit: Habit, habitDao: HabitDao, is
                             )
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
-                                indication = ripple()
+                                indication = null
                             ) { onDismiss() },
                         contentAlignment = Alignment.Center
                     ) {
@@ -243,20 +242,21 @@ fun SharedTransitionScope.HabitDetailScreen(habit: Habit, habitDao: HabitDao, is
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
                 Heatmap(
                     completions = completions,
                     habitColor = animatedColor,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                     showMonthLabels = showMonthLabels,
                     dayOfWeekLabelsVisible = dayOfWeekLabelsVisible,
                     dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight,
                     showAllDayOfWeekLabels = showAllDayOfWeekLabels
                 )
 
-                //Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(16.dp))
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 10.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
