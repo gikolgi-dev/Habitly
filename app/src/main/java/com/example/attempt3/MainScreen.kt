@@ -665,6 +665,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                     intervalUnit = intervalUnit
                                 )
                                 habitDao.updateHabit(updatedHabit)
+                                habitToView = updatedHabit
                             } else {
                                 val newHabit = Habit(
                                     id = UUID.randomUUID().toString(),

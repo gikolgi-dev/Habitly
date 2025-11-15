@@ -3,7 +3,10 @@ package com.example.attempt3
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -72,6 +75,7 @@ fun SharedTransitionScope.HabitDetailScreen(habit: Habit, habitDao: HabitDao, is
     val dayOfWeekLabelsOnRight by settingsDataStore.dayOfWeekLabelsOnRight.collectAsState(initial = false)
     val showAllDayOfWeekLabels by settingsDataStore.showAllDayOfWeekLabels.collectAsState(initial = false)
     var showDeleteConfirmation by remember { mutableStateOf(false) } // State for delete confirmation dialog
+    val animatedColor by animateColorAsState(targetValue = Color(habit.color), animationSpec = tween(durationMillis = 500))
 
 
     if (showDeleteConfirmation) {
@@ -128,7 +132,11 @@ fun SharedTransitionScope.HabitDetailScreen(habit: Habit, habitDao: HabitDao, is
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface
-            )
+            ),
+            border = BorderStroke(
+                1.dp,
+                Color.Gray.copy(alpha = borderContrast)
+            ),
         ) {
             Column(
                 modifier = Modifier
@@ -145,10 +153,10 @@ fun SharedTransitionScope.HabitDetailScreen(habit: Habit, habitDao: HabitDao, is
                         modifier = Modifier
                             .size(64.dp)
                             .clip(RoundedCornerShape(8.dp))
-                            .background(Color(habit.color).copy(alpha = 0.1f))
+                            .background(animatedColor.copy(alpha = 0.1f))
                             .border(
                                 1.dp,
-                                Color(habit.color).copy(borderContrast),
+                                animatedColor.copy(borderContrast),
                                 RoundedCornerShape(8.dp)
                             ),
                         contentAlignment = Alignment.Center
@@ -157,7 +165,7 @@ fun SharedTransitionScope.HabitDetailScreen(habit: Habit, habitDao: HabitDao, is
                             imageVector = icon,
                             contentDescription = habit.icon,
                             modifier = Modifier.size(40.dp),
-                            tint = Color(habit.color).copy(alpha = 0.85f)
+                            tint = animatedColor.copy(alpha = 0.85f)
                         )
                     }
                     Spacer(modifier = Modifier.size(16.dp))
@@ -165,7 +173,7 @@ fun SharedTransitionScope.HabitDetailScreen(habit: Habit, habitDao: HabitDao, is
                         modifier = Modifier.weight(1f)
                     ) {
                         Text(
-                            text = habit.name.replace(" ", "\u00A0"),
+                            text = habit.name.replace(" ", " "),
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold ,
                             maxLines = 2,
@@ -238,7 +246,7 @@ fun SharedTransitionScope.HabitDetailScreen(habit: Habit, habitDao: HabitDao, is
                 Spacer(modifier = Modifier.height(16.dp))
                 Heatmap(
                     completions = completions,
-                    habitColor = Color(habit.color),
+                    habitColor = animatedColor,
                     modifier = Modifier.fillMaxWidth(),
                     showMonthLabels = showMonthLabels,
                     dayOfWeekLabelsVisible = dayOfWeekLabelsVisible,
@@ -346,7 +354,7 @@ fun SharedTransitionScope.HabitDetailScreen(habit: Habit, habitDao: HabitDao, is
                 MonthCalendar(
                     //modifier = Modifier.padding(horizontal = 8.dp),
                     completions = completions,
-                    habitColor = Color(habit.color),
+                    habitColor = animatedColor,
                     onDateClick = { date, _ ->
                         if (vibrationsEnabled) {
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
