@@ -114,4 +114,13 @@ class SettingsDataStore(private val context: Context) {
             settings[SHOW_ALL_DAY_OF_WEEK_LABELS_KEY] = showAll
         }
     }
+
+    suspend fun resetToDefault() {
+        context.dataStore.edit { settings ->
+            settings[THEME_KEY] = "system"
+            settings[MONTH_LABELS_KEY] = false
+            settings[DAY_OF_WEEK_LABELS_VISIBLE_KEY] = false
+            settings[BORDERS_KEY] = 0.05f
+        }
+    }
 }

@@ -38,6 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
@@ -127,7 +128,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Settings", fontWeight = FontWeight.SemiBold) },
+                title = { Text(if (showAppearanceScreen) "Appearance" else if (showGeneralScreen) "General" else "Settings", fontWeight = FontWeight.SemiBold) },
                 navigationIcon = {
                     if (showAppearanceScreen || showGeneralScreen) {
                         IconButton(onClick = {
@@ -139,6 +140,17 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                     } else {
                         IconButton(onClick = onDismiss) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Close", modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onBackground)
+                        }
+                    }
+                },
+                actions = {
+                    if (showAppearanceScreen) {
+                        IconButton(onClick = {
+                            scope.launch {
+                                settingsDataStore.resetToDefault()
+                            }
+                        }) {
+                            Icon(painter = painterResource(id = R.drawable.resetwrench), contentDescription = "Reset Settings")
                         }
                     }
                 },
