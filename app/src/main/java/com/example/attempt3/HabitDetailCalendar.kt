@@ -25,14 +25,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.ArrowBackIosNew
-import androidx.compose.material.icons.filled.ArrowForwardIos
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -43,6 +44,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import java.util.Calendar
 import java.util.Locale
@@ -175,11 +177,10 @@ fun MonthCalendar(
     modifier: Modifier = Modifier,
     completions: List<Completion>,
     habitColor: Color,
-    onDateClick: (Calendar, Boolean) -> Unit,
-    showMonthLabels: Boolean
+    onDateClick: (Calendar, Boolean) -> Unit
 ) {
     var displayedMonth by remember { mutableStateOf(Calendar.getInstance()) }
-    var dragAmount by remember { mutableStateOf(0f) }
+    var dragAmount by remember { mutableFloatStateOf(0f) }
 
     val completionDates = remember(completions) {
         completions.map {
@@ -207,30 +208,32 @@ fun MonthCalendar(
                 Icon(Icons.Default.ArrowBackIosNew, contentDescription = "Previous Month")
             }
 
-            if (showMonthLabels) {
-                AnimatedContent(
-                    targetState = displayedMonth,
-                    transitionSpec = {
-                        if (targetState.after(initialState)) {
-                            slideInHorizontally(initialOffsetX = { it }) + fadeIn() togetherWith
-                                    slideOutHorizontally(targetOffsetX = { -it }) + fadeOut()
-                        } else {
-                            slideInHorizontally(initialOffsetX = { -it }) + fadeIn() togetherWith
-                                    slideOutHorizontally(targetOffsetX = { it }) + fadeOut()
-                        }
-                    }, label = "Month"
-                ) { month ->
-                    Text(
-                        text = "${
-                            month.getDisplayName(
-                                Calendar.MONTH,
-                                Calendar.LONG,
-                                Locale.getDefault()
-                            )
-                        } ${month.get(Calendar.YEAR)}",
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                }
+            AnimatedContent(
+                modifier = Modifier.weight(1f),
+                targetState = displayedMonth,
+                transitionSpec = {
+                    if (targetState.after(initialState)) {
+                        slideInHorizontally(initialOffsetX = { it }) + fadeIn() togetherWith
+                                slideOutHorizontally(targetOffsetX = { -it }) + fadeOut()
+                    } else {
+                        slideInHorizontally(initialOffsetX = { -it }) + fadeIn() togetherWith
+                                slideOutHorizontally(targetOffsetX = { it }) + fadeOut()
+                    }
+                },
+                label = "Month",
+                contentAlignment = Alignment.Center
+            ) { month ->
+                Text(
+                    text = "${
+                        month.getDisplayName(
+                            Calendar.MONTH,
+                            Calendar.LONG,
+                            Locale.getDefault()
+                        )
+                    } ${month.get(Calendar.YEAR)}",
+                    style = MaterialTheme.typography.titleMedium,
+                    textAlign = TextAlign.Center
+                )
             }
 
 
@@ -252,7 +255,7 @@ fun MonthCalendar(
                 enabled = !isFutureMonth
             ) {
                 Icon(
-                    Icons.Default.ArrowForwardIos,
+                    Icons.AutoMirrored.Filled.ArrowForwardIos,
                     contentDescription = "Next Month",
                     tint = if (isFutureMonth) Color.Gray else MaterialTheme.colorScheme.onSurface
                 )
@@ -272,7 +275,7 @@ fun MonthCalendar(
                     text = day,
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Bold,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    textAlign = TextAlign.Center
 
                 )
             }
@@ -285,7 +288,7 @@ fun MonthCalendar(
             targetState = displayedMonth,
             modifier = Modifier.pointerInput(Unit) {
                 detectDragGestures(
-                    onDrag = { change, drag ->
+                    onDrag = { _, drag ->
                         dragAmount += drag.x
                     },
                     onDragEnd = {

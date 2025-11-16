@@ -344,8 +344,7 @@ fun SharedTransitionScope.HabitDetailScreen(habit: Habit, habitDao: HabitDao, is
                                 habitDao.insertCompletion(newCompletion)
                             }
                         }
-                    },
-                    showMonthLabels = showMonthLabels
+                    }
                 )
             }
         }
