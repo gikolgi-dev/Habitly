@@ -138,10 +138,9 @@ fun Heatmap(
             }
             val lazyRow = @Composable {
                 LazyRow(
-                    modifier = if (isScrollable) Modifier
-                        .fillMaxWidth() else Modifier,
+                    modifier = Modifier.fillMaxWidth(),
                     reverseLayout = true,
-                    horizontalArrangement = Arrangement.spacedBy(minSpacing),
+                    horizontalArrangement = if (isScrollable) Arrangement.spacedBy(minSpacing) else Arrangement.SpaceBetween,
                     userScrollEnabled = isScrollable
                 ) {
                     items(totalWeeks) { weekIndex ->
@@ -252,16 +251,7 @@ fun Heatmap(
                     }
                 }
             }
-            if (isScrollable) {
-                lazyRow()
-            } else {
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    lazyRow()
-                }
-            }
+            lazyRow()
         }
         if (dayOfWeekLabelsVisible && dayOfWeekLabelsOnRight) {
             DayOfWeekLabels(
