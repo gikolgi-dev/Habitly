@@ -1,9 +1,12 @@
 package com.example.attempt3
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -27,6 +30,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -67,6 +74,75 @@ fun HabitList(
         }
     }
 }
+
+@Composable
+fun HabitTitleAndDescription(
+    habit: Habit,
+    isDetailView: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+    ) {
+        Text(
+            text = habit.name,
+            style = if (isDetailView) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onBackground,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        if (habit.description.isNotBlank()) {
+            if (isDetailView) {
+                Spacer(modifier = Modifier.height(4.dp))
+                var isExpanded by remember { mutableStateOf(false) }
+                var isOverflowing by remember { mutableStateOf(false) }
+
+                val isClickable = (isOverflowing || isExpanded)
+                Column(
+                    modifier = Modifier
+                        .animateContentSize(animationSpec = tween(durationMillis = 300)) // Animate the size change of the Column
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            enabled = isClickable
+                        ) { isExpanded = !isExpanded }
+                ) {
+                    Text(
+                        text = habit.description,
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = if (isExpanded) Int.MAX_VALUE else 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                        onTextLayout = { textLayoutResult ->
+                            if (!isOverflowing && !isExpanded) {
+                                isOverflowing = textLayoutResult.hasVisualOverflow
+                            }
+                        }
+                    )
+                    if (isClickable) {
+                        Text(
+                            text = if (isExpanded) "Read less" else "Read more",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
+                }
+            } else {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = habit.description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
 
 @Composable
 fun HabitItemCard(
@@ -115,7 +191,7 @@ fun HabitItemCard(
                         .background(Color(habit.color).copy(alpha = 0.1f))
                         .border(
                             1.dp,
-                            Color(habit.color).copy(borderContrast),
+                            Color(habit.color).copy(alpha = borderContrast),
                             RoundedCornerShape(8.dp)
                         )
                         .clickable { onComplete() },
@@ -130,28 +206,8 @@ fun HabitItemCard(
                 }
                 Spacer(modifier = Modifier.size(16.dp))
 
-                Column(
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(
-                        text = habit.name,
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    if (habit.description.isNotBlank()) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = habit.description,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onBackground,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
+                HabitTitleAndDescription(habit = habit, isDetailView = false, modifier = Modifier.weight(1f))
+                
                 Spacer(modifier = Modifier.size(16.dp))
                 if (showCheckbox) { // Conditionally display the checkbox
                     val color = Color(habit.color)
@@ -163,7 +219,7 @@ fun HabitItemCard(
                             .background(backgroundColor)
                             .border(
                                 1.dp,
-                                if (isCompleted) color else color.copy(borderContrast),
+                                if (isCompleted) color else color.copy(alpha = borderContrast),
                                 RoundedCornerShape(8.dp)
                             )
                             .clickable { onComplete() },

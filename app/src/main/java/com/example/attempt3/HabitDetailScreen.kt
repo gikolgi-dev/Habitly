@@ -4,7 +4,6 @@ import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -18,7 +17,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -52,8 +50,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import java.util.Calendar
@@ -168,17 +164,7 @@ fun SharedTransitionScope.HabitDetailScreen(habit: Habit, habitDao: HabitDao, is
                         )
                     }
                     Spacer(modifier = Modifier.size(16.dp))
-                    Column(
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(
-                            text = habit.name.replace(" ", " "),
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold ,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
+                    HabitTitleAndDescription(habit = habit, isDetailView = true, modifier = Modifier.weight(1f))
                     Box(
                         modifier = Modifier
                             .size(48.dp)
@@ -203,45 +189,7 @@ fun SharedTransitionScope.HabitDetailScreen(habit: Habit, habitDao: HabitDao, is
                         )
                     }
                 }
-
-                if (habit.description.isNotBlank()) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    var isExpanded by remember { mutableStateOf(false) }
-                    var isOverflowing by remember { mutableStateOf(false) }
-
-                    val isClickable = (isOverflowing || isExpanded)
-                    Column(
-                        modifier = Modifier
-                            .animateContentSize(animationSpec = tween(durationMillis = 300)) // Animate the size change of the Column
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null,
-                                enabled = isClickable
-                            ) { isExpanded = !isExpanded }
-                    ) {
-                        Text(
-                            text = habit.description,
-                            style = MaterialTheme.typography.bodyMedium,
-                            maxLines = if (isExpanded) Int.MAX_VALUE else 2,
-                            overflow = TextOverflow.Ellipsis,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                            onTextLayout = { textLayoutResult ->
-                                if (!isOverflowing && !isExpanded) {
-                                    isOverflowing = textLayoutResult.hasVisualOverflow
-                                }
-                            }
-                        )
-                        if (isClickable) {
-                            Text(
-                                text = if (isExpanded) "Read less" else "Read more",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                        }
-                    }
-                }
-
+                
                 Heatmap(
                     completions = completions,
                     habitColor = animatedColor,
@@ -252,11 +200,11 @@ fun SharedTransitionScope.HabitDetailScreen(habit: Habit, habitDao: HabitDao, is
                     showAllDayOfWeekLabels = showAllDayOfWeekLabels
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                //Spacer(modifier = Modifier.height(4.dp))
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 10.dp),
+                        .padding(vertical = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -266,10 +214,10 @@ fun SharedTransitionScope.HabitDetailScreen(habit: Habit, habitDao: HabitDao, is
                             modifier = Modifier
                                 .size(35.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.1f))
+                                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.5f))
                                 .border(
                                     1.dp,
-                                    animatedColor.copy(alpha = borderContrast),
+                                    animatedColor.copy(alpha = borderContrast*2),
                                     RoundedCornerShape(8.dp)
                                 )
                                 .clickable {
@@ -296,10 +244,10 @@ fun SharedTransitionScope.HabitDetailScreen(habit: Habit, habitDao: HabitDao, is
                             modifier = Modifier
                                 .size(35.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.1f))
+                                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.5f))
                                 .border(
                                     1.dp,
-                                    animatedColor.copy(alpha = borderContrast),
+                                    animatedColor.copy(alpha = borderContrast*2),
                                     RoundedCornerShape(8.dp)
                                 )
                                 .clickable {
