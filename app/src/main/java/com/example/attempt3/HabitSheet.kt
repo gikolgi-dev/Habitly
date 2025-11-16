@@ -293,7 +293,8 @@ fun HabitSheetContent(
             }
             item {
                 val isFinalCustomColorSelected = customColor != null || (habitColor !in habitColors)
-                val backgroundForCustomButton = livePreviewColor ?: (if (isFinalCustomColorSelected) customColor ?: habitColor else Color.Transparent)
+                val color = livePreviewColor ?: (if (isFinalCustomColorSelected) customColor ?: habitColor else Color.Transparent)
+                val backgroundForCustomButton = if (color == Color.White) Color.Transparent else color
 
                 val borderForCustomButton = if (isFinalCustomColorSelected || livePreviewColor != null) {
                     MaterialTheme.colorScheme.primary
@@ -305,7 +306,7 @@ fun HabitSheetContent(
                     modifier = Modifier
                         .aspectRatio(1f)
                         .clip(RoundedCornerShape(6.dp))
-                        .background(Color.Transparent)
+                        .background(backgroundForCustomButton)
                         .border(
                             width = 1.dp,
                             color = borderForCustomButton,
