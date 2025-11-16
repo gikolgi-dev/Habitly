@@ -194,7 +194,7 @@ fun HabitItemCard(
                 }
             }
             if (showCheckbox) {
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 Heatmap(
                     completions = completions,
                     habitColor = Color(habit.color),
