@@ -121,11 +121,17 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     }
 
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
-    val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
-    val showMonthLabels by settingsDataStore.monthLabels.collectAsState(initial = false)
-    val dayOfWeekLabelsVisible by settingsDataStore.dayOfWeekLabelsVisible.collectAsState(initial = false)
-    val dayOfWeekLabelsOnRight by settingsDataStore.dayOfWeekLabelsOnRight.collectAsState(initial = false)
-    val showAllDayOfWeekLabels by settingsDataStore.showAllDayOfWeekLabels.collectAsState(initial = false)
+    val borderContrast by settingsDataStore.borders.collectAsState(initial = null)
+    val showMonthLabels by settingsDataStore.monthLabels.collectAsState(initial = null)
+    val dayOfWeekLabelsVisible by settingsDataStore.dayOfWeekLabelsVisible.collectAsState(initial = null)
+    val dayOfWeekLabelsOnRight by settingsDataStore.dayOfWeekLabelsOnRight.collectAsState(initial = null)
+    val showAllDayOfWeekLabels by settingsDataStore.showAllDayOfWeekLabels.collectAsState(initial = null)
+
+    val areSettingsLoaded = borderContrast != null &&
+            showMonthLabels != null &&
+            dayOfWeekLabelsVisible != null &&
+            dayOfWeekLabelsOnRight != null &&
+            showAllDayOfWeekLabels != null
 
     var optimisticCompletionChanges by remember { mutableStateOf<Map<String, Boolean>>(emptyMap()) }
     var showHabitSheet by remember { mutableStateOf(false) }
@@ -284,7 +290,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                         Surface(modifier = mainContentModifier.fillMaxSize(),color = MaterialTheme.colorScheme.background) {
                             Box(modifier = Modifier.fillMaxSize()) {
                                 AnimatedVisibility(
-                                    visible = habitsUiState is HabitsUiState.Loading,
+                                    visible = habitsUiState is HabitsUiState.Loading || !areSettingsLoaded,
                                     enter = fadeIn(animationSpec = tween(durationMillis = 500)),
                                     exit = fadeOut(animationSpec = tween(durationMillis = 500))
                                 ) {
@@ -297,7 +303,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                     }
                                  }
                                 AnimatedVisibility(
-                                    visible = habitsUiState is HabitsUiState.Success,
+                                    visible = habitsUiState is HabitsUiState.Success && areSettingsLoaded,
                                     modifier = Modifier.fillMaxSize()
                                 ) {
                                     val habitsWithCompletions = (habitsUiState as? HabitsUiState.Success)?.habits ?: emptyList()
@@ -385,11 +391,11 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                     isCompleted = optimisticCompletionChanges[habitWithCompletions.habit.id] ?: completedHabitIds.contains(habitWithCompletions.habit.id),
                                                     completions = habitWithCompletions.completions,
                                                     showCheckbox = true,
-                                                    showMonthLabels = showMonthLabels,
-                                                    dayOfWeekLabelsVisible = dayOfWeekLabelsVisible,
-                                                    dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight,
-                                                    showAllDayOfWeekLabels = showAllDayOfWeekLabels,
-                                                    borderContrast = borderContrast,
+                                                    showMonthLabels = showMonthLabels!!,
+                                                    dayOfWeekLabelsVisible = dayOfWeekLabelsVisible!!,
+                                                    dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight!!,
+                                                    showAllDayOfWeekLabels = showAllDayOfWeekLabels!!,
+                                                    borderContrast = borderContrast!!,
                                                     onComplete = {
                                                         if (vibrationsEnabled) {
                                                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)

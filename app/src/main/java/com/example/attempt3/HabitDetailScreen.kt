@@ -155,7 +155,7 @@ fun SharedTransitionScope.HabitDetailScreen(habit: Habit, habitDao: HabitDao, is
                             .background(animatedColor.copy(alpha = 0.1f))
                             .border(
                                 1.dp,
-                                animatedColor.copy(borderContrast),
+                                animatedColor.copy(alpha = borderContrast),
                                 RoundedCornerShape(8.dp)
                             ),
                         contentAlignment = Alignment.Center
@@ -186,7 +186,7 @@ fun SharedTransitionScope.HabitDetailScreen(habit: Habit, habitDao: HabitDao, is
                             .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.1f))
                             .border(
                                 1.dp,
-                                Color.Gray.copy(alpha = borderContrast),
+                                animatedColor.copy(alpha = borderContrast),
                                 RoundedCornerShape(8.dp)
                             )
                             .clickable(
@@ -269,7 +269,7 @@ fun SharedTransitionScope.HabitDetailScreen(habit: Habit, habitDao: HabitDao, is
                                 .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.1f))
                                 .border(
                                     1.dp,
-                                    Color.Gray.copy(alpha = borderContrast),
+                                    animatedColor.copy(alpha = borderContrast),
                                     RoundedCornerShape(8.dp)
                                 )
                                 .clickable {
@@ -299,7 +299,7 @@ fun SharedTransitionScope.HabitDetailScreen(habit: Habit, habitDao: HabitDao, is
                                 .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.1f))
                                 .border(
                                     1.dp,
-                                    Color.Gray.copy(alpha = borderContrast),
+                                    animatedColor.copy(alpha = borderContrast),
                                     RoundedCornerShape(8.dp)
                                 )
                                 .clickable {
