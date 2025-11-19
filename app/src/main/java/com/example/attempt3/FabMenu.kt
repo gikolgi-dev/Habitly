@@ -2,6 +2,8 @@
 
 package com.example.attempt3
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -21,6 +23,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -79,15 +82,19 @@ fun FabMenu(
                     }
 
                 ) {
-                    Icon(
-                        imageVector = if (expanded) Icons.Default.Close else Icons.Default.Menu,
-                        contentDescription = if (expanded) "Close menu" else "Open menu",
-                        tint = if (expanded) {
-                            MaterialTheme.colorScheme.onPrimary
-                        } else {
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        }
-                    )
+                    val rotation by animateFloatAsState(if (expanded) 180f else 0f, label = "fab_icon_rotation")
+                    Crossfade(targetState = expanded, label = "fab_icon_crossfade") { isExpanded ->
+                        Icon(
+                            imageVector = if (isExpanded) Icons.Default.Close else Icons.Default.Menu,
+                            contentDescription = if (isExpanded) "Close menu" else "Open menu",
+                            modifier = Modifier.rotate(rotation),
+                            tint = if (isExpanded) {
+                                MaterialTheme.colorScheme.onPrimary
+                            } else {
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            }
+                        )
+                    }
                 }
             },
         ) {

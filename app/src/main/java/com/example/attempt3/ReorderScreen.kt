@@ -86,7 +86,7 @@ fun ReorderScreen(habitViewModel: HabitViewModel, onBack: () -> Unit, settingsDa
                             Text("Loading...")
                         }
                         is HabitsUiState.Success -> {
-                            var habits by remember { mutableStateOf(state.habits.map { it.habit }) }
+                            var habits by remember(state.habits) { mutableStateOf(state.habits.map { it.habit }) }
                             var draggedItemIndex by remember { mutableStateOf<Int?>(null) }
                             var verticalDragOffset by remember { mutableStateOf(0f) }
                             val itemHeightDp = 88.dp
@@ -104,7 +104,8 @@ fun ReorderScreen(habitViewModel: HabitViewModel, onBack: () -> Unit, settingsDa
 
                             CompositionLocalProvider(LocalViewConfiguration provides shortPressViewConfiguration) {
                                 LazyColumn(
-                                    modifier = Modifier.padding(vertical = 8.dp)
+                                    modifier = Modifier.padding(vertical = 8.dp),
+                                    userScrollEnabled = draggedItemIndex == null
                                 ) {
                                     itemsIndexed(habits, key = { _, habit -> habit.id }) { index, habit ->
                                         val isBeingDragged = index == draggedItemIndex

@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package com.example.attempt3
 
 import androidx.compose.animation.animateContentSize
@@ -25,10 +27,13 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -188,13 +193,12 @@ fun HabitItemCard(
                     modifier = Modifier
                         .size(64.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(Color(habit.color).copy(alpha = 0.1f))
+                        .background(Color(habit.color).copy(alpha = 0.1f),MaterialShapes.Cookie12Sided.toShape())
                         .border(
                             1.dp,
                             Color(habit.color).copy(alpha = borderContrast),
-                            RoundedCornerShape(8.dp)
-                        )
-                        .clickable { onComplete() },
+                            MaterialShapes.Cookie12Sided.toShape()
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -207,7 +211,7 @@ fun HabitItemCard(
                 Spacer(modifier = Modifier.size(16.dp))
 
                 HabitTitleAndDescription(habit = habit, isDetailView = false, modifier = Modifier.weight(1f))
-                
+
                 Spacer(modifier = Modifier.size(16.dp))
                 if (showCheckbox) { // Conditionally display the checkbox
                     val color = Color(habit.color)
@@ -215,12 +219,11 @@ fun HabitItemCard(
                     Box(
                         modifier = Modifier
                             .size(64.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(backgroundColor)
+                            .background(backgroundColor,if (isCompleted) MaterialShapes.Square.toShape() else MaterialShapes.Circle.toShape())
                             .border(
                                 1.dp,
                                 if (isCompleted) color else color.copy(alpha = borderContrast),
-                                RoundedCornerShape(8.dp)
+                                if (isCompleted) MaterialShapes.Square.toShape() else MaterialShapes.Circle.toShape()
                             )
                             .clickable { onComplete() },
                         contentAlignment = Alignment.Center
