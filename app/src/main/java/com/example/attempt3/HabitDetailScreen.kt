@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package com.example.attempt3
 
 import androidx.compose.animation.AnimatedVisibilityScope
@@ -32,11 +34,14 @@ import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -59,12 +64,20 @@ import java.util.concurrent.TimeUnit
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-fun SharedTransitionScope.HabitDetailScreen(habit: Habit, habitDao: HabitDao, isArchivedView: Boolean, animatedVisibilityScope: AnimatedVisibilityScope, onDismiss: () -> Unit, onEditHabit: (Habit) -> Unit, settingsDataStore: SettingsDataStore) {
+fun SharedTransitionScope.HabitDetailScreen(
+    habit: Habit,
+    habitDao: HabitDao,
+    isArchivedView: Boolean,
+    animatedVisibilityScope: AnimatedVisibilityScope,
+    onDismiss: () -> Unit,
+    onEditHabit: (Habit) -> Unit,
+    settingsDataStore: SettingsDataStore,
+    borderContrast: Float
+) {
     val scope = rememberCoroutineScope()
     val completions by habitDao.getCompletionsForHabit(habit.id).collectAsState(initial = emptyList())
     val haptic = LocalHapticFeedback.current
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
-    val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
     val showMonthLabels by settingsDataStore.monthLabels.collectAsState(initial = false)
     val dayOfWeekLabelsVisible by settingsDataStore.dayOfWeekLabelsVisible.collectAsState(initial = false)
     val dayOfWeekLabelsOnRight by settingsDataStore.dayOfWeekLabelsOnRight.collectAsState(initial = false)
@@ -147,12 +160,12 @@ fun SharedTransitionScope.HabitDetailScreen(habit: Habit, habitDao: HabitDao, is
                     Box(
                         modifier = Modifier
                             .size(64.dp)
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(MaterialShapes.Cookie12Sided.toShape())
                             .background(animatedColor.copy(alpha = 0.1f))
                             .border(
                                 1.dp,
                                 animatedColor.copy(alpha = borderContrast),
-                                RoundedCornerShape(8.dp)
+                                MaterialShapes.Cookie12Sided.toShape()
                             ),
                         contentAlignment = Alignment.Center
                     ) {

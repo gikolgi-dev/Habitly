@@ -516,7 +516,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                             habitToEdit = it
                             showHabitSheet = true
                         },
-                        settingsDataStore = settingsDataStore
+                        settingsDataStore = settingsDataStore,
+                        borderContrast = borderContrast!!
                     )
                 }
             }
