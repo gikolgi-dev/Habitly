@@ -2,8 +2,11 @@
 
 package com.example.attempt3
 
+import androidx.compose.animation.animateColor
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -42,11 +45,22 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Matrix
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.asAndroidPath
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.graphics.shapes.Morph
+import androidx.graphics.shapes.toPath
 
+private val circleToSquareMorph = Morph(MaterialShapes.Circle, MaterialShapes.Square)
 
 @Composable
 fun HabitList(
@@ -215,15 +229,49 @@ fun HabitItemCard(
                 Spacer(modifier = Modifier.size(16.dp))
                 if (showCheckbox) { // Conditionally display the checkbox
                     val color = Color(habit.color)
-                    val backgroundColor = if (isCompleted) color else color.copy(alpha = 0.1f)
+                    val transition = updateTransition(targetState = isCompleted, label = "CompletionTransition")
+
+                    val progress by transition.animateFloat(
+                        label = "MorphProgress",
+                        transitionSpec = { tween(300) }
+                    ) { state ->
+                        if (state) 1f else 0f
+                    }
+                    val backgroundColor by transition.animateColor(
+                        label = "BackgroundColor",
+                        transitionSpec = { tween(300) }
+                    ) { state ->
+                        if (state) color else color.copy(alpha = 0.1f)
+                    }
+                    val borderColor by transition.animateColor(
+                        label = "BorderColor",
+                        transitionSpec = { tween(300) }
+                    ) { state ->
+                        if (state) color else color.copy(alpha = borderContrast)
+                    }
+                    val iconTintColor by transition.animateColor(
+                        label = "IconTintColor",
+                        transitionSpec = { tween(300) }
+                    ) { state ->
+                        if (state) {
+                            if (color.isBright()) MaterialTheme.colorScheme.onPrimary else Color.White
+                        } else {
+                            color
+                        }
+                    }
+
+                    val morph = circleToSquareMorph
+                    val shape = remember(progress) { MorphPolygonShape(morph, progress) }
+
                     Box(
                         modifier = Modifier
                             .size(64.dp)
-                            .background(backgroundColor,if (isCompleted) MaterialShapes.Square.toShape() else MaterialShapes.Circle.toShape())
+                            .clip(shape)
+                            .background(backgroundColor, shape)
                             .border(
                                 1.dp,
-                                if (isCompleted) color else color.copy(alpha = borderContrast),
-                                if (isCompleted) MaterialShapes.Square.toShape() else MaterialShapes.Circle.toShape()
+                                borderColor,
+                                shape
                             )
                             .clickable { onComplete() },
                         contentAlignment = Alignment.Center
@@ -231,9 +279,7 @@ fun HabitItemCard(
                         Icon(
                             imageVector = Icons.Default.Check,
                             contentDescription = "Completed",
-                            tint = if (isCompleted && color.isBright()) MaterialTheme.colorScheme.onPrimary
-                            else if (isCompleted) Color.White
-                            else color,
+                            tint = iconTintColor,
                             modifier = Modifier.size(32.dp)
                         )
                     }
@@ -266,5 +312,27 @@ fun HabitItemCard(
                 )
             }
         }
+    }
+}
+
+class MorphPolygonShape(
+    private val morph: Morph,
+    private val percentage: Float
+) : Shape {
+    private val matrix = Matrix()
+    override fun createOutline(
+        size: Size,
+        layoutDirection: LayoutDirection,
+        density: Density
+    ): Outline {
+        // Below assumes that you haven't scaled the specific RoundedPolygons used
+        // for the Morph yet, and that you want the shape to fit exactly into the
+        // size of the Composable.
+        val path = Path()
+        morph.toPath(percentage, path.asAndroidPath())
+        matrix.reset()
+        matrix.scale(size.width, size.height)
+        path.transform(matrix)
+        return Outline.Generic(path)
     }
 }
