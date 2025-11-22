@@ -206,7 +206,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                 Heatmap(
                     completions = completions,
                     habitColor = animatedColor,
-                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                    modifier = Modifier.fillMaxWidth().padding(top = if (showMonthLabels) 0.dp else 8.dp),
                     showMonthLabels = showMonthLabels,
                     dayOfWeekLabelsVisible = dayOfWeekLabelsVisible,
                     dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight,

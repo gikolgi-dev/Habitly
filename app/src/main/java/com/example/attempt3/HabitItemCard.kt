@@ -299,7 +299,7 @@ fun HabitItemCard(
                 }
             }
             if (showCheckbox) {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(if (showMonthLabels) 0.dp else 8.dp))
                 Heatmap(
                     completions = completions,
                     habitColor = Color(habit.color),

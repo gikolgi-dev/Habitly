@@ -199,7 +199,7 @@ fun Heatmap(
                                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                                             maxLines = 1,
                                             softWrap = false,
-                                            modifier = Modifier.offset(y = (1).dp),
+                                            //modifier = Modifier.offset(y = (-10).dp),
                                         )
                                     }
                                 }
