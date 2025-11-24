@@ -1,5 +1,6 @@
 package com.example.attempt3
 
+import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -37,6 +38,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -53,6 +55,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
     val showSecondConfirmationDialog = remember { mutableStateOf(false) }
     var showAppearanceScreen by remember { mutableStateOf(false) }
     var showGeneralScreen by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
 
     BackHandler(enabled = showAppearanceScreen || showGeneralScreen) {
         if (showAppearanceScreen) {
@@ -125,7 +128,14 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
         )
     }
 
+    val blurModifier = if (showTimePicker && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        Modifier.blur(10.dp)
+    } else {
+        Modifier
+    }
+
     Scaffold(
+        modifier = blurModifier,
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text(if (showAppearanceScreen) "Appearance" else if (showGeneralScreen) "General" else "Settings", fontWeight = FontWeight.SemiBold) },
@@ -164,7 +174,8 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
     ) { paddingValues ->
         Box(modifier = Modifier
             .padding(paddingValues)
-            .fillMaxSize()) {
+            .fillMaxSize()
+        ) {
             AnimatedVisibility(
                 visible = !showAppearanceScreen && !showGeneralScreen,
                 exit = slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(300)),
@@ -222,7 +233,9 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                 exit = slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(300))
             ) {
                 GeneralSettingsScreen(
-                    settingsDataStore = settingsDataStore
+                    settingsDataStore = settingsDataStore,
+                    showTimePicker = showTimePicker,
+                    onShowTimePickerChange = { showTimePicker = it }
                 )
             }
         }

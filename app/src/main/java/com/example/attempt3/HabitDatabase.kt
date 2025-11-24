@@ -28,7 +28,9 @@ data class Habit(
     val isInverse: Boolean,
     val emoji: String?,
     val completionsPerInterval: Int = 1,
-    val intervalUnit: String = "day"
+    val intervalUnit: String = "day",
+    val notificationsEnabled: Boolean = false,
+    val notificationTime: String? = null
 )
 
 @Entity(
@@ -96,7 +98,7 @@ interface HabitDao {
     suspend fun deleteCompletionsForHabitOnDay(habitId: String, startOfDay: Long, endOfDay: Long)
 }
 
-@Database(entities = [Habit::class, Completion::class], version = 9)
+@Database(entities = [Habit::class, Completion::class], version = 10)
 abstract class HabitDatabase : RoomDatabase() {
     abstract fun habitDao(): HabitDao
 }
@@ -143,5 +145,12 @@ val MIGRATION_8_9 = object : Migration(8, 9) {
 
         // Rename the new table to the original table name
         database.execSQL("ALTER TABLE Habit_new RENAME TO Habit")
+    }
+}
+
+val MIGRATION_9_10 = object : Migration(9, 10) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("ALTER TABLE Habit ADD COLUMN notificationsEnabled INTEGER NOT NULL DEFAULT 0")
+        database.execSQL("ALTER TABLE Habit ADD COLUMN notificationTime TEXT")
     }
 }

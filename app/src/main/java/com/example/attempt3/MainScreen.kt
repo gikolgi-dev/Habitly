@@ -2,8 +2,12 @@
 
 package com.example.attempt3
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
@@ -72,12 +76,14 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import com.github.skydoves.colorpicker.compose.ColorEnvelope
 import com.github.skydoves.colorpicker.compose.HsvColorPicker
 import com.github.skydoves.colorpicker.compose.rememberColorPickerController
@@ -94,6 +100,8 @@ import kotlin.math.roundToInt
 fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: HabitDatabase, settingsDataStore: SettingsDataStore) {
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
+    val context = LocalContext.current
+    val notificationScheduler = remember { NotificationScheduler(context) }
 
     val habitsUiState by viewModel.habitsUiState.collectAsState()
     val archivedHabitsUiState by viewModel.archivedHabitsUiState.collectAsState()
@@ -145,6 +153,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     var showArchiveSheet by remember { mutableStateOf(false) }
     var showReorderSheet by remember { mutableStateOf(false) }
     var isFabMenuExpanded by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
 
     val isEditMode = habitToEdit != null
     val title = if (isEditMode) "Edit Habit" else "Add New Habit"
@@ -157,6 +166,37 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     var completionsPerInterval by remember { mutableStateOf("1") }
     var intervalUnit by remember { mutableStateOf("day") }
     var completionsError by remember { mutableStateOf<String?>(null) }
+    var notificationsEnabled by remember { mutableStateOf(false) }
+    var notificationTime by remember { mutableStateOf<String?>("09:00") }
+
+    var hasNotificationPermission by remember {
+        mutableStateOf(
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
+            } else {
+                true
+            }
+        )
+    }
+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { isGranted ->
+            hasNotificationPermission = isGranted
+            if (isGranted) {
+                notificationsEnabled = true
+            }
+        }
+    )
+
+    fun requestPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
 
     fun validate(completionsText: String) {
         if (intervalUnit == "day") {
@@ -197,6 +237,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 habitIconKey = habitToEdit!!.icon
                 completionsPerInterval = habitToEdit!!.completionsPerInterval.toString()
                 intervalUnit = habitToEdit!!.intervalUnit
+                notificationsEnabled = habitToEdit!!.notificationsEnabled
+                notificationTime = habitToEdit!!.notificationTime ?: "09:00"
             } else {
                 habitName = ""
                 habitDescription = ""
@@ -204,6 +246,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 habitIconKey = defaultHabitIconKey
                 completionsPerInterval = "1"
                 intervalUnit = "day"
+                notificationsEnabled = false
+                notificationTime = "09:00"
             }
         }
     }
@@ -217,6 +261,21 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
             isFabMenuExpanded = false
             showReorderSheet = false
         }
+    }
+    
+    if (showTimePicker) {
+        val initialHour = notificationTime?.split(":")?.get(0)?.toIntOrNull() ?: 9
+        val initialMinute = notificationTime?.split(":")?.get(1)?.toIntOrNull() ?: 0
+        CustomTimePickerDialog(
+            onDismissRequest = { showTimePicker = false },
+            onConfirm = { hour, minute ->
+                notificationTime = String.format("%02d:%02d", hour, minute)
+                showTimePicker = false
+            },
+            initialHour = initialHour,
+            initialMinute = initialMinute,
+            borderContrast = borderContrast!!
+        )
     }
 
     val isColorPickerVisible = showColorPicker
@@ -254,14 +313,21 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     }
 
     SharedTransitionLayout {
-        val mainContentModifier = if ((habitToView != null || habitToEdit != null || showArchiveSheet || isFabMenuExpanded || showReorderSheet) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        val mainContentModifier = if ((showHabitSheet || showArchiveSheet || isFabMenuExpanded || showReorderSheet) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             Modifier.blur(16.dp)
         } else {
             Modifier
         }
+        
+        val timePickerBlurModifier = if (showTimePicker && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            Modifier.blur(10.dp)
+        } else {
+            Modifier
+        }
 
-        Box(Modifier.fillMaxSize()) {
+        Box(Modifier.fillMaxSize().then(timePickerBlurModifier)) {
             Scaffold(
+
                 contentWindowInsets = WindowInsets.safeDrawing,
                 floatingActionButton = {
                     AnimatedVisibility(
@@ -641,7 +707,24 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                             onClearCustomColor = { customColor = null },
                             livePreviewColor = if (showColorPicker) { if (pickerInitialColor == null) tempColor else pickerInitialColor } else customColor,
                             scrollState = scrollState,
-                            settingsDataStore = settingsDataStore
+                            settingsDataStore = settingsDataStore,
+                            notificationsEnabled = notificationsEnabled,
+                            onNotificationsEnabledChanged = {
+                                if (hasNotificationPermission) {
+                                    notificationsEnabled = it
+                                } else {
+                                    requestPermission()
+                                }
+                            },
+                            notificationTime = notificationTime,
+                            onTimePickerClick = {
+                                if (hasNotificationPermission) {
+                                    showTimePicker = true
+                                } else {
+                                    requestPermission()
+                                }
+                            },
+                            hasNotificationPermission = hasNotificationPermission
                         )
                     }
                 }
@@ -669,9 +752,16 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                     icon = habitIconKey,
                                     color = (customColor ?: habitColor).toArgb(),
                                     completionsPerInterval = completionsPerInterval.toIntOrNull() ?: 1,
-                                    intervalUnit = intervalUnit
+                                    intervalUnit = intervalUnit,
+                                    notificationsEnabled = notificationsEnabled,
+                                    notificationTime = if (notificationsEnabled) notificationTime else null
                                 )
                                 habitDao.updateHabit(updatedHabit)
+                                if (updatedHabit.notificationsEnabled) {
+                                    notificationScheduler.scheduleNotification(updatedHabit)
+                                 } else {
+                                    notificationScheduler.cancelNotification(updatedHabit)
+                                }
                                 habitToView = updatedHabit
                             } else {
                                 val newHabit = Habit(
@@ -686,9 +776,14 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                     isInverse = false,
                                     emoji = null,
                                     completionsPerInterval = completionsPerInterval.toIntOrNull() ?: 1,
-                                    intervalUnit = intervalUnit
+                                    intervalUnit = intervalUnit,
+                                    notificationsEnabled = notificationsEnabled,
+                                    notificationTime = if (notificationsEnabled) notificationTime else null
                                 )
                                 habitDao.insertHabit(newHabit)
+                                if (newHabit.notificationsEnabled) {
+                                    notificationScheduler.scheduleNotification(newHabit)
+                                }
                                 // Reset the state for the next new habit
                                 habitName = ""
                                 habitDescription = ""

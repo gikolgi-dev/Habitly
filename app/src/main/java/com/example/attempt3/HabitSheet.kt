@@ -54,6 +54,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.ToggleButton
 import androidx.compose.material3.ToggleButtonColors
@@ -63,6 +64,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -96,7 +98,12 @@ fun HabitSheetContent(
     onClearCustomColor: () -> Unit,
     livePreviewColor: Color?,
     scrollState: ScrollState,
-    settingsDataStore: SettingsDataStore
+    settingsDataStore: SettingsDataStore,
+    notificationsEnabled: Boolean,
+    onNotificationsEnabledChanged: (Boolean) -> Unit,
+    notificationTime: String?,
+    onTimePickerClick: () -> Unit,
+    hasNotificationPermission: Boolean
 ) {
     val haptic = LocalHapticFeedback.current
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
@@ -171,7 +178,9 @@ fun HabitSheetContent(
                 ToggleButton(
                     checked = isSelected,
                     onCheckedChange = { if (it) onIntervalUnitChanged(intervalValues[index]) },
-                    modifier = Modifier.weight(1f).semantics { role = Role.RadioButton },
+                    modifier = Modifier
+                        .weight(1f)
+                        .semantics { role = Role.RadioButton },
                     colors = ToggleButtonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         disabledContainerColor = Color.Gray,
@@ -188,6 +197,44 @@ fun HabitSheetContent(
                     },
                 ) {
                     Text(label)
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        HorizontalDivider(
+            thickness = 1.dp,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Column(
+            modifier = Modifier
+                .alpha(if (hasNotificationPermission) 1f else 0.5f)
+                .clickable(onClick = { onNotificationsEnabledChanged(!notificationsEnabled) })
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Enable Notifications", style = MaterialTheme.typography.titleMedium)
+                Switch(
+                    checked = notificationsEnabled,
+                    onCheckedChange = null,
+                    enabled = hasNotificationPermission
+                )
+            }
+            AnimatedVisibility(visible = notificationsEnabled && hasNotificationPermission) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onTimePickerClick)
+                        .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Notification Time")
+                    Text(notificationTime ?: "Not Set")
                 }
             }
         }

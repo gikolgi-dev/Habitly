@@ -107,11 +107,11 @@ fun SharedTransitionScope.HabitDetailScreen(
                     }
                     TextButton(
                         onClick = {
+                            onDismiss()
+                            showDeleteConfirmation = false
                             scope.launch {
                                 habitDao.deleteHabit(habit)
                             }
-                            showDeleteConfirmation = false
-                            onDismiss()
                         }
                     ) {
                         Text("Delete", color = Color.Red)
@@ -125,7 +125,10 @@ fun SharedTransitionScope.HabitDetailScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .clickable { onDismiss() },
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) { onDismiss() },
         contentAlignment = Alignment.Center
     ) {
         Card(
@@ -233,7 +236,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                                 .background(MaterialTheme.colorScheme.background.copy(alpha = 0.5f))
                                 .border(
                                     1.dp,
-                                    animatedColor.copy(alpha = borderContrast*2),
+                                    Color.Gray.copy(alpha = borderContrast*2),
                                     RoundedCornerShape(8.dp)
                                 )
                                 .clickable {
@@ -263,7 +266,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                                 .background(MaterialTheme.colorScheme.background.copy(alpha = 0.5f))
                                 .border(
                                     1.dp,
-                                    animatedColor.copy(alpha = borderContrast*2),
+                                    Color.Gray.copy(alpha = borderContrast*2),
                                     RoundedCornerShape(8.dp)
                                 )
                                 .clickable {
@@ -298,7 +301,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                                 .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
                                 .border(
                                     1.dp,
-                                    animatedColor.copy(alpha = borderContrast * 2),
+                                    Color.Gray.copy(alpha = borderContrast * 2),
                                     RoundedCornerShape(8.dp)
                                 ),
                             contentAlignment = Alignment.Center
