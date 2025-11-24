@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -27,8 +28,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material3.AlertDialog
@@ -84,6 +85,7 @@ fun SharedTransitionScope.HabitDetailScreen(
     val showAllDayOfWeekLabels by settingsDataStore.showAllDayOfWeekLabels.collectAsState(initial = false)
     var showDeleteConfirmation by remember { mutableStateOf(false) } // State for delete confirmation dialog
     val animatedColor by animateColorAsState(targetValue = Color(habit.color), animationSpec = tween(durationMillis = 500))
+    val streak = remember(habit, completions) { calculateStreak(habit, completions) }
 
 
     if (showDeleteConfirmation) {
@@ -202,6 +204,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                         )
                     }
                 }
+
                 
                 Heatmap(
                     completions = completions,
@@ -283,35 +286,61 @@ fun SharedTransitionScope.HabitDetailScreen(
                         }
                     }
 
-                    // Delete button (right-aligned), only visible in archived view
-                    if (isArchivedView) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        val intervalText = when (habit.intervalUnit) {
+                            "day" -> "Daily"
+                            else -> "${habit.completionsPerInterval}/${habit.intervalUnit.replaceFirstChar { it.uppercase() }}"
+                        }
                         Box(
                             modifier = Modifier
-                                .size(35.dp)
+                                .height(35.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(Color.Red.copy(alpha = 0.8f))
+                                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
                                 .border(
                                     1.dp,
-                                    Color.Red,
+                                    animatedColor.copy(alpha = borderContrast * 2),
                                     RoundedCornerShape(8.dp)
-                                )
-                                .clickable { showDeleteConfirmation = true }, // Set state to true on click
+                                ),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = "Delete Habit",
-                                modifier = Modifier.size(16.dp),
-                                tint = Color.White
+                            Text(
+                                text = intervalText,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.padding(horizontal = 8.dp)
                             )
+                        }
+                        Spacer(modifier = Modifier.size(8.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(height = 35.dp, width = 64.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color(0xFFFC9920).copy(alpha = 0.4f))
+                                .border(
+                                    1.dp,
+                                    Color(0xFFFC9920).copy(alpha = borderContrast * 2),
+                                    RoundedCornerShape(8.dp)
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Text("$streak")
+                                Spacer(modifier = Modifier.size(2.dp))
+                                Icon(
+                                    imageVector = Icons.Default.LocalFireDepartment,
+                                    contentDescription = "Streak",
+                                    modifier = Modifier.size(20.dp),
+                                    tint = Color(0xFFFC9920)
+                                )
+                            }
                         }
                     }
                 }
-                HorizontalDivider(
-                    //modifier = Modifier.padding(top = 16.dp),
-                    thickness = 1.dp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
-                )
+                HorizontalDivider( thickness = 1.dp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
                 MonthCalendar(
                     //modifier = Modifier.padding(horizontal = 8.dp),
                     completions = completions,
@@ -361,5 +390,193 @@ fun SharedTransitionScope.HabitDetailScreen(
                 )
             }
         }
+    }
+}
+
+private fun calculateStreak(habit: Habit, completions: List<Completion>): Int {
+    if (completions.isEmpty()) return 0
+
+    val sortedDates = completions.map { it.date }.sortedDescending()
+    
+    val today = Calendar.getInstance()
+    today.set(Calendar.HOUR_OF_DAY, 0)
+    today.set(Calendar.MINUTE, 0)
+    today.set(Calendar.SECOND, 0)
+    today.set(Calendar.MILLISECOND, 0)
+
+    val completedDays = sortedDates.map { date ->
+        val c = Calendar.getInstance().apply { timeInMillis = date }
+        c.set(Calendar.HOUR_OF_DAY, 0)
+        c.set(Calendar.MINUTE, 0)
+        c.set(Calendar.SECOND, 0)
+        c.set(Calendar.MILLISECOND, 0)
+        c.timeInMillis
+    }.toSet()
+
+    return when (habit.intervalUnit) {
+        "day" -> {
+            var currentStreak = 0
+            val checkC = today.clone() as Calendar
+
+            // Check today
+            if (completedDays.contains(checkC.timeInMillis)) {
+                currentStreak++
+            }
+
+            // Move to yesterday
+            checkC.add(Calendar.DAY_OF_YEAR, -1)
+
+            if (currentStreak == 0) {
+                // If today was not completed, we give a chance to yesterday
+                if (completedDays.contains(checkC.timeInMillis)) {
+                    currentStreak++
+                    checkC.add(Calendar.DAY_OF_YEAR, -1)
+                } else {
+                    return 0
+                }
+            }
+
+            // Count consecutive past days
+            while (completedDays.contains(checkC.timeInMillis)) {
+                currentStreak++
+                checkC.add(Calendar.DAY_OF_YEAR, -1)
+            }
+            currentStreak
+        }
+        "week" -> {
+            val c = Calendar.getInstance()
+            c.set(Calendar.HOUR_OF_DAY, 0)
+            c.set(Calendar.MINUTE, 0)
+            c.set(Calendar.SECOND, 0)
+            c.set(Calendar.MILLISECOND, 0)
+            
+            val firstDayOfWeek = c.firstDayOfWeek
+            val startOfCurrentWeek = c.clone() as Calendar
+            while (startOfCurrentWeek.get(Calendar.DAY_OF_WEEK) != firstDayOfWeek) {
+                startOfCurrentWeek.add(Calendar.DAY_OF_YEAR, -1)
+            }
+            
+            val diffInMillis = c.timeInMillis - startOfCurrentWeek.timeInMillis
+            val daysPassed = TimeUnit.MILLISECONDS.toDays(diffInMillis).toInt() + 1
+            
+            var completionsInCurrentWeek = 0
+            val tempC = startOfCurrentWeek.clone() as Calendar
+            for (i in 0 until daysPassed) {
+                if (completedDays.contains(tempC.timeInMillis)) {
+                    completionsInCurrentWeek++
+                }
+                tempC.add(Calendar.DAY_OF_YEAR, 1)
+            }
+            
+            val target = habit.completionsPerInterval
+            val allowedMisses = 7 - target
+            val currentMisses = daysPassed - completionsInCurrentWeek
+            
+            if (currentMisses <= allowedMisses) {
+                var streak = completionsInCurrentWeek
+                val checkWeekStart = startOfCurrentWeek.clone() as Calendar
+                checkWeekStart.add(Calendar.WEEK_OF_YEAR, -1)
+                
+                while (true) {
+                    var weekCompletions = 0
+                    val dayIterator = checkWeekStart.clone() as Calendar
+                    for (i in 0 until 7) {
+                        if (completedDays.contains(dayIterator.timeInMillis)) {
+                            weekCompletions++
+                        }
+                        dayIterator.add(Calendar.DAY_OF_YEAR, 1)
+                    }
+                    
+                    if (weekCompletions >= target) {
+                        streak += weekCompletions
+                        checkWeekStart.add(Calendar.WEEK_OF_YEAR, -1)
+                    } else {
+                        break
+                    }
+                }
+                streak
+            } else {
+                var tail = 0
+                val scanC = c.clone() as Calendar
+                var counting = false
+                while (scanC.timeInMillis >= startOfCurrentWeek.timeInMillis) {
+                    if (completedDays.contains(scanC.timeInMillis)) {
+                        counting = true
+                        tail++
+                    } else {
+                        if (counting) break
+                    }
+                    scanC.add(Calendar.DAY_OF_YEAR, -1)
+                }
+                tail
+            }
+        }
+        "month" -> {
+            val c = Calendar.getInstance()
+            c.set(Calendar.HOUR_OF_DAY, 0)
+            c.set(Calendar.MINUTE, 0)
+            c.set(Calendar.SECOND, 0)
+            c.set(Calendar.MILLISECOND, 0)
+            
+            val startOfCurrentMonth = c.clone() as Calendar
+            startOfCurrentMonth.set(Calendar.DAY_OF_MONTH, 1)
+            
+            val daysPassed = c.get(Calendar.DAY_OF_MONTH)
+            
+            var completionsInCurrentMonth = 0
+            val tempC = startOfCurrentMonth.clone() as Calendar
+            for (i in 0 until daysPassed) {
+                if (completedDays.contains(tempC.timeInMillis)) {
+                    completionsInCurrentMonth++
+                }
+                tempC.add(Calendar.DAY_OF_YEAR, 1)
+            }
+            
+            val daysInMonth = c.getActualMaximum(Calendar.DAY_OF_MONTH)
+            val target = habit.completionsPerInterval
+            val allowedMisses = daysInMonth - target
+            val currentMisses = daysPassed - completionsInCurrentMonth
+            
+            if (currentMisses <= allowedMisses) {
+                var streak = completionsInCurrentMonth
+                val checkMonthStart = startOfCurrentMonth.clone() as Calendar
+                checkMonthStart.add(Calendar.MONTH, -1)
+                
+                while (true) {
+                    val prevMonthDays = checkMonthStart.getActualMaximum(Calendar.DAY_OF_MONTH)
+                    var monthCompletions = 0
+                    val dayIterator = checkMonthStart.clone() as Calendar
+                    for (i in 0 until prevMonthDays) {
+                        if (completedDays.contains(dayIterator.timeInMillis)) {
+                            monthCompletions++
+                        }
+                        dayIterator.add(Calendar.DAY_OF_YEAR, 1)
+                    }
+                    
+                    if (monthCompletions >= target) {
+                        streak += monthCompletions
+                        checkMonthStart.add(Calendar.MONTH, -1)
+                    } else {
+                        break
+                    }
+                }
+                streak
+            } else {
+                var tail = 0
+                val scanC = c.clone() as Calendar
+                var counting = false
+                while (scanC.timeInMillis >= startOfCurrentMonth.timeInMillis) {
+                    if (completedDays.contains(scanC.timeInMillis)) {
+                        counting = true
+                        tail++
+                    } else {
+                        if (counting) break
+                    }
+                    scanC.add(Calendar.DAY_OF_YEAR, -1)
+                }
+                tail
+            }
+        }
+        else -> 0
     }
 }
