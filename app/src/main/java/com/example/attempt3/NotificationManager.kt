@@ -81,7 +81,7 @@ class NotificationScheduler(private val context: Context) {
     fun scheduleGeneralNotification(time: String) {
         val intent = Intent(context, NotificationReceiver::class.java).apply {
             putExtra("habitId", GENERAL_NOTIFICATION_ID)
-            putExtra("habitName", "Check your habits!")
+            putExtra("notificationTime", time)
         }
 
         val pendingIntent = PendingIntent.getBroadcast(
@@ -105,12 +105,22 @@ class NotificationScheduler(private val context: Context) {
             calendar.add(Calendar.DAY_OF_YEAR, 1)
         }
 
-        alarmManager.setInexactRepeating(
-            AlarmManager.RTC_WAKEUP,
-            calendar.timeInMillis,
-            AlarmManager.INTERVAL_DAY,
-            pendingIntent
-        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+            // Optionally, direct user to settings to grant permission
+            // For now, we fall back to inexact alarm
+            alarmManager.setInexactRepeating(
+                AlarmManager.RTC_WAKEUP,
+                calendar.timeInMillis,
+                AlarmManager.INTERVAL_DAY,
+                pendingIntent
+            )
+        } else {
+            alarmManager.setExactAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP,
+                calendar.timeInMillis,
+                pendingIntent
+            )
+        }
     }
 
     fun cancelGeneralNotification() {
@@ -128,7 +138,6 @@ class NotificationScheduler(private val context: Context) {
 class NotificationReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val habitId = intent.getStringExtra("habitId") ?: return
-        val habitName = intent.getStringExtra("habitName") ?: "your habit"
         val notificationTime = intent.getStringExtra("notificationTime")
 
         // Show the notification
@@ -143,32 +152,52 @@ class NotificationReceiver : BroadcastReceiver() {
             notificationManager.createNotificationChannel(channel)
         }
 
+        val isGeneralNotification = habitId == GENERAL_NOTIFICATION_ID
+
+        val title: String
+        val contentText: String
+
+        if (isGeneralNotification) {
+            title = "Daily Reminder"
+            contentText = "Time to log your habit completions!"
+        } else {
+            val habitName = intent.getStringExtra("habitName") ?: "your habit"
+            title = "Completion Reminder"
+            contentText = "Don't forget to complete $habitName today."
+        }
+
         val notification = NotificationCompat.Builder(context, "habit_reminders")
-            .setContentTitle("Habit Reminder")
-            .setContentText("Don't forget to complete your habit: $habitName")
+            .setContentTitle(title)
+            .setContentText(contentText)
             .setSmallIcon(R.drawable.ic_stat_name) // Replace with your app icon
             .build()
 
         notificationManager.notify(habitId.hashCode(), notification)
 
-        // Reschedule for the next day if it's a habit notification
+        // Reschedule for the next day
         if (notificationTime != null) {
+            val habitName = intent.getStringExtra("habitName")
             rescheduleAlarm(context, habitId, habitName, notificationTime)
         }
     }
 
-    private fun rescheduleAlarm(context: Context, habitId: String, habitName: String, notificationTime: String) {
+    private fun rescheduleAlarm(context: Context, habitId: String, habitName: String?, notificationTime: String) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         
+        val isGeneral = habitId == GENERAL_NOTIFICATION_ID
+        val requestCode = if (isGeneral) GENERAL_NOTIFICATION_REQUEST_CODE else habitId.hashCode()
+
         val intent = Intent(context, NotificationReceiver::class.java).apply {
             putExtra("habitId", habitId)
-            putExtra("habitName", habitName)
             putExtra("notificationTime", notificationTime)
+            if (!isGeneral) {
+                putExtra("habitName", habitName)
+            }
         }
 
         val pendingIntent = PendingIntent.getBroadcast(
             context,
-            habitId.hashCode(),
+            requestCode,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )

@@ -1,6 +1,9 @@
 package com.example.attempt3
 
 import android.Manifest
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -21,6 +24,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        createNotificationChannel()
         
         val db = HabitDatabase.getDatabase(applicationContext)
         val habitDao = db.habitDao()
@@ -45,6 +50,20 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+        }
+    }
+
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val name = "Habit Reminders"
+            val descriptionText = "Notifications to remind you of your habits"
+            val importance = NotificationManager.IMPORTANCE_DEFAULT
+            val channel = NotificationChannel("habit_reminders", name, importance).apply {
+                description = descriptionText
+            }
+            val notificationManager: NotificationManager =
+                getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
         }
     }
 }

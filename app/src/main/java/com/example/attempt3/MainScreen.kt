@@ -44,6 +44,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ElevatedCard
@@ -434,6 +435,12 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                     Text("Welcome back", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                                                     Spacer(modifier = Modifier.height(4.dp))
                                                     Text("Track your habits, build your future.", style = MaterialTheme.typography.bodyMedium)
+                                                    Spacer(modifier = Modifier.height(8.dp))
+                                                    Button(onClick = {
+                                                        viewModel.showReminderNotification(context, "Test Habit")
+                                                    }) {
+                                                        Text("Show Test Notification")
+                                                    }
                                                 }
                                                 Box(
                                                     modifier = Modifier
