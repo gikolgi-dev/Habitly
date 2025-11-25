@@ -10,6 +10,7 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import java.util.concurrent.atomic.AtomicInteger
 
 class HabitNotificationWorker(
     private val context: Context,
@@ -40,11 +41,11 @@ class HabitNotificationWorker(
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
-        val pendingIntent: PendingIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
+        val pendingIntent: PendingIntent = PendingIntent.getActivity(context, habitId.hashCode(), intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
 
 
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.mipmap.ic_launcher) // A default launcher icon
+            .setSmallIcon(R.drawable.ic_notification) // A default launcher icon
             .setContentTitle("Habit Reminder")
             .setContentText("Time to work on your habit: \$habitName")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -60,6 +61,7 @@ class HabitNotificationWorker(
         private const val CHANNEL_ID = "habit_reminders"
         private const val CHANNEL_NAME = "Habit Reminders"
         private const val CHANNEL_DESCRIPTION = "Notifications to remind you about your habits"
+        private val seed = AtomicInteger()
 
         fun createNotificationChannel(context: Context) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

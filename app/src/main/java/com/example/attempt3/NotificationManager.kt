@@ -146,7 +146,7 @@ class NotificationReceiver : BroadcastReceiver() {
         val notification = NotificationCompat.Builder(context, "habit_reminders")
             .setContentTitle("Habit Reminder")
             .setContentText("Don't forget to complete your habit: $habitName")
-            .setSmallIcon(R.drawable.ic_launcher_foreground) // Replace with your app icon
+            .setSmallIcon(R.drawable.ic_stat_name) // Replace with your app icon
             .build()
 
         notificationManager.notify(habitId.hashCode(), notification)
