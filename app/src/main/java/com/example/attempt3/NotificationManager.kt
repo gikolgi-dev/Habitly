@@ -78,10 +78,16 @@ class NotificationScheduler(private val context: Context) {
         alarmManager.cancel(pendingIntent)
     }
 
-    fun scheduleGeneralNotification(time: String) {
+    fun scheduleGeneralNotification(time: String, days: Set<String>) {
+        if (days.isEmpty()) {
+            cancelGeneralNotification()
+            return
+        }
+
         val intent = Intent(context, NotificationReceiver::class.java).apply {
             putExtra("habitId", GENERAL_NOTIFICATION_ID)
             putExtra("notificationTime", time)
+            putExtra("notificationDays", days.toTypedArray())
         }
 
         val pendingIntent = PendingIntent.getBroadcast(
@@ -95,34 +101,23 @@ class NotificationScheduler(private val context: Context) {
         val hour = timeParts[0].toInt()
         val minute = timeParts[1].toInt()
 
-        val calendar = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, hour)
-            set(Calendar.MINUTE, minute)
-            set(Calendar.SECOND, 0)
-        }
-
-        if (calendar.timeInMillis < System.currentTimeMillis()) {
-            calendar.add(Calendar.DAY_OF_YEAR, 1)
-        }
+        val nextAlarmTime = getNextAlarmTime(hour, minute, days) ?: return
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
-            // Optionally, direct user to settings to grant permission
-            // For now, we fall back to inexact alarm
-            alarmManager.setInexactRepeating(
+            alarmManager.setExactAndAllowWhileIdle(
                 AlarmManager.RTC_WAKEUP,
-                calendar.timeInMillis,
-                AlarmManager.INTERVAL_DAY,
+                nextAlarmTime,
                 pendingIntent
             )
         } else {
             alarmManager.setExactAndAllowWhileIdle(
                 AlarmManager.RTC_WAKEUP,
-                calendar.timeInMillis,
+                nextAlarmTime,
                 pendingIntent
             )
         }
     }
-
+    
     fun cancelGeneralNotification() {
         val intent = Intent(context, NotificationReceiver::class.java)
         val pendingIntent = PendingIntent.getBroadcast(
@@ -174,25 +169,29 @@ class NotificationReceiver : BroadcastReceiver() {
 
         notificationManager.notify(habitId.hashCode(), notification)
 
-        // Reschedule for the next day
+        // Reschedule for the next day/time
         if (notificationTime != null) {
-            val habitName = intent.getStringExtra("habitName")
-            rescheduleAlarm(context, habitId, habitName, notificationTime)
+            if (isGeneralNotification) {
+                val days = intent.getStringArrayExtra("notificationDays")?.toSet()
+                if (days != null) {
+                    rescheduleGeneralAlarm(context, notificationTime, days)
+                }
+            } else {
+                 val habitName = intent.getStringExtra("habitName")
+                 rescheduleHabitAlarm(context, habitId, habitName, notificationTime)
+            }
         }
     }
 
-    private fun rescheduleAlarm(context: Context, habitId: String, habitName: String?, notificationTime: String) {
+    private fun rescheduleHabitAlarm(context: Context, habitId: String, habitName: String?, notificationTime: String) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         
-        val isGeneral = habitId == GENERAL_NOTIFICATION_ID
-        val requestCode = if (isGeneral) GENERAL_NOTIFICATION_REQUEST_CODE else habitId.hashCode()
+        val requestCode = habitId.hashCode()
 
         val intent = Intent(context, NotificationReceiver::class.java).apply {
             putExtra("habitId", habitId)
             putExtra("notificationTime", notificationTime)
-            if (!isGeneral) {
-                putExtra("habitName", habitName)
-            }
+            putExtra("habitName", habitName)
         }
 
         val pendingIntent = PendingIntent.getBroadcast(
@@ -214,10 +213,9 @@ class NotificationReceiver : BroadcastReceiver() {
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
-             alarmManager.setInexactRepeating(
+             alarmManager.setExactAndAllowWhileIdle(
                 AlarmManager.RTC_WAKEUP,
                 calendar.timeInMillis,
-                AlarmManager.INTERVAL_DAY,
                 pendingIntent
             )
         } else {
@@ -228,4 +226,104 @@ class NotificationReceiver : BroadcastReceiver() {
             )
         }
     }
+
+    private fun rescheduleGeneralAlarm(context: Context, time: String, days: Set<String>) {
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+
+        val intent = Intent(context, NotificationReceiver::class.java).apply {
+            putExtra("habitId", GENERAL_NOTIFICATION_ID)
+            putExtra("notificationTime", time)
+            putExtra("notificationDays", days.toTypedArray())
+        }
+
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            GENERAL_NOTIFICATION_REQUEST_CODE,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        
+        val timeParts = time.split(":")
+        val hour = timeParts[0].toInt()
+        val minute = timeParts[1].toInt()
+        
+        val nextAlarmTime = getNextAlarmTime(hour, minute, days) ?: return
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+             alarmManager.setExactAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP,
+                nextAlarmTime,
+                pendingIntent
+            )
+        } else {
+             alarmManager.setExactAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP,
+                nextAlarmTime,
+                pendingIntent
+            )
+        }
+    }
+}
+
+fun getNextAlarmTime(hour: Int, minute: Int, days: Set<String>): Long? {
+    if (days.isEmpty()) return null
+
+    val dayMap = mapOf(
+        "SUN" to Calendar.SUNDAY,
+        "MON" to Calendar.MONDAY,
+        "TUE" to Calendar.TUESDAY,
+        "WED" to Calendar.WEDNESDAY,
+        "THU" to Calendar.THURSDAY,
+        "FRI" to Calendar.FRIDAY,
+        "SAT" to Calendar.SATURDAY
+    )
+    val enabledDays = days.mapNotNull { dayMap[it] }.toSet()
+
+    val now = Calendar.getInstance()
+    val today = now.get(Calendar.DAY_OF_WEEK)
+
+    var nextDay: Int? = null
+    // First, check for a day later in the current week
+    for (day in (today)..Calendar.SATURDAY) {
+        if (enabledDays.contains(day)) {
+            val calendar = Calendar.getInstance().apply {
+                set(Calendar.DAY_OF_WEEK, day)
+                set(Calendar.HOUR_OF_DAY, hour)
+                set(Calendar.MINUTE, minute)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
+            if (calendar.timeInMillis > now.timeInMillis) {
+                nextDay = day
+                break
+            }
+        }
+    }
+    
+    // If no day found in the current week, check from the beginning of next week
+    if (nextDay == null) {
+        for (day in Calendar.SUNDAY..today) {
+            if (enabledDays.contains(day)) {
+                nextDay = day
+                break
+            }
+        }
+    }
+    
+    if (nextDay != null) {
+        val calendar = Calendar.getInstance().apply {
+            set(Calendar.DAY_OF_WEEK, nextDay)
+            set(Calendar.HOUR_OF_DAY, hour)
+            set(Calendar.MINUTE, minute)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        
+        if (calendar.timeInMillis <= now.timeInMillis) {
+            calendar.add(Calendar.WEEK_OF_YEAR, 1)
+        }
+        return calendar.timeInMillis
+    }
+    
+    return null
 }

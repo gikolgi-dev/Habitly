@@ -1,13 +1,19 @@
 package com.example.attempt3
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,6 +23,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.AlertDialog
@@ -26,11 +33,14 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,9 +50,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -56,7 +70,68 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
     var showAppearanceScreen by remember { mutableStateOf(false) }
     var showGeneralScreen by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
+    var showNotificationSheet by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
+    val globalNotificationsEnabled by settingsDataStore.globalNotificationsEnabled.collectAsState(initial = false)
+    val globalNotificationTime by settingsDataStore.globalNotificationTime.collectAsState(initial = "09:00")
+    val globalNotificationDays by settingsDataStore.globalNotificationDays.collectAsState(initial = setOf())
+    val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
+    val haptic = LocalHapticFeedback.current
+    val notificationScheduler = remember { NotificationScheduler(context) }
 
+    var hasNotificationPermission by remember {
+        mutableStateOf(
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
+            } else {
+                true
+            }
+        )
+    }
+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { isGranted ->
+            hasNotificationPermission = isGranted
+            if (isGranted) {
+                scope.launch {
+                    settingsDataStore.setGlobalNotificationsEnabled(true)
+                    notificationScheduler.scheduleGeneralNotification(globalNotificationTime, globalNotificationDays)
+                    haptic.performHapticFeedback(HapticFeedbackType.ToggleOn)
+                }
+            }
+        }
+    )
+
+    fun requestPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+
+    fun handleNotificationToggle(enable: Boolean) {
+        if (enable) {
+            if (hasNotificationPermission) {
+                scope.launch {
+                    settingsDataStore.setGlobalNotificationsEnabled(true)
+                    notificationScheduler.scheduleGeneralNotification(globalNotificationTime, globalNotificationDays)
+                    haptic.performHapticFeedback(HapticFeedbackType.ToggleOn)
+                }
+            } else {
+                requestPermission()
+            }
+        } else {
+            scope.launch {
+                settingsDataStore.setGlobalNotificationsEnabled(false)
+                notificationScheduler.cancelGeneralNotification()
+                haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+            }
+        }
+    }
     BackHandler(enabled = showAppearanceScreen || showGeneralScreen) {
         if (showAppearanceScreen) {
             showAppearanceScreen = false
@@ -126,6 +201,90 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
             },
             containerColor = MaterialTheme.colorScheme.surface
         )
+    }
+
+    if (showTimePicker) {
+        val initialHour = globalNotificationTime.split(":")[0].toIntOrNull() ?: 9
+        val initialMinute = globalNotificationTime.split(":")[1].toIntOrNull() ?: 0
+        CustomTimePickerDialog(
+            onDismissRequest = { showTimePicker = false },
+            onConfirm = { hour, minute ->
+                scope.launch {
+                    val newTime = String.format("%02d:%02d", hour, minute)
+                    settingsDataStore.setGlobalNotificationTime(newTime)
+                    if (globalNotificationsEnabled) {
+                        notificationScheduler.scheduleGeneralNotification(newTime, globalNotificationDays)
+                    }
+                }
+                showTimePicker = false
+            },
+            initialHour = initialHour,
+            initialMinute = initialMinute,
+            borderContrast = borderContrast
+        )
+    }
+
+    if (showNotificationSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showNotificationSheet = false },
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = { handleNotificationToggle(!globalNotificationsEnabled) })
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Enable daily reminder",
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.weight(1f)
+                )
+                Switch(
+                    checked = globalNotificationsEnabled && hasNotificationPermission,
+                    onCheckedChange = { handleNotificationToggle(it) }
+                )
+            }
+            AnimatedVisibility(visible = globalNotificationsEnabled && hasNotificationPermission) {
+                Column {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(onClick = { showTimePicker = true })
+                            .padding(horizontal = 20.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Reminder time",
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.padding(end = 16.dp)
+                        )
+                        Text(
+                            text = globalNotificationTime,
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.weight(1f),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    DayOfWeekSelector(
+                        selectedDays = globalNotificationDays,
+                        onDaySelected = { day ->
+                            scope.launch {
+                                val newDays = if (globalNotificationDays.contains(day)) {
+                                    globalNotificationDays - day
+                                } else {
+                                    globalNotificationDays + day
+                                }
+                                settingsDataStore.setGlobalNotificationDays(newDays)
+                                if (globalNotificationsEnabled) {
+                                    notificationScheduler.scheduleGeneralNotification(globalNotificationTime, newDays)
+                                }
+                            }
+                        }
+                    )
+                }
+            }
+        }
     }
 
     val blurModifier = if (showTimePicker && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -205,6 +364,17 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                     }
                     item {
                         ModernSettingsItem(
+                            title = "Daily Notifications",
+                            subtitle = "Set daily notification completion reminder",
+                            icon = Icons.Default.Notifications,
+                            iconBackgroundColor = MaterialTheme.colorScheme.tertiary,
+                            onClick = { showNotificationSheet = true },
+                            iconColor = MaterialTheme.colorScheme.onTertiary,
+                            settingsDataStore = settingsDataStore
+                        )
+                    }
+                    item {
+                        ModernSettingsItem(
                             title = "Clear all data",
                             subtitle = "Delete all habits and their completions",
                             icon = Icons.Default.Delete,
@@ -233,9 +403,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                 exit = slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(300))
             ) {
                 GeneralSettingsScreen(
-                    settingsDataStore = settingsDataStore,
-                    showTimePicker = showTimePicker,
-                    onShowTimePickerChange = { showTimePicker = it }
+                    settingsDataStore = settingsDataStore
                 )
             }
         }

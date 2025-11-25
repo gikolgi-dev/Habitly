@@ -26,6 +26,7 @@ class SettingsDataStore(private val context: Context) {
         val SHOW_ALL_DAY_OF_WEEK_LABELS_KEY = booleanPreferencesKey("show_all_day_of_week_labels")
         val GLOBAL_NOTIFICATIONS_KEY = booleanPreferencesKey("global_notifications")
         val GLOBAL_NOTIFICATION_TIME_KEY = stringPreferencesKey("global_notification_time")
+        val GLOBAL_NOTIFICATION_DAYS_KEY = stringPreferencesKey("global_notification_days")
     }
 
     val theme: Flow<String> = context.dataStore.data
@@ -139,6 +140,17 @@ class SettingsDataStore(private val context: Context) {
         }
     }
 
+    val globalNotificationDays: Flow<Set<String>> = context.dataStore.data
+        .map { preferences ->
+            preferences[GLOBAL_NOTIFICATION_DAYS_KEY]?.split(',')?.toSet() ?: setOf("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")
+        }
+
+    suspend fun setGlobalNotificationDays(days: Set<String>) {
+        context.dataStore.edit { settings ->
+            settings[GLOBAL_NOTIFICATION_DAYS_KEY] = days.joinToString(",")
+        }
+    }
+
     suspend fun resetToDefault() {
         context.dataStore.edit { settings ->
             settings[THEME_KEY] = "system"
@@ -147,6 +159,7 @@ class SettingsDataStore(private val context: Context) {
             settings[BORDERS_KEY] = 0.1f
             settings[GLOBAL_NOTIFICATIONS_KEY] = false
             settings[GLOBAL_NOTIFICATION_TIME_KEY] = "09:00"
+            settings[GLOBAL_NOTIFICATION_DAYS_KEY] = "MON,TUE,WED,THU,FRI,SAT,SUN"
         }
     }
 }
