@@ -25,6 +25,7 @@ class NotificationScheduler(private val context: Context) {
         val intent = Intent(context, NotificationReceiver::class.java).apply {
             putExtra("habitId", habit.id)
             putExtra("habitName", habit.name)
+            putExtra("notificationTime", habit.notificationTime)
         }
 
         val pendingIntent = PendingIntent.getBroadcast(
@@ -48,12 +49,22 @@ class NotificationScheduler(private val context: Context) {
             calendar.add(Calendar.DAY_OF_YEAR, 1)
         }
 
-        alarmManager.setInexactRepeating(
-            AlarmManager.RTC_WAKEUP,
-            calendar.timeInMillis,
-            AlarmManager.INTERVAL_DAY,
-            pendingIntent
-        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+            // Optionally, direct user to settings to grant permission
+            // For now, we fall back to inexact alarm
+            alarmManager.setInexactRepeating(
+                AlarmManager.RTC_WAKEUP,
+                calendar.timeInMillis,
+                AlarmManager.INTERVAL_DAY,
+                pendingIntent
+            )
+        } else {
+             alarmManager.setExactAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP,
+                calendar.timeInMillis,
+                pendingIntent
+            )
+        }
     }
 
     fun cancelNotification(habit: Habit) {
@@ -118,7 +129,9 @@ class NotificationReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val habitId = intent.getStringExtra("habitId") ?: return
         val habitName = intent.getStringExtra("habitName") ?: "your habit"
+        val notificationTime = intent.getStringExtra("notificationTime")
 
+        // Show the notification
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -137,5 +150,53 @@ class NotificationReceiver : BroadcastReceiver() {
             .build()
 
         notificationManager.notify(habitId.hashCode(), notification)
+
+        // Reschedule for the next day if it's a habit notification
+        if (notificationTime != null) {
+            rescheduleAlarm(context, habitId, habitName, notificationTime)
+        }
+    }
+
+    private fun rescheduleAlarm(context: Context, habitId: String, habitName: String, notificationTime: String) {
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        
+        val intent = Intent(context, NotificationReceiver::class.java).apply {
+            putExtra("habitId", habitId)
+            putExtra("habitName", habitName)
+            putExtra("notificationTime", notificationTime)
+        }
+
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            habitId.hashCode(),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        
+        val timeParts = notificationTime.split(":")
+        val hour = timeParts[0].toInt()
+        val minute = timeParts[1].toInt()
+
+        val calendar = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, hour)
+            set(Calendar.MINUTE, minute)
+            set(Calendar.SECOND, 0)
+            add(Calendar.DAY_OF_YEAR, 1) // Set for the next day
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+             alarmManager.setInexactRepeating(
+                AlarmManager.RTC_WAKEUP,
+                calendar.timeInMillis,
+                AlarmManager.INTERVAL_DAY,
+                pendingIntent
+            )
+        } else {
+             alarmManager.setExactAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP,
+                calendar.timeInMillis,
+                pendingIntent
+            )
+        }
     }
 }

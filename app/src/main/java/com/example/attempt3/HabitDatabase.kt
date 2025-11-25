@@ -1,5 +1,6 @@
 package com.example.attempt3
 
+import android.content.Context
 import androidx.room.Dao
 import androidx.room.Database
 import androidx.room.Delete
@@ -8,6 +9,7 @@ import androidx.room.ForeignKey
 import androidx.room.Insert
 import androidx.room.PrimaryKey
 import androidx.room.Query
+import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.Transaction
 import androidx.room.Update
@@ -96,11 +98,31 @@ interface HabitDao {
 
     @Query("DELETE FROM completion WHERE habitId = :habitId AND date >= :startOfDay AND date < :endOfDay")
     suspend fun deleteCompletionsForHabitOnDay(habitId: String, startOfDay: Long, endOfDay: Long)
+    
+    @Query("SELECT * FROM habit WHERE id = :habitId")
+    suspend fun getHabit(habitId: String): Habit?
 }
 
 @Database(entities = [Habit::class, Completion::class], version = 10)
 abstract class HabitDatabase : RoomDatabase() {
     abstract fun habitDao(): HabitDao
+
+    companion object {
+        @Volatile
+        private var INSTANCE: HabitDatabase? = null
+
+        fun getDatabase(context: Context): HabitDatabase {
+            return INSTANCE ?: synchronized(this) {
+                val instance = Room.databaseBuilder(
+                    context.applicationContext,
+                    HabitDatabase::class.java,
+                    "habit_database"
+                ).addMigrations(MIGRATION_5_6, MIGRATION_6_7, MIGRATION_8_9, MIGRATION_9_10).build()
+                INSTANCE = instance
+                instance
+            }
+        }
+    }
 }
 
 val MIGRATION_5_6 = object : Migration(5, 6) {

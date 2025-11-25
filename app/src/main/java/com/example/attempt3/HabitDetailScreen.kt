@@ -187,10 +187,10 @@ fun SharedTransitionScope.HabitDetailScreen(
                         modifier = Modifier
                             .size(48.dp)
                             .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.1f))
+                            .background(MaterialTheme.colorScheme.background.copy(alpha = 0.65f))
                             .border(
                                 1.dp,
-                                animatedColor.copy(alpha = borderContrast),
+                                Color.Gray.copy(alpha = borderContrast*2),
                                 RoundedCornerShape(8.dp)
                             )
                             .clickable(
@@ -233,7 +233,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                             modifier = Modifier
                                 .size(35.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.5f))
+                                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.65f))
                                 .border(
                                     1.dp,
                                     Color.Gray.copy(alpha = borderContrast*2),
@@ -263,7 +263,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                             modifier = Modifier
                                 .size(35.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.5f))
+                                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.65f))
                                 .border(
                                     1.dp,
                                     Color.Gray.copy(alpha = borderContrast*2),
@@ -298,7 +298,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                             modifier = Modifier
                                 .height(35.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
+                                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.65f))
                                 .border(
                                     1.dp,
                                     Color.Gray.copy(alpha = borderContrast * 2),
