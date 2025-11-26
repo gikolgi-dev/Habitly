@@ -321,7 +321,8 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                             }
                         }
                     },
-                    borderAlpha = borderContrast
+                    borderAlpha = borderContrast,
+                    horizontalPadding = 20.dp
                 )
             }
         }

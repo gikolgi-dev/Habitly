@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -28,7 +29,8 @@ fun DayOfWeekSelector(
     selectedDays: Set<String>,
     onDaySelected: (String) -> Unit,
     enabled: Boolean = true,
-    borderAlpha: Float = 0.1f
+    borderAlpha: Float = 0.1f,
+    horizontalPadding: Dp = 16.dp
 ) {
     val days = listOf("S", "M", "T", "W", "T", "F", "S")
     val dayValues = listOf("SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT")
@@ -36,7 +38,7 @@ fun DayOfWeekSelector(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = horizontalPadding, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

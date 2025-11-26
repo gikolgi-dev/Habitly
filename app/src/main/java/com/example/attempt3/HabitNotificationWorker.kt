@@ -25,8 +25,8 @@ class HabitNotificationWorker(
         showNotification(context, habitName, habitId)
 
         // Reschedule the notification for the next day
-        val repository = HabitRepository(context)
-        val habit = repository.getHabit(habitId)
+        val dao = HabitDatabase.getDatabase(context).habitDao()
+        val habit = dao.getHabit(habitId)
         if (habit != null) {
             HabitNotificationScheduler.scheduleNotification(context, habit)
         }
@@ -47,7 +47,7 @@ class HabitNotificationWorker(
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification) // A default launcher icon
             .setContentTitle("Habit Reminder")
-            .setContentText("Time to work on your habit: \$habitName")
+            .setContentText("Time to work on your habit: $habitName")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
@@ -58,6 +58,8 @@ class HabitNotificationWorker(
     companion object {
         const val KEY_HABIT_ID = "habit_id"
         const val KEY_HABIT_NAME = "habit_name"
+        const val KEY_HABIT_NOTIFICATION_DAYS = "habit_notification_days"
+        const val KEY_HABIT_NOTIFICATION_TIME = "habit_notification_time"
         private const val CHANNEL_ID = "habit_reminders"
         private const val CHANNEL_NAME = "Habit Reminders"
         private const val CHANNEL_DESCRIPTION = "Notifications to remind you about your habits"

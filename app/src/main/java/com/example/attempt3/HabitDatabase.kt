@@ -32,7 +32,8 @@ data class Habit(
     val completionsPerInterval: Int = 1,
     val intervalUnit: String = "day",
     val notificationsEnabled: Boolean = false,
-    val notificationTime: String? = null
+    val notificationTime: String? = null,
+    val notificationDays: String? = null
 )
 
 @Entity(
@@ -103,7 +104,7 @@ interface HabitDao {
     suspend fun getHabit(habitId: String): Habit?
 }
 
-@Database(entities = [Habit::class, Completion::class], version = 10)
+@Database(entities = [Habit::class, Completion::class], version = 11)
 abstract class HabitDatabase : RoomDatabase() {
     abstract fun habitDao(): HabitDao
 
@@ -117,7 +118,7 @@ abstract class HabitDatabase : RoomDatabase() {
                     context.applicationContext,
                     HabitDatabase::class.java,
                     "habit_database"
-                ).addMigrations(MIGRATION_5_6, MIGRATION_6_7, MIGRATION_8_9, MIGRATION_9_10).build()
+                ).addMigrations(MIGRATION_5_6, MIGRATION_6_7, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11).build()
                 INSTANCE = instance
                 instance
             }
@@ -174,5 +175,11 @@ val MIGRATION_9_10 = object : Migration(9, 10) {
     override fun migrate(database: SupportSQLiteDatabase) {
         database.execSQL("ALTER TABLE Habit ADD COLUMN notificationsEnabled INTEGER NOT NULL DEFAULT 0")
         database.execSQL("ALTER TABLE Habit ADD COLUMN notificationTime TEXT")
+    }
+}
+
+val MIGRATION_10_11 = object : Migration(10, 11) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("ALTER TABLE Habit ADD COLUMN notificationDays TEXT")
     }
 }

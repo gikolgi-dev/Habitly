@@ -103,7 +103,9 @@ fun HabitSheetContent(
     onNotificationsEnabledChanged: (Boolean) -> Unit,
     notificationTime: String?,
     onTimePickerClick: () -> Unit,
-    hasNotificationPermission: Boolean
+    hasNotificationPermission: Boolean,
+    notificationDays: Set<String>,
+    onNotificationDaySelected: (String) -> Unit
 ) {
     val haptic = LocalHapticFeedback.current
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
@@ -225,16 +227,23 @@ fun HabitSheetContent(
                 )
             }
             AnimatedVisibility(visible = notificationsEnabled && hasNotificationPermission) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(onClick = onTimePickerClick)
-                        .padding(vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text("Notification Time")
-                    Text(notificationTime ?: "Not Set")
+                Column {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(onClick = onTimePickerClick)
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Notification Time")
+                        Text(notificationTime ?: "Not Set")
+                    }
+                    DayOfWeekSelector(
+                        selectedDays = notificationDays,
+                        onDaySelected = onNotificationDaySelected,
+                        horizontalPadding = 0.dp
+                    )
                 }
             }
         }

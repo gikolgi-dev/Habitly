@@ -169,6 +169,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     var completionsError by remember { mutableStateOf<String?>(null) }
     var notificationsEnabled by remember { mutableStateOf(false) }
     var notificationTime by remember { mutableStateOf<String?>("09:00") }
+    var notificationDays by remember { mutableStateOf<Set<String>>(emptySet()) }
 
     var hasNotificationPermission by remember {
         mutableStateOf(
@@ -240,6 +241,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 intervalUnit = habitToEdit!!.intervalUnit
                 notificationsEnabled = habitToEdit!!.notificationsEnabled
                 notificationTime = habitToEdit!!.notificationTime ?: "09:00"
+                notificationDays = habitToEdit!!.notificationDays?.split(',')?.toSet() ?: emptySet()
             } else {
                 habitName = ""
                 habitDescription = ""
@@ -249,6 +251,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 intervalUnit = "day"
                 notificationsEnabled = false
                 notificationTime = "09:00"
+                notificationDays = emptySet()
             }
         }
     }
@@ -731,6 +734,14 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                     requestPermission()
                                 }
                             },
+                            notificationDays = notificationDays,
+                            onNotificationDaySelected = { day ->
+                                notificationDays = if (notificationDays.contains(day)) {
+                                    notificationDays - day
+                                } else {
+                                    notificationDays + day
+                                }
+                            },
                             hasNotificationPermission = hasNotificationPermission
                         )
                     }
@@ -761,7 +772,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                     completionsPerInterval = completionsPerInterval.toIntOrNull() ?: 1,
                                     intervalUnit = intervalUnit,
                                     notificationsEnabled = notificationsEnabled,
-                                    notificationTime = if (notificationsEnabled) notificationTime else null
+                                    notificationTime = if (notificationsEnabled) notificationTime else null,
+                                    notificationDays = if (notificationsEnabled) notificationDays.joinToString(",") else null
                                 )
                                 habitDao.updateHabit(updatedHabit)
                                 if (updatedHabit.notificationsEnabled) {
@@ -785,7 +797,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                     completionsPerInterval = completionsPerInterval.toIntOrNull() ?: 1,
                                     intervalUnit = intervalUnit,
                                     notificationsEnabled = notificationsEnabled,
-                                    notificationTime = if (notificationsEnabled) notificationTime else null
+                                    notificationTime = if (notificationsEnabled) notificationTime else null,
+                                    notificationDays = if (notificationsEnabled) notificationDays.joinToString(",") else null
                                 )
                                 habitDao.insertHabit(newHabit)
                                 if (newHabit.notificationsEnabled) {
