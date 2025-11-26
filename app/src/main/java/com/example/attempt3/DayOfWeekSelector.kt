@@ -1,16 +1,19 @@
 package com.example.attempt3
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,10 +22,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun DayOfWeekSelector(
     selectedDays: Set<String>,
-    onDaySelected: (String) -> Unit
+    onDaySelected: (String) -> Unit,
+    enabled: Boolean = true,
+    borderAlpha: Float = 0.1f
 ) {
     val days = listOf("S", "M", "T", "W", "T", "F", "S")
     val dayValues = listOf("SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT")
@@ -30,20 +36,26 @@ fun DayOfWeekSelector(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly,
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         dayValues.forEachIndexed { index, day ->
             val isSelected = selectedDays.contains(day)
             Box(
                 modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
+                    .weight(1f)
+                    .aspectRatio(1f)
+                    .border(
+                        width = if(isSelected) 0.dp else 1.dp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = borderAlpha),
+                        shape = MaterialShapes.Square.toShape()
+                    )
+                    .clip(MaterialShapes.Square.toShape())
                     .background(
                         if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent
                     )
-                    .clickable { onDaySelected(day) },
+                    .clickable(enabled = enabled) { onDaySelected(day) },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
