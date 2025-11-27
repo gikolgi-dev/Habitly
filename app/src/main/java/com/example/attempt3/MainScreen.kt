@@ -135,6 +135,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     val dayOfWeekLabelsVisible by settingsDataStore.dayOfWeekLabelsVisible.collectAsState(initial = null)
     val dayOfWeekLabelsOnRight by settingsDataStore.dayOfWeekLabelsOnRight.collectAsState(initial = null)
     val showAllDayOfWeekLabels by settingsDataStore.showAllDayOfWeekLabels.collectAsState(initial = null)
+    val is24Hour by settingsDataStore.is24Hour.collectAsState(initial = false)
 
     val areSettingsLoaded = borderContrast != null &&
             showMonthLabels != null &&
@@ -278,7 +279,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
             },
             initialHour = initialHour,
             initialMinute = initialMinute,
-            borderContrast = borderContrast!!
+            borderContrast = borderContrast!!,
+            is24Hour = is24Hour
         )
     }
 
@@ -724,7 +726,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                     notificationsEnabled = it
                                 } else {
                                     requestPermission()
-                                }
+                                 }
                             },
                             notificationTime = notificationTime,
                             onTimePickerClick = {

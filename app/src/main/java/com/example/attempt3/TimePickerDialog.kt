@@ -35,10 +35,12 @@ fun CustomTimePickerDialog(
     initialHour: Int = Calendar.getInstance().get(Calendar.HOUR_OF_DAY),
     initialMinute: Int = Calendar.getInstance().get(Calendar.MINUTE),
     borderContrast: Float,
+    is24Hour: Boolean
 ) {
     val timePickerState = rememberTimePickerState(
         initialHour = initialHour,
-        initialMinute = initialMinute
+        initialMinute = initialMinute,
+        is24Hour = is24Hour
     )
     val haptic = LocalHapticFeedback.current
 
@@ -56,7 +58,7 @@ fun CustomTimePickerDialog(
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth(0.9f)
+                .fillMaxWidth(0.85f)
                 .clip(RoundedCornerShape(8.dp))
                 .border(
                     1.dp,
@@ -70,7 +72,7 @@ fun CustomTimePickerDialog(
             TimePicker(state = timePickerState)
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 TextButton(onClick = onDismissRequest) {
                     Text("Cancel")

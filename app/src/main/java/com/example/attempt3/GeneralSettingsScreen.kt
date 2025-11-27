@@ -31,6 +31,7 @@ fun GeneralSettingsScreen(
 ) {
     val scope = rememberCoroutineScope()
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
+    val is24Hour by settingsDataStore.is24Hour.collectAsState(initial = false)
     val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
     val haptic = LocalHapticFeedback.current
 
@@ -83,6 +84,37 @@ fun GeneralSettingsScreen(
                         )
                         Text(
                             text = "Enable vibrations",
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.padding(start = 16.dp)
+                        )
+                    }
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .selectable(
+                                selected = is24Hour,
+                                onClick = {
+                                    scope.launch {
+                                        settingsDataStore.setIs24Hour(!is24Hour)
+                                    }
+                                    haptic.performHapticFeedback(if (!is24Hour) HapticFeedbackType.ToggleOff else HapticFeedbackType.ToggleOn)
+                                }
+                            )
+                            .padding(horizontal = 4.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Switch(
+                            checked = is24Hour,
+                            modifier = Modifier.padding(start = 16.dp),
+                            onCheckedChange = {
+                                scope.launch {
+                                    settingsDataStore.setIs24Hour(it)
+                                }
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            }
+                        )
+                        Text(
+                            text = "24-hour format",
                             style = MaterialTheme.typography.bodyLarge,
                             modifier = Modifier.padding(start = 16.dp)
                         )

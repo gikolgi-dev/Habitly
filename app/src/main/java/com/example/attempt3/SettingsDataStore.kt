@@ -27,6 +27,7 @@ class SettingsDataStore(private val context: Context) {
         val GLOBAL_NOTIFICATIONS_KEY = booleanPreferencesKey("global_notifications")
         val GLOBAL_NOTIFICATION_TIME_KEY = stringPreferencesKey("global_notification_time")
         val GLOBAL_NOTIFICATION_DAYS_KEY = stringPreferencesKey("global_notification_days")
+        val IS_24_HOUR_KEY = booleanPreferencesKey("is_24_hour")
     }
 
     val theme: Flow<String> = context.dataStore.data
@@ -151,6 +152,17 @@ class SettingsDataStore(private val context: Context) {
         }
     }
 
+    val is24Hour: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[IS_24_HOUR_KEY] ?: false
+        }
+
+    suspend fun setIs24Hour(is24Hour: Boolean) {
+        context.dataStore.edit { settings ->
+            settings[IS_24_HOUR_KEY] = is24Hour
+        }
+    }
+
     suspend fun resetToDefault() {
         context.dataStore.edit { settings ->
             settings[THEME_KEY] = "system"
@@ -160,6 +172,7 @@ class SettingsDataStore(private val context: Context) {
             settings[GLOBAL_NOTIFICATIONS_KEY] = false
             settings[GLOBAL_NOTIFICATION_TIME_KEY] = "09:00"
             settings[GLOBAL_NOTIFICATION_DAYS_KEY] = "MON,TUE,WED,THU,FRI,SAT,SUN"
+            settings[IS_24_HOUR_KEY] = false
         }
     }
 }

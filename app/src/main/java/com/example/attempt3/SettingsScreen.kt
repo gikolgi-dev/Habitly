@@ -87,6 +87,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
     val globalNotificationTime by settingsDataStore.globalNotificationTime.collectAsState(initial = "09:00")
     val globalNotificationDays by settingsDataStore.globalNotificationDays.collectAsState(initial = setOf())
     val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
+    val is24Hour by settingsDataStore.is24Hour.collectAsState(initial = false)
     val haptic = LocalHapticFeedback.current
     val notificationScheduler = remember { NotificationScheduler(context) }
 
@@ -230,7 +231,8 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
             },
             initialHour = initialHour,
             initialMinute = initialMinute,
-            borderContrast = borderContrast
+            borderContrast = borderContrast,
+            is24Hour = is24Hour
         )
     }
 
