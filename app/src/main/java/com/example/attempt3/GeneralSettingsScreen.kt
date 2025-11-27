@@ -5,12 +5,17 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -18,10 +23,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import kotlinx.coroutines.launch
 
 @Composable
@@ -88,39 +95,73 @@ fun GeneralSettingsScreen(
                             modifier = Modifier.padding(start = 16.dp)
                         )
                     }
-                    Row(
+                    Column(
                         Modifier
                             .fillMaxWidth()
-                            .selectable(
-                                selected = is24Hour,
-                                onClick = {
-                                    scope.launch {
-                                        settingsDataStore.setIs24Hour(!is24Hour)
-                                    }
-                                    haptic.performHapticFeedback(if (!is24Hour) HapticFeedbackType.ToggleOff else HapticFeedbackType.ToggleOn)
-                                }
-                            )
-                            .padding(horizontal = 4.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                            .padding(horizontal = 20.dp, vertical = 12.dp)
                     ) {
-                        Switch(
-                            checked = is24Hour,
-                            modifier = Modifier.padding(start = 16.dp),
-                            onCheckedChange = {
-                                scope.launch {
-                                    settingsDataStore.setIs24Hour(it)
-                                }
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            }
-                        )
                         Text(
-                            text = "24-hour format",
-                            style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier.padding(start = 16.dp)
+                            text = "Hour format",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.Gray
+                            //modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                        HourFormatSelector(
+                            is24Hour = is24Hour,
+                            onSelectionChange = {
+                                if (is24Hour != it) {
+                                    scope.launch {
+                                        settingsDataStore.setIs24Hour(it)
+                                    }
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                }
+                            }
                         )
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun HourFormatSelector(
+    is24Hour: Boolean,
+    onSelectionChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val options = listOf("12-h", "24-h")
+    val selectedIndex = if (is24Hour) 1 else 0
+
+    TabRow(
+        selectedTabIndex = selectedIndex,
+        modifier = modifier
+            .fillMaxWidth()
+            .height(48.dp)
+            .clip(RoundedCornerShape(8.dp)),
+        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        indicator = { tabPositions ->
+            Box(
+                modifier = Modifier
+                    .tabIndicatorOffset(tabPositions[selectedIndex])
+                    .fillMaxHeight()
+                    .padding(top = 4.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.primary)
+                    .zIndex(-1f)
+            )
+        },
+        divider = {}
+    ) {
+        options.forEachIndexed { index, text ->
+            val selected = selectedIndex == index
+            Tab(
+                selected = selected,
+                onClick = { onSelectionChange(index == 1) },
+                text = { Text(text = text) },
+                selectedContentColor = MaterialTheme.colorScheme.onPrimary,
+                unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

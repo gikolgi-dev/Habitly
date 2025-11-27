@@ -32,8 +32,8 @@ fun DayOfWeekSelector(
     borderAlpha: Float = 0.1f,
     horizontalPadding: Dp = 16.dp
 ) {
-    val days = listOf("S", "M", "T", "W", "T", "F", "S")
-    val dayValues = listOf("SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT")
+    val days = listOf("M", "T", "W", "T", "F", "S", "S")
+    val dayValues = listOf("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")
 
     Row(
         modifier = Modifier

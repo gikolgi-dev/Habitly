@@ -69,7 +69,9 @@ fun ColumnScope.GroupedSettingsItem(
     onClick: () -> Unit,
     isLastItem: Boolean = false
 ) {
-    Column(modifier = Modifier.clickable(onClick = onClick)) {
+    Column(modifier = Modifier
+        .fillMaxWidth()
+        .clickable(onClick = onClick)) {
         Row(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically

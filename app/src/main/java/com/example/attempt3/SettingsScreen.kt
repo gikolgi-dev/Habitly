@@ -38,8 +38,10 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
@@ -58,12 +60,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -282,8 +287,9 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
             Column(
                 modifier = Modifier
                     .alpha(alpha)
+                    .padding(horizontal = 20.dp)
             ) {
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable(
@@ -291,20 +297,18 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                             onClick = { showTimePicker = true },
                             indication = null,
                             interactionSource = remember { MutableInteractionSource() }
-                        )
-                        .padding(horizontal = 20.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                        ),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(
-                        text = "Reminder time",
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                    Text(
+                    AutoSizeText(
                         text = globalNotificationTime,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Medium
+                        modifier = Modifier.fillMaxWidth(),
+                        style = MaterialTheme.typography.displayLarge.copy(
+                            fontSize = 100.sp, // Start large
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Thin
+                        ),
+                        textAlign = TextAlign.Center
                     )
                 }
                 DayOfWeekSelector(
@@ -324,7 +328,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                         }
                     },
                     borderAlpha = borderContrast,
-                    horizontalPadding = 20.dp
+                    horizontalPadding = 0.dp
                 )
             }
         }
@@ -394,6 +398,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                                 onClick = { showGeneralScreen = true },
                                 iconColor = MaterialTheme.colorScheme.onPrimaryContainer
                             )
+                            HorizontalDivider(color = Color.Gray.copy(0.1f), modifier = Modifier.fillMaxWidth(0.90f).align(Alignment.CenterHorizontally))
                             GroupedSettingsItem(
                                 title = "Appearance",
                                 subtitle = "Change the look and feel of the app",
@@ -451,4 +456,38 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
             }
         }
     }
+}
+
+@Composable
+private fun AutoSizeText(
+    text: String,
+    modifier: Modifier = Modifier,
+    style: TextStyle = LocalTextStyle.current,
+    textAlign: TextAlign? = null
+) {
+    var scaledTextStyle by remember { mutableStateOf(style) }
+    var readyToDraw by remember { mutableStateOf(false) }
+
+    Text(
+        text = text,
+        modifier = modifier
+            .drawWithContent {
+                if (readyToDraw) {
+                    drawContent()
+                }
+            },
+        style = scaledTextStyle,
+        softWrap = false,
+        maxLines = 1,
+        textAlign = textAlign,
+        onTextLayout = { textLayoutResult ->
+            if (textLayoutResult.didOverflowWidth) {
+                scaledTextStyle = scaledTextStyle.copy(
+                    fontSize = scaledTextStyle.fontSize * 0.95f
+                )
+            } else {
+                readyToDraw = true
+            }
+        }
+    )
 }
