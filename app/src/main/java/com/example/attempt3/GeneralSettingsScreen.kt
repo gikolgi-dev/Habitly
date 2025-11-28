@@ -33,7 +33,6 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun GeneralSettingsScreen(
-    modifier: Modifier = Modifier,
     settingsDataStore: SettingsDataStore
 ) {
     val scope = rememberCoroutineScope()
@@ -104,7 +103,6 @@ fun GeneralSettingsScreen(
                             text = "Hour format",
                             style = MaterialTheme.typography.bodyMedium,
                             color = Color.Gray
-                            //modifier = Modifier.padding(bottom = 8.dp)
                         )
                         HourFormatSelector(
                             is24Hour = is24Hour,
@@ -145,7 +143,7 @@ fun HourFormatSelector(
                 modifier = Modifier
                     .tabIndicatorOffset(tabPositions[selectedIndex])
                     .fillMaxHeight()
-                    .padding(top = 4.dp)
+                    .padding(all = 4.dp)
                     .clip(RoundedCornerShape(8.dp))
                     .background(MaterialTheme.colorScheme.primary)
                     .zIndex(-1f)
