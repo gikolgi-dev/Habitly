@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
@@ -38,6 +39,7 @@ fun GeneralSettingsScreen(
     val scope = rememberCoroutineScope()
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
     val is24Hour by settingsDataStore.is24Hour.collectAsState(initial = false)
+    val heroCardVisible by settingsDataStore.heroCardVisible.collectAsState(initial = true)
     val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
     val haptic = LocalHapticFeedback.current
 
@@ -90,6 +92,38 @@ fun GeneralSettingsScreen(
                         )
                         Text(
                             text = "Enable vibrations",
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.padding(start = 16.dp)
+                        )
+                    }
+                    HorizontalDivider(color = Color.Gray.copy(0.1f), modifier = Modifier.fillMaxWidth(0.90f).align(Alignment.CenterHorizontally))
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .selectable(
+                                selected = heroCardVisible,
+                                onClick = {
+                                    scope.launch {
+                                        settingsDataStore.setHeroCardVisible(!heroCardVisible)
+                                    }
+                                    haptic.performHapticFeedback(if (!heroCardVisible) HapticFeedbackType.ToggleOff else HapticFeedbackType.ToggleOn)
+                                }
+                            )
+                            .padding(horizontal = 4.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Switch(
+                            checked = heroCardVisible,
+                            modifier = Modifier.padding(start = 16.dp),
+                            onCheckedChange = {
+                                scope.launch {
+                                    settingsDataStore.setHeroCardVisible(it)
+                                }
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            }
+                        )
+                        Text(
+                            text = "Show welcome card",
                             style = MaterialTheme.typography.bodyLarge,
                             modifier = Modifier.padding(start = 16.dp)
                         )

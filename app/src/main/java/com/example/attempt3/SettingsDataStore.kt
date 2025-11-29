@@ -28,6 +28,7 @@ class SettingsDataStore(private val context: Context) {
         val GLOBAL_NOTIFICATION_TIME_KEY = stringPreferencesKey("global_notification_time")
         val GLOBAL_NOTIFICATION_DAYS_KEY = stringPreferencesKey("global_notification_days")
         val IS_24_HOUR_KEY = booleanPreferencesKey("is_24_hour")
+        val HERO_CARD_VISIBLE_KEY = booleanPreferencesKey("hero_card_visible")
     }
 
     val theme: Flow<String> = context.dataStore.data
@@ -163,6 +164,17 @@ class SettingsDataStore(private val context: Context) {
         }
     }
 
+    val heroCardVisible: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[HERO_CARD_VISIBLE_KEY] ?: true
+        }
+
+    suspend fun setHeroCardVisible(visible: Boolean) {
+        context.dataStore.edit { settings ->
+            settings[HERO_CARD_VISIBLE_KEY] = visible
+        }
+    }
+
     suspend fun resetToDefault() {
         context.dataStore.edit { settings ->
             settings[THEME_KEY] = "system"
@@ -173,6 +185,7 @@ class SettingsDataStore(private val context: Context) {
             settings[GLOBAL_NOTIFICATION_TIME_KEY] = "09:00"
             settings[GLOBAL_NOTIFICATION_DAYS_KEY] = "MON,TUE,WED,THU,FRI,SAT,SUN"
             settings[IS_24_HOUR_KEY] = false
+            settings[HERO_CARD_VISIBLE_KEY] = true
         }
     }
 }

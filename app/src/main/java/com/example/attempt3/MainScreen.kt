@@ -135,6 +135,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     val dayOfWeekLabelsOnRight by settingsDataStore.dayOfWeekLabelsOnRight.collectAsState(initial = null)
     val showAllDayOfWeekLabels by settingsDataStore.showAllDayOfWeekLabels.collectAsState(initial = null)
     val is24Hour by settingsDataStore.is24Hour.collectAsState(initial = false)
+    val heroCardVisible by settingsDataStore.heroCardVisible.collectAsState(initial = true)
+
 
     val areSettingsLoaded = borderContrast != null &&
             showMonthLabels != null &&
@@ -426,45 +428,47 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                             .padding(top = paddingValues.calculateTopPadding()),
                                         verticalArrangement = Arrangement.spacedBy(12.dp)
                                     ) {
-                                        ElevatedCard(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(horizontal = 12.dp, vertical = 2.dp),
-                                            shape = RoundedCornerShape(16.dp),
-                                            elevation = CardDefaults.elevatedCardElevation()
-                                        ) {
-                                            Box(
+                                        AnimatedVisibility(visible = heroCardVisible) {
+                                            ElevatedCard(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .height(140.dp)
-                                                    .background(
-                                                        brush = Brush.linearGradient(
-                                                            colors = listOf(MaterialTheme.colorScheme.tertiaryContainer, MaterialTheme.colorScheme.tertiaryContainer.copy(0.5f)),
-                                                            start = Offset.Zero, end = Offset.Infinite
-                                                        )
-                                                    )
-                                                    .padding(16.dp)
+                                                    .padding(horizontal = 12.dp, vertical = 2.dp),
+                                                shape = RoundedCornerShape(16.dp),
+                                                elevation = CardDefaults.elevatedCardElevation()
                                             ) {
-                                                Column {
-                                                    Text(greeting, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,color = MaterialTheme.colorScheme.onTertiaryContainer)
-                                                    Spacer(modifier = Modifier.height(4.dp))
-                                                    Text("Track your habits, build your future.", style = MaterialTheme.typography.bodyMedium,color = MaterialTheme.colorScheme.onTertiaryContainer)
-                                                    Spacer(modifier = Modifier.height(8.dp))
-                                                   /* Button(onClick = {
-                                                        viewModel.showReminderNotification(context, "Test Habit")
-                                                    }) {
-                                                        Text("Show Test Notification")
-                                                    }*/
-                                                }
                                                 Box(
                                                     modifier = Modifier
-                                                        .size(72.dp)
-                                                        .align(Alignment.CenterEnd)
-                                                        .clip(CircleShape)
+                                                        .fillMaxWidth()
+                                                        .height(140.dp)
                                                         .background(
-                                                            brush = Brush.radialGradient(colors = listOf(Color.White.copy(alpha = 0.1f), Color.Transparent))
+                                                            brush = Brush.linearGradient(
+                                                                colors = listOf(MaterialTheme.colorScheme.tertiaryContainer, MaterialTheme.colorScheme.tertiaryContainer.copy(0.5f)),
+                                                                start = Offset.Zero, end = Offset.Infinite
+                                                            )
                                                         )
-                                                )
+                                                        .padding(16.dp)
+                                                ) {
+                                                    Column {
+                                                        Text(greeting, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,color = MaterialTheme.colorScheme.onTertiaryContainer)
+                                                        Spacer(modifier = Modifier.height(4.dp))
+                                                        Text("Track your habits, build your future.", style = MaterialTheme.typography.bodyMedium,color = MaterialTheme.colorScheme.onTertiaryContainer)
+                                                        Spacer(modifier = Modifier.height(8.dp))
+                                                       /* Button(onClick = {
+                                                            viewModel.showReminderNotification(context, "Test Habit")
+                                                        }) {
+                                                            Text("Show Test Notification")
+                                                        }*/
+                                                    }
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(72.dp)
+                                                            .align(Alignment.CenterEnd)
+                                                            .clip(CircleShape)
+                                                            .background(
+                                                                brush = Brush.radialGradient(colors = listOf(Color.White.copy(alpha = 0.1f), Color.Transparent))
+                                                            )
+                                                    )
+                                                }
                                             }
                                         }
                                         optimisticallyUpdatedHabitsWithCompletions.forEach { habitWithCompletions ->
