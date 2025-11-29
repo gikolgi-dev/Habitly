@@ -44,7 +44,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ElevatedCard
@@ -109,14 +108,14 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
 
     val now = Calendar.getInstance()
     val timezoneOffsetInMinutes = TimeUnit.MILLISECONDS.toMinutes(now.timeZone.rawOffset.toLong()).toInt()
-    val startOfDay = now.apply {
+    val startOfDay = (now.clone() as Calendar).apply {
         set(Calendar.HOUR_OF_DAY, 0)
         set(Calendar.MINUTE, 0)
         set(Calendar.SECOND, 0)
         set(Calendar.MILLISECOND, 0)
     }.timeInMillis
 
-    val endOfDay = now.apply {
+    val endOfDay = (now.clone() as Calendar).apply {
         set(Calendar.HOUR_OF_DAY, 23)
         set(Calendar.MINUTE, 59)
         set(Calendar.SECOND, 59)
@@ -142,6 +141,16 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
             dayOfWeekLabelsVisible != null &&
             dayOfWeekLabelsOnRight != null &&
             showAllDayOfWeekLabels != null
+
+    val greeting = remember {
+        when (now.get(Calendar.HOUR_OF_DAY)) {
+            in 1 .. 5 -> "It's a beautiful night!"
+            in 6..14 -> "Good morning"
+            in 15..19 -> "Good afternoon"
+            in 20..24 -> "Good evening"
+            else -> "Welcome back"
+        }
+    }
 
     var optimisticCompletionChanges by remember { mutableStateOf<Map<String, Boolean>>(emptyMap()) }
     var showHabitSheet by remember { mutableStateOf(false) }
@@ -430,22 +439,22 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                     .height(140.dp)
                                                     .background(
                                                         brush = Brush.linearGradient(
-                                                            colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.surface),
+                                                            colors = listOf(MaterialTheme.colorScheme.tertiaryContainer, MaterialTheme.colorScheme.tertiaryContainer.copy(0.5f)),
                                                             start = Offset.Zero, end = Offset.Infinite
                                                         )
                                                     )
                                                     .padding(16.dp)
                                             ) {
                                                 Column {
-                                                    Text("Welcome back", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                                                    Text(greeting, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,color = MaterialTheme.colorScheme.onTertiaryContainer)
                                                     Spacer(modifier = Modifier.height(4.dp))
-                                                    Text("Track your habits, build your future.", style = MaterialTheme.typography.bodyMedium)
+                                                    Text("Track your habits, build your future.", style = MaterialTheme.typography.bodyMedium,color = MaterialTheme.colorScheme.onTertiaryContainer)
                                                     Spacer(modifier = Modifier.height(8.dp))
-                                                    Button(onClick = {
+                                                   /* Button(onClick = {
                                                         viewModel.showReminderNotification(context, "Test Habit")
                                                     }) {
                                                         Text("Show Test Notification")
-                                                    }
+                                                    }*/
                                                 }
                                                 Box(
                                                     modifier = Modifier
@@ -453,7 +462,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                         .align(Alignment.CenterEnd)
                                                         .clip(CircleShape)
                                                         .background(
-                                                            brush = Brush.radialGradient(colors = listOf(Color.White.copy(alpha = 0.06f), Color.Transparent))
+                                                            brush = Brush.radialGradient(colors = listOf(Color.White.copy(alpha = 0.1f), Color.Transparent))
                                                         )
                                                 )
                                             }
