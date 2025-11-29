@@ -319,7 +319,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     }
 
     SharedTransitionLayout {
-        val mainContentModifier = if ((showHabitSheet || showArchiveSheet || isFabMenuExpanded || showReorderSheet) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        val mainContentModifier = if ((showHabitSheet || showArchiveSheet || isFabMenuExpanded || showReorderSheet || habitToView != null) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             Modifier.blur(16.dp)
         } else {
             Modifier

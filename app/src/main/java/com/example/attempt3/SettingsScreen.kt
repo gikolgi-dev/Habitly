@@ -241,103 +241,105 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
         )
     }
 
+    val blurModifier = if (showTimePicker && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        Modifier.blur(10.dp)
+    } else {
+        Modifier
+    }
+
     if (showNotificationSheet) {
         ModalBottomSheet(
             onDismissRequest = { showNotificationSheet = false },
             dragHandle = { BottomSheetDefaults.DragHandle(Modifier.fillMaxWidth(0.15f)) }
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-
-            ) {
-                Text(
-                    fontSize = 32.sp,
-                    text = "Daily notifications",
-                    style = MaterialTheme.typography.titleLargeEmphasized,
-                    modifier = Modifier.weight(1f)
-                )
-                Switch(
-                    checked = globalNotificationsEnabled && hasNotificationPermission,
-                    onCheckedChange = { handleNotificationToggle(it) }
-                )
-            }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
-                verticalAlignment = Alignment.CenterVertically,
-
-                ) {
-                Text(
-                    fontSize = 14.sp,
-                    text = "Create a daily notification to remind you of adding completions.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f)
-                )
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-
-
-            val isEnabled = globalNotificationsEnabled && hasNotificationPermission
-            val alpha by animateFloatAsState(targetValue = if (isEnabled) 1f else 0.5f, label = "")
-            Column(
-                modifier = Modifier
-                    .alpha(alpha)
-                    .padding(horizontal = 20.dp)
-            ) {
-                Column(
+            Column(modifier = blurModifier) {
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable(
-                            enabled = isEnabled,
-                            onClick = { showTimePicker = true },
-                            indication = null,
-                            interactionSource = remember { MutableInteractionSource() }
-                        ),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .padding(horizontal = 20.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+
                 ) {
-                    AutoSizeText(
-                        text = globalNotificationTime,
-                        modifier = Modifier.fillMaxWidth(),
-                        style = MaterialTheme.typography.displayLarge.copy(
-                            fontSize = 100.sp, // Start large
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Thin
-                        ),
-                        textAlign = TextAlign.Center
+                    Text(
+                        fontSize = 32.sp,
+                        text = "Daily notifications",
+                        style = MaterialTheme.typography.titleLargeEmphasized,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Switch(
+                        checked = globalNotificationsEnabled && hasNotificationPermission,
+                        onCheckedChange = { handleNotificationToggle(it) }
                     )
                 }
-                DayOfWeekSelector(
-                    selectedDays = globalNotificationDays,
-                    enabled = isEnabled,
-                    onDaySelected = { day ->
-                        scope.launch {
-                            val newDays = if (globalNotificationDays.contains(day)) {
-                                globalNotificationDays - day
-                            } else {
-                                globalNotificationDays + day
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+
+                    ) {
+                    Text(
+                        fontSize = 14.sp,
+                        text = "Create a daily notification to remind you of adding completions.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f)
+                    )
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+
+
+                val isEnabled = globalNotificationsEnabled && hasNotificationPermission
+                val alpha by animateFloatAsState(targetValue = if (isEnabled) 1f else 0.5f, label = "")
+                Column(
+                    modifier = Modifier
+                        .alpha(alpha)
+                        .padding(horizontal = 20.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(
+                                enabled = isEnabled,
+                                onClick = { showTimePicker = true },
+                                indication = null,
+                                interactionSource = remember { MutableInteractionSource() }
+                            ),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        AutoSizeText(
+                            text = globalNotificationTime,
+                            modifier = Modifier.fillMaxWidth(),
+                            style = MaterialTheme.typography.displayLarge.copy(
+                                fontSize = 100.sp, // Start large
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Thin
+                            ),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                    DayOfWeekSelector(
+                        selectedDays = globalNotificationDays,
+                        enabled = isEnabled,
+                        onDaySelected = { day ->
+                            scope.launch {
+                                val newDays = if (globalNotificationDays.contains(day)) {
+                                    globalNotificationDays - day
+                                } else {
+                                    globalNotificationDays + day
+                                }
+                                settingsDataStore.setGlobalNotificationDays(newDays)
+                                if (globalNotificationsEnabled) {
+                                    notificationScheduler.scheduleGeneralNotification(globalNotificationTime, newDays)
+                                }
                             }
-                            settingsDataStore.setGlobalNotificationDays(newDays)
-                            if (globalNotificationsEnabled) {
-                                notificationScheduler.scheduleGeneralNotification(globalNotificationTime, newDays)
-                            }
-                        }
-                    },
-                    borderAlpha = borderContrast,
-                    horizontalPadding = 0.dp
-                )
+                        },
+                        borderAlpha = borderContrast,
+                        horizontalPadding = 0.dp
+                    )
+                }
             }
         }
-    }
-
-    val blurModifier = if (showTimePicker && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        Modifier.blur(10.dp)
-    } else {
-        Modifier
     }
 
     Scaffold(
