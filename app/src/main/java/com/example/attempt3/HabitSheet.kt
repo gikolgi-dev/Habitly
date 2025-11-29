@@ -17,6 +17,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
@@ -399,6 +401,7 @@ fun HabitSheetContent(
     }
 }
 
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun SaveHabitButton(
     buttonText: String,
@@ -428,6 +431,14 @@ fun SaveHabitButton(
             disabledContentColor = MaterialTheme.colorScheme.primary.copy(alpha = 1f)
         )
     ) {
-        Text(buttonText, color = MaterialTheme.colorScheme.onPrimary)
+        AnimatedContent(
+            targetState = buttonText,
+            transitionSpec = {
+                (slideInVertically { height -> height } + fadeIn()).togetherWith(slideOutVertically { height -> -height } + fadeOut())
+            },
+            label = "buttonTextAnimation"
+        ) { text ->
+            Text(text, color = MaterialTheme.colorScheme.onPrimary)
+        }
     }
 }
