@@ -398,6 +398,7 @@ fun HabitSheetContent(
                 }
             }
         }
+        Spacer(modifier = Modifier.height(60.dp))
     }
 }
 
@@ -426,6 +427,8 @@ fun SaveHabitButton(
             .fillMaxWidth()
             .padding(padding)
             .imePadding(),
+        shape = RoundedCornerShape(20.dp),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 24.dp),
         colors = ButtonDefaults.buttonColors(
             disabledContainerColor = Color.Gray,
             disabledContentColor = MaterialTheme.colorScheme.primary.copy(alpha = 1f)
