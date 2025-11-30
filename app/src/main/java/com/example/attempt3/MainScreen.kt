@@ -154,6 +154,17 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
         }
     }
 
+    val heroCardDescriptions = remember {
+        listOf(
+            "Track your habits, build your future.",
+            "The secret of your future is hidden in your daily routine.",
+            "Consistency is the key to success.",
+            "Motivation is what gets you started. Habit is what keeps you going.",
+            "A little progress each day adds up to big results."
+        )
+    }
+    val heroCardDescription = remember { heroCardDescriptions.random() }
+
     var optimisticCompletionChanges by remember { mutableStateOf<Map<String, Boolean>>(emptyMap()) }
     var showHabitSheet by remember { mutableStateOf(false) }
     var habitToView by remember { mutableStateOf<Habit?>(null) }
@@ -429,47 +440,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                         verticalArrangement = Arrangement.spacedBy(12.dp)
                                     ) {
                                         AnimatedVisibility(visible = heroCardVisible) {
-                                            ElevatedCard(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(horizontal = 12.dp, vertical = 2.dp),
-                                                shape = RoundedCornerShape(16.dp),
-                                                elevation = CardDefaults.elevatedCardElevation()
-                                            ) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .height(140.dp)
-                                                        .background(
-                                                            brush = Brush.linearGradient(
-                                                                colors = listOf(MaterialTheme.colorScheme.tertiaryContainer, MaterialTheme.colorScheme.tertiaryContainer.copy(0.5f)),
-                                                                start = Offset.Zero, end = Offset.Infinite
-                                                            )
-                                                        )
-                                                        .padding(16.dp)
-                                                ) {
-                                                    Column {
-                                                        Text(greeting, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,color = MaterialTheme.colorScheme.onTertiaryContainer)
-                                                        Spacer(modifier = Modifier.height(4.dp))
-                                                        Text("Track your habits, build your future.", style = MaterialTheme.typography.bodyMedium,color = MaterialTheme.colorScheme.onTertiaryContainer)
-                                                        Spacer(modifier = Modifier.height(8.dp))
-                                                       /* Button(onClick = {
-                                                            viewModel.showReminderNotification(context, "Test Habit")
-                                                        }) {
-                                                            Text("Show Test Notification")
-                                                        }*/
-                                                    }
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .size(72.dp)
-                                                            .align(Alignment.CenterEnd)
-                                                            .clip(CircleShape)
-                                                            .background(
-                                                                brush = Brush.radialGradient(colors = listOf(Color.White.copy(alpha = 0.1f), Color.Transparent))
-                                                            )
-                                                    )
-                                                }
-                                            }
+                                            HeroCard(greeting = greeting, description = heroCardDescription)
                                         }
                                         optimisticallyUpdatedHabitsWithCompletions.forEach { habitWithCompletions ->
                                             key(habitWithCompletions.habit.id) {
@@ -835,6 +806,63 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun HeroCard(greeting: String, description: String, modifier: Modifier = Modifier) {
+    ElevatedCard(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 2.dp),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.elevatedCardElevation()
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(140.dp)
+                .background(
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.tertiaryContainer,
+                            MaterialTheme.colorScheme.tertiaryContainer.copy(0.5f)
+                        ),
+                        start = Offset.Zero, end = Offset.Infinite
+                    )
+                )
+                .padding(16.dp)
+        ) {
+            Column {
+                Text(
+                    greeting,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+            Box(
+                modifier = Modifier
+                    .size(72.dp)
+                    .align(Alignment.CenterEnd)
+                    .clip(CircleShape)
+                    .background(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = 0.1f),
+                                Color.Transparent
+                            )
+                        )
+                    )
+            )
         }
     }
 }
