@@ -1,11 +1,13 @@
 package com.example.attempt3
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -13,6 +15,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.github.skydoves.colorpicker.compose.ColorEnvelope
 import com.github.skydoves.colorpicker.compose.HsvColorPicker
@@ -36,7 +39,7 @@ fun ColorPickerDialog(
                 controller = controller,
                 onColorChanged = { colorEnvelope: ColorEnvelope ->
                     onColorChanged(colorEnvelope.color)
-                }
+                },
             )
         },
         confirmButton = {
@@ -57,4 +60,27 @@ fun ColorPickerDialog(
         },
         containerColor = MaterialTheme.colorScheme.surface
     )
+}
+
+@Composable
+fun BorderedColorSelector(
+    color: Color,
+    selectorRadius: Dp = 12.dp,
+    borderSize: Dp = 2.dp,
+    borderColor: Color = Color.Black
+) {
+    Canvas(
+        modifier = Modifier
+            .size(selectorRadius * 2),
+    ) {
+        val strokeWidth: Float = borderSize.toPx()
+        drawCircle(
+            color = borderColor,
+            radius = selectorRadius.toPx(),
+        )
+        drawCircle(
+            color = color,
+            radius = selectorRadius.toPx() - strokeWidth,
+        )
+    }
 }

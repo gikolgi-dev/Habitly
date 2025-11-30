@@ -111,6 +111,8 @@ fun HabitSheetContent(
 ) {
     val haptic = LocalHapticFeedback.current
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
+    Text(title, style = MaterialTheme.typography.headlineLarge)
+    HorizontalDivider(modifier =Modifier.fillMaxWidth().padding(top = 10.dp), color = Color.Gray.copy(alpha = 0.12f))
 
     Column(
         modifier = Modifier
@@ -119,8 +121,6 @@ fun HabitSheetContent(
             .verticalScroll(scrollState),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(title, style = MaterialTheme.typography.headlineSmall)
-        Spacer(modifier = Modifier.height(16.dp))
         OutlinedTextField(
             value = habitName,
             onValueChange = onHabitNameChanged,
@@ -371,8 +371,14 @@ fun HabitSheetContent(
                             shape = RoundedCornerShape(6.dp)
                         )
                         .clickable {
-                            val initialColor = customColor ?: habitColor.takeIf { it !in habitColors }
-                            onShowColorPicker(true, initialColor)
+                            if (isFinalCustomColorSelected) {
+                                onClearCustomColor()
+                                onHabitColorChanged(habitColors.first())
+                                onShowColorPicker(true, habitColors.first())
+                            } else {
+                                val initialColor = customColor ?: habitColor.takeIf { it !in habitColors }
+                                onShowColorPicker(true, initialColor)
+                            }
                          },
                     contentAlignment = Alignment.Center
                 ) {

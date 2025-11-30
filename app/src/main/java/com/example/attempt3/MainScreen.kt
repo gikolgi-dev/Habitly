@@ -265,6 +265,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 notificationsEnabled = habitToEdit!!.notificationsEnabled
                 notificationTime = habitToEdit!!.notificationTime ?: "09:00"
                 notificationDays = habitToEdit!!.notificationDays?.split(',')?.toSet() ?: emptySet()
+                customColor = null
             } else {
                 habitName = ""
                 habitDescription = ""
@@ -275,6 +276,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 notificationsEnabled = false
                 notificationTime = "09:00"
                 notificationDays = emptySet()
+                customColor = null
             }
         }
     }
@@ -310,7 +312,10 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     if (isColorPickerVisible) {
         val controller = rememberColorPickerController()
         AlertDialog(
-            onDismissRequest = { showColorPicker = false },
+            onDismissRequest = {
+                showColorPicker = false
+                tempColor = null
+            },
             title = { Text("Choose a color") },
             text = {
                 HsvColorPicker(
@@ -328,12 +333,19 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                         .padding(horizontal = 8.dp),
                     horizontalArrangement = Arrangement.End
                 ) {
-                    TextButton(onClick = { showColorPicker = false }) { Text("Cancel") }
-                    Spacer(modifier = Modifier.weight(1f))
                     TextButton(onClick = {
-                        customColor = tempColor
                         showColorPicker = false
-                    }) { Text("OK") }
+                        tempColor = null
+                    }) { Text("Cancel") }
+                    Spacer(modifier = Modifier.weight(1f))
+                    TextButton(
+                        onClick = {
+                            customColor = tempColor
+                            showColorPicker = false
+                            tempColor = null
+                        },
+                        enabled = tempColor != Color.White
+                    ) { Text("OK") }
                 }
             },
             containerColor = MaterialTheme.colorScheme.surface
@@ -701,14 +713,14 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                 }
                             },
                             onClearCustomColor = { customColor = null },
-                            livePreviewColor = if (showColorPicker) { if (pickerInitialColor == null) tempColor else pickerInitialColor } else customColor,
+                            livePreviewColor = if (showColorPicker) tempColor else customColor,
                             scrollState = scrollState,
                             settingsDataStore = settingsDataStore,
                             notificationsEnabled = notificationsEnabled,
                             onNotificationsEnabledChanged = {
                                 if (hasNotificationPermission) {
                                     notificationsEnabled = it
-                                } else {
+                                 } else {
                                     requestPermission()
                                  }
                             },
