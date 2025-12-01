@@ -67,6 +67,7 @@ import java.util.concurrent.TimeUnit
 @Composable
 fun SharedTransitionScope.HabitDetailScreen(
     habit: Habit,
+    completions: List<Completion>,
     habitDao: HabitDao,
     isArchivedView: Boolean,
     animatedVisibilityScope: AnimatedVisibilityScope,
@@ -76,7 +77,6 @@ fun SharedTransitionScope.HabitDetailScreen(
     borderContrast: Float
 ) {
     val scope = rememberCoroutineScope()
-    val completions by habitDao.getCompletionsForHabit(habit.id).collectAsState(initial = emptyList())
     val haptic = LocalHapticFeedback.current
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
     val showMonthLabels by settingsDataStore.monthLabels.collectAsState(initial = false)
@@ -525,7 +525,7 @@ private fun calculateStreak(habit: Habit, completions: List<Completion>): Int {
             startOfCurrentMonth.set(Calendar.DAY_OF_MONTH, 1)
             
             val daysPassed = c.get(Calendar.DAY_OF_MONTH)
-            
+
             var completionsInCurrentMonth = 0
             val tempC = startOfCurrentMonth.clone() as Calendar
             for (i in 0 until daysPassed) {

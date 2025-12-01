@@ -167,7 +167,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
 
     var optimisticCompletionChanges by remember { mutableStateOf<Map<String, Boolean>>(emptyMap()) }
     var showHabitSheet by remember { mutableStateOf(false) }
-    var habitToView by remember { mutableStateOf<Habit?>(null) }
+    var habitToView by remember { mutableStateOf<HabitWithCompletions?>(null) }
     var habitToEdit by remember { mutableStateOf<Habit?>(null) }
     var showColorPicker by remember { mutableStateOf(false) }
     var customColor by remember { mutableStateOf<Color?>(null) }
@@ -459,7 +459,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                 HabitItemCard(
                                                     modifier = Modifier.sharedElementWithCallerManagedVisibility(
                                                         rememberSharedContentState(key = "card-${habitWithCompletions.habit.id}"),
-                                                        visible = habitToView?.id != habitWithCompletions.habit.id
+                                                        visible = habitToView?.habit?.id != habitWithCompletions.habit.id
                                                     ),
                                                     habit = habitWithCompletions.habit,
                                                     isCompleted = optimisticCompletionChanges[habitWithCompletions.habit.id] ?: completedHabitIds.contains(habitWithCompletions.habit.id),
@@ -485,7 +485,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                             }
                                                         }
                                                     },
-                                                    onClick = { habitToView = habitWithCompletions.habit }
+                                                    onClick = { habitToView = habitWithCompletions }
                                                 )
                                             }
                                         }
@@ -579,9 +579,10 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 enter = slideInVertically(animationSpec = tween(durationMillis = 250)) { it },
                 exit = slideOutVertically(animationSpec = tween(durationMillis = 250)) { it }
             ) {
-                habitToView?.let { habit ->
+                habitToView?.let { habitWithCompletions ->
                     HabitDetailScreen(
-                        habit = habit,
+                        habit = habitWithCompletions.habit,
+                        completions = habitWithCompletions.completions,
                         habitDao = habitDao,
                         isArchivedView = false,
                         animatedVisibilityScope = this@AnimatedVisibility,
@@ -779,7 +780,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                  } else {
                                     notificationScheduler.cancelNotification(updatedHabit)
                                 }
-                                habitToView = updatedHabit
+                                habitToView = habits.find{ it.habit.id == updatedHabit.id}
                             } else {
                                 val newHabit = Habit(
                                     id = UUID.randomUUID().toString(),

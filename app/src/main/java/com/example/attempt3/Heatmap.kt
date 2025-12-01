@@ -136,6 +136,20 @@ fun Heatmap(
                 cal.set(Calendar.MILLISECOND, 0)
                 cal
             }
+
+            // Pre-calculate completed dates normalized to midnight for O(1) lookup
+            val completionDates = remember(completions) {
+                completions.map {
+                    val cal = Calendar.getInstance()
+                    cal.timeInMillis = it.date
+                    cal.set(Calendar.HOUR_OF_DAY, 0)
+                    cal.set(Calendar.MINUTE, 0)
+                    cal.set(Calendar.SECOND, 0)
+                    cal.set(Calendar.MILLISECOND, 0)
+                    cal.timeInMillis
+                }.toSet()
+            }
+
             Box(
                 modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.Center
@@ -220,13 +234,7 @@ fun Heatmap(
                                         dayCal
                                     }
 
-                                    val isCompleted = completions.any {
-                                        val completionCal = Calendar.getInstance().apply { timeInMillis = it.date }
-                                        completionCal.get(Calendar.YEAR) == day.get(Calendar.YEAR) &&
-                                                completionCal.get(
-                                                    Calendar.DAY_OF_YEAR
-                                                ) == day.get(Calendar.DAY_OF_YEAR)
-                                    }
+                                    val isCompleted = completionDates.contains(day.timeInMillis)
 
                                     val isTodayCell = day.get(Calendar.YEAR) == today.get(Calendar.YEAR) &&
                                             day.get(Calendar.DAY_OF_YEAR) == today.get(Calendar.DAY_OF_YEAR)
