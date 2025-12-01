@@ -7,6 +7,7 @@ import androidx.room.Delete
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.Room
@@ -59,6 +60,12 @@ interface HabitDao {
     @Insert
     suspend fun insertHabit(habit: Habit)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertHabits(habits: List<Habit>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertCompletions(completions: List<Completion>)
+
     @Update
     suspend fun updateHabit(habit: Habit)
 
@@ -102,6 +109,22 @@ interface HabitDao {
     
     @Query("SELECT * FROM habit WHERE id = :habitId")
     suspend fun getHabit(habitId: String): Habit?
+
+    @Transaction
+    @Query("SELECT * FROM habit ORDER BY orderIndex")
+    suspend fun getAllHabitsWithCompletionsSnapshot(): List<HabitWithCompletions>
+
+    @Transaction
+    suspend fun clearAllTables() {
+        clearHabits()
+        clearCompletions()
+    }
+
+    @Query("DELETE FROM habit")
+    suspend fun clearHabits()
+
+    @Query("DELETE FROM completion")
+    suspend fun clearCompletions()
 }
 
 @Database(entities = [Habit::class, Completion::class], version = 11)

@@ -15,6 +15,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,6 +30,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.ImportExport
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Tune
@@ -84,6 +86,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
     val showSecondConfirmationDialog = remember { mutableStateOf(false) }
     var showAppearanceScreen by remember { mutableStateOf(false) }
     var showGeneralScreen by remember { mutableStateOf(false) }
+    var showImportScreen by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
     var showNotificationSheet by remember { mutableStateOf(false) }
     val context = LocalContext.current
@@ -95,6 +98,12 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
     val is24Hour by settingsDataStore.is24Hour.collectAsState(initial = false)
     val haptic = LocalHapticFeedback.current
     val notificationScheduler = remember { NotificationScheduler(context) }
+    val theme by settingsDataStore.theme.collectAsState(initial = "system")
+    val useDarkTheme = when (theme) {
+        "light" -> false
+        "dark" -> true
+        else -> isSystemInDarkTheme()
+    }
 
     var hasNotificationPermission by remember {
         mutableStateOf(
@@ -148,12 +157,15 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
             }
         }
     }
-    BackHandler(enabled = showAppearanceScreen || showGeneralScreen) {
+    BackHandler(enabled = showAppearanceScreen || showGeneralScreen || showImportScreen) {
         if (showAppearanceScreen) {
             showAppearanceScreen = false
         }
         if (showGeneralScreen) {
             showGeneralScreen = false
+        }
+        if (showImportScreen) {
+            showImportScreen = false
         }
     }
 
@@ -325,7 +337,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                             scope.launch {
                                 val newDays = if (globalNotificationDays.contains(day)) {
                                     globalNotificationDays - day
-                                } else {
+                                 } else {
                                     globalNotificationDays + day
                                 }
                                 settingsDataStore.setGlobalNotificationDays(newDays)
@@ -346,12 +358,13 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
         modifier = blurModifier,
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text(if (showAppearanceScreen) "Appearance" else if (showGeneralScreen) "General" else "Settings", fontWeight = FontWeight.SemiBold) },
+                title = { Text(if (showAppearanceScreen) "Appearance" else if (showGeneralScreen) "General" else if (showImportScreen) "Data Management" else "Settings", fontWeight = FontWeight.SemiBold) },
                 navigationIcon = {
-                    if (showAppearanceScreen || showGeneralScreen) {
+                    if (showAppearanceScreen || showGeneralScreen || showImportScreen) {
                         IconButton(onClick = {
                             if (showAppearanceScreen) showAppearanceScreen = false
                             if (showGeneralScreen) showGeneralScreen = false
+                            if (showImportScreen) showImportScreen = false
                         }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onBackground)
                         }
@@ -385,7 +398,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
             .fillMaxSize()
         ) {
             AnimatedVisibility(
-                visible = !showAppearanceScreen && !showGeneralScreen,
+                visible = !showAppearanceScreen && !showGeneralScreen && !showImportScreen,
                 exit = slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(300)),
                 enter = slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(300))
             ) {
@@ -424,15 +437,26 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                         )
                     }
                     item {
-                        ModernSettingsItem(
-                            title = "Clear all data",
-                            subtitle = "Delete all habits and their completions",
-                            icon = Icons.Default.Delete,
-                            iconBackgroundColor = MaterialTheme.colorScheme.errorContainer,
-                            onClick = { showConfirmationDialog.value = true },
-                            iconColor = MaterialTheme.colorScheme.onErrorContainer,
-                            settingsDataStore = settingsDataStore
-                        )
+                        SettingsGroup(settingsDataStore = settingsDataStore) {
+                            GroupedSettingsItem(
+                                title = "Data management",
+                                subtitle = "Import and export habit data",
+                                icon = Icons.Default.ImportExport,
+                                iconBackgroundColor = Color(0xFF73C177).copy(alpha = if (useDarkTheme) 1f else 0.35f),
+                                onClick = { showImportScreen = true },
+                                iconColor = Color(0xFF246D29)
+                            )
+                            HorizontalDivider(color = Color.Gray.copy(0.1f), modifier = Modifier.fillMaxWidth(0.90f).align(Alignment.CenterHorizontally))
+                            GroupedSettingsItem(
+                                title = "Clear all data",
+                                subtitle = "Delete all habits and their completions",
+                                icon = Icons.Default.Delete,
+                                iconBackgroundColor = MaterialTheme.colorScheme.errorContainer,
+                                onClick = { showConfirmationDialog.value = true },
+                                iconColor = MaterialTheme.colorScheme.onErrorContainer,
+                                isLastItem = true
+                            )
+                        }
                     }
                 }
             }
@@ -444,6 +468,16 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
             ) {
                 AppearanceScreen(
                     settingsDataStore = settingsDataStore
+                )
+            }
+
+            AnimatedVisibility(
+                visible = showImportScreen,
+                enter = slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(300)),
+                exit = slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(300))
+            ) {
+                ImportExportScreen(
+                    db = db
                 )
             }
 
