@@ -161,10 +161,22 @@ class NotificationReceiver : BroadcastReceiver() {
             contentText = "Don't forget to complete $habitName today."
         }
 
+        val activityIntent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        val activityPendingIntent = PendingIntent.getActivity(
+            context,
+            0,
+            activityIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
         val notification = NotificationCompat.Builder(context, "habit_reminders")
             .setContentTitle(title)
             .setContentText(contentText)
             .setSmallIcon(R.drawable.ic_stat_name) // Replace with your app icon
+            .setContentIntent(activityPendingIntent)
+            .setAutoCancel(true)
             .build()
 
         notificationManager.notify(habitId.hashCode(), notification)

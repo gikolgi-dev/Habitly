@@ -580,9 +580,11 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 exit = slideOutVertically(animationSpec = tween(durationMillis = 250)) { it }
             ) {
                 habitToView?.let { habitWithCompletions ->
+                    val completions by habitDao.getCompletionsForHabit(habitWithCompletions.habit.id).collectAsState(initial = habitWithCompletions.completions)
+
                     HabitDetailScreen(
                         habit = habitWithCompletions.habit,
-                        completions = habitWithCompletions.completions,
+                        completions = completions,
                         habitDao = habitDao,
                         isArchivedView = false,
                         animatedVisibilityScope = this@AnimatedVisibility,
