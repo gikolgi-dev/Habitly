@@ -39,6 +39,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsBottomHeight
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -352,475 +353,484 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
         )
     }
 
-    SharedTransitionLayout {
-        val mainContentModifier = if ((showHabitSheet || showArchiveSheet || isFabMenuExpanded || showReorderSheet || habitToView != null) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            Modifier.blur(16.dp)
-        } else {
-            Modifier
-        }
-        
-        val timePickerBlurModifier = if (showTimePicker && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            Modifier.blur(10.dp)
-        } else {
-            Modifier
-        }
+    val isAnySheetOpen = showHabitSheet || showSettingsScreen || habitToView != null || showArchiveSheet || showReorderSheet
 
-        Box(Modifier.fillMaxSize().then(timePickerBlurModifier)) {
-            Scaffold(
+    Box(Modifier.fillMaxSize()) {
+        SharedTransitionLayout {
+            val mainContentModifier = if ((isAnySheetOpen || isFabMenuExpanded) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                Modifier.blur(16.dp)
+            } else {
+                Modifier
+            }
 
-                contentWindowInsets = WindowInsets.safeDrawing,
-                floatingActionButton = {
-                    AnimatedVisibility(
-                        visible = habitsUiState is HabitsUiState.Success,
-                        enter = fadeIn(),
-                        exit = fadeOut()
-                    ) {
-                        FabMenu(
-                            modifier = Modifier.offset(x = 8.dp, y = 20.dp),
-                            expanded = isFabMenuExpanded,
-                            onExpandedChange = { isFabMenuExpanded = it },
-                            onAddHabit = {
-                                habitToEdit = null
-                                showHabitSheet = true
-                            },
-                            onShowArchived = { showArchiveSheet = true },
-                            onShowSettings = { showSettingsScreen = true },
-                            onShowReorder = { showReorderSheet = true },
-                            settingsDataStore = settingsDataStore
-                        )
-                    }
-                },
-                floatingActionButtonPosition = FabPosition.End,
-                content = { paddingValues ->
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        Surface(modifier = mainContentModifier.fillMaxSize(),color = MaterialTheme.colorScheme.background) {
-                            Box(modifier = Modifier.fillMaxSize()) {
-                                AnimatedVisibility(
-                                    visible = habitsUiState is HabitsUiState.Loading || !areSettingsLoaded,
-                                    enter = fadeIn(animationSpec = tween(durationMillis = 500)),
-                                    exit = fadeOut(animationSpec = tween(durationMillis = 500))
-                                ) {
-                                    Column(
-                                        modifier = Modifier.fillMaxSize(),
-                                        verticalArrangement = Arrangement.Center,
-                                        horizontalAlignment = Alignment.CenterHorizontally
+            val timePickerBlurModifier = if (showTimePicker && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                Modifier.blur(10.dp)
+            } else {
+                Modifier
+            }
+
+            Box(Modifier.fillMaxSize().then(timePickerBlurModifier)) {
+                Scaffold(
+                    contentWindowInsets = WindowInsets.safeDrawing,
+                    floatingActionButton = {
+                        // Empty: FAB is hoisted to the parent Box to render on top of the shared element transition
+                    },
+                    floatingActionButtonPosition = FabPosition.End,
+                    content = { paddingValues ->
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            Surface(modifier = mainContentModifier.fillMaxSize(),color = MaterialTheme.colorScheme.background) {
+                                Box(modifier = Modifier.fillMaxSize()) {
+                                    AnimatedVisibility(
+                                        visible = habitsUiState is HabitsUiState.Loading || !areSettingsLoaded,
+                                        enter = fadeIn(animationSpec = tween(durationMillis = 500)),
+                                        exit = fadeOut(animationSpec = tween(durationMillis = 500))
                                     ) {
-                                        ContainedLoadingIndicator()
+                                        Column(
+                                            modifier = Modifier.fillMaxSize(),
+                                            verticalArrangement = Arrangement.Center,
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
+                                            ContainedLoadingIndicator()
+                                        }
                                     }
-                                 }
-                                AnimatedVisibility(
-                                    visible = habitsUiState is HabitsUiState.Success && areSettingsLoaded,
-                                    modifier = Modifier.fillMaxSize()
-                                ) {
-                                    val habitsWithCompletions = (habitsUiState as? HabitsUiState.Success)?.habits ?: emptyList()
+                                    AnimatedVisibility(
+                                        visible = habitsUiState is HabitsUiState.Success && areSettingsLoaded,
+                                        modifier = Modifier.fillMaxSize()
+                                    ) {
+                                        val habitsWithCompletions = (habitsUiState as? HabitsUiState.Success)?.habits ?: emptyList()
 
-                                    val optimisticallyUpdatedHabitsWithCompletions = remember(habitsWithCompletions, optimisticCompletionChanges) {
-                                        if (optimisticCompletionChanges.isEmpty()) {
-                                            habitsWithCompletions
-                                        } else {
-                                            habitsWithCompletions.map { habitWithCompletions ->
-                                                val habitId = habitWithCompletions.habit.id
-                                                val change = optimisticCompletionChanges[habitId]
-                                                if (change == null) {
-                                                    habitWithCompletions
-                                                } else if (change) { // Completed
-                                                    val alreadyCompletedToday = habitWithCompletions.completions.any { it.date in startOfDay..endOfDay }
-                                                    if (alreadyCompletedToday) habitWithCompletions else {
-                                                        val newCompletion = Completion(
-                                                            id = UUID.randomUUID().toString(),
-                                                            habitId = habitId,
-                                                            date = System.currentTimeMillis(),
-                                                            timezoneOffsetInMinutes = timezoneOffsetInMinutes,
-                                                            amountOfCompletions = 1
-                                                        )
-                                                        habitWithCompletions.copy(completions = habitWithCompletions.completions + newCompletion)
+                                        val optimisticallyUpdatedHabitsWithCompletions = remember(habitsWithCompletions, optimisticCompletionChanges) {
+                                            if (optimisticCompletionChanges.isEmpty()) {
+                                                habitsWithCompletions
+                                            } else {
+                                                habitsWithCompletions.map { habitWithCompletions ->
+                                                    val habitId = habitWithCompletions.habit.id
+                                                    val change = optimisticCompletionChanges[habitId]
+                                                    if (change == null) {
+                                                        habitWithCompletions
+                                                    } else if (change) { // Completed
+                                                        val alreadyCompletedToday = habitWithCompletions.completions.any { it.date in startOfDay..endOfDay }
+                                                        if (alreadyCompletedToday) habitWithCompletions else {
+                                                            val newCompletion = Completion(
+                                                                id = UUID.randomUUID().toString(),
+                                                                habitId = habitId,
+                                                                date = System.currentTimeMillis(),
+                                                                timezoneOffsetInMinutes = timezoneOffsetInMinutes,
+                                                                amountOfCompletions = 1
+                                                            )
+                                                            habitWithCompletions.copy(completions = habitWithCompletions.completions + newCompletion)
+                                                        }
+                                                    } else { // Un-completed
+                                                        habitWithCompletions.copy(completions = habitWithCompletions.completions.filterNot { it.date in startOfDay..endOfDay })
                                                     }
-                                                } else { // Un-completed
-                                                    habitWithCompletions.copy(completions = habitWithCompletions.completions.filterNot { it.date in startOfDay..endOfDay })
                                                 }
                                             }
                                         }
-                                    }
 
-                                    val scrollState = rememberScrollState()
+                                        val scrollState = rememberScrollState()
 
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .verticalScroll(scrollState, enabled = habitToView == null && habitToEdit == null)
-                                            .padding(top = paddingValues.calculateTopPadding()),
-                                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                                    ) {
-                                        AnimatedVisibility(visible = heroCardVisible) {
-                                            HeroCard(greeting = greeting, description = heroCardDescription)
-                                        }
-                                        optimisticallyUpdatedHabitsWithCompletions.forEach { habitWithCompletions ->
-                                            key(habitWithCompletions.habit.id) {
-                                                HabitItemCard(
-                                                    modifier = Modifier.sharedElementWithCallerManagedVisibility(
-                                                        rememberSharedContentState(key = "card-${habitWithCompletions.habit.id}"),
-                                                        visible = habitToView?.habit?.id != habitWithCompletions.habit.id
-                                                    ),
-                                                    habit = habitWithCompletions.habit,
-                                                    isCompleted = optimisticCompletionChanges[habitWithCompletions.habit.id] ?: completedHabitIds.contains(habitWithCompletions.habit.id),
-                                                    completions = habitWithCompletions.completions,
-                                                    showCheckbox = true,
-                                                    showMonthLabels = showMonthLabels!!,
-                                                    dayOfWeekLabelsVisible = dayOfWeekLabelsVisible!!,
-                                                    dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight!!,
-                                                    showAllDayOfWeekLabels = showAllDayOfWeekLabels!!,
-                                                    borderContrast = borderContrast!!,
-                                                    onComplete = {
-                                                        if (vibrationsEnabled) {
-                                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                        }
-                                                        optimisticCompletionChanges = optimisticCompletionChanges + (habitWithCompletions.habit.id to !(optimisticCompletionChanges[habitWithCompletions.habit.id] ?: completedHabitIds.contains(habitWithCompletions.habit.id)))
-                                                        scope.launch {
-                                                            if (!(optimisticCompletionChanges[habitWithCompletions.habit.id] ?: completedHabitIds.contains(habitWithCompletions.habit.id))) {
-                                                                habitDao.insertCompletion(
-                                                                    Completion(id = UUID.randomUUID().toString(), habitId = habitWithCompletions.habit.id, date = System.currentTimeMillis(), timezoneOffsetInMinutes = timezoneOffsetInMinutes, amountOfCompletions = 1)
-                                                                )
-                                                            } else {
-                                                                habitDao.deleteCompletionsForHabitOnDay(habitWithCompletions.habit.id, startOfDay, endOfDay)
-                                                            }
-                                                        }
-                                                    },
-                                                    onClick = { habitToView = habitWithCompletions }
-                                                )
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .verticalScroll(scrollState, enabled = habitToView == null && habitToEdit == null)
+                                                .padding(top = paddingValues.calculateTopPadding()),
+                                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                                        ) {
+                                            AnimatedVisibility(visible = heroCardVisible) {
+                                                HeroCard(greeting = greeting, description = heroCardDescription)
                                             }
+                                            optimisticallyUpdatedHabitsWithCompletions.forEach { habitWithCompletions ->
+                                                key(habitWithCompletions.habit.id) {
+                                                    HabitItemCard(
+                                                        modifier = Modifier.sharedElementWithCallerManagedVisibility(
+                                                            rememberSharedContentState(key = "card-${habitWithCompletions.habit.id}"),
+                                                            visible = habitToView?.habit?.id != habitWithCompletions.habit.id
+                                                        ),
+                                                        habit = habitWithCompletions.habit,
+                                                        isCompleted = optimisticCompletionChanges[habitWithCompletions.habit.id] ?: completedHabitIds.contains(habitWithCompletions.habit.id),
+                                                        completions = habitWithCompletions.completions,
+                                                        showCheckbox = true,
+                                                        showMonthLabels = showMonthLabels!!,
+                                                        dayOfWeekLabelsVisible = dayOfWeekLabelsVisible!!,
+                                                        dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight!!,
+                                                        showAllDayOfWeekLabels = showAllDayOfWeekLabels!!,
+                                                        borderContrast = borderContrast!!,
+                                                        onComplete = {
+                                                            if (vibrationsEnabled) {
+                                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                            }
+                                                            optimisticCompletionChanges = optimisticCompletionChanges + (habitWithCompletions.habit.id to !(optimisticCompletionChanges[habitWithCompletions.habit.id] ?: completedHabitIds.contains(habitWithCompletions.habit.id)))
+                                                            scope.launch {
+                                                                if (!(optimisticCompletionChanges[habitWithCompletions.habit.id] ?: completedHabitIds.contains(habitWithCompletions.habit.id))) {
+                                                                    habitDao.insertCompletion(
+                                                                        Completion(id = UUID.randomUUID().toString(), habitId = habitWithCompletions.habit.id, date = System.currentTimeMillis(), timezoneOffsetInMinutes = timezoneOffsetInMinutes, amountOfCompletions = 1)
+                                                                    )
+                                                                } else {
+                                                                    habitDao.deleteCompletionsForHabitOnDay(habitWithCompletions.habit.id, startOfDay, endOfDay)
+                                                                }
+                                                            }
+                                                        },
+                                                        onClick = { habitToView = habitWithCompletions }
+                                                    )
+                                                }
+                                            }
+                                            Spacer(modifier = Modifier.height(80.dp))
+                                            Spacer(modifier = Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
                                         }
-                                        Spacer(modifier = Modifier.height(80.dp))
-                                        Spacer(modifier = Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
                                     }
-                                 }
+                                }
+                            }
+                            AnimatedVisibility(
+                                visible = isFabMenuExpanded,
+                                enter = fadeIn(),
+                                exit = fadeOut()
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(Color.Black.copy(alpha = 0.5f))
+                                        .clickable { isFabMenuExpanded = false }
+                                )
                             }
                         }
-                        AnimatedVisibility(
-                            visible = isFabMenuExpanded,
-                            enter = fadeIn(),
-                            exit = fadeOut()
-                        ) {
+                    }
+                )
+
+                AnimatedVisibility(
+                    visible = showArchiveSheet,
+                    enter = fadeIn(),
+                    exit = fadeOut()
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.5f))
+                            .clickable { showArchiveSheet = false }
+                    )
+                }
+
+                AnimatedVisibility(
+                    visible = showArchiveSheet,
+                    modifier = Modifier.fillMaxSize(),
+                    enter = slideInHorizontally(animationSpec = tween(durationMillis = 250)) { -it },
+                    exit = slideOutHorizontally(animationSpec = tween(durationMillis = 250)) { -it }
+                ) {
+                    ArchiveScreen(
+                        uiState = archivedHabitsUiState,
+                        habitDao = habitDao,
+                        onBack = { showArchiveSheet = false },
+                        settingsDataStore = settingsDataStore
+                    )
+                }
+                
+                AnimatedVisibility(
+                    visible = showReorderSheet,
+                    enter = fadeIn(),
+                    exit = fadeOut()
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.5f))
+                            .clickable { showReorderSheet = false }
+                    )
+                }
+
+                AnimatedVisibility(
+                    visible = showReorderSheet,
+                    modifier = Modifier.fillMaxSize(),
+                    enter = slideInHorizontally(animationSpec = tween(durationMillis = 250)) { -it },
+                    exit = slideOutHorizontally(animationSpec = tween(durationMillis = 250)) { -it }
+                ) {
+                    ReorderScreen(habitViewModel = viewModel, onBack = { showReorderSheet = false }, settingsDataStore = settingsDataStore)
+                }
+
+                AnimatedVisibility(
+                    visible = habitToView != null,
+                    enter = fadeIn(),
+                    exit = fadeOut()
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.5f))
+                            .clickable { habitToView = null }
+                    )
+                }
+
+                AnimatedVisibility(
+                    visible = habitToView != null,
+                    modifier = Modifier.fillMaxSize(),
+                    enter = slideInVertically(animationSpec = tween(durationMillis = 250)) { it },
+                    exit = slideOutVertically(animationSpec = tween(durationMillis = 250)) { it }
+                ) {
+                    habitToView?.let { habitWithCompletions ->
+                        val completions by habitDao.getCompletionsForHabit(habitWithCompletions.habit.id).collectAsState(initial = habitWithCompletions.completions)
+
+                        HabitDetailScreen(
+                            habit = habitWithCompletions.habit,
+                            completions = completions,
+                            habitDao = habitDao,
+                            isArchivedView = false,
+                            animatedVisibilityScope = this@AnimatedVisibility,
+                            onDismiss = { habitToView = null },
+                            onEditHabit = {
+                                habitToEdit = it
+                                showHabitSheet = true
+                            },
+                            settingsDataStore = settingsDataStore,
+                            borderContrast = borderContrast!!
+                        )
+                    }
+                }
+
+                AnimatedVisibility(
+                    visible = showSettingsScreen,
+                    enter = fadeIn(),
+                    exit = fadeOut()
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.5f))
+                            .clickable { showSettingsScreen = false }
+                    )
+                }
+
+                AnimatedVisibility(
+                    visible = showSettingsScreen,
+                    modifier = Modifier.fillMaxSize(),
+                    enter = slideInHorizontally(animationSpec = tween(durationMillis = 250)) { it },
+                    exit = slideOutHorizontally(animationSpec = tween(durationMillis = 250)) { it }
+                ) {
+                    SettingsScreen(onDismiss = { showSettingsScreen = false }, db = db, settingsDataStore = settingsDataStore)
+                }
+
+                AnimatedVisibility(
+                    visible = showHabitSheet,
+                    enter = fadeIn(),
+                    exit = fadeOut()
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.5f))
+                            .clickable { showHabitSheet = false }
+                    )
+                }
+
+                val sheetOffsetY = remember { Animatable(0f) }
+                LaunchedEffect(showHabitSheet) {
+                    if (showHabitSheet) sheetOffsetY.snapTo(0f)
+                }
+
+                AnimatedVisibility(
+                    visible = showHabitSheet,
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                    enter = slideInVertically(animationSpec = tween(durationMillis = 250)) { it },
+                    exit = slideOutVertically(animationSpec = tween(durationMillis = 250)) { it }
+                ) {
+                    val dismissThresholdPx = with(LocalDensity.current) { 175.dp.toPx() }
+                    val scrollState = rememberScrollState()
+                    val nestedScrollConnection = remember {
+                        object : NestedScrollConnection {
+                            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                                val delta = available.y
+                                return if (delta > 0 && sheetOffsetY.value > 0) {
+                                    scope.launch { sheetOffsetY.snapTo(sheetOffsetY.value + delta) }
+                                    Offset(0f, delta)
+                                } else Offset.Zero
+                            }
+
+                            override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+                                val delta = available.y
+                                if (delta > 0) scope.launch { sheetOffsetY.snapTo(sheetOffsetY.value + delta) }
+                                return Offset.Zero
+                            }
+
+                            override suspend fun onPreFling(available: Velocity): Velocity {
+                                if (sheetOffsetY.value > 0) {
+                                    if (sheetOffsetY.value > dismissThresholdPx) showHabitSheet = false
+                                    else sheetOffsetY.animateTo(0f, spring())
+                                    return available
+                                }
+                                return super.onPreFling(available)
+                            }
+                        }
+                    }
+
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxHeight(0.9f)
+                            .offset { IntOffset(0, sheetOffsetY.value.roundToInt()) }
+                            .nestedScroll(nestedScrollConnection),
+                        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+                        color = MaterialTheme.colorScheme.surface
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Box(
                                 modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(Color.Black.copy(alpha = 0.5f))
-                                    .clickable { isFabMenuExpanded = false }
+                                    .padding(vertical = 10.dp)
+                                    .fillMaxWidth(0.15f)
+                                    .height(4.dp)
+                                    .background(
+                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f), shape = CircleShape
+                                    )
+                            )
+                            HabitSheetContent(
+                                title = title,
+                                habitName = habitName,
+                                onHabitNameChanged = { habitName = it },
+                                habitDescription = habitDescription,
+                                onHabitDescriptionChanged = { habitDescription = it },
+                                completionsPerInterval = completionsPerInterval,
+                                onCompletionsPerIntervalChanged = { completionsPerInterval = it },
+                                intervalUnit = intervalUnit,
+                                onIntervalUnitChanged = { intervalUnit = it },
+                                completionsError = completionsError,
+                                habitIconKey = habitIconKey,
+                                onHabitIconKeyChanged = { habitIconKey = it },
+                                habitColor = habitColor,
+                                onHabitColorChanged = { habitColor = it },
+                                customColor = customColor,
+                                onShowColorPicker = { show, color ->
+                                    showColorPicker = show
+                                    if (show) {
+                                        pickerInitialColor = color
+                                        tempColor = color
+                                    }
+                                },
+                                onClearCustomColor = { customColor = null },
+                                livePreviewColor = if (showColorPicker) tempColor else customColor,
+                                scrollState = scrollState,
+                                settingsDataStore = settingsDataStore,
+                                notificationsEnabled = notificationsEnabled,
+                                onNotificationsEnabledChanged = {
+                                    if (hasNotificationPermission) {
+                                        notificationsEnabled = it
+                                    } else {
+                                        requestPermission()
+                                    }
+                                },
+                                notificationTime = notificationTime,
+                                onTimePickerClick = {
+                                    if (hasNotificationPermission) {
+                                        showTimePicker = true
+                                    } else {
+                                        requestPermission()
+                                    }
+                                },
+                                notificationDays = notificationDays,
+                                onNotificationDaySelected = { day ->
+                                    notificationDays = if (notificationDays.contains(day)) {
+                                        notificationDays - day
+                                    } else {
+                                        notificationDays + day
+                                    }
+                                },
+                                hasNotificationPermission = hasNotificationPermission
                             )
                         }
                     }
                 }
+
+                AnimatedVisibility(
+                    visible = showHabitSheet,
+                    enter = fadeIn(),
+                    exit = fadeOut(),
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                ) {
+                    val habits = (habitsUiState as? HabitsUiState.Success)?.habits ?: emptyList()
+                    SaveHabitButton(
+                        buttonText = buttonText,
+                        isEnabled = habitName.trim().isNotBlank() && completionsError == null,
+                        settingsDataStore = settingsDataStore
+                    ) {
+                        val trimmedName = habitName.trim()
+                        if (trimmedName.isNotBlank()) {
+                            scope.launch {
+                                if (isEditMode) {
+                                    val updatedHabit = habitToEdit!!.copy(
+                                        name = trimmedName,
+                                        description = habitDescription,
+                                        icon = habitIconKey,
+                                        color = (customColor ?: habitColor).toArgb(),
+                                        completionsPerInterval = completionsPerInterval.toIntOrNull() ?: 1,
+                                        intervalUnit = intervalUnit,
+                                        notificationsEnabled = notificationsEnabled,
+                                        notificationTime = if (notificationsEnabled) notificationTime else null,
+                                        notificationDays = if (notificationsEnabled) notificationDays.joinToString(",") else null
+                                    )
+                                    habitDao.updateHabit(updatedHabit)
+                                    if (updatedHabit.notificationsEnabled) {
+                                        notificationScheduler.scheduleNotification(updatedHabit)
+                                    } else {
+                                        notificationScheduler.cancelNotification(updatedHabit)
+                                    }
+                                    habitToView = habits.find{ it.habit.id == updatedHabit.id}
+                                } else {
+                                    val newHabit = Habit(
+                                        id = UUID.randomUUID().toString(),
+                                        name = trimmedName,
+                                        description = habitDescription,
+                                        icon = habitIconKey,
+                                        color = (customColor ?: habitColor).toArgb(),
+                                        archived = false,
+                                        orderIndex = habits.size,
+                                        createdAt = System.currentTimeMillis().toString(),
+                                        isInverse = false,
+                                        emoji = null,
+                                        completionsPerInterval = completionsPerInterval.toIntOrNull() ?: 1,
+                                        intervalUnit = intervalUnit,
+                                        notificationsEnabled = notificationsEnabled,
+                                        notificationTime = if (notificationsEnabled) notificationTime else null,
+                                        notificationDays = if (notificationsEnabled) notificationDays.joinToString(",") else null
+                                    )
+                                    habitDao.insertHabit(newHabit)
+                                    if (newHabit.notificationsEnabled) {
+                                        notificationScheduler.scheduleNotification(newHabit)
+                                    }
+                                    // Reset the state for the next new habit
+                                    habitName = ""
+                                    habitDescription = ""
+                                    habitColor = habitColors.first()
+                                    habitIconKey = defaultHabitIconKey
+                                    completionsPerInterval = "1"
+                                    intervalUnit = "day"
+                                    completionsError = null
+                                }
+                                showHabitSheet = false
+                                habitToEdit = null
+                                customColor = null
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        AnimatedVisibility(
+            modifier = Modifier.align(Alignment.BottomEnd),
+            visible = habitsUiState is HabitsUiState.Success && !isAnySheetOpen,
+            enter = fadeIn(animationSpec = tween(delayMillis = 250)),
+            exit = fadeOut()
+        ) {
+            FabMenu(
+                modifier = Modifier
+                    .windowInsetsPadding(WindowInsets.safeDrawing)
+                    .padding(end = 16.dp, bottom = 16.dp)
+                    .offset(x = 8.dp, y = 20.dp),
+                expanded = isFabMenuExpanded,
+                onExpandedChange = { isFabMenuExpanded = it },
+                onAddHabit = {
+                    habitToEdit = null
+                    showHabitSheet = true
+                },
+                onShowArchived = { showArchiveSheet = true },
+                onShowSettings = { showSettingsScreen = true },
+                onShowReorder = { showReorderSheet = true },
+                settingsDataStore = settingsDataStore
             )
-
-            AnimatedVisibility(
-                visible = showArchiveSheet,
-                enter = fadeIn(),
-                exit = fadeOut()
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.5f))
-                        .clickable { showArchiveSheet = false }
-                )
-            }
-
-            AnimatedVisibility(
-                visible = showArchiveSheet,
-                modifier = Modifier.fillMaxSize(),
-                enter = slideInHorizontally(animationSpec = tween(durationMillis = 250)) { -it },
-                exit = slideOutHorizontally(animationSpec = tween(durationMillis = 250)) { -it }
-            ) {
-                ArchiveScreen(
-                    uiState = archivedHabitsUiState,
-                    habitDao = habitDao,
-                    onBack = { showArchiveSheet = false },
-                    settingsDataStore = settingsDataStore
-                )
-            }
-            
-            AnimatedVisibility(
-                visible = showReorderSheet,
-                enter = fadeIn(),
-                exit = fadeOut()
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.5f))
-                        .clickable { showReorderSheet = false }
-                )
-            }
-
-            AnimatedVisibility(
-                visible = showReorderSheet,
-                modifier = Modifier.fillMaxSize(),
-                enter = slideInHorizontally(animationSpec = tween(durationMillis = 250)) { -it },
-                exit = slideOutHorizontally(animationSpec = tween(durationMillis = 250)) { -it }
-            ) {
-                ReorderScreen(habitViewModel = viewModel, onBack = { showReorderSheet = false }, settingsDataStore = settingsDataStore)
-            }
-
-            AnimatedVisibility(
-                visible = habitToView != null,
-                enter = fadeIn(),
-                exit = fadeOut()
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.5f))
-                        .clickable { habitToView = null }
-                )
-            }
-
-            AnimatedVisibility(
-                visible = habitToView != null,
-                modifier = Modifier.fillMaxSize(),
-                enter = slideInVertically(animationSpec = tween(durationMillis = 250)) { it },
-                exit = slideOutVertically(animationSpec = tween(durationMillis = 250)) { it }
-            ) {
-                habitToView?.let { habitWithCompletions ->
-                    val completions by habitDao.getCompletionsForHabit(habitWithCompletions.habit.id).collectAsState(initial = habitWithCompletions.completions)
-
-                    HabitDetailScreen(
-                        habit = habitWithCompletions.habit,
-                        completions = completions,
-                        habitDao = habitDao,
-                        isArchivedView = false,
-                        animatedVisibilityScope = this@AnimatedVisibility,
-                        onDismiss = { habitToView = null },
-                        onEditHabit = {
-                            habitToEdit = it
-                            showHabitSheet = true
-                        },
-                        settingsDataStore = settingsDataStore,
-                        borderContrast = borderContrast!!
-                    )
-                }
-            }
-
-            AnimatedVisibility(
-                visible = showSettingsScreen,
-                enter = fadeIn(),
-                exit = fadeOut()
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.5f))
-                        .clickable { showSettingsScreen = false }
-                )
-            }
-
-            AnimatedVisibility(
-                visible = showSettingsScreen,
-                modifier = Modifier.fillMaxSize(),
-                enter = slideInHorizontally(animationSpec = tween(durationMillis = 250)) { it },
-                exit = slideOutHorizontally(animationSpec = tween(durationMillis = 250)) { it }
-            ) {
-                SettingsScreen(onDismiss = { showSettingsScreen = false }, db = db, settingsDataStore = settingsDataStore)
-            }
-
-            AnimatedVisibility(
-                visible = showHabitSheet,
-                enter = fadeIn(),
-                exit = fadeOut()
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.5f))
-                        .clickable { showHabitSheet = false }
-                )
-            }
-
-            val sheetOffsetY = remember { Animatable(0f) }
-            LaunchedEffect(showHabitSheet) {
-                if (showHabitSheet) sheetOffsetY.snapTo(0f)
-            }
-
-            AnimatedVisibility(
-                visible = showHabitSheet,
-                modifier = Modifier.align(Alignment.BottomCenter),
-                enter = slideInVertically(animationSpec = tween(durationMillis = 250)) { it },
-                exit = slideOutVertically(animationSpec = tween(durationMillis = 250)) { it }
-            ) {
-                val dismissThresholdPx = with(LocalDensity.current) { 175.dp.toPx() }
-                val scrollState = rememberScrollState()
-                val nestedScrollConnection = remember {
-                    object : NestedScrollConnection {
-                        override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                            val delta = available.y
-                            return if (delta > 0 && sheetOffsetY.value > 0) {
-                                scope.launch { sheetOffsetY.snapTo(sheetOffsetY.value + delta) }
-                                Offset(0f, delta)
-                            } else Offset.Zero
-                        }
-
-                        override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
-                            val delta = available.y
-                            if (delta > 0) scope.launch { sheetOffsetY.snapTo(sheetOffsetY.value + delta) }
-                            return Offset.Zero
-                        }
-
-                        override suspend fun onPreFling(available: Velocity): Velocity {
-                            if (sheetOffsetY.value > 0) {
-                                if (sheetOffsetY.value > dismissThresholdPx) showHabitSheet = false
-                                else sheetOffsetY.animateTo(0f, spring())
-                                return available
-                            }
-                            return super.onPreFling(available)
-                        }
-                    }
-                }
-
-                Surface(
-                    modifier = Modifier
-                        .fillMaxHeight(0.9f)
-                        .offset { IntOffset(0, sheetOffsetY.value.roundToInt()) }
-                        .nestedScroll(nestedScrollConnection),
-                    shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
-                    color = MaterialTheme.colorScheme.surface
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Box(
-                            modifier = Modifier
-                                .padding(vertical = 10.dp)
-                                .fillMaxWidth(0.15f)
-                                .height(4.dp)
-                                .background(
-                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f), shape = CircleShape
-                                )
-                        )
-                        HabitSheetContent(
-                            title = title,
-                            habitName = habitName,
-                            onHabitNameChanged = { habitName = it },
-                            habitDescription = habitDescription,
-                            onHabitDescriptionChanged = { habitDescription = it },
-                            completionsPerInterval = completionsPerInterval,
-                            onCompletionsPerIntervalChanged = { completionsPerInterval = it },
-                            intervalUnit = intervalUnit,
-                            onIntervalUnitChanged = { intervalUnit = it },
-                            completionsError = completionsError,
-                            habitIconKey = habitIconKey,
-                            onHabitIconKeyChanged = { habitIconKey = it },
-                            habitColor = habitColor,
-                            onHabitColorChanged = { habitColor = it },
-                            customColor = customColor,
-                            onShowColorPicker = { show, color ->
-                                showColorPicker = show
-                                if (show) {
-                                    pickerInitialColor = color
-                                    tempColor = color
-                                }
-                            },
-                            onClearCustomColor = { customColor = null },
-                            livePreviewColor = if (showColorPicker) tempColor else customColor,
-                            scrollState = scrollState,
-                            settingsDataStore = settingsDataStore,
-                            notificationsEnabled = notificationsEnabled,
-                            onNotificationsEnabledChanged = {
-                                if (hasNotificationPermission) {
-                                    notificationsEnabled = it
-                                 } else {
-                                    requestPermission()
-                                 }
-                            },
-                            notificationTime = notificationTime,
-                            onTimePickerClick = {
-                                if (hasNotificationPermission) {
-                                    showTimePicker = true
-                                } else {
-                                    requestPermission()
-                                }
-                            },
-                            notificationDays = notificationDays,
-                            onNotificationDaySelected = { day ->
-                                notificationDays = if (notificationDays.contains(day)) {
-                                    notificationDays - day
-                                } else {
-                                    notificationDays + day
-                                }
-                            },
-                            hasNotificationPermission = hasNotificationPermission
-                        )
-                    }
-                }
-            }
-
-            AnimatedVisibility(
-                visible = showHabitSheet,
-                enter = fadeIn(),
-                exit = fadeOut(),
-                modifier = Modifier.align(Alignment.BottomCenter)
-            ) {
-                val habits = (habitsUiState as? HabitsUiState.Success)?.habits ?: emptyList()
-                SaveHabitButton(
-                    buttonText = buttonText,
-                    isEnabled = habitName.trim().isNotBlank() && completionsError == null,
-                    settingsDataStore = settingsDataStore
-                ) {
-                    val trimmedName = habitName.trim()
-                    if (trimmedName.isNotBlank()) {
-                        scope.launch {
-                            if (isEditMode) {
-                                val updatedHabit = habitToEdit!!.copy(
-                                    name = trimmedName,
-                                    description = habitDescription,
-                                    icon = habitIconKey,
-                                    color = (customColor ?: habitColor).toArgb(),
-                                    completionsPerInterval = completionsPerInterval.toIntOrNull() ?: 1,
-                                    intervalUnit = intervalUnit,
-                                    notificationsEnabled = notificationsEnabled,
-                                    notificationTime = if (notificationsEnabled) notificationTime else null,
-                                    notificationDays = if (notificationsEnabled) notificationDays.joinToString(",") else null
-                                )
-                                habitDao.updateHabit(updatedHabit)
-                                if (updatedHabit.notificationsEnabled) {
-                                    notificationScheduler.scheduleNotification(updatedHabit)
-                                 } else {
-                                    notificationScheduler.cancelNotification(updatedHabit)
-                                }
-                                habitToView = habits.find{ it.habit.id == updatedHabit.id}
-                            } else {
-                                val newHabit = Habit(
-                                    id = UUID.randomUUID().toString(),
-                                    name = trimmedName,
-                                    description = habitDescription,
-                                    icon = habitIconKey,
-                                    color = (customColor ?: habitColor).toArgb(),
-                                    archived = false,
-                                    orderIndex = habits.size,
-                                    createdAt = System.currentTimeMillis().toString(),
-                                    isInverse = false,
-                                    emoji = null,
-                                    completionsPerInterval = completionsPerInterval.toIntOrNull() ?: 1,
-                                    intervalUnit = intervalUnit,
-                                    notificationsEnabled = notificationsEnabled,
-                                    notificationTime = if (notificationsEnabled) notificationTime else null,
-                                    notificationDays = if (notificationsEnabled) notificationDays.joinToString(",") else null
-                                )
-                                habitDao.insertHabit(newHabit)
-                                if (newHabit.notificationsEnabled) {
-                                    notificationScheduler.scheduleNotification(newHabit)
-                                }
-                                // Reset the state for the next new habit
-                                habitName = ""
-                                habitDescription = ""
-                                habitColor = habitColors.first()
-                                habitIconKey = defaultHabitIconKey
-                                completionsPerInterval = "1"
-                                intervalUnit = "day"
-                                completionsError = null
-                            }
-                            showHabitSheet = false
-                            habitToEdit = null
-                            customColor = null
-                        }
-                    }
-                }
-            }
         }
     }
 }
