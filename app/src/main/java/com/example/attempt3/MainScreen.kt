@@ -59,6 +59,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -91,7 +92,6 @@ import com.github.skydoves.colorpicker.compose.rememberColorPickerController
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import java.util.UUID
-import java.util.concurrent.TimeUnit
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class,
@@ -108,7 +108,6 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     val archivedHabitsUiState by viewModel.archivedHabitsUiState.collectAsState()
 
     val now = Calendar.getInstance()
-    val timezoneOffsetInMinutes = TimeUnit.MILLISECONDS.toMinutes(now.timeZone.rawOffset.toLong()).toInt()
     val startOfDay = (now.clone() as Calendar).apply {
         set(Calendar.HOUR_OF_DAY, 0)
         set(Calendar.MINUTE, 0)
@@ -122,12 +121,6 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
         set(Calendar.SECOND, 59)
         set(Calendar.MILLISECOND, 999)
     }.timeInMillis
-
-    val completionsToday by habitDao.getCompletionsForDay(startOfDay, endOfDay)
-        .collectAsState(initial = emptyList())
-    val completedHabitIds = remember(completionsToday) {
-        completionsToday.map { it.habitId }.toSet()
-    }
 
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
     val borderContrast by settingsDataStore.borders.collectAsState(initial = null)
@@ -166,7 +159,6 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     }
     val heroCardDescription = remember { heroCardDescriptions.random() }
 
-    var optimisticCompletionChanges by remember { mutableStateOf<Map<String, Boolean>>(emptyMap()) }
     var showHabitSheet by remember { mutableStateOf(false) }
     var habitToView by remember { mutableStateOf<HabitWithCompletions?>(null) }
     var habitToEdit by remember { mutableStateOf<Habit?>(null) }
@@ -292,7 +284,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
             showReorderSheet = false
         }
     }
-    
+
     if (showTimePicker) {
         val initialHour = notificationTime?.split(":")?.get(0)?.toIntOrNull() ?: 9
         val initialMinute = notificationTime?.split(":")?.get(1)?.toIntOrNull() ?: 0
@@ -398,35 +390,6 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                         modifier = Modifier.fillMaxSize()
                                     ) {
                                         val habitsWithCompletions = (habitsUiState as? HabitsUiState.Success)?.habits ?: emptyList()
-
-                                        val optimisticallyUpdatedHabitsWithCompletions = remember(habitsWithCompletions, optimisticCompletionChanges) {
-                                            if (optimisticCompletionChanges.isEmpty()) {
-                                                habitsWithCompletions
-                                            } else {
-                                                habitsWithCompletions.map { habitWithCompletions ->
-                                                    val habitId = habitWithCompletions.habit.id
-                                                    val change = optimisticCompletionChanges[habitId]
-                                                    if (change == null) {
-                                                        habitWithCompletions
-                                                    } else if (change) { // Completed
-                                                        val alreadyCompletedToday = habitWithCompletions.completions.any { it.date in startOfDay..endOfDay }
-                                                        if (alreadyCompletedToday) habitWithCompletions else {
-                                                            val newCompletion = Completion(
-                                                                id = UUID.randomUUID().toString(),
-                                                                habitId = habitId,
-                                                                date = System.currentTimeMillis(),
-                                                                timezoneOffsetInMinutes = timezoneOffsetInMinutes,
-                                                                amountOfCompletions = 1
-                                                            )
-                                                            habitWithCompletions.copy(completions = habitWithCompletions.completions + newCompletion)
-                                                        }
-                                                    } else { // Un-completed
-                                                        habitWithCompletions.copy(completions = habitWithCompletions.completions.filterNot { it.date in startOfDay..endOfDay })
-                                                    }
-                                                }
-                                            }
-                                        }
-
                                         val scrollState = rememberScrollState()
 
                                         Column(
@@ -439,15 +402,16 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                             AnimatedVisibility(visible = heroCardVisible) {
                                                 HeroCard(greeting = greeting, description = heroCardDescription)
                                             }
-                                            optimisticallyUpdatedHabitsWithCompletions.forEach { habitWithCompletions ->
+                                            habitsWithCompletions.forEach { habitWithCompletions ->
                                                 key(habitWithCompletions.habit.id) {
+                                                    val isCompleted = habitWithCompletions.completions.any { it.date in startOfDay..endOfDay }
                                                     HabitItemCard(
                                                         modifier = Modifier.sharedElementWithCallerManagedVisibility(
                                                             rememberSharedContentState(key = "card-${habitWithCompletions.habit.id}"),
                                                             visible = habitToView?.habit?.id != habitWithCompletions.habit.id
                                                         ),
                                                         habit = habitWithCompletions.habit,
-                                                        isCompleted = optimisticCompletionChanges[habitWithCompletions.habit.id] ?: completedHabitIds.contains(habitWithCompletions.habit.id),
+                                                        isCompleted = isCompleted,
                                                         completions = habitWithCompletions.completions,
                                                         showCheckbox = true,
                                                         showMonthLabels = showMonthLabels!!,
@@ -459,16 +423,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                             if (vibrationsEnabled) {
                                                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                                             }
-                                                            optimisticCompletionChanges = optimisticCompletionChanges + (habitWithCompletions.habit.id to !(optimisticCompletionChanges[habitWithCompletions.habit.id] ?: completedHabitIds.contains(habitWithCompletions.habit.id)))
-                                                            scope.launch {
-                                                                if (!(optimisticCompletionChanges[habitWithCompletions.habit.id] ?: completedHabitIds.contains(habitWithCompletions.habit.id))) {
-                                                                    habitDao.insertCompletion(
-                                                                        Completion(id = UUID.randomUUID().toString(), habitId = habitWithCompletions.habit.id, date = System.currentTimeMillis(), timezoneOffsetInMinutes = timezoneOffsetInMinutes, amountOfCompletions = 1)
-                                                                    )
-                                                                } else {
-                                                                    habitDao.deleteCompletionsForHabitOnDay(habitWithCompletions.habit.id, startOfDay, endOfDay)
-                                                                }
-                                                            }
+                                                            viewModel.toggleCompletion(habitWithCompletions.habit, Calendar.getInstance(), isCompleted)
                                                         },
                                                         onClick = { habitToView = habitWithCompletions }
                                                     )
@@ -522,7 +477,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                         settingsDataStore = settingsDataStore
                     )
                 }
-                
+
                 AnimatedVisibility(
                     visible = showReorderSheet,
                     enter = fadeIn(),
@@ -565,22 +520,28 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                     exit = slideOutVertically(animationSpec = tween(durationMillis = 250)) { it }
                 ) {
                     habitToView?.let { habitWithCompletions ->
-                        val completions by habitDao.getCompletionsForHabit(habitWithCompletions.habit.id).collectAsState(initial = habitWithCompletions.completions)
+                        val habitState by remember(habitsUiState) {
+                            derivedStateOf {
+                                (habitsUiState as? HabitsUiState.Success)?.habits
+                                    ?.find { it.habit.id == habitWithCompletions.habit.id }
+                            }
+                        }
 
-                        HabitDetailScreen(
-                            habit = habitWithCompletions.habit,
-                            completions = completions,
-                            habitDao = habitDao,
-                            isArchivedView = false,
-                            animatedVisibilityScope = this@AnimatedVisibility,
-                            onDismiss = { habitToView = null },
-                            onEditHabit = {
-                                habitToEdit = it
-                                showHabitSheet = true
-                            },
-                            settingsDataStore = settingsDataStore,
-                            borderContrast = borderContrast!!
-                        )
+                        habitState?.let {
+                            HabitDetailScreen(
+                                habitWithCompletions = it,
+                                viewModel = viewModel,
+                                isArchivedView = false,
+                                animatedVisibilityScope = this@AnimatedVisibility,
+                                onDismiss = { habitToView = null },
+                                onEditHabit = {
+                                    habitToEdit = it
+                                    showHabitSheet = true
+                                },
+                                settingsDataStore = settingsDataStore,
+                                borderContrast = borderContrast!!
+                            )
+                        }
                     }
                 }
 

@@ -59,16 +59,14 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import java.util.Calendar
-import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun SharedTransitionScope.HabitDetailScreen(
-    habit: Habit,
-    completions: List<Completion>,
-    habitDao: HabitDao,
+    habitWithCompletions: HabitWithCompletions,
+    viewModel: HabitViewModel,
     isArchivedView: Boolean,
     animatedVisibilityScope: AnimatedVisibilityScope,
     onDismiss: () -> Unit,
@@ -84,6 +82,8 @@ fun SharedTransitionScope.HabitDetailScreen(
     val dayOfWeekLabelsOnRight by settingsDataStore.dayOfWeekLabelsOnRight.collectAsState(initial = false)
     val showAllDayOfWeekLabels by settingsDataStore.showAllDayOfWeekLabels.collectAsState(initial = false)
     var showDeleteConfirmation by remember { mutableStateOf(false) } // State for delete confirmation dialog
+    val habit = habitWithCompletions.habit
+    val completions = habitWithCompletions.completions
     val animatedColor by animateColorAsState(targetValue = Color(habit.color), animationSpec = tween(durationMillis = 500))
     val streak = remember(habit, completions) { calculateStreak(habit, completions) }
 
@@ -110,7 +110,8 @@ fun SharedTransitionScope.HabitDetailScreen(
                             onDismiss()
                             showDeleteConfirmation = false
                             scope.launch {
-                                habitDao.deleteHabit(habit)
+                                // TODO: Replace with viewModel call
+                                // habitDao.deleteHabit(habit)
                             }
                         }
                     ) {
@@ -274,7 +275,8 @@ fun SharedTransitionScope.HabitDetailScreen(
                                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     }
                                     scope.launch {
-                                        habitDao.updateHabit(habit.copy(archived = !isArchivedView))
+                                        // TODO: Replace with viewModel call
+                                        // habitDao.updateHabit(habit.copy(archived = !isArchivedView))
                                     }
                                     onDismiss()
                                 },
@@ -348,47 +350,11 @@ fun SharedTransitionScope.HabitDetailScreen(
                     //modifier = Modifier.padding(horizontal = 8.dp),
                     completions = completions,
                     habitColor = animatedColor,
-                    onDateClick = { date, _ ->
+                    onDateClick = { date, isCompleted ->
                         if (vibrationsEnabled) {
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         }
-                        scope.launch {
-                            val startOfDay = (date.clone() as Calendar).apply {
-                                set(Calendar.HOUR_OF_DAY, 0)
-                                set(Calendar.MINUTE, 0)
-                                set(Calendar.SECOND, 0)
-                                set(Calendar.MILLISECOND, 0)
-                            }
-                            val endOfDay = (date.clone() as Calendar).apply {
-                                set(Calendar.HOUR_OF_DAY, 23)
-                                set(Calendar.MINUTE, 59)
-                                set(Calendar.SECOND, 59)
-                                set(Calendar.MILLISECOND, 999)
-                            }
-
-                            val completionForDay = completions.find {
-                                it.date >= startOfDay.timeInMillis && it.date <= endOfDay.timeInMillis
-                            }
-
-                            if (completionForDay != null) {
-                                habitDao.deleteCompletionsForHabitOnDay(habit.id, startOfDay.timeInMillis, endOfDay.timeInMillis)
-                            } else {
-                                val now = Calendar.getInstance()
-                                val timezoneOffsetInMinutes = TimeUnit.MILLISECONDS.toMinutes(now.timeZone.rawOffset.toLong()).toInt()
-                                date.set(Calendar.HOUR_OF_DAY, 12)
-                                date.set(Calendar.MINUTE, 0)
-                                date.set(Calendar.SECOND, 0)
-
-                                val newCompletion = Completion(
-                                    id = UUID.randomUUID().toString(),
-                                    habitId = habit.id,
-                                    date = date.timeInMillis,
-                                    timezoneOffsetInMinutes = timezoneOffsetInMinutes,
-                                    amountOfCompletions = 1
-                                )
-                                habitDao.insertCompletion(newCompletion)
-                            }
-                        }
+                        viewModel.toggleCompletion(habit, date, isCompleted)
                     }
                 )
             }

@@ -229,24 +229,14 @@ fun HabitSheetContent(
                 )
             }
             AnimatedVisibility(visible = notificationsEnabled && hasNotificationPermission) {
-                Column {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable(onClick = onTimePickerClick)
-                            .padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("Notification Time")
-                        Text(notificationTime ?: "Not Set")
-                    }
-                    DayOfWeekSelector(
-                        selectedDays = notificationDays,
-                        onDaySelected = onNotificationDaySelected,
-                        horizontalPadding = 0.dp
-                    )
-                }
+                NotificationSelectors(
+                    notificationTime = notificationTime ?: "Not Set",
+                    selectedDays = notificationDays,
+                    onTimeClick = onTimePickerClick,
+                    onDaySelected = onNotificationDaySelected,
+                    isEnabled = notificationsEnabled && hasNotificationPermission,
+                    borderAlpha = 0.1f
+                )
             }
         }
         Spacer(modifier = Modifier.height(8.dp))

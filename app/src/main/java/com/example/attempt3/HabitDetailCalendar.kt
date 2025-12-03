@@ -388,8 +388,8 @@ fun MonthCalendar(
                                         color = if (isToday && !isCompleted) MaterialTheme.colorScheme.onSurface else Color.Transparent,
                                         shape = RoundedCornerShape(8.dp)
                                     )
-                                    .clickable(enabled = !isAfterToday) {
-                                        onDateClick(day, isInCurrentMonth)
+                                    .clickable(enabled = !isAfterToday && isInCurrentMonth) {
+                                        onDateClick(day, isCompleted)
                                         if (!isInCurrentMonth) {
                                             displayedMonth = day
                                         }

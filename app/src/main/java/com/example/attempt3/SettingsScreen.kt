@@ -9,12 +9,9 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -43,7 +40,6 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
@@ -60,17 +56,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -300,56 +292,27 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                 }
                 Spacer(modifier = Modifier.height(16.dp))
 
-
                 val isEnabled = globalNotificationsEnabled && hasNotificationPermission
-                val alpha by animateFloatAsState(targetValue = if (isEnabled) 1f else 0.5f, label = "")
-                Column(
-                    modifier = Modifier
-                        .alpha(alpha)
-                        .padding(horizontal = 20.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable(
-                                enabled = isEnabled,
-                                onClick = { showTimePicker = true },
-                                indication = null,
-                                interactionSource = remember { MutableInteractionSource() }
-                            ),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        AutoSizeText(
-                            text = globalNotificationTime,
-                            modifier = Modifier.fillMaxWidth(),
-                            style = MaterialTheme.typography.displayLarge.copy(
-                                fontSize = 100.sp, // Start large
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Thin
-                            ),
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                    DayOfWeekSelector(
-                        selectedDays = globalNotificationDays,
-                        enabled = isEnabled,
-                        onDaySelected = { day ->
-                            scope.launch {
-                                val newDays = if (globalNotificationDays.contains(day)) {
-                                    globalNotificationDays - day
-                                 } else {
-                                    globalNotificationDays + day
-                                }
-                                settingsDataStore.setGlobalNotificationDays(newDays)
-                                if (globalNotificationsEnabled) {
-                                    notificationScheduler.scheduleGeneralNotification(globalNotificationTime, newDays)
-                                }
+                NotificationSelectors(
+                    notificationTime = globalNotificationTime,
+                    selectedDays = globalNotificationDays,
+                    onTimeClick = { showTimePicker = true },
+                    onDaySelected = { day ->
+                        scope.launch {
+                            val newDays = if (globalNotificationDays.contains(day)) {
+                                globalNotificationDays - day
+                            } else {
+                                globalNotificationDays + day
                             }
-                        },
-                        borderAlpha = borderContrast,
-                        horizontalPadding = 0.dp
-                    )
-                }
+                            settingsDataStore.setGlobalNotificationDays(newDays)
+                            if (globalNotificationsEnabled) {
+                                notificationScheduler.scheduleGeneralNotification(globalNotificationTime, newDays)
+                            }
+                        }
+                    },
+                    isEnabled = isEnabled,
+                    borderAlpha = borderContrast
+                )
             }
         }
     }
@@ -511,38 +474,4 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
             }
         }
     }
-}
-
-@Composable
-private fun AutoSizeText(
-    text: String,
-    modifier: Modifier = Modifier,
-    style: TextStyle = LocalTextStyle.current,
-    textAlign: TextAlign? = null
-) {
-    var scaledTextStyle by remember { mutableStateOf(style) }
-    var readyToDraw by remember { mutableStateOf(false) }
-
-    Text(
-        text = text,
-        modifier = modifier
-            .drawWithContent {
-                if (readyToDraw) {
-                    drawContent()
-                }
-            },
-        style = scaledTextStyle,
-        softWrap = false,
-        maxLines = 1,
-        textAlign = textAlign,
-        onTextLayout = { textLayoutResult ->
-            if (textLayoutResult.didOverflowWidth) {
-                scaledTextStyle = scaledTextStyle.copy(
-                    fontSize = scaledTextStyle.fontSize * 0.95f
-                )
-            } else {
-                readyToDraw = true
-            }
-        }
-    )
 }
