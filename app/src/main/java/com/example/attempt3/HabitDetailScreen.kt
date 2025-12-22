@@ -57,7 +57,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
 
@@ -109,10 +108,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                         onClick = {
                             onDismiss()
                             showDeleteConfirmation = false
-                            scope.launch {
-                                // TODO: Replace with viewModel call
-                                // habitDao.deleteHabit(habit)
-                            }
+                            viewModel.deleteHabit(habit)
                         }
                     ) {
                         Text("Delete", color = Color.Red)
@@ -274,10 +270,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                                     if (vibrationsEnabled) {
                                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     }
-                                    scope.launch {
-                                        // TODO: Replace with viewModel call
-                                        // habitDao.updateHabit(habit.copy(archived = !isArchivedView))
-                                    }
+                                    viewModel.updateHabit(habit.copy(archived = !isArchivedView))
                                     onDismiss()
                                 },
                             contentAlignment = Alignment.Center
