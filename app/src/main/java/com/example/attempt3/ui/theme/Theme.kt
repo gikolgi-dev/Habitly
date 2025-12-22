@@ -18,6 +18,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
@@ -30,6 +31,7 @@ fun Attempt3Theme(
     content: @Composable () -> Unit
 ) {
     val theme by settingsDataStore.theme.collectAsState(initial = "system")
+    val appearanceTint by settingsDataStore.appearanceTint.collectAsState(initial = 0.08f)
     val isSystemDark = isSystemInDarkTheme()
     val isDark = when (theme) {
         "light" -> false
@@ -56,8 +58,8 @@ fun Attempt3Theme(
             )
         }
         baseColorScheme.copy(
-            background = Color(0xFF111111),
-            surface = Color(0xFF1C1B1B),
+            background = baseColorScheme.background.copy(alpha = appearanceTint).compositeOver(Color(0xFF111111)),
+            surface = baseColorScheme.surface.copy(alpha = appearanceTint).compositeOver(Color(0xFF1C1B1B)),
             onSurface = Color(0xFFE7E7EA),
             onBackground = Color(0xFFE7E7EA)
         )
@@ -79,8 +81,8 @@ fun Attempt3Theme(
             )
         }
         baseColorScheme.copy(
-            background = Color(0xFFFFFFFF),
-            surface = Color(0xFFF5F5F5),
+            background = baseColorScheme.background.copy(alpha = appearanceTint).compositeOver(Color(0xFFFFFFFF)),
+            surface = baseColorScheme.surface.copy(alpha = appearanceTint).compositeOver(Color(0xFFF5F5F5)),
             onSurface = Color(0xFF121216),
             onBackground = Color(0xFF121216)
         )

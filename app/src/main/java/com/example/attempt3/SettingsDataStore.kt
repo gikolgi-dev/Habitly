@@ -21,6 +21,7 @@ class SettingsDataStore(private val context: Context) {
         val VIBRATIONS_KEY = booleanPreferencesKey("vibrations")
         val BORDERS_KEY = floatPreferencesKey("borders_float") // Renamed key
         val OLD_BORDERS_KEY = booleanPreferencesKey("borders") // Old key
+        val APPEARANCE_TINT_KEY = floatPreferencesKey("appearance_tint")
         val DAY_OF_WEEK_LABELS_VISIBLE_KEY = booleanPreferencesKey("day_of_week_labels_visible")
         val DAY_OF_WEEK_LABELS_ON_RIGHT_KEY = booleanPreferencesKey("day_of_week_labels_on_right")
         val SHOW_ALL_DAY_OF_WEEK_LABELS_KEY = booleanPreferencesKey("show_all_day_of_week_labels")
@@ -84,6 +85,17 @@ class SettingsDataStore(private val context: Context) {
     suspend fun setBorders(alpha: Float) {
         context.dataStore.edit { settings ->
             settings[BORDERS_KEY] = alpha
+        }
+    }
+
+    val appearanceTint: Flow<Float> = context.dataStore.data
+        .map { preferences ->
+            preferences[APPEARANCE_TINT_KEY] ?: 0.08f
+        }
+
+    suspend fun setAppearanceTint(alpha: Float) {
+        context.dataStore.edit { settings ->
+            settings[APPEARANCE_TINT_KEY] = alpha
         }
     }
 
@@ -180,7 +192,8 @@ class SettingsDataStore(private val context: Context) {
             settings[THEME_KEY] = "system"
             settings[MONTH_LABELS_KEY] = false
             settings[DAY_OF_WEEK_LABELS_VISIBLE_KEY] = false
-            settings[BORDERS_KEY] = 0.1f
+            settings[BORDERS_KEY] = 0.2f
+            settings[APPEARANCE_TINT_KEY] = 0.08f
             settings[GLOBAL_NOTIFICATIONS_KEY] = false
             settings[GLOBAL_NOTIFICATION_TIME_KEY] = "09:00"
             settings[GLOBAL_NOTIFICATION_DAYS_KEY] = "MON,TUE,WED,THU,FRI,SAT,SUN"
