@@ -3,6 +3,7 @@
 package com.example.attempt3
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.BackHandler
@@ -70,6 +71,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+@SuppressLint("DefaultLocale")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: SettingsDataStore) {
@@ -82,7 +84,6 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
     var showTimePicker by remember { mutableStateOf(false) }
     var showNotificationSheet by remember { mutableStateOf(false) }
     val context = LocalContext.current
-    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
     val globalNotificationsEnabled by settingsDataStore.globalNotificationsEnabled.collectAsState(initial = false)
     val globalNotificationTime by settingsDataStore.globalNotificationTime.collectAsState(initial = "09:00")
     val globalNotificationDays by settingsDataStore.globalNotificationDays.collectAsState(initial = setOf())
@@ -253,7 +254,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
 
     if (showNotificationSheet) {
         ModalBottomSheet(
-            onDismissRequest = { showNotificationSheet = false },
+            onDismissRequest = { },
             dragHandle = { BottomSheetDefaults.DragHandle(Modifier.fillMaxWidth(0.15f)) }
         ) {
             Column(modifier = blurModifier) {
@@ -296,7 +297,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                 NotificationSelectors(
                     notificationTime = globalNotificationTime,
                     selectedDays = globalNotificationDays,
-                    onTimeClick = { showTimePicker = true },
+                    onTimeClick = { },
                     onDaySelected = { day ->
                         scope.launch {
                             val newDays = if (globalNotificationDays.contains(day)) {
@@ -373,19 +374,16 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                                 subtitle = "Toggle vibrations",
                                 icon = Icons.Default.Tune,
                                 iconBackgroundColor = MaterialTheme.colorScheme.primaryContainer,
-                                onClick = { showGeneralScreen = true },
                                 iconColor = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
+                            ) { showGeneralScreen = true }
                             HorizontalDivider(color = Color.Gray.copy(0.1f), modifier = Modifier.fillMaxWidth(0.90f).align(Alignment.CenterHorizontally))
                             GroupedSettingsItem(
                                 title = "Appearance",
                                 subtitle = "Change the look and feel of the app",
                                 icon = Icons.Default.Palette,
                                 iconBackgroundColor = MaterialTheme.colorScheme.secondaryContainer,
-                                onClick = { showAppearanceScreen = true },
-                                iconColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                                isLastItem = true
-                            )
+                                iconColor = MaterialTheme.colorScheme.onSecondaryContainer
+                            ) { showAppearanceScreen = true }
                         }
                     }
                     item {
@@ -394,7 +392,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                             subtitle = "Set daily notification completion reminder",
                             icon = Icons.Default.Notifications,
                             iconBackgroundColor = MaterialTheme.colorScheme.tertiary,
-                            onClick = { showNotificationSheet = true },
+                            onClick = { },
                             iconColor = MaterialTheme.colorScheme.onTertiary,
                             settingsDataStore = settingsDataStore
                         )
@@ -406,19 +404,16 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                                 subtitle = "Import and export habit data",
                                 icon = Icons.Default.ImportExport,
                                 iconBackgroundColor = Color(0xFF73C177).copy(alpha = if (useDarkTheme) 1f else 0.35f),
-                                onClick = { showImportScreen = true },
                                 iconColor = Color(0xFF246D29)
-                            )
+                            ) { showImportScreen = true }
                             HorizontalDivider(color = Color.Gray.copy(0.1f), modifier = Modifier.fillMaxWidth(0.90f).align(Alignment.CenterHorizontally))
                             GroupedSettingsItem(
                                 title = "Clear all data",
                                 subtitle = "Delete all habits and their completions",
                                 icon = Icons.Default.Delete,
                                 iconBackgroundColor = MaterialTheme.colorScheme.errorContainer,
-                                onClick = { showConfirmationDialog.value = true },
-                                iconColor = MaterialTheme.colorScheme.onErrorContainer,
-                                isLastItem = true
-                            )
+                                iconColor = MaterialTheme.colorScheme.onErrorContainer
+                            ) { showConfirmationDialog.value = true }
                         }
                     }
                     item {

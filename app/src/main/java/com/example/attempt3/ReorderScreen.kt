@@ -34,6 +34,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -88,7 +89,7 @@ fun ReorderScreen(habitViewModel: HabitViewModel, onBack: () -> Unit, settingsDa
                         is HabitsUiState.Success -> {
                             var habits by remember(state.habits) { mutableStateOf(state.habits.map { it.habit }) }
                             var draggedItemIndex by remember { mutableStateOf<Int?>(null) }
-                            var verticalDragOffset by remember { mutableStateOf(0f) }
+                            var verticalDragOffset by remember { mutableFloatStateOf(0f) }
                             val itemHeightDp = 88.dp
                             val itemHeightPx = with(LocalDensity.current) { itemHeightDp.toPx() }
                             val haptic = LocalHapticFeedback.current

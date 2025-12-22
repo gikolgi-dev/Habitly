@@ -2,6 +2,7 @@
 
 package com.example.attempt3
 
+import android.annotation.SuppressLint
 import androidx.compose.animation.animateColor
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloat
@@ -20,8 +21,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -61,38 +60,6 @@ import androidx.graphics.shapes.Morph
 import androidx.graphics.shapes.toPath
 
 private val circleToSquareMorph = Morph(MaterialShapes.Circle, MaterialShapes.Square)
-
-@Composable
-fun HabitList(
-    habitsWithCompletions: List<Pair<Habit, List<Completion>>>,
-    isHabitCompleted: (Habit) -> Boolean,
-    showCheckbox: Boolean,
-    showMonthLabels: Boolean,
-    dayOfWeekLabelsVisible: Boolean,
-    dayOfWeekLabelsOnRight: Boolean,
-    showAllDayOfWeekLabels: Boolean,
-    borderContrast: Float,
-    onComplete: (Habit) -> Unit,
-    onClick: (Habit) -> Unit
-) {
-    LazyColumn {
-        items(habitsWithCompletions, key = { it.first.id }) { (habit, completions) ->
-            HabitItemCard(
-                habit = habit,
-                isCompleted = isHabitCompleted(habit),
-                completions = completions,
-                showCheckbox = showCheckbox,
-                showMonthLabels = showMonthLabels,
-                dayOfWeekLabelsVisible = dayOfWeekLabelsVisible,
-                dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight,
-                showAllDayOfWeekLabels = showAllDayOfWeekLabels,
-                borderContrast = borderContrast,
-                onComplete = { onComplete(habit) },
-                onClick = { onClick(habit) }
-            )
-        }
-    }
-}
 
 @Composable
 fun HabitTitleAndDescription(
@@ -178,7 +145,7 @@ fun HabitItemCard(
     onClick: () -> Unit,
     onUnarchive: (() -> Unit)? = null,
     onDelete: (() -> Unit)? = null,
-    modifier: Modifier = Modifier
+    @SuppressLint("ModifierParameter") modifier: Modifier = Modifier
 ) {
 
     Card(

@@ -1,5 +1,6 @@
 package com.example.attempt3
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Color
 import android.net.Uri
@@ -170,6 +171,7 @@ fun getFileName(uri: Uri, context: Context): String? {
 }
 
 
+@SuppressLint("DefaultLocale")
 @Composable
 fun ImportExportScreen(db: HabitDatabase) {
     val context = LocalContext.current
@@ -436,12 +438,12 @@ fun ImportExportScreen(db: HabitDatabase) {
                                                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                                                                 try {
                                                                     Instant.parse(kitCompletion.date).toEpochMilli()
-                                                                } catch (e: Exception) {
+                                                                } catch (_: Exception) {
                                                                     try {
                                                                         val localDateTime = LocalDateTime.parse(kitCompletion.date)
                                                                         val offset = ZoneOffset.ofTotalSeconds(kitCompletion.timezoneOffsetInMinutes * 60)
                                                                         localDateTime.toInstant(offset).toEpochMilli()
-                                                                    } catch (e2: Exception) {
+                                                                    } catch (_: Exception) {
                                                                         val localDate = LocalDate.parse(kitCompletion.date)
                                                                         val offset = ZoneOffset.ofTotalSeconds(kitCompletion.timezoneOffsetInMinutes * 60)
                                                                         localDate.atStartOfDay().toInstant(offset).toEpochMilli()

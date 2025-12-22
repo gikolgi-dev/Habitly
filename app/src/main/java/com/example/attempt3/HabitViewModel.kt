@@ -1,10 +1,5 @@
 package com.example.attempt3
 
-import android.app.PendingIntent
-import android.content.Context
-import android.content.Intent
-import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -134,24 +129,6 @@ class HabitViewModel(private val habitDao: HabitDao) : ViewModel() {
         }
     }
 
-    fun showReminderNotification(context: Context, habitName: String) {
-        val intent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-        }
-        val pendingIntent: PendingIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
-
-        val builder = NotificationCompat.Builder(context, "habit_reminders")
-            .setSmallIcon(R.drawable.ic_stat_name)
-            .setContentTitle("Completion Reminder")
-            .setContentText("Don't forget to complete $habitName today.")
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            .setContentIntent(pendingIntent)
-            .setAutoCancel(true)
-
-        with(NotificationManagerCompat.from(context)) {
-            notify(1, builder.build())
-        }
-    }
 }
 
 class HabitViewModelFactory(private val habitDao: HabitDao) : ViewModelProvider.Factory {

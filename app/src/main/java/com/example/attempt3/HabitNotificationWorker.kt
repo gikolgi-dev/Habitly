@@ -9,7 +9,6 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import java.util.concurrent.atomic.AtomicInteger
 
 class HabitNotificationWorker(
     private val context: Context,
@@ -65,7 +64,6 @@ class HabitNotificationWorker(
         private const val CHANNEL_ID = "habit_reminders"
         private const val CHANNEL_NAME = "Habit Reminders"
         private const val CHANNEL_DESCRIPTION = "Notifications to remind you about your habits"
-        private val seed = AtomicInteger()
 
         fun createNotificationChannel(context: Context) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

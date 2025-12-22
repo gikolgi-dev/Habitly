@@ -60,14 +60,13 @@ fun SettingsGroup(
 }
 
 @Composable
-fun ColumnScope.GroupedSettingsItem(
+fun GroupedSettingsItem(
     title: String,
     subtitle: String? = null,
     icon: ImageVector,
     iconBackgroundColor: Color,
     iconColor: Color,
-    onClick: () -> Unit,
-    isLastItem: Boolean = false
+    onClick: () -> Unit
 ) {
     Column(modifier = Modifier
         .fillMaxWidth()

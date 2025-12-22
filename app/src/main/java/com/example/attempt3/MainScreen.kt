@@ -3,6 +3,7 @@
 package com.example.attempt3
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.BackHandler
@@ -94,6 +95,7 @@ import java.util.Calendar
 import java.util.UUID
 import kotlin.math.roundToInt
 
+@SuppressLint("DefaultLocale")
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class,
     ExperimentalFoundationApi::class
 )
@@ -165,7 +167,6 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     var showColorPicker by remember { mutableStateOf(false) }
     var customColor by remember { mutableStateOf<Color?>(null) }
     var tempColor by remember { mutableStateOf<Color?>(null) }
-    var pickerInitialColor by remember { mutableStateOf<Color?>(null) }
     var showSettingsScreen by remember { mutableStateOf(false) }
     var showArchiveSheet by remember { mutableStateOf(false) }
     var showReorderSheet by remember { mutableStateOf(false) }
@@ -222,16 +223,16 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
             return
         }
         val completions = completionsText.toIntOrNull()
-        if (completions == null) {
-            completionsError = "Must be a number"
+        completionsError = if (completions == null) {
+            "Must be a number"
         } else if (completions <= 0) {
-            completionsError = "Must be > 0"
+            "Must be > 0"
         } else if (completions > 7 && intervalUnit == "week") {
-            completionsError = "Must be ≤ 7"
+            "Must be ≤ 7"
         } else if (completions > 28 && intervalUnit == "month") {
-            completionsError = "Must be ≤ 28"
+            "Must be ≤ 28"
         }else {
-            completionsError = null
+            null
         }
     }
 
@@ -514,7 +515,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                             }
                         }
 
-                        habitState?.let {
+                        habitState?.let { it ->
                             HabitDetailScreen(
                                 habitWithCompletions = it,
                                 viewModel = viewModel,
@@ -644,7 +645,6 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                 onShowColorPicker = { show, color ->
                                     showColorPicker = show
                                     if (show) {
-                                        pickerInitialColor = color
                                         tempColor = color
                                     }
                                 },

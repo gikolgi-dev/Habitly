@@ -1,11 +1,11 @@
 package com.example.attempt3
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.BikeScooter
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Dining
-import androidx.compose.material.icons.filled.DirectionsRun
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Error
@@ -35,7 +35,7 @@ import androidx.compose.material.icons.filled.ThumbUp
 
 val habitIconMap = mapOf(
     "Book" to Icons.Default.Book,
-    "DirectionsRun" to Icons.Default.DirectionsRun,
+    "DirectionsRun" to Icons.AutoMirrored.Default.DirectionsRun,
     "Email" to Icons.Default.Email,
     "Face" to Icons.Default.Face,
     "Favorite" to Icons.Default.Favorite,
@@ -68,4 +68,4 @@ val habitIconMap = mapOf(
     "Heartbroken" to Icons.Default.SentimentVeryDissatisfied
 )
 
-val defaultHabitIconKey = "SelfImprovement"
+const val defaultHabitIconKey = "SelfImprovement"

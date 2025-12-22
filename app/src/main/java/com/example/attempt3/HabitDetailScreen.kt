@@ -48,7 +48,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -73,7 +72,6 @@ fun SharedTransitionScope.HabitDetailScreen(
     settingsDataStore: SettingsDataStore,
     borderContrast: Float
 ) {
-    val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
     val showMonthLabels by settingsDataStore.monthLabels.collectAsState(initial = false)

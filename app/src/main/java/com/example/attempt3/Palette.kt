@@ -1,15 +1,12 @@
 package com.example.attempt3
 
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 
 /**
  * A data class to hold a color's names and its corresponding Color object.
  * A color can have multiple names (aliases). The first name in the list is considered the primary name.
  */
 data class NamedColor(val names: List<String>, val color: Color) {
-    val primaryName: String
-        get() = names.first()
 }
 
 /**
@@ -49,28 +46,3 @@ val predefinedColors = listOf(
  */
 val habitColors: List<Color> = predefinedColors.map { it.color }
 
-/**
- * Converts a color name (or its alias) to its corresponding hex string representation.
- * This function is case-insensitive.
- * @param name The name or alias of the color.
- * @return The hex string (e.g., "#EA6361") or null if the name is not found.
- */
-fun nameToHex(name: String): String? {
-    return predefinedColors.find { namedColor -> namedColor.names.any { it.equals(name, ignoreCase = true) } }?.color?.let {
-        "#${it.toArgb().toUInt().toString(16).substring(2).uppercase()}"
-    }
-}
-
-/**
- * Converts a hex string to its corresponding primary color name.
- * @param hex The hex string representation of the color (e.g., "#EA6361").
- * @return The primary name of the color or null if the hex value is not found in the predefined list.
- */
-fun hexToName(hex: String): String? {
-    try {
-        val colorInt = android.graphics.Color.parseColor(hex)
-        return predefinedColors.find { it.color.toArgb() == colorInt }?.primaryName
-    } catch (e: IllegalArgumentException) {
-        return null // Invalid hex color format
-    }
-}

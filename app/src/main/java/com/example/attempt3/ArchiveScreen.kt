@@ -54,7 +54,7 @@ fun ArchiveScreen(uiState: HabitsUiState, habitDao: HabitDao, onBack: () -> Unit
 
     if (habitToDelete != null) {
         AlertDialog(
-            onDismissRequest = { habitToDelete = null },
+            onDismissRequest = { },
             title = { Text("Are you sure?") },
             text = { Text("Are you sure you want to delete this habit? This action cannot be undone.",color = MaterialTheme.colorScheme.onSurface) },
             confirmButton = {

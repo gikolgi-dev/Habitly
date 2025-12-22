@@ -115,12 +115,6 @@ class SettingsDataStore(private val context: Context) {
             preferences[DAY_OF_WEEK_LABELS_ON_RIGHT_KEY] ?: false // Default to left
         }
 
-    suspend fun setDayOfWeekLabelsOnRight(onRight: Boolean) {
-        context.dataStore.edit { settings ->
-            settings[DAY_OF_WEEK_LABELS_ON_RIGHT_KEY] = onRight
-        }
-    }
-
     val showAllDayOfWeekLabels: Flow<Boolean> = context.dataStore.data
         .map { preferences ->
             preferences[SHOW_ALL_DAY_OF_WEEK_LABELS_KEY] ?: true // Default to all

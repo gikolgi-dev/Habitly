@@ -3,7 +3,6 @@ package com.example.attempt3
 import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -62,7 +61,7 @@ class MainActivity : ComponentActivity() {
                 description = descriptionText
             }
             val notificationManager: NotificationManager =
-                getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                getSystemService(NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(channel)
         }
     }

@@ -1,6 +1,5 @@
 package com.example.attempt3
 
-import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
@@ -15,14 +14,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
@@ -42,135 +39,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import java.util.Calendar
 import java.util.Locale
 import kotlin.math.abs
-
-@SuppressLint("UnusedBoxWithConstraintsScope")
-@Composable
-fun CompletionHeatmap(
-    completions: List<Completion>,
-    habitColor: Color,
-    modifier: Modifier = Modifier,
-    totalWeeks: Int? = null
-) {
-    BoxWithConstraints(
-        modifier = modifier
-    ) {
-        if (maxWidth <= 0.dp && totalWeeks == null) {
-            return@BoxWithConstraints
-        }
-
-        val cellSize = 10.dp
-        val minSpacing = 4.dp
-
-        val numWeeks = totalWeeks ?: run {
-            val density = LocalDensity.current
-            val maxWidthPx = with(density) { maxWidth.toPx() }
-            val cellSizePx = with(density) { cellSize.toPx() }
-            val minSpacingPx = with(density) { minSpacing.toPx() }
-            ((maxWidthPx + minSpacingPx) / (cellSizePx + minSpacingPx)).toInt()
-        }
-
-        if (numWeeks <= 0) return@BoxWithConstraints
-
-        val completionDates = remember(completions) {
-            completions.map {
-                val cal = Calendar.getInstance()
-                cal.timeInMillis = it.date
-                cal.set(Calendar.HOUR_OF_DAY, 0)
-                cal.set(Calendar.MINUTE, 0)
-                cal.set(Calendar.SECOND, 0)
-                cal.set(Calendar.MILLISECOND, 0)
-                cal.timeInMillis
-            }.toSet()
-        }
-
-        val today = remember { // Define today here for this Composable
-            val cal = Calendar.getInstance()
-            cal.set(Calendar.HOUR_OF_DAY, 0)
-            cal.set(Calendar.MINUTE, 0)
-            cal.set(Calendar.SECOND, 0)
-            cal.set(Calendar.MILLISECOND, 0)
-            cal
-        }
-
-        val daysToShow = remember(numWeeks) {
-            val calendar = Calendar.getInstance()
-            // Find the Monday of the current week.
-            calendar.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
-            // Go back the required number of weeks.
-            calendar.add(Calendar.WEEK_OF_YEAR, -(numWeeks - 1))
-
-            val days = mutableListOf<Calendar>()
-            repeat(numWeeks * 7) {
-                val day = calendar.clone() as Calendar
-                day.set(Calendar.HOUR_OF_DAY, 0)
-                day.set(Calendar.MINUTE, 0)
-                day.set(Calendar.SECOND, 0)
-                day.set(Calendar.MILLISECOND, 0)
-                days.add(day)
-                calendar.add(Calendar.DAY_OF_YEAR, 1)
-            }
-            days
-        }
-
-        val daysByWeekday = remember(daysToShow) {
-            val weeks = daysToShow.chunked(7)
-            // Transpose the list of lists
-            if (weeks.isEmpty()) {
-                emptyList()
-            } else {
-                (0..6).map { dayIndex ->
-                    weeks.map { week -> week[dayIndex] }
-                }
-            }
-        }
-
-        val arrangement = if (totalWeeks != null) Arrangement.spacedBy(minSpacing) else Arrangement.SpaceBetween
-
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(minSpacing)
-        ) {
-            daysByWeekday.forEach { weekDays ->
-                Row(
-                    modifier = if (totalWeeks == null) Modifier.fillMaxWidth() else Modifier,
-                    horizontalArrangement = arrangement
-                ) {
-                    weekDays.forEach { day ->
-                        val isCompleted = completionDates.contains(day.timeInMillis)
-                        val isToday = day.get(Calendar.YEAR) == today.get(Calendar.YEAR) &&
-                                day.get(Calendar.DAY_OF_YEAR) == today.get(Calendar.DAY_OF_YEAR)
-
-                        val cellColor = when {
-                            isCompleted -> habitColor
-                            day.after(today) -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
-                            else -> habitColor.copy(alpha = 0.1f)
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .size(cellSize)
-                                .aspectRatio(1f)
-                                .background(cellColor, RoundedCornerShape(2.dp))
-                                .border(
-                                    width = 1.dp,
-                                    color = if (isToday) Color.White else Color.Transparent,
-                                    shape = RoundedCornerShape(2.dp)
-                                )
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
 
 @Composable
 fun MonthCalendar(

@@ -95,7 +95,7 @@ private fun AutoSizeText(
         textAlign = textAlign,
         onTextLayout = { textLayoutResult ->
             if (textLayoutResult.didOverflowWidth) {
-                scaledTextStyle = scaledTextStyle.copy(
+                scaledTextStyle.copy(
                     fontSize = scaledTextStyle.fontSize * 0.95f
                 )
             } else {
