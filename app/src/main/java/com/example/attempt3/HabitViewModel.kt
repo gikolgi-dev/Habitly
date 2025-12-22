@@ -122,6 +122,18 @@ class HabitViewModel(private val habitDao: HabitDao) : ViewModel() {
         }
     }
 
+    fun updateHabit(habit: Habit) {
+        viewModelScope.launch {
+            habitDao.updateHabit(habit)
+        }
+    }
+
+    fun deleteHabit(habit: Habit) {
+        viewModelScope.launch {
+            habitDao.deleteHabit(habit)
+        }
+    }
+
     fun showReminderNotification(context: Context, habitName: String) {
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK

@@ -46,10 +46,14 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
     val showDayLabels by settingsDataStore.dayOfWeekLabelsVisible.collectAsState(initial = true)
     val showAllDayOfWeekLabels by settingsDataStore.showAllDayOfWeekLabels.collectAsState(initial = true)
     val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
+    val appearanceTint by settingsDataStore.appearanceTint.collectAsState(initial = 0.08f)
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
     val haptic = LocalHapticFeedback.current
     val interactionSource = remember { MutableInteractionSource() }
     val isDragged by interactionSource.collectIsDraggedAsState()
+    val tintInteractionSource = remember { MutableInteractionSource() }
+    val isTintDragged by tintInteractionSource.collectIsDraggedAsState()
+
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -110,6 +114,77 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
                                 modifier = Modifier.padding(start = 8.dp)
                             )
                         }
+                    }
+                    
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = "Set background tint",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Slider(
+                            value = appearanceTint,
+                            onValueChange = {
+                                scope.launch {
+                                    settingsDataStore.setAppearanceTint(it)
+                                }
+                            },
+                            valueRange = 0f..1f,
+                            steps = 19,
+                            interactionSource = tintInteractionSource,
+                            colors = SliderDefaults.colors(
+                                activeTickColor = MaterialTheme.colorScheme.onSurface.copy(alpha = .5f),
+                                inactiveTickColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+                            ),
+                            thumb = {
+                                Layout(
+                                    content = {
+                                        if (isTintDragged) {
+                                            Surface(
+                                                shape = RoundedCornerShape(4.dp),
+                                                color = MaterialTheme.colorScheme.primary,
+
+                                                ) {
+                                                Text(
+                                                    text = "%.2f".format(appearanceTint),
+                                                    modifier = Modifier.padding(4.dp),
+                                                    color = MaterialTheme.colorScheme.onPrimary,
+                                                    style = MaterialTheme.typography.bodySmall
+                                                )
+                                            }
+                                        }
+                                        SliderDefaults.Thumb(
+                                            interactionSource = tintInteractionSource,
+                                            colors = SliderDefaults.colors(),
+                                            enabled = true
+                                        )
+                                    }
+                                ) { measurables, constraints ->
+                                    val thumbPlaceable = measurables.last().measure(constraints)
+                                    val indicatorPlaceable = if (isTintDragged) {
+                                        measurables.first().measure(constraints.copy(minWidth = 0, minHeight = 0))
+                                    } else {
+                                        null
+                                    }
+
+                                    layout(thumbPlaceable.width, thumbPlaceable.height) {
+                                        thumbPlaceable.placeRelative(0, 0)
+                                        indicatorPlaceable?.let {
+                                            val indicatorY = (thumbPlaceable.height - it.height) / 2
+                                            val indicatorX = if (appearanceTint > 0.5f) {
+                                                -it.width - 8.dp.roundToPx()
+                                            } else {
+                                                thumbPlaceable.width + 8.dp.roundToPx()
+                                            }
+                                            it.placeRelative(indicatorX, indicatorY)
+                                        }
+                                    }
+                                }
+                            }
+                        )
                     }
                 }
             }
