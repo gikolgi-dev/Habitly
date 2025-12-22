@@ -373,19 +373,6 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                             Surface(modifier = mainContentModifier.fillMaxSize(),color = MaterialTheme.colorScheme.background) {
                                 Box(modifier = Modifier.fillMaxSize()) {
                                     AnimatedVisibility(
-                                        visible = habitsUiState is HabitsUiState.Loading || !areSettingsLoaded,
-                                        enter = fadeIn(animationSpec = tween(durationMillis = 500)),
-                                        exit = fadeOut(animationSpec = tween(durationMillis = 500))
-                                    ) {
-                                        Column(
-                                            modifier = Modifier.fillMaxSize(),
-                                            verticalArrangement = Arrangement.Center,
-                                            horizontalAlignment = Alignment.CenterHorizontally
-                                        ) {
-                                            ContainedLoadingIndicator()
-                                        }
-                                    }
-                                    AnimatedVisibility(
                                         visible = habitsUiState is HabitsUiState.Success && areSettingsLoaded,
                                         modifier = Modifier.fillMaxSize()
                                     ) {
@@ -766,6 +753,22 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                             }
                         }
                     }
+                }
+            }
+        }
+
+        AnimatedVisibility(
+            visible = habitsUiState is HabitsUiState.Loading || !areSettingsLoaded,
+            enter = fadeIn(animationSpec = tween(durationMillis = 500)),
+            exit = fadeOut(animationSpec = tween(durationMillis = 500))
+        ) {
+            Surface(modifier = Modifier.fillMaxSize(),color = MaterialTheme.colorScheme.background) {
+                Column(
+                    modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    ContainedLoadingIndicator()
                 }
             }
         }
