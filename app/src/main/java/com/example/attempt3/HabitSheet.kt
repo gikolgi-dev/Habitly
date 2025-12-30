@@ -10,6 +10,7 @@ import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -48,7 +49,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
@@ -56,13 +56,16 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.ToggleButton
-import androidx.compose.material3.ToggleButtonColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -71,9 +74,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.lazy.grid.items as gridItems
@@ -111,8 +111,12 @@ fun HabitSheetContent(
 ) {
     val haptic = LocalHapticFeedback.current
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
+
+    val isScrolled by remember { derivedStateOf { scrollState.value > 0 } }
+    val dividerAlpha by animateFloatAsState(targetValue = if (isScrolled) 1f else 0f, label = "dividerAlpha")
+
     Text(title, style = MaterialTheme.typography.headlineLarge)
-    HorizontalDivider(modifier =Modifier.fillMaxWidth().padding(top = 10.dp), color = Color.Gray.copy(alpha = 0.12f))
+    HorizontalDivider(modifier =Modifier.fillMaxWidth(0.95f).padding(top = 10.dp).alpha(dividerAlpha), color = Color.Gray.copy(alpha = 0.2f))
 
     Column(
         modifier = Modifier
@@ -148,8 +152,13 @@ fun HabitSheetContent(
                 unfocusedTextColor = MaterialTheme.colorScheme.onSurface
             )
         )
+        Spacer(modifier = Modifier.height(10.dp))
+        HorizontalDivider(
+            thickness = 1.dp,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+        )
         Spacer(modifier = Modifier.height(8.dp))
-        Text("Interval", style = MaterialTheme.typography.titleMedium)
+        Text("Interval", style = MaterialTheme.typography.headlineSmall)
         Spacer(modifier = Modifier.height(8.dp))
         AnimatedVisibility(
             visible = intervalUnit != "day",
@@ -173,32 +182,12 @@ fun HabitSheetContent(
 
         val items = listOf("Daily", "Weekly", "Monthly")
         val intervalValues = listOf("day", "week", "month")
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
-        ) {
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
             items.forEachIndexed { index, label ->
-                val isSelected = intervalValues[index] == intervalUnit
-                ToggleButton(
-                    checked = isSelected,
-                    onCheckedChange = { if (it) onIntervalUnitChanged(intervalValues[index]) },
-                    modifier = Modifier
-                        .weight(1f)
-                        .semantics { role = Role.RadioButton },
-                    colors = ToggleButtonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        disabledContainerColor = Color.Gray,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                        disabledContentColor = Color.Gray,
-                        checkedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                        checkedContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                    ),
-                    shapes =
-                    when (index) {
-                        0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
-                        items.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
-                        else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
-                    },
+                SegmentedButton(
+                    selected = intervalUnit == intervalValues[index],
+                    onClick = { onIntervalUnitChanged(intervalValues[index]) },
+                    shape = SegmentedButtonDefaults.itemShape(index = index, count = items.size)
                 ) {
                     Text(label)
                 }
@@ -210,42 +199,7 @@ fun HabitSheetContent(
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
         )
         Spacer(modifier = Modifier.height(8.dp))
-        Column(
-            modifier = Modifier
-                .alpha(if (hasNotificationPermission) 1f else 0.5f)
-                .clickable(onClick = { onNotificationsEnabledChanged(!notificationsEnabled) })
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text("Enable Notifications", style = MaterialTheme.typography.titleMedium)
-                Switch(
-                    checked = notificationsEnabled,
-                    onCheckedChange = null,
-                    enabled = hasNotificationPermission
-                )
-            }
-            AnimatedVisibility(visible = notificationsEnabled && hasNotificationPermission) {
-                NotificationSelectors(
-                    notificationTime = notificationTime ?: "Not Set",
-                    selectedDays = notificationDays,
-                    onTimeClick = onTimePickerClick,
-                    onDaySelected = onNotificationDaySelected,
-                    isEnabled = notificationsEnabled && hasNotificationPermission,
-                    borderAlpha = 0.1f
-                )
-            }
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        HorizontalDivider(
-            thickness = 1.dp,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text("Choose an Icon", style = MaterialTheme.typography.titleMedium)
+        Text("Choose an Icon", style = MaterialTheme.typography.headlineSmall)
         Spacer(modifier = Modifier.height(8.dp))
         LazyVerticalGrid(
             columns = GridCells.Fixed(8),
@@ -299,12 +253,11 @@ fun HabitSheetContent(
                 }
             }
         }
-
         HorizontalDivider(
             thickness = 1.dp,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
         )
-        Text("Choose a Color", style = MaterialTheme.typography.titleMedium,modifier = Modifier.padding(vertical = 8.dp))
+        Text("Choose a Color", style = MaterialTheme.typography.headlineSmall,modifier = Modifier.padding(vertical = 8.dp))
         LazyVerticalGrid(
             columns = GridCells.Fixed(8),
             modifier = Modifier
@@ -394,7 +347,41 @@ fun HabitSheetContent(
                 }
             }
         }
-        Spacer(modifier = Modifier.height(60.dp))
+        HorizontalDivider(
+            thickness = 1.dp,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Column(
+            modifier = Modifier
+                .alpha(if (hasNotificationPermission) 1f else 0.5f)
+                .clickable(onClick = { onNotificationsEnabledChanged(!notificationsEnabled) })
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Enable Notifications", style = MaterialTheme.typography.titleMediumEmphasized)
+                Switch(
+                    checked = notificationsEnabled,
+                    onCheckedChange = null,
+                    enabled = hasNotificationPermission
+                )
+            }
+            AnimatedVisibility(visible = notificationsEnabled && hasNotificationPermission) {
+                NotificationSelectors(
+                    notificationTime = notificationTime ?: "Not Set",
+                    selectedDays = notificationDays,
+                    onTimeClick = onTimePickerClick,
+                    onDaySelected = onNotificationDaySelected,
+                    isEnabled = notificationsEnabled && hasNotificationPermission,
+                    borderAlpha = 0.1f
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(80.dp))
     }
 }
 

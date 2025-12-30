@@ -30,7 +30,7 @@ fun DayOfWeekSelector(
     onDaySelected: (String) -> Unit,
     enabled: Boolean = true,
     borderAlpha: Float = 0.1f,
-    horizontalPadding: Dp = 16.dp
+    horizontalPadding: Dp = 0.dp
 ) {
     val days = listOf("M", "T", "W", "T", "F", "S", "S")
     val dayValues = listOf("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")
