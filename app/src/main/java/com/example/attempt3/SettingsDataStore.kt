@@ -186,8 +186,8 @@ class SettingsDataStore(private val context: Context) {
             settings[THEME_KEY] = "system"
             settings[MONTH_LABELS_KEY] = false
             settings[DAY_OF_WEEK_LABELS_VISIBLE_KEY] = false
-            settings[BORDERS_KEY] = 0.2f
-            settings[APPEARANCE_TINT_KEY] = 0.08f
+            settings[BORDERS_KEY] = 0f
+            settings[APPEARANCE_TINT_KEY] = 0.1f
             settings[GLOBAL_NOTIFICATIONS_KEY] = false
             settings[GLOBAL_NOTIFICATION_TIME_KEY] = "09:00"
             settings[GLOBAL_NOTIFICATION_DAYS_KEY] = "MON,TUE,WED,THU,FRI,SAT,SUN"

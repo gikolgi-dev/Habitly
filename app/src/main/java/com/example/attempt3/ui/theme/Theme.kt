@@ -18,7 +18,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
@@ -58,8 +58,16 @@ fun Attempt3Theme(
             )
         }
         baseColorScheme.copy(
-            background = baseColorScheme.background.copy(alpha = appearanceTint).compositeOver(Color(0xFF111111)),
-            surface = baseColorScheme.surface.copy(alpha = appearanceTint).compositeOver(Color(0xFF1C1B1B)),
+            background = lerp(
+                start = Color(0xFF111111),
+                stop = baseColorScheme.primaryContainer,
+                fraction = appearanceTint
+            ),
+            surface = lerp(
+                start = Color(0xFF232323),
+                stop = lerp(baseColorScheme.primaryContainer, Color.White, 0.1f),
+                fraction = appearanceTint
+            ),
             onSurface = Color(0xFFE7E7EA),
             onBackground = Color(0xFFE7E7EA)
         )
@@ -81,8 +89,16 @@ fun Attempt3Theme(
             )
         }
         baseColorScheme.copy(
-            background = baseColorScheme.background.copy(alpha = appearanceTint).compositeOver(Color(0xFFFFFFFF)),
-            surface = baseColorScheme.surface.copy(alpha = appearanceTint).compositeOver(Color(0xFFF5F5F5)),
+            background = lerp(
+                start = Color(0xFFFFFFFF),
+                stop = baseColorScheme.primaryContainer,
+                fraction = appearanceTint
+            ),
+            surface = lerp(
+                start = Color(0xFFF9F9F9),
+                stop = lerp(baseColorScheme.primaryContainer, Color.Black, 0.1f),
+                fraction = appearanceTint
+            ),
             onSurface = Color(0xFF121216),
             onBackground = Color(0xFF121216)
         )
