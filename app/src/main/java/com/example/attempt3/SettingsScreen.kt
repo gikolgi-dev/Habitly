@@ -439,7 +439,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                                         color = Color.Gray.copy(borderContrast),
                                         shape = MaterialTheme.shapes.medium
                                     )
-                                    .clickable { uriHandler.openUri("https://github.com/gikolop/Habit-Tracker") }
+                                    .clickable { uriHandler.openUri("https://github.com/gikolgi-dev/Habitly") }
                                     .padding(horizontal = 16.dp, vertical = 10.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
