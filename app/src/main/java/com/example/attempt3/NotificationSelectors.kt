@@ -5,7 +5,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,13 +25,13 @@ fun NotificationSelectors(
     onTimeClick: () -> Unit,
     onDaySelected: (String) -> Unit,
     isEnabled: Boolean,
-    borderAlpha: Float
+    borderAlpha: Float,
+    modifier: Modifier = Modifier
 ) {
     val alpha by animateFloatAsState(targetValue = if (isEnabled) 1f else 0.5f, label = "")
     Column(
-        modifier = Modifier
+        modifier = modifier
             .alpha(alpha)
-            .padding(horizontal = 0.dp)
     ) {
         Column(
             modifier = Modifier
@@ -49,7 +48,7 @@ fun NotificationSelectors(
                 text = notificationTime,
                 modifier = Modifier.fillMaxWidth(),
                 style = MaterialTheme.typography.displayLarge.copy(
-                    fontSize = 148.sp, // Start large
+                    fontSize = 140.sp, // Start large
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.W600
                 ),

@@ -52,14 +52,14 @@ class NotificationScheduler(private val context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
             // Optionally, direct user to settings to grant permission
             // For now, we fall back to inexact alarm
-            alarmManager.setInexactRepeating(
+            alarmManager.set(
                 AlarmManager.RTC_WAKEUP,
                 calendar.timeInMillis,
-                AlarmManager.INTERVAL_DAY,
                 pendingIntent
             )
         } else {
-             alarmManager.setExactAndAllowWhileIdle(
+             // Using setExact instead of setExactAndAllowWhileIdle to preserve battery
+             alarmManager.setExact(
                 AlarmManager.RTC_WAKEUP,
                 calendar.timeInMillis,
                 pendingIntent
@@ -104,13 +104,14 @@ class NotificationScheduler(private val context: Context) {
         val nextAlarmTime = getNextAlarmTime(hour, minute, days) ?: return
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
-            alarmManager.setExactAndAllowWhileIdle(
+            alarmManager.set(
                 AlarmManager.RTC_WAKEUP,
                 nextAlarmTime,
                 pendingIntent
             )
         } else {
-            alarmManager.setExactAndAllowWhileIdle(
+            // Using setExact instead of setExactAndAllowWhileIdle to preserve battery
+            alarmManager.setExact(
                 AlarmManager.RTC_WAKEUP,
                 nextAlarmTime,
                 pendingIntent
@@ -225,13 +226,14 @@ class NotificationReceiver : BroadcastReceiver() {
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
-             alarmManager.setExactAndAllowWhileIdle(
+             alarmManager.set(
                 AlarmManager.RTC_WAKEUP,
                 calendar.timeInMillis,
                 pendingIntent
             )
         } else {
-             alarmManager.setExactAndAllowWhileIdle(
+             // Using setExact instead of setExactAndAllowWhileIdle to preserve battery
+             alarmManager.setExact(
                 AlarmManager.RTC_WAKEUP,
                 calendar.timeInMillis,
                 pendingIntent
@@ -262,13 +264,14 @@ class NotificationReceiver : BroadcastReceiver() {
         val nextAlarmTime = getNextAlarmTime(hour, minute, days) ?: return
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
-             alarmManager.setExactAndAllowWhileIdle(
+             alarmManager.set(
                 AlarmManager.RTC_WAKEUP,
                 nextAlarmTime,
                 pendingIntent
             )
         } else {
-             alarmManager.setExactAndAllowWhileIdle(
+             // Using setExact instead of setExactAndAllowWhileIdle to preserve battery
+             alarmManager.setExact(
                 AlarmManager.RTC_WAKEUP,
                 nextAlarmTime,
                 pendingIntent
