@@ -758,15 +758,15 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
         }
 
         AnimatedVisibility(
-            visible = habitsUiState is HabitsUiState.Loading || !areSettingsLoaded,
+            visible = habitsUiState is HabitsUiState.Loading,
             enter = fadeIn(animationSpec = tween(durationMillis = 500)),
             exit = fadeOut(animationSpec = tween(durationMillis = 500))
         ) {
             Surface(modifier = Modifier.fillMaxSize(),color = MaterialTheme.colorScheme.background) {
                 Column(
-                    modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing),
+                    modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     ContainedLoadingIndicator()
                 }
