@@ -75,6 +75,7 @@ fun SharedTransitionScope.HabitDetailScreen(
     val haptic = LocalHapticFeedback.current
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
     val showMonthLabels by settingsDataStore.monthLabels.collectAsState(initial = false)
+    val showYearDivider by settingsDataStore.yearDivider.collectAsState(initial = true)
     val dayOfWeekLabelsVisible by settingsDataStore.dayOfWeekLabelsVisible.collectAsState(initial = false)
     val dayOfWeekLabelsOnRight by settingsDataStore.dayOfWeekLabelsOnRight.collectAsState(initial = false)
     val showAllDayOfWeekLabels by settingsDataStore.showAllDayOfWeekLabels.collectAsState(initial = false)
@@ -211,7 +212,8 @@ fun SharedTransitionScope.HabitDetailScreen(
                     showMonthLabels = showMonthLabels,
                     dayOfWeekLabelsVisible = dayOfWeekLabelsVisible,
                     dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight,
-                    showAllDayOfWeekLabels = showAllDayOfWeekLabels
+                    showAllDayOfWeekLabels = showAllDayOfWeekLabels,
+                    showYearDivider = showYearDivider
                 )
 
                 //Spacer(modifier = Modifier.height(4.dp))

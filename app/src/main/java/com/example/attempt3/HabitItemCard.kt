@@ -143,6 +143,7 @@ fun HabitItemCard(
     dayOfWeekLabelsVisible: Boolean,
     dayOfWeekLabelsOnRight: Boolean,
     showAllDayOfWeekLabels: Boolean,
+    showYearDivider: Boolean,
     borderContrast: Float,
     onComplete: () -> Unit,
     onClick: () -> Unit,
@@ -280,7 +281,8 @@ fun HabitItemCard(
                     showMonthLabels = showMonthLabels,
                     dayOfWeekLabelsVisible = dayOfWeekLabelsVisible,
                     dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight,
-                    showAllDayOfWeekLabels = showAllDayOfWeekLabels
+                    showAllDayOfWeekLabels = showAllDayOfWeekLabels,
+                    showYearDivider = showYearDivider
                 )
             }
         }

@@ -48,6 +48,7 @@ fun ArchiveScreen(uiState: HabitsUiState, habitDao: HabitDao, onBack: () -> Unit
     var habitToDelete by remember { mutableStateOf<Habit?>(null) }
     val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
     val showMonthLabels by settingsDataStore.monthLabels.collectAsState(initial = false)
+    val showYearDivider by settingsDataStore.yearDivider.collectAsState(initial = true)
     val dayOfWeekLabelsVisible by settingsDataStore.dayOfWeekLabelsVisible.collectAsState(initial = false)
     val dayOfWeekLabelsOnRight by settingsDataStore.dayOfWeekLabelsOnRight.collectAsState(initial = false)
     val showAllDayOfWeekLabels by settingsDataStore.showAllDayOfWeekLabels.collectAsState(initial = false)
@@ -138,6 +139,7 @@ fun ArchiveScreen(uiState: HabitsUiState, habitDao: HabitDao, onBack: () -> Unit
                                         dayOfWeekLabelsVisible = dayOfWeekLabelsVisible,
                                         dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight,
                                         showAllDayOfWeekLabels = showAllDayOfWeekLabels,
+                                        showYearDivider = showYearDivider,
                                         borderContrast = borderContrast,
                                         onComplete = { },
                                         onClick = { },

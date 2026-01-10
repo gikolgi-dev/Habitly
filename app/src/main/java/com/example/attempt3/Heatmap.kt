@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
@@ -24,6 +23,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
@@ -45,7 +46,8 @@ fun Heatmap(
     showMonthLabels: Boolean,
     dayOfWeekLabelsVisible: Boolean,
     dayOfWeekLabelsOnRight: Boolean,
-    showAllDayOfWeekLabels: Boolean
+    showAllDayOfWeekLabels: Boolean,
+    showYearDivider: Boolean = true
 ) {
     val dayOfWeekLabels = remember {
         val format = SimpleDateFormat("E", Locale.getDefault())
@@ -68,8 +70,7 @@ fun Heatmap(
             DayOfWeekLabels(
                 labels = dayOfWeekLabels,
                 showAll = showAllDayOfWeekLabels,
-                showMonthLabels = showMonthLabels,
-                modifier = Modifier.offset(y = (8).dp),
+                showMonthLabels = showMonthLabels
             )
         }
 
@@ -210,21 +211,46 @@ fun Heatmap(
                             }
                         }
 
+                        val isStartOfYear = remember(weekStartDate) {
+                            val cal = weekStartDate.clone() as Calendar
+                            cal.add(Calendar.DAY_OF_YEAR, 6) // check Sunday
+                            val currentYear = cal.get(Calendar.YEAR)
+                            cal.add(Calendar.WEEK_OF_YEAR, -1) // check previous Sunday
+                            val prevYear = cal.get(Calendar.YEAR)
+                            currentYear != prevYear
+                        }
+                        
+                        val lineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+                        val minSpacingPx = with(LocalDensity.current) { minSpacing.toPx() }
+
                         Column(
-                            modifier = Modifier.layout { measurable, constraints ->
-                                val placeable = measurable.measure(constraints)
-                                val cellWidthPx = cellSize.toPx().roundToInt()
-                                layout(cellWidthPx, placeable.height) {
-                                    val x = (cellWidthPx - placeable.width) / 2
-                                    placeable.placeRelative(x, 0)
+                            modifier = Modifier
+                                .layout { measurable, constraints ->
+                                    val placeable = measurable.measure(constraints)
+                                    val cellWidthPx = cellSize.toPx().roundToInt()
+                                    layout(cellWidthPx, placeable.height) {
+                                        val x = (cellWidthPx - placeable.width) / 2
+                                        placeable.placeRelative(x, 0)
+                                    }
                                 }
-                            },
+                                .drawBehind {
+                                    if (showMonthLabels && isStartOfYear && showYearDivider) {
+                                        val startY = if (showMonthLabels) 24.dp.toPx() else 0f
+                                        val xOffset = (minSpacingPx / 2)-((1.dp.toPx())/2)
+                                        drawLine(
+                                            color = lineColor,
+                                            start = Offset(xOffset, startY),
+                                            end = Offset(xOffset, size.height),
+                                            strokeWidth = 1.dp.toPx()
+                                        )
+                                    }
+                                },
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             if (showMonthLabels) {
                                 Box(
                                     modifier = Modifier.height(20.dp),
-                                    contentAlignment = Alignment.BottomCenter
+                                    contentAlignment = Alignment.BottomStart
                                 ) {
                                     monthLabel?.let {
                                         Text(
@@ -308,7 +334,7 @@ private fun DayOfWeekLabels(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         if (showMonthLabels) {
-            Box(modifier = Modifier.height(12.dp))
+            Box(modifier = Modifier.height(20.dp))
             Spacer(modifier = Modifier.height(4.dp))
         }
 
