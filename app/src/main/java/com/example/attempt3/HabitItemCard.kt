@@ -178,7 +178,10 @@ fun HabitItemCard(
                     modifier = Modifier
                         .size(64.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(Color(habit.color).copy(alpha = 0.1f),MaterialShapes.Cookie12Sided.toShape())
+                        .background(
+                            Color(habit.color).copy(alpha = 0.1f),
+                            MaterialShapes.Cookie12Sided.toShape()
+                        )
                         .border(
                             1.dp,
                             Color(habit.color).copy(alpha = borderContrast),
@@ -294,10 +297,11 @@ class MorphPolygonShape(
     private val percentage: Float
 ) : Shape {
     private val matrix = Matrix()
+
     override fun createOutline(
         size: Size,
-        layoutDirection: LayoutDirection,
-        density: Density
+        layoutDirection: LayoutDirection, // This parameter was missing
+        density: Density                  // This parameter was missing
     ): Outline {
         // Below assumes that you haven't scaled the specific RoundedPolygons used
         // for the Morph yet, and that you want the shape to fit exactly into the

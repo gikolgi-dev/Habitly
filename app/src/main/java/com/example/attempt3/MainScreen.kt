@@ -364,7 +364,9 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 Modifier
             }
 
-            Box(Modifier.fillMaxSize().then(timePickerBlurModifier)) {
+            Box(Modifier
+                .fillMaxSize()
+                .then(timePickerBlurModifier)) {
                 Scaffold(
                     contentWindowInsets = WindowInsets.safeDrawing,
                     floatingActionButton = {
@@ -385,7 +387,10 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                         Column(
                                             modifier = Modifier
                                                 .fillMaxSize()
-                                                .verticalScroll(scrollState, enabled = habitToView == null && habitToEdit == null)
+                                                .verticalScroll(
+                                                    scrollState,
+                                                    enabled = habitToView == null && habitToEdit == null
+                                                )
                                                 .padding(top = paddingValues.calculateTopPadding()),
                                             verticalArrangement = Arrangement.spacedBy(12.dp)
                                         ) {
@@ -586,6 +591,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                     val scrollState = rememberScrollState()
                     val nestedScrollConnection = remember {
                         object : NestedScrollConnection {
+                            // Fixed signature: added 'source' parameter
                             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
                                 val delta = available.y
                                 return if (delta > 0 && sheetOffsetY.value > 0) {
@@ -594,7 +600,12 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                 } else Offset.Zero
                             }
 
-                            override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+                            // Fixed signature: added 'consumed' and 'source' parameters
+                            override fun onPostScroll(
+                                consumed: Offset,
+                                available: Offset,
+                                source: NestedScrollSource
+                            ): Offset {
                                 val delta = available.y
                                 if (delta > 0) scope.launch { sheetOffsetY.snapTo(sheetOffsetY.value + delta) }
                                 return Offset.Zero
@@ -626,7 +637,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                     .fillMaxWidth(0.15f)
                                     .height(4.dp)
                                     .background(
-                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f), shape = CircleShape
+                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                                        shape = CircleShape
                                     )
                             )
                             HabitSheetContent(

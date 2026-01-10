@@ -6,8 +6,7 @@ import androidx.compose.ui.graphics.Color
  * A data class to hold a color's names and its corresponding Color object.
  * A color can have multiple names (aliases). The first name in the list is considered the primary name.
  */
-data class NamedColor(val names: List<String>, val color: Color) {
-}
+data class NamedColor(val names: List<String>, val color: Color)
 
 /**
  * A list of predefined named colors, interpolated to be between the Material 300 and 400 color palettes.

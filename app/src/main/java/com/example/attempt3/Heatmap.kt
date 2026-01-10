@@ -235,7 +235,7 @@ fun Heatmap(
                                 }
                                 .drawBehind {
                                     if (showMonthLabels && isStartOfYear && showYearDivider) {
-                                        val startY = if (showMonthLabels) 24.dp.toPx() else 0f
+                                        val startY = 24.dp.toPx()
                                         val xOffset = (minSpacingPx / 2)-((1.dp.toPx())/2)
                                         drawLine(
                                             color = lineColor,

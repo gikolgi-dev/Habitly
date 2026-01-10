@@ -88,7 +88,7 @@ fun SharedTransitionScope.HabitDetailScreen(
 
     if (showDeleteConfirmation) {
         AlertDialog(
-            onDismissRequest = { showDeleteConfirmation = false },
+            onDismissRequest = { },
             title = { Text("Are you sure?") },
             text = { Text("Are you sure you want to delete this habit? This action cannot be undone.") },
             confirmButton = {}, // Keep this empty, we will handle buttons manually below
@@ -99,14 +99,13 @@ fun SharedTransitionScope.HabitDetailScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     TextButton(
-                        onClick = { showDeleteConfirmation = false }
+                        onClick = { }
                     ) {
                         Text("Cancel")
                     }
                     TextButton(
                         onClick = {
                             onDismiss()
-                            showDeleteConfirmation = false
                             viewModel.deleteHabit(habit)
                         }
                     ) {
