@@ -175,19 +175,39 @@ fun Heatmap(
 
                         val monthLabel = remember(weekStartDate, weekIndex, totalWeeks) {
                             val monthFormat = SimpleDateFormat("MMM", Locale.getDefault())
-                            val tempCal = weekStartDate.clone() as Calendar
-                            // Show month label if the week contains the first day of a month
-                            for (i in 0..6) {
-                                if (tempCal.get(Calendar.DAY_OF_MONTH) == 1) {
-                                    return@remember monthFormat.format(tempCal.time)
+
+                            fun hasFirstOfMonth(cal: Calendar): String? {
+                                val checkCal = cal.clone() as Calendar
+                                for (i in 0..6) {
+                                    if (checkCal.get(Calendar.DAY_OF_MONTH) == 1) {
+                                        return monthFormat.format(checkCal.time)
+                                    }
+                                    checkCal.add(Calendar.DAY_OF_YEAR, 1)
                                 }
-                                tempCal.add(Calendar.DAY_OF_YEAR, 1)
+                                return null
                             }
-                            // Also show month label for the oldest week shown
-                            if (weekIndex == totalWeeks - 1 && isScrollable) {
-                                return@remember monthFormat.format(weekStartDate.time)
+
+                            val currentLabel = hasFirstOfMonth(weekStartDate)
+                            if (currentLabel != null) {
+                                if (weekIndex == 0) {
+                                    null
+                                } else {
+                                    currentLabel
+                                }
+                            } else if (weekIndex == 1) {
+                                val nextWeekCal = weekStartDate.clone() as Calendar
+                                nextWeekCal.add(Calendar.WEEK_OF_YEAR, 1)
+                                val shiftedLabel = hasFirstOfMonth(nextWeekCal)
+                                shiftedLabel ?: if (weekIndex == totalWeeks - 1 && isScrollable) {
+                                    monthFormat.format(weekStartDate.time)
+                                } else {
+                                    null
+                                }
+                            } else if (weekIndex == totalWeeks - 1 && isScrollable) {
+                                monthFormat.format(weekStartDate.time)
+                            } else {
+                                null
                             }
-                            null
                         }
 
                         Column(
