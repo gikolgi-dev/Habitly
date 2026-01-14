@@ -12,7 +12,12 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.runtime.LaunchedEffect
 import androidx.core.content.ContextCompat
-import com.example.attempt3.ui.theme.Attempt3Theme
+import com.example.attempt3.data.Database.HabitDatabase
+import com.example.attempt3.data.Database.HabitViewModel
+import com.example.attempt3.data.Database.HabitViewModelFactory
+import com.example.attempt3.data.settings.SettingsDataStore
+import com.example.attempt3.ui.colors.Attempt3Theme
+import com.example.attempt3.ui.screen.ExpressiveMainScreen
 
 class MainActivity : ComponentActivity() {
 
@@ -25,8 +30,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         createNotificationChannel()
-        
-        val db = HabitDatabase.getDatabase(applicationContext)
+
+        val db = HabitDatabase.Companion.getDatabase(applicationContext)
         val habitDao = db.habitDao()
         val settingsDataStore = SettingsDataStore(applicationContext)
         val viewModel: HabitViewModel by viewModels {
