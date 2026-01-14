@@ -144,6 +144,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     val borderContrast by settingsDataStore.borders.collectAsState(initial = null)
     val showMonthLabels by settingsDataStore.monthLabels.collectAsState(initial = null)
     val showYearDivider by settingsDataStore.yearDivider.collectAsState(initial = null)
+    val showYearLabels by settingsDataStore.yearLabels.collectAsState(initial = null)
     val dayOfWeekLabelsVisible by settingsDataStore.dayOfWeekLabelsVisible.collectAsState(initial = null)
     val dayOfWeekLabelsOnRight by settingsDataStore.dayOfWeekLabelsOnRight.collectAsState(initial = null)
     val showAllDayOfWeekLabels by settingsDataStore.showAllDayOfWeekLabels.collectAsState(initial = null)
@@ -154,6 +155,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     val areSettingsLoaded = borderContrast != null &&
             showMonthLabels != null &&
             showYearDivider != null &&
+            showYearLabels != null &&
             dayOfWeekLabelsVisible != null &&
             dayOfWeekLabelsOnRight != null &&
             showAllDayOfWeekLabels != null
@@ -430,6 +432,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                         dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight!!,
                                                         showAllDayOfWeekLabels = showAllDayOfWeekLabels!!,
                                                         showYearDivider = showYearDivider!!,
+                                                        showYearLabels = showYearLabels!!,
                                                         borderContrast = borderContrast!!,
                                                         onComplete = {
                                                             if (vibrationsEnabled) {

@@ -40,7 +40,8 @@ fun Heatmap(
     dayOfWeekLabelsVisible: Boolean,
     dayOfWeekLabelsOnRight: Boolean,
     showAllDayOfWeekLabels: Boolean,
-    showYearDivider: Boolean = true
+    showYearDivider: Boolean = true,
+    showYearLabels: Boolean = true
 ) {
     // 1. Prepare static configuration
     val dayOfWeekLabels = remember {
@@ -187,6 +188,7 @@ fun Heatmap(
                             minSpacing = minSpacing,
                             showMonthLabels = showMonthLabels,
                             showYearDivider = showYearDivider,
+                            showYearLabels = showYearLabels,
                             isScrollable = isScrollable
                         )
                     }

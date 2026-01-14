@@ -52,6 +52,7 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
     val currentTheme by settingsDataStore.theme.collectAsState(initial = "system")
     val showMonthLabels by settingsDataStore.monthLabels.collectAsState(initial = true)
     val showYearDivider by settingsDataStore.yearDivider.collectAsState(initial = true)
+    val showYearLabels by settingsDataStore.yearLabels.collectAsState(initial = true)
     val showDayLabels by settingsDataStore.dayOfWeekLabelsVisible.collectAsState(initial = true)
     val showAllDayOfWeekLabels by settingsDataStore.showAllDayOfWeekLabels.collectAsState(initial = true)
     val borderContrast by settingsDataStore.borders.collectAsState(initial = 0f)
@@ -285,6 +286,42 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
                         )
                         Text(
                             text = "Toggle year divider",
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.padding(start = 16.dp)
+                        )
+                    }
+
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .selectable(
+                                selected = showYearLabels,
+                                onClick = {
+                                    scope.launch {
+                                        settingsDataStore.setYearLabels(!showYearLabels)
+                                    }
+                                    if (vibrationsEnabled) {
+                                        haptic.performHapticFeedback(if (!showYearLabels) HapticFeedbackType.ToggleOff else HapticFeedbackType.ToggleOn)
+                                    }
+                                }
+                            )
+                            .padding(horizontal = 4.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Switch(
+                            checked = showYearLabels,
+                            modifier = Modifier.padding(start = 16.dp),
+                            onCheckedChange = {
+                                scope.launch {
+                                    settingsDataStore.setYearLabels(it)
+                                }
+                                if (vibrationsEnabled) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                }
+                            }
+                        )
+                        Text(
+                            text = "Toggle year labels",
                             style = MaterialTheme.typography.bodyLarge,
                             modifier = Modifier.padding(start = 16.dp)
                         )

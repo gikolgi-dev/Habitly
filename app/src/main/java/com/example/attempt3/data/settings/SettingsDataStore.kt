@@ -31,6 +31,7 @@ class SettingsDataStore(private val context: Context) {
         val IS_24_HOUR_KEY = booleanPreferencesKey("is_24_hour")
         val HERO_CARD_VISIBLE_KEY = booleanPreferencesKey("hero_card_visible")
         val YEAR_DIVIDER_KEY = booleanPreferencesKey("year_divider")
+        val YEAR_LABELS_KEY = booleanPreferencesKey("year_labels")
     }
 
     val theme: Flow<String> = context.dataStore.data
@@ -193,6 +194,17 @@ class SettingsDataStore(private val context: Context) {
         }
     }
 
+    val yearLabels: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[YEAR_LABELS_KEY] ?: true
+        }
+
+    suspend fun setYearLabels(show: Boolean) {
+        context.dataStore.edit { settings ->
+            settings[YEAR_LABELS_KEY] = show
+        }
+    }
+
     suspend fun resetToDefault() {
         context.dataStore.edit { settings ->
             settings[THEME_KEY] = "system"
@@ -205,7 +217,8 @@ class SettingsDataStore(private val context: Context) {
             settings[GLOBAL_NOTIFICATION_DAYS_KEY] = "MON,TUE,WED,THU,FRI,SAT,SUN"
             settings[IS_24_HOUR_KEY] = false
             settings[HERO_CARD_VISIBLE_KEY] = true
-            settings[YEAR_DIVIDER_KEY] = true
+            settings[YEAR_DIVIDER_KEY] = false
+            settings[YEAR_LABELS_KEY] = false
         }
     }
 }

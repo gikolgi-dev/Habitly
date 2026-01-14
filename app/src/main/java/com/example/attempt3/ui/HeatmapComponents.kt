@@ -44,6 +44,7 @@ fun HeatmapWeekColumn(
     minSpacing: Dp,
     showMonthLabels: Boolean,
     showYearDivider: Boolean,
+    showYearLabels: Boolean,
     isScrollable: Boolean
 ) {
     // 1. Calculate Metadata (Labels, Divider Flags)
@@ -188,7 +189,7 @@ fun HeatmapWeekColumn(
                 ) {
                     // Logic to draw year digits in top 4 cells (0, 1, 2, 3)
                     // Updated to use isStartOfYear to place text on the right of the divider
-                    if (showYearDivider && isStartOfYear && dayIndex < 4) {
+                    if (showYearLabels && isStartOfYear && dayIndex < 4) {
                         yearDigits?.getOrNull(dayIndex)?.let { digit ->
                             Text(
                                 text = digit.toString(),
