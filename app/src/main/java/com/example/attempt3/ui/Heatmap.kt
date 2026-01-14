@@ -19,6 +19,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.style.LineHeightStyle
@@ -29,6 +30,7 @@ import com.example.attempt3.data.Database.Completion
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+import kotlin.math.floor
 
 @Composable
 fun Heatmap(
@@ -57,7 +59,8 @@ fun Heatmap(
     }
 
     val cellSize = 10.dp
-    val minSpacing = 4.dp
+    val verticalSpacing = 4.dp
+    val minHorizontalSpacing = 4.dp
 
     // 2. Prepare Data State
     val today = remember {
@@ -94,21 +97,33 @@ fun Heatmap(
                 showAll = showAllDayOfWeekLabels,
                 showMonthLabels = showMonthLabels,
                 cellSize = cellSize,
-                minSpacing = minSpacing
+                minSpacing = verticalSpacing
             )
         }
 
         // Main Heatmap Grid
-        BoxWithConstraints(modifier = Modifier.weight(1f)) {
+        BoxWithConstraints(modifier = Modifier.weight(1f).graphicsLayer(clip = false)) {
             val density = LocalDensity.current
-            val maxWidthPx = with(density) { maxWidth.toPx() }
-            val cellSizePx = with(density) { cellSize.toPx() }
-            val minSpacingPx = with(density) { minSpacing.toPx() }
+            val availableWidthPx = constraints.maxWidth
+            
+            val cellSizePx = with(density) { cellSize.roundToPx() }
+            val minSpacingPx = with(density) { minHorizontalSpacing.roundToPx() }
 
-            // Calculate how many weeks fit on screen and total history
-            val numWeeksOnScreen = ((maxWidthPx + minSpacingPx) / (cellSizePx + minSpacingPx)).toInt()
+            // Calculate how many weeks fit on screen with at least minHorizontalSpacing
+            val numWeeksOnScreen = floor((availableWidthPx + minSpacingPx).toFloat() / (cellSizePx + minSpacingPx)).toInt().coerceAtLeast(1)
 
-            val totalWeeks = remember(completions, isScrollable, numWeeksOnScreen) {
+            // Calculate precise horizontal spacing to be flush with edges.
+            // We DO NOT floor this value, to ensure the total width matches the screen width as closely as possible,
+            // avoiding gaps on the left side which the user perceives as "clipped/misaligned".
+            val horizontalSpacing = if (numWeeksOnScreen > 1) {
+                val totalCellWidthPx = numWeeksOnScreen * cellSizePx
+                val remainingSpacePx = availableWidthPx - totalCellWidthPx
+                with(density) { (remainingSpacePx.toFloat() / (numWeeksOnScreen - 1)).toDp() }
+            } else {
+                minHorizontalSpacing
+            }
+
+            val totalWeeks = remember(completions, numWeeksOnScreen, isScrollable) {
                 val oldestCompletion = completions.minByOrNull { it.date }
                 if (oldestCompletion == null) {
                     numWeeksOnScreen
@@ -138,60 +153,55 @@ fun Heatmap(
 
                     val diff = todayCal.timeInMillis - oldestCal.timeInMillis
                     val weeksDiff = (diff / (1000L * 60 * 60 * 24 * 7)).toInt() + 1
-
+                    
                     if (isScrollable) weeksDiff.coerceAtLeast(numWeeksOnScreen) else numWeeksOnScreen
                 }
             }
 
             val scrollState = rememberScrollState()
 
-            LaunchedEffect(totalWeeks) {
-                if (isScrollable) {
-                    scrollState.scrollTo(scrollState.maxValue)
-                }
+            LaunchedEffect(isScrollable) {
+                scrollState.scrollTo(0)
             }
 
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.Center
+            LazyRow(
+                modifier = Modifier.fillMaxWidth().graphicsLayer(clip = false),
+                reverseLayout = true,
+                horizontalArrangement = if (!isScrollable) {
+                    Arrangement.SpaceBetween
+                } else {
+                    Arrangement.spacedBy(horizontalSpacing)
+                },
+                userScrollEnabled = isScrollable
             ) {
-                LazyRow(
-                    modifier = if (isScrollable) Modifier else Modifier.fillMaxWidth(),
-                    reverseLayout = true,
-                    horizontalArrangement = if (isScrollable) Arrangement.spacedBy(minSpacing) else Arrangement.SpaceBetween,
-                    userScrollEnabled = isScrollable
-                ) {
-                    items(totalWeeks) { weekIndex ->
-                        // Calculate start of this specific week
-                        val weekStartDate = remember(weekIndex) {
-                            val cal = Calendar.getInstance()
-                            cal.add(Calendar.WEEK_OF_YEAR, -weekIndex)
-                            val todayDate = cal.timeInMillis
-                            cal.firstDayOfWeek = Calendar.MONDAY
-                            cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
-                            // Safety check for future dates causing issues
-                            if (cal.timeInMillis > todayDate) {
-                                cal.add(Calendar.DAY_OF_YEAR, -7)
-                            }
-                            cal
+                items(totalWeeks) { weekIndex ->
+                    val weekStartDate = remember(weekIndex) {
+                        val cal = Calendar.getInstance()
+                        cal.add(Calendar.WEEK_OF_YEAR, -weekIndex)
+                        val todayDate = cal.timeInMillis
+                        cal.firstDayOfWeek = Calendar.MONDAY
+                        cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
+                        if (cal.timeInMillis > todayDate) {
+                            cal.add(Calendar.DAY_OF_YEAR, -7)
                         }
-
-                        // Updated to use the extracted component
-                        HeatmapWeekColumn(
-                            weekStartDate = weekStartDate,
-                            weekIndex = weekIndex,
-                            totalWeeks = totalWeeks,
-                            today = today,
-                            completionDates = completionDates,
-                            habitColor = habitColor,
-                            cellSize = cellSize,
-                            minSpacing = minSpacing,
-                            showMonthLabels = showMonthLabels,
-                            showYearDivider = showYearDivider,
-                            showYearLabels = showYearLabels,
-                            isScrollable = isScrollable
-                        )
+                        cal
                     }
+
+                    HeatmapWeekColumn(
+                        weekStartDate = weekStartDate,
+                        weekIndex = weekIndex,
+                        totalWeeks = totalWeeks,
+                        today = today,
+                        completionDates = completionDates,
+                        habitColor = habitColor,
+                        cellSize = cellSize,
+                        verticalSpacing = verticalSpacing,
+                        horizontalSpacing = horizontalSpacing,
+                        showMonthLabels = showMonthLabels,
+                        showYearDivider = showYearDivider,
+                        showYearLabels = showYearLabels,
+                        isScrollable = isScrollable
+                    )
                 }
             }
         }
@@ -203,13 +213,12 @@ fun Heatmap(
                 showAll = showAllDayOfWeekLabels,
                 showMonthLabels = showMonthLabels,
                 cellSize = cellSize,
-                minSpacing = minSpacing
+                minSpacing = verticalSpacing
             )
         }
     }
 }
 
-// DayOfWeekLabels can remain here as it's small, or move to HeatmapComponents.kt if preferred.
 @Composable
 fun DayOfWeekLabels(
     labels: List<String>,
@@ -235,7 +244,7 @@ fun DayOfWeekLabels(
                 val isVisible = if (showAll) {
                     true
                 } else {
-                    index % 2 != 0 // Show Mon, Wed, Fri, Sun
+                    index % 2 != 0
                 }
 
                 Box(

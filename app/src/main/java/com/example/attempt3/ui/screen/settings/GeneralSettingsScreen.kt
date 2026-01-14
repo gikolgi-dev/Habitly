@@ -42,6 +42,7 @@ fun GeneralSettingsScreen(
     val is24Hour by settingsDataStore.is24Hour.collectAsState(initial = false)
     val heroCardVisible by settingsDataStore.heroCardVisible.collectAsState(initial = true)
     val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
+    val heatmapScrolling by settingsDataStore.heatmapScrolling.collectAsState(initial = false)
     val haptic = LocalHapticFeedback.current
 
     Column(
@@ -125,6 +126,38 @@ fun GeneralSettingsScreen(
                         )
                         Text(
                             text = "Show welcome card",
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.padding(start = 16.dp)
+                        )
+                    }
+                    HorizontalDivider(color = Color.Gray.copy(0.1f), modifier = Modifier.fillMaxWidth(0.90f).align(Alignment.CenterHorizontally))
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .selectable(
+                                selected = heatmapScrolling,
+                                onClick = {
+                                    scope.launch {
+                                        settingsDataStore.setHeatmapScrolling(!heatmapScrolling)
+                                    }
+                                    haptic.performHapticFeedback(if (!heatmapScrolling) HapticFeedbackType.ToggleOff else HapticFeedbackType.ToggleOn)
+                                }
+                            )
+                            .padding(horizontal = 4.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Switch(
+                            checked = heatmapScrolling,
+                            modifier = Modifier.padding(start = 16.dp),
+                            onCheckedChange = {
+                                scope.launch {
+                                    settingsDataStore.setHeatmapScrolling(it)
+                                }
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            }
+                        )
+                        Text(
+                            text = "Enable heatmap scrolling",
                             style = MaterialTheme.typography.bodyLarge,
                             modifier = Modifier.padding(start = 16.dp)
                         )

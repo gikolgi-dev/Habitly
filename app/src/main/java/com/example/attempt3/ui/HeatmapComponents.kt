@@ -30,7 +30,6 @@ import androidx.compose.ui.unit.sp
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
-import kotlin.math.roundToInt
 
 @Composable
 fun HeatmapWeekColumn(
@@ -41,7 +40,8 @@ fun HeatmapWeekColumn(
     completionDates: Set<Long>,
     habitColor: Color,
     cellSize: Dp,
-    minSpacing: Dp,
+    verticalSpacing: Dp, // Renamed from minSpacing
+    horizontalSpacing: Dp, // Added to handle drawing divider correctly
     showMonthLabels: Boolean,
     showYearDivider: Boolean,
     showYearLabels: Boolean,
@@ -80,8 +80,6 @@ fun HeatmapWeekColumn(
     }
 
     // Logic for drawing the divider line (Start of New Year)
-    // This column is the start of a new year if the year of this week's Sunday
-    // is different from the previous week's Sunday.
     val isStartOfYear = remember(weekStartDate) {
         val cal = weekStartDate.clone() as Calendar
         cal.add(Calendar.DAY_OF_YEAR, 6) // check Sunday
@@ -92,7 +90,6 @@ fun HeatmapWeekColumn(
     }
 
     // Logic for displaying Text (Start of New Year)
-    // We render the digits of the NEW year on THIS column (right of the divider).
     val yearDigits = remember(weekStartDate, isStartOfYear) {
         if (isStartOfYear) {
             val cal = weekStartDate.clone() as Calendar
@@ -102,15 +99,15 @@ fun HeatmapWeekColumn(
     }
 
     val lineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
-    val minSpacingPx = with(LocalDensity.current) { minSpacing.toPx() }
+    val density = LocalDensity.current
+    val horizontalSpacingPx = with(density) { horizontalSpacing.toPx() }
 
     // 2. Render Column
     Column(
         modifier = Modifier
             .layout { measurable, constraints ->
-                // Force fixed width layout
                 val placeable = measurable.measure(constraints)
-                val cellWidthPx = cellSize.toPx().roundToInt()
+                val cellWidthPx = cellSize.roundToPx()
                 layout(cellWidthPx, placeable.height) {
                     val x = (cellWidthPx - placeable.width) / 2
                     placeable.placeRelative(x, 0)
@@ -120,7 +117,7 @@ fun HeatmapWeekColumn(
                 if (isStartOfYear && showYearDivider) {
                     val startY = if (showMonthLabels) 24.dp.toPx() else 0.dp.toPx()
                     // Draw to the left of the column
-                    val xOffset = -(minSpacingPx / 2)
+                    val xOffset = -(horizontalSpacingPx / 2)
 
                     drawLine(
                         color = lineColor,
@@ -151,7 +148,7 @@ fun HeatmapWeekColumn(
         }
 
         Column(
-            verticalArrangement = Arrangement.spacedBy(minSpacing)
+            verticalArrangement = Arrangement.spacedBy(verticalSpacing)
         ) {
             (0..6).forEach { dayIndex ->
                 val day = remember(weekStartDate) {
@@ -187,8 +184,6 @@ fun HeatmapWeekColumn(
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    // Logic to draw year digits in top 4 cells (0, 1, 2, 3)
-                    // Updated to use isStartOfYear to place text on the right of the divider
                     if (showYearLabels && isStartOfYear && dayIndex < 4) {
                         yearDigits?.getOrNull(dayIndex)?.let { digit ->
                             Text(

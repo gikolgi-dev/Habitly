@@ -153,6 +153,7 @@ fun HabitItemCard(
     onClick: () -> Unit,
     onUnarchive: (() -> Unit)? = null,
     onDelete: (() -> Unit)? = null,
+    heatmapScrollEnabled: Boolean = false,
     @SuppressLint("ModifierParameter") modifier: Modifier = Modifier
 ) {
 
@@ -285,7 +286,7 @@ fun HabitItemCard(
                     completions = completions,
                     habitColor = Color(habit.color),
                     modifier = Modifier.fillMaxWidth(),
-                    isScrollable = false,
+                    isScrollable = heatmapScrollEnabled,
                     showMonthLabels = showMonthLabels,
                     dayOfWeekLabelsVisible = dayOfWeekLabelsVisible,
                     dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight,

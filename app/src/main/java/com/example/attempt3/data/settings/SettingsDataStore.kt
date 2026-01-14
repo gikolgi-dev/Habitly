@@ -32,6 +32,7 @@ class SettingsDataStore(private val context: Context) {
         val HERO_CARD_VISIBLE_KEY = booleanPreferencesKey("hero_card_visible")
         val YEAR_DIVIDER_KEY = booleanPreferencesKey("year_divider")
         val YEAR_LABELS_KEY = booleanPreferencesKey("year_labels")
+        val HEATMAP_SCROLLING_KEY = booleanPreferencesKey("heatmap_scrolling")
     }
 
     val theme: Flow<String> = context.dataStore.data
@@ -205,6 +206,17 @@ class SettingsDataStore(private val context: Context) {
         }
     }
 
+    val heatmapScrolling: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[HEATMAP_SCROLLING_KEY] ?: false
+        }
+
+    suspend fun setHeatmapScrolling(enabled: Boolean) {
+        context.dataStore.edit { settings ->
+            settings[HEATMAP_SCROLLING_KEY] = enabled
+        }
+    }
+
     suspend fun resetToDefault() {
         context.dataStore.edit { settings ->
             settings[THEME_KEY] = "system"
@@ -219,6 +231,7 @@ class SettingsDataStore(private val context: Context) {
             settings[HERO_CARD_VISIBLE_KEY] = true
             settings[YEAR_DIVIDER_KEY] = false
             settings[YEAR_LABELS_KEY] = false
+            settings[HEATMAP_SCROLLING_KEY] = false
         }
     }
 }

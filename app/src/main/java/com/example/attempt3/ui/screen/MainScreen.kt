@@ -150,6 +150,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     val showAllDayOfWeekLabels by settingsDataStore.showAllDayOfWeekLabels.collectAsState(initial = null)
     val is24Hour by settingsDataStore.is24Hour.collectAsState(initial = false)
     val heroCardVisible by settingsDataStore.heroCardVisible.collectAsState(initial = true)
+    val heatmapScrolling by settingsDataStore.heatmapScrolling.collectAsState(initial = false)
 
 
     val areSettingsLoaded = borderContrast != null &&
@@ -434,6 +435,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                         showYearDivider = showYearDivider!!,
                                                         showYearLabels = showYearLabels!!,
                                                         borderContrast = borderContrast!!,
+                                                        heatmapScrollEnabled = heatmapScrolling,
                                                         onComplete = {
                                                             if (vibrationsEnabled) {
                                                                 haptic.performHapticFeedback(
