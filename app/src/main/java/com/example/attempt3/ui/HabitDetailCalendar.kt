@@ -33,17 +33,22 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.attempt3.data.Database.Completion
 import com.example.attempt3.ui.colors.isBright
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.util.Calendar
 import java.util.Locale
 import kotlin.math.abs
@@ -53,10 +58,13 @@ fun MonthCalendar(
     modifier: Modifier = Modifier,
     completions: List<Completion>,
     habitColor: Color,
+    vibrationsEnabled: Boolean = true,
     onDateClick: (Calendar, Boolean) -> Unit
 ) {
     var displayedMonth by remember { mutableStateOf(Calendar.getInstance()) }
     var dragAmount by remember { mutableFloatStateOf(0f) }
+    val scope = rememberCoroutineScope()
+    val haptic = LocalHapticFeedback.current
 
     val completionDates = remember(completions) {
         completions.map {
@@ -264,10 +272,18 @@ fun MonthCalendar(
                                         color = if (isToday && !isCompleted) MaterialTheme.colorScheme.onSurface else Color.Transparent,
                                         shape = RoundedCornerShape(8.dp)
                                     )
-                                    .clickable(enabled = !isAfterToday && isInCurrentMonth) {
-                                        onDateClick(day, isCompleted)
-                                        if (!isInCurrentMonth) {
+                                    .clickable(enabled = !isAfterToday) {
+                                        if (vibrationsEnabled) {
+                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        }
+                                        if (isInCurrentMonth) {
+                                            onDateClick(day, isCompleted)
+                                        } else {
                                             displayedMonth = day
+                                            scope.launch {
+                                                delay(400) // Wait for transition to roughly complete
+                                                onDateClick(day, isCompleted)
+                                            }
                                         }
                                     },
                                 contentAlignment = Alignment.Center

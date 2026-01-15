@@ -349,10 +349,9 @@ fun SharedTransitionScope.HabitDetailScreen(
                     //modifier = Modifier.padding(horizontal = 8.dp),
                     completions = completions,
                     habitColor = animatedColor,
+                    vibrationsEnabled = vibrationsEnabled,
                     onDateClick = { date, isCompleted ->
-                        if (vibrationsEnabled) {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        }
+                        // Haptic moved to MonthCalendar to ensure it happens on press
                         viewModel.toggleCompletion(habit, date, isCompleted)
                     }
                 )
