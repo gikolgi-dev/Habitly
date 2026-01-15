@@ -541,8 +541,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 AnimatedVisibility(
                     visible = habitToView != null,
                     modifier = Modifier.fillMaxSize(),
-                    enter = slideInVertically(animationSpec = tween(durationMillis = 250)) { it },
-                    exit = slideOutVertically(animationSpec = tween(durationMillis = 250)) { it }
+                    enter = fadeIn(animationSpec = tween(durationMillis = 250)),
+                    exit = fadeOut(animationSpec = tween(durationMillis = 250))
                 ) {
                     habitToView?.let { habitWithCompletions ->
                         val habitState by remember(habitsUiState) {
