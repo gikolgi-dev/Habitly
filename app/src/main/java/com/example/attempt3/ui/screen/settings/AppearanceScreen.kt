@@ -1,11 +1,14 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 
 package com.example.attempt3.ui.screen.settings
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,11 +16,18 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.BasicAlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
@@ -30,8 +40,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,6 +52,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.style.Hyphens
+import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -58,12 +73,97 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
     val borderContrast by settingsDataStore.borders.collectAsState(initial = 0f)
     val appearanceTint by settingsDataStore.appearanceTint.collectAsState(initial = 0.1f)
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
+    val showTintDialogPref by settingsDataStore.showTintDialog.collectAsState(initial = true)
+    
+    var showTintDialogState by remember { mutableStateOf(false) }
+    var dontShowAgain by remember { mutableStateOf(false) }
+    var pendingTintValue by remember { mutableFloatStateOf(0f) }
+
     val haptic = LocalHapticFeedback.current
     val interactionSource = remember { MutableInteractionSource() }
     val isDragged by interactionSource.collectIsDraggedAsState()
     val tintInteractionSource = remember { MutableInteractionSource() }
     val isTintDragged by tintInteractionSource.collectIsDraggedAsState()
 
+    if (showTintDialogState) {
+        BasicAlertDialog(
+            onDismissRequest = { showTintDialogState = false }
+        ) {
+            Surface(
+                shape = RoundedCornerShape(28.dp),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 6.dp
+            ) {
+                Column(
+                    modifier = Modifier
+                        .padding(24.dp)
+                        .fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Background Tint",
+                        style = MaterialTheme.typography.headlineSmall,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                    Text(
+                        text = "This setting looks best under specific combinations of Material theme and habit colors. You can adjust it to your preference, even if it might look unconventional.",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            lineBreak = LineBreak.Paragraph,
+                            hyphens = Hyphens.Auto
+                        ),
+                        textAlign = TextAlign.Justify
+                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .selectable(
+                                selected = dontShowAgain,
+                                onClick = { dontShowAgain = !dontShowAgain }
+                            )
+                    ) {
+                        Checkbox(
+                            checked = dontShowAgain,
+                            onCheckedChange = { dontShowAgain = it },
+                            modifier = Modifier.offset(x = (-12).dp)
+                        )
+                        Text(
+                            text = "Don't show again",
+                            modifier = Modifier.offset(x = (-12).dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedButton(
+                            onClick = { showTintDialogState = false },
+                            shape = CircleShape,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface)
+                        ) {
+                            Text("Cancel")
+                        }
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    settingsDataStore.setAppearanceTint(pendingTintValue)
+                                    if (dontShowAgain) {
+                                        settingsDataStore.setShowTintDialog(false)
+                                    }
+                                }
+                                showTintDialogState = false
+                            },
+                            shape = CircleShape
+                        ) {
+                            Text("Next")
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -74,7 +174,20 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
                 text = "Theme",
                 style = MaterialTheme.typography.titleSmall,
                 color = Color.Gray,
-                modifier = Modifier.padding(bottom = 4.dp)
+                modifier = Modifier
+                    .padding(bottom = 4.dp)
+                    .combinedClickable(
+                        onLongClick = {
+                            scope.launch {
+                                // Secretly "unselect" Don't show again
+                                settingsDataStore.setShowTintDialog(true)
+                            }
+                            if (vibrationsEnabled) {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            }
+                        },
+                        onClick = {}
+                    )
             )
             Box(
                 modifier = Modifier
@@ -94,7 +207,7 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
                             Modifier
                                 .fillMaxWidth()
                                 .selectable(
-                                    selected = (theme.lowercase() == currentTheme), // (1)
+                                    selected = (theme.lowercase() == currentTheme),
                                     onClick = {
                                         scope.launch {
                                             settingsDataStore.setTheme(theme.lowercase())
@@ -137,9 +250,17 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
                         )
                         Slider(
                             value = appearanceTint,
-                            onValueChange = {
-                                scope.launch {
-                                    settingsDataStore.setAppearanceTint(it)
+                            onValueChange = { newValue ->
+                                // Show dialog if it's currently 0 and we are moving away from 0,
+                                // AND we haven't acknowledged it yet.
+                                val isFirstTinting = (appearanceTint == 0f && newValue > 0f)
+                                if (isFirstTinting && showTintDialogPref) {
+                                    pendingTintValue = newValue
+                                    showTintDialogState = true
+                                } else {
+                                    scope.launch {
+                                        settingsDataStore.setAppearanceTint(newValue)
+                                    }
                                 }
                             },
                             valueRange = 0f..1f,
@@ -334,7 +455,9 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
                     }
                     val options = DayLabelDisplayOptions.entries.map { it.name }
 
-                    Column(modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp).fillMaxWidth()){
+                    Column(modifier = Modifier
+                        .padding(horizontal = 4.dp, vertical = 4.dp)
+                        .fillMaxWidth()){
                         Text(
                             text = "Day label display:",
                             modifier = Modifier
@@ -344,7 +467,6 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
                             style = MaterialTheme.typography.bodySmall,
                             textAlign = TextAlign.Left
                         )
-                        //Spacer(modifier = Modifier.height(4.dp))
                         TabRow(
                             selectedTabIndex = dayLabelDisplay.ordinal,
                             modifier = modifier
@@ -399,32 +521,6 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
                             }
                         }
                     }
-                    /*DayLabelSelector(
-                        selectedOption = dayLabelDisplay,
-                        onOptionSelected = {
-                            scope.launch {
-                                when (DayLabelDisplayOptions.entries[index]) {
-                                    DayLabelDisplayOptions.Off -> {
-                                        settingsDataStore.setDayOfWeekLabelsVisible(false)
-                                    }
-
-                                    DayLabelDisplayOptions.Some -> {
-                                        settingsDataStore.setDayOfWeekLabelsVisible(true)
-                                        settingsDataStore.setShowAllDayOfWeekLabels(false)
-                                    }
-
-                                    DayLabelDisplayOptions.All -> {
-                                        settingsDataStore.setDayOfWeekLabelsVisible(true)
-                                        settingsDataStore.setShowAllDayOfWeekLabels(true)
-                                    }
-                                }
-                            }
-                            if (vibrationsEnabled) {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            }
-                        },
-                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
-                    )*/
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
@@ -497,9 +593,9 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
                                 val thumbPlaceable = measurables.last().measure(constraints)
                                 val indicatorPlaceable = if (isDragged) {
                                     measurables.first().measure(constraints.copy(minWidth = 0, minHeight = 0))
-                                } else {
-                                    null
-                                }
+                                    } else {
+                                        null
+                                    }
 
                                 layout(thumbPlaceable.width, thumbPlaceable.height) {
                                     thumbPlaceable.placeRelative(0, 0)

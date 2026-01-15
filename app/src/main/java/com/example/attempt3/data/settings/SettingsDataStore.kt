@@ -33,6 +33,7 @@ class SettingsDataStore(private val context: Context) {
         val YEAR_DIVIDER_KEY = booleanPreferencesKey("year_divider")
         val YEAR_LABELS_KEY = booleanPreferencesKey("year_labels")
         val HEATMAP_SCROLLING_KEY = booleanPreferencesKey("heatmap_scrolling")
+        val SHOW_TINT_DIALOG_KEY = booleanPreferencesKey("show_tint_dialog")
     }
 
     val theme: Flow<String> = context.dataStore.data
@@ -217,6 +218,17 @@ class SettingsDataStore(private val context: Context) {
         }
     }
 
+    val showTintDialog: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[SHOW_TINT_DIALOG_KEY] ?: true
+        }
+
+    suspend fun setShowTintDialog(show: Boolean) {
+        context.dataStore.edit { settings ->
+            settings[SHOW_TINT_DIALOG_KEY] = show
+        }
+    }
+
     suspend fun resetToDefault() {
         context.dataStore.edit { settings ->
             settings[THEME_KEY] = "system"
@@ -232,6 +244,7 @@ class SettingsDataStore(private val context: Context) {
             settings[YEAR_DIVIDER_KEY] = false
             settings[YEAR_LABELS_KEY] = false
             settings[HEATMAP_SCROLLING_KEY] = false
+            settings[SHOW_TINT_DIALOG_KEY] = true
         }
     }
 }

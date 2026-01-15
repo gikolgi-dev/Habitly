@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -33,6 +34,8 @@ import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -40,8 +43,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -94,31 +97,36 @@ fun SharedTransitionScope.HabitDetailScreen(
 
     if (showDeleteConfirmation) {
         AlertDialog(
-            onDismissRequest = { },
+            onDismissRequest = { showDeleteConfirmation = false },
             title = { Text("Are you sure?") },
             text = { Text("Are you sure you want to delete this habit? This action cannot be undone.") },
-            confirmButton = {}, // Keep this empty, we will handle buttons manually below
-            dismissButton = {
+            confirmButton = {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    TextButton(
-                        onClick = { }
+                    OutlinedButton(
+                        onClick = { showDeleteConfirmation = false },
+                        shape = CircleShape,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface)
                     ) {
                         Text("Cancel")
                     }
-                    TextButton(
+                    Button(
                         onClick = {
                             onDismiss()
                             viewModel.deleteHabit(habit)
-                        }
+                        },
+                        shape = CircleShape,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
                     ) {
-                        Text("Delete", color = Color.Red)
+                        Text("Delete", color = Color.White)
                     }
                 }
             },
+            dismissButton = null,
             containerColor = MaterialTheme.colorScheme.surface
         )
     }
