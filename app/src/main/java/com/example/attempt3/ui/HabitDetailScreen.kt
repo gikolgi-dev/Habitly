@@ -155,7 +155,7 @@ fun SharedTransitionScope.HabitDetailScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
+                    .padding(8.dp)
                     .verticalScroll(rememberScrollState())
             ) {
                 Row(
@@ -209,7 +209,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                     }
                 }
 
-                
+
                 Heatmap(
                     completions = completions,
                     habitColor = animatedColor,
