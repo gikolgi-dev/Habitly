@@ -1,6 +1,6 @@
-@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
 
-package com.example.attempt3.data.settings
+package com.example.attempt3.ui.screen.settings
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -14,9 +14,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialShapes
@@ -32,6 +32,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import com.example.attempt3.data.settings.SettingsDataStore
 
 @Composable
 fun SettingsGroup(
@@ -52,7 +53,9 @@ fun SettingsGroup(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(MaterialTheme.shapes.large)
         ) {
             content()
         }
@@ -78,9 +81,8 @@ fun GroupedSettingsItem(
             Box(
                 modifier = Modifier
                     .size(46.dp)
-                    .background(iconBackgroundColor,MaterialShapes.Cookie12Sided.toShape()),
+                    .background(iconBackgroundColor, MaterialShapes.Cookie12Sided.toShape()),
                 contentAlignment = Alignment.Center
-
             ) {
                 Icon(
                     imageVector = icon,
@@ -121,10 +123,10 @@ fun ModernSettingsItem(
 ) {
     val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
     Card(
+        onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
-            .clickable(onClick = onClick),
+            .padding(horizontal = 16.dp, vertical = 4.dp),
         border = BorderStroke(
             1.dp,
             Color.Gray.copy(alpha = borderContrast)
@@ -139,8 +141,7 @@ fun ModernSettingsItem(
             Box(
                 modifier = Modifier
                     .size(46.dp)
-                    .clip(CircleShape)
-                    .background(iconBackgroundColor,MaterialShapes.Cookie12Sided.toShape()),
+                    .background(iconBackgroundColor, MaterialShapes.Cookie12Sided.toShape()),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(

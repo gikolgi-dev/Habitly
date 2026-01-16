@@ -78,10 +78,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.example.attempt3.R
 import com.example.attempt3.data.Database.HabitDatabase
-import com.example.attempt3.data.settings.GroupedSettingsItem
-import com.example.attempt3.data.settings.ModernSettingsItem
 import com.example.attempt3.data.settings.SettingsDataStore
-import com.example.attempt3.data.settings.SettingsGroup
 import com.example.attempt3.notifications.NotificationScheduler
 import com.example.attempt3.ui.CustomTimePickerDialog
 import com.example.attempt3.ui.NotificationTimeSelectors
@@ -291,7 +288,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
 
     if (showNotificationSheet) {
         ModalBottomSheet(
-            onDismissRequest = { },
+            onDismissRequest = { showNotificationSheet = false },
             dragHandle = { BottomSheetDefaults.DragHandle(Modifier.fillMaxWidth(0.15f)) }
         ) {
             Column(modifier = blurModifier) {
@@ -334,7 +331,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                 NotificationTimeSelectors(
                     notificationTime = globalNotificationTime,
                     selectedDays = globalNotificationDays,
-                    onTimeClick = { },
+                    onTimeClick = { showTimePicker = true },
                     onDaySelected = { day ->
                         scope.launch {
                             val newDays = if (globalNotificationDays.contains(day)) {
@@ -437,7 +434,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                             subtitle = "Set daily notification completion reminder",
                             icon = Icons.Default.Notifications,
                             iconBackgroundColor = MaterialTheme.colorScheme.tertiary,
-                            onClick = { },
+                            onClick = { showNotificationSheet = true },
                             iconColor = MaterialTheme.colorScheme.onTertiary,
                             settingsDataStore = settingsDataStore
                         )
