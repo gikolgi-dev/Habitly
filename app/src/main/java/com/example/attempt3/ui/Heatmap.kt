@@ -1,5 +1,8 @@
 package com.example.attempt3.ui
 
+import androidx.compose.foundation.gestures.FlingBehavior
+import androidx.compose.foundation.gestures.ScrollScope
+import androidx.compose.foundation.gestures.ScrollableDefaults
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -9,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
@@ -31,6 +35,21 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 import kotlin.math.floor
+
+@Composable
+fun rememberMaxSpeedFlingBehavior(maxVelocity: Float): FlingBehavior {
+    val defaultFlingBehavior = ScrollableDefaults.flingBehavior()
+    return remember(maxVelocity, defaultFlingBehavior) {
+        object : FlingBehavior {
+            override suspend fun ScrollScope.performFling(initialVelocity: Float): Float {
+                val limitedVelocity = initialVelocity.coerceIn(-maxVelocity, maxVelocity)
+                return with(defaultFlingBehavior) {
+                    performFling(limitedVelocity)
+                }
+            }
+        }
+    }
+}
 
 @Composable
 fun Heatmap(
@@ -63,13 +82,13 @@ fun Heatmap(
     val minHorizontalSpacing = 4.dp
 
     // 2. Prepare Data State
-    val today = remember {
+    val todayMillis = remember {
         Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, 0)
             set(Calendar.MINUTE, 0)
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
-        }
+        }.timeInMillis
     }
 
     // Pre-calculate completed dates normalized to midnight for O(1) lookup
@@ -113,8 +132,6 @@ fun Heatmap(
             val numWeeksOnScreen = floor((availableWidthPx + minSpacingPx).toFloat() / (cellSizePx + minSpacingPx)).toInt().coerceAtLeast(1)
 
             // Calculate precise horizontal spacing to be flush with edges.
-            // We DO NOT floor this value, to ensure the total width matches the screen width as closely as possible,
-            // avoiding gaps on the left side which the user perceives as "clipped/misaligned".
             val horizontalSpacing = if (numWeeksOnScreen > 1) {
                 val totalCellWidthPx = numWeeksOnScreen * cellSizePx
                 val remainingSpacePx = availableWidthPx - totalCellWidthPx
@@ -141,7 +158,6 @@ fun Heatmap(
                     val todayCal = Calendar.getInstance().apply {
                         firstDayOfWeek = Calendar.MONDAY
                         set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
-                        // Adjust if future
                         if (timeInMillis > System.currentTimeMillis()) {
                             add(Calendar.DAY_OF_YEAR, -7)
                         }
@@ -158,7 +174,83 @@ fun Heatmap(
                 }
             }
 
+            val weeksData = remember(totalWeeks, showMonthLabels, isScrollable) {
+                val monthFormat = SimpleDateFormat("MMM", Locale.getDefault())
+                
+                fun hasFirstOfMonth(cal: Calendar): String? {
+                    val checkCal = cal.clone() as Calendar
+                    for (i in 0..6) {
+                        if (checkCal.get(Calendar.DAY_OF_MONTH) == 1) {
+                            return monthFormat.format(checkCal.time)
+                        }
+                        checkCal.add(Calendar.DAY_OF_YEAR, 1)
+                    }
+                    return null
+                }
+
+                List(totalWeeks) { weekIndex ->
+                    val cal = Calendar.getInstance()
+                    cal.firstDayOfWeek = Calendar.MONDAY
+                    cal.add(Calendar.WEEK_OF_YEAR, -weekIndex)
+                    val todayDate = cal.timeInMillis
+                    cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
+                    if (cal.timeInMillis > todayDate) {
+                        cal.add(Calendar.DAY_OF_YEAR, -7)
+                    }
+                    cal.set(Calendar.HOUR_OF_DAY, 0)
+                    cal.set(Calendar.MINUTE, 0)
+                    cal.set(Calendar.SECOND, 0)
+                    cal.set(Calendar.MILLISECOND, 0)
+
+                    val weekStartDate = cal.clone() as Calendar
+
+                    val dayMillis = (0..6).map { dayIndex ->
+                        val d = cal.clone() as Calendar
+                        d.add(Calendar.DAY_OF_YEAR, dayIndex)
+                        d.timeInMillis
+                    }
+
+                    val currentLabel = hasFirstOfMonth(weekStartDate)
+                    val monthLabel = if (currentLabel != null) {
+                        if (weekIndex == 0) null else currentLabel
+                    } else if (weekIndex == 1) {
+                        val nextWeekCal = weekStartDate.clone() as Calendar
+                        nextWeekCal.add(Calendar.WEEK_OF_YEAR, 1)
+                        val shiftedLabel = hasFirstOfMonth(nextWeekCal)
+                        shiftedLabel ?: if (weekIndex == totalWeeks - 1 && isScrollable) {
+                            monthFormat.format(weekStartDate.time)
+                        } else null
+                    } else if (weekIndex == totalWeeks - 1 && isScrollable) {
+                        monthFormat.format(weekStartDate.time)
+                    } else {
+                        null
+                    }
+
+                    val checkSunCal = weekStartDate.clone() as Calendar
+                    checkSunCal.add(Calendar.DAY_OF_YEAR, 6)
+                    val currentYear = checkSunCal.get(Calendar.YEAR)
+                    checkSunCal.add(Calendar.WEEK_OF_YEAR, -1)
+                    val prevYear = checkSunCal.get(Calendar.YEAR)
+                    val isStartOfYear = currentYear != prevYear
+
+                    val yearDigits = if (isStartOfYear) {
+                        val yearCal = weekStartDate.clone() as Calendar
+                        yearCal.add(Calendar.DAY_OF_YEAR, 6)
+                        yearCal.get(Calendar.YEAR).toString()
+                    } else null
+
+                    HeatmapWeekData(
+                        dayMillis = dayMillis,
+                        monthLabel = monthLabel,
+                        isStartOfYear = isStartOfYear,
+                        yearDigits = yearDigits
+                    )
+                }
+            }
+
             val lazyListState = rememberLazyListState()
+            val maxSpeed = with(density) { 3000.dp.toPx() }
+            val flingBehavior = rememberMaxSpeedFlingBehavior(maxVelocity = maxSpeed)
 
             LaunchedEffect(isScrollable) {
                 lazyListState.scrollToItem(0)
@@ -171,6 +263,7 @@ fun Heatmap(
                     .fadingEdge(lazyListState, enabled = isScrollable),
                 state = lazyListState,
                 reverseLayout = true,
+                flingBehavior = flingBehavior,
                 horizontalArrangement = if (!isScrollable) {
                     Arrangement.SpaceBetween
                 } else {
@@ -178,24 +271,10 @@ fun Heatmap(
                 },
                 userScrollEnabled = isScrollable
             ) {
-                items(totalWeeks) { weekIndex ->
-                    val weekStartDate = remember(weekIndex) {
-                        val cal = Calendar.getInstance()
-                        cal.add(Calendar.WEEK_OF_YEAR, -weekIndex)
-                        val todayDate = cal.timeInMillis
-                        cal.firstDayOfWeek = Calendar.MONDAY
-                        cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
-                        if (cal.timeInMillis > todayDate) {
-                            cal.add(Calendar.DAY_OF_YEAR, -7)
-                        }
-                        cal
-                    }
-
+                itemsIndexed(weeksData) { _, weekData ->
                     HeatmapWeekColumn(
-                        weekStartDate = weekStartDate,
-                        weekIndex = weekIndex,
-                        totalWeeks = totalWeeks,
-                        today = today,
+                        weekData = weekData,
+                        todayMillis = todayMillis,
                         completionDates = completionDates,
                         habitColor = habitColor,
                         cellSize = cellSize,
@@ -203,8 +282,7 @@ fun Heatmap(
                         horizontalSpacing = horizontalSpacing,
                         showMonthLabels = showMonthLabels,
                         showYearDivider = showYearDivider,
-                        showYearLabels = showYearLabels,
-                        isScrollable = isScrollable
+                        showYearLabels = showYearLabels
                     )
                 }
             }

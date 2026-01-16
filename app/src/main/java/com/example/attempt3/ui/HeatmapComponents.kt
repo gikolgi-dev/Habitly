@@ -13,7 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -27,82 +27,32 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Locale
+
+@Immutable
+data class HeatmapWeekData(
+    val dayMillis: List<Long>,
+    val monthLabel: String?,
+    val isStartOfYear: Boolean,
+    val yearDigits: String?
+)
 
 @Composable
 fun HeatmapWeekColumn(
-    weekStartDate: Calendar,
-    weekIndex: Int,
-    totalWeeks: Int,
-    today: Calendar,
+    weekData: HeatmapWeekData,
+    todayMillis: Long,
     completionDates: Set<Long>,
     habitColor: Color,
     cellSize: Dp,
-    verticalSpacing: Dp, // Renamed from minSpacing
-    horizontalSpacing: Dp, // Added to handle drawing divider correctly
+    verticalSpacing: Dp,
+    horizontalSpacing: Dp,
     showMonthLabels: Boolean,
     showYearDivider: Boolean,
-    showYearLabels: Boolean,
-    isScrollable: Boolean
+    showYearLabels: Boolean
 ) {
-    // 1. Calculate Metadata (Labels, Divider Flags)
-    val monthLabel = remember(weekStartDate, weekIndex, totalWeeks) {
-        val monthFormat = SimpleDateFormat("MMM", Locale.getDefault())
-
-        fun hasFirstOfMonth(cal: Calendar): String? {
-            val checkCal = cal.clone() as Calendar
-            for (i in 0..6) {
-                if (checkCal.get(Calendar.DAY_OF_MONTH) == 1) {
-                    return monthFormat.format(checkCal.time)
-                }
-                checkCal.add(Calendar.DAY_OF_YEAR, 1)
-            }
-            return null
-        }
-
-        val currentLabel = hasFirstOfMonth(weekStartDate)
-        if (currentLabel != null) {
-            if (weekIndex == 0) null else currentLabel
-        } else if (weekIndex == 1) {
-            val nextWeekCal = weekStartDate.clone() as Calendar
-            nextWeekCal.add(Calendar.WEEK_OF_YEAR, 1)
-            val shiftedLabel = hasFirstOfMonth(nextWeekCal)
-            shiftedLabel ?: if (weekIndex == totalWeeks - 1 && isScrollable) {
-                monthFormat.format(weekStartDate.time)
-            } else null
-        } else if (weekIndex == totalWeeks - 1 && isScrollable) {
-            monthFormat.format(weekStartDate.time)
-        } else {
-            null
-        }
-    }
-
-    // Logic for drawing the divider line (Start of New Year)
-    val isStartOfYear = remember(weekStartDate) {
-        val cal = weekStartDate.clone() as Calendar
-        cal.add(Calendar.DAY_OF_YEAR, 6) // check Sunday
-        val currentYear = cal.get(Calendar.YEAR)
-        cal.add(Calendar.WEEK_OF_YEAR, -1) // check previous Sunday
-        val prevYear = cal.get(Calendar.YEAR)
-        currentYear != prevYear
-    }
-
-    // Logic for displaying Text (Start of New Year)
-    val yearDigits = remember(weekStartDate, isStartOfYear) {
-        if (isStartOfYear) {
-            val cal = weekStartDate.clone() as Calendar
-            cal.add(Calendar.DAY_OF_YEAR, 6)
-            cal.get(Calendar.YEAR).toString()
-        } else null
-    }
-
     val lineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
     val density = LocalDensity.current
     val horizontalSpacingPx = with(density) { horizontalSpacing.toPx() }
 
-    // 2. Render Column
     Column(
         modifier = Modifier
             .layout { measurable, constraints ->
@@ -114,9 +64,8 @@ fun HeatmapWeekColumn(
                 }
             }
             .drawBehind {
-                if (isStartOfYear && showYearDivider) {
+                if (weekData.isStartOfYear && showYearDivider) {
                     val startY = if (showMonthLabels) 24.dp.toPx() else 0.dp.toPx()
-                    // Draw to the left of the column
                     val xOffset = -(horizontalSpacingPx / 2)
 
                     drawLine(
@@ -134,7 +83,7 @@ fun HeatmapWeekColumn(
                 modifier = Modifier.height(20.dp),
                 contentAlignment = Alignment.BottomStart
             ) {
-                monthLabel?.let {
+                weekData.monthLabel?.let {
                     Text(
                         text = it,
                         fontSize = 10.sp,
@@ -150,25 +99,13 @@ fun HeatmapWeekColumn(
         Column(
             verticalArrangement = Arrangement.spacedBy(verticalSpacing)
         ) {
-            (0..6).forEach { dayIndex ->
-                val day = remember(weekStartDate) {
-                    val dayCal = weekStartDate.clone() as Calendar
-                    dayCal.add(Calendar.DAY_OF_YEAR, dayIndex)
-                    dayCal.set(Calendar.HOUR_OF_DAY, 0)
-                    dayCal.set(Calendar.MINUTE, 0)
-                    dayCal.set(Calendar.SECOND, 0)
-                    dayCal.set(Calendar.MILLISECOND, 0)
-                    dayCal
-                }
-
-                val isCompleted = completionDates.contains(day.timeInMillis)
-
-                val isTodayCell = day.get(Calendar.YEAR) == today.get(Calendar.YEAR) &&
-                        day.get(Calendar.DAY_OF_YEAR) == today.get(Calendar.DAY_OF_YEAR)
+            weekData.dayMillis.forEachIndexed { dayIndex, dayMillis ->
+                val isCompleted = completionDates.contains(dayMillis)
+                val isTodayCell = dayMillis == todayMillis
 
                 val cellColor = when {
                     isCompleted -> habitColor
-                    day.after(today) -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
+                    dayMillis > todayMillis -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
                     else -> habitColor.copy(alpha = 0.15f)
                 }
 
@@ -184,8 +121,8 @@ fun HeatmapWeekColumn(
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (showYearLabels && isStartOfYear && dayIndex < 4) {
-                        yearDigits?.getOrNull(dayIndex)?.let { digit ->
+                    if (showYearLabels && weekData.isStartOfYear && dayIndex < 4) {
+                        weekData.yearDigits?.getOrNull(dayIndex)?.let { digit ->
                             Text(
                                 text = digit.toString(),
                                 style = TextStyle(
