@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -158,14 +158,18 @@ fun Heatmap(
                 }
             }
 
-            val scrollState = rememberScrollState()
+            val lazyListState = rememberLazyListState()
 
             LaunchedEffect(isScrollable) {
-                scrollState.scrollTo(0)
+                lazyListState.scrollToItem(0)
             }
 
             LazyRow(
-                modifier = Modifier.fillMaxWidth().graphicsLayer(clip = false),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .graphicsLayer(clip = false)
+                    .fadingEdge(lazyListState, enabled = isScrollable),
+                state = lazyListState,
                 reverseLayout = true,
                 horizontalArrangement = if (!isScrollable) {
                     Arrangement.SpaceBetween
