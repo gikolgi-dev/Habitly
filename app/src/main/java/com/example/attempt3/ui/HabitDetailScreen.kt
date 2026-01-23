@@ -79,13 +79,13 @@ fun SharedTransitionScope.HabitDetailScreen(
     onEditHabit: (Habit) -> Unit,
     settingsDataStore: SettingsDataStore,
     borderContrast: Float,
-    showScrollBlur: Boolean
+    showScrollBlur: Boolean,
+    showYearLabels: Boolean,
+    showYearDivider: Boolean
 ) {
     val haptic = LocalHapticFeedback.current
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
     val showMonthLabels by settingsDataStore.monthLabels.collectAsState(initial = false)
-    val showYearDivider by settingsDataStore.yearDivider.collectAsState(initial = true)
-    val showYearLabels by settingsDataStore.yearLabels.collectAsState(initial = true)
     val dayOfWeekLabelsVisible by settingsDataStore.dayOfWeekLabelsVisible.collectAsState(initial = false)
     val dayOfWeekLabelsOnRight by settingsDataStore.dayOfWeekLabelsOnRight.collectAsState(initial = false)
     val showAllDayOfWeekLabels by settingsDataStore.showAllDayOfWeekLabels.collectAsState(initial = false)

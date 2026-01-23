@@ -581,7 +581,9 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                 },
                                 settingsDataStore = settingsDataStore,
                                 borderContrast = borderContrast!!,
-                                showScrollBlur = showScrollBlur!!
+                                showScrollBlur = showScrollBlur!!,
+                                showYearLabels = showYearLabels!!,
+                                showYearDivider = showYearDivider!!,
                             )
                         }
                     }
