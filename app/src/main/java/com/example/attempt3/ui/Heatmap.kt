@@ -62,7 +62,8 @@ fun Heatmap(
     dayOfWeekLabelsOnRight: Boolean,
     showAllDayOfWeekLabels: Boolean,
     showYearDivider: Boolean = true,
-    showYearLabels: Boolean = true
+    showYearLabels: Boolean = true,
+    showScrollBlur: Boolean
 ) {
     // 1. Prepare static configuration
     val dayOfWeekLabels = remember {
@@ -260,7 +261,7 @@ fun Heatmap(
                 modifier = Modifier
                     .fillMaxWidth()
                     .graphicsLayer(clip = false)
-                    .fadingEdge(lazyListState, enabled = isScrollable),
+                    .fadingEdge(lazyListState, enabled = isScrollable && showScrollBlur),
                 state = lazyListState,
                 reverseLayout = true,
                 flingBehavior = flingBehavior,

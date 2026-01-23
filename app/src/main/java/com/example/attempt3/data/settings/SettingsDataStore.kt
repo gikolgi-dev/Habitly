@@ -34,6 +34,7 @@ class SettingsDataStore(private val context: Context) {
         val YEAR_LABELS_KEY = booleanPreferencesKey("year_labels")
         val HEATMAP_SCROLLING_KEY = booleanPreferencesKey("heatmap_scrolling")
         val SHOW_TINT_DIALOG_KEY = booleanPreferencesKey("show_tint_dialog")
+        val SHOW_SCROLL_BLUR_KEY = booleanPreferencesKey("show_scroll_blur")
     }
 
     val theme: Flow<String> = context.dataStore.data
@@ -229,6 +230,17 @@ class SettingsDataStore(private val context: Context) {
         }
     }
 
+    val showScrollBlur: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[SHOW_SCROLL_BLUR_KEY] ?: true
+        }
+
+    suspend fun setshowScrollBlur(show: Boolean) {
+        context.dataStore.edit { settings ->
+            settings[SHOW_SCROLL_BLUR_KEY] = show
+        }
+    }
+
     suspend fun resetToDefault() {
         context.dataStore.edit { settings ->
             settings[THEME_KEY] = "system"
@@ -245,6 +257,7 @@ class SettingsDataStore(private val context: Context) {
             settings[YEAR_LABELS_KEY] = false
             settings[HEATMAP_SCROLLING_KEY] = false
             settings[SHOW_TINT_DIALOG_KEY] = true
+            settings[SHOW_SCROLL_BLUR_KEY] = true
         }
     }
 }

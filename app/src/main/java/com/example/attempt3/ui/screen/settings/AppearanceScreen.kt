@@ -69,6 +69,7 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
     val showYearDivider by settingsDataStore.yearDivider.collectAsState(initial = true)
     val showYearLabels by settingsDataStore.yearLabels.collectAsState(initial = true)
     val showDayLabels by settingsDataStore.dayOfWeekLabelsVisible.collectAsState(initial = true)
+    val showScrollBlur by settingsDataStore.showScrollBlur.collectAsState(initial = true)
     val showAllDayOfWeekLabels by settingsDataStore.showAllDayOfWeekLabels.collectAsState(initial = true)
     val borderContrast by settingsDataStore.borders.collectAsState(initial = 0f)
     val appearanceTint by settingsDataStore.appearanceTint.collectAsState(initial = 0.1f)
@@ -87,7 +88,7 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
 
     if (showTintDialogState) {
         BasicAlertDialog(
-            onDismissRequest = { showTintDialogState = false }
+            onDismissRequest = { }
         ) {
             Surface(
                 shape = RoundedCornerShape(28.dp),
@@ -138,7 +139,7 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         OutlinedButton(
-                            onClick = { showTintDialogState = false },
+                            onClick = { },
                             shape = CircleShape,
                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface)
@@ -153,7 +154,6 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
                                         settingsDataStore.setShowTintDialog(false)
                                     }
                                 }
-                                showTintDialogState = false
                             },
                             shape = CircleShape
                         ) {
@@ -256,7 +256,6 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
                                 val isFirstTinting = (appearanceTint == 0f && newValue > 0f)
                                 if (isFirstTinting && showTintDialogPref) {
                                     pendingTintValue = newValue
-                                    showTintDialogState = true
                                 } else {
                                     scope.launch {
                                         settingsDataStore.setAppearanceTint(newValue)
@@ -448,6 +447,41 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
                         )
                     }
 
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .selectable(
+                                selected = showScrollBlur,
+                                onClick = {
+                                    scope.launch {
+                                        settingsDataStore.setshowScrollBlur(!showScrollBlur)
+                                    }
+                                    if (vibrationsEnabled) {
+                                        haptic.performHapticFeedback(if (!showScrollBlur) HapticFeedbackType.ToggleOff else HapticFeedbackType.ToggleOn)
+                                    }
+                                }
+                            )
+                            .padding(horizontal = 4.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Switch(
+                            checked = showScrollBlur,
+                            modifier = Modifier.padding(start = 16.dp),
+                            onCheckedChange = {
+                                scope.launch {
+                                    settingsDataStore.setshowScrollBlur(it)
+                                }
+                                if (vibrationsEnabled) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                }
+                            }
+                        )
+                        Text(
+                            text = "Toggle scroll blur",
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.padding(start = 16.dp)
+                        )
+                    }
                     val dayLabelDisplay = when {
                         !showDayLabels -> DayLabelDisplayOptions.Off
                         !showAllDayOfWeekLabels -> DayLabelDisplayOptions.Some

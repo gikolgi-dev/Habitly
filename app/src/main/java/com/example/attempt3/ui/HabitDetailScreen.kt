@@ -78,7 +78,8 @@ fun SharedTransitionScope.HabitDetailScreen(
     onDismiss: () -> Unit,
     onEditHabit: (Habit) -> Unit,
     settingsDataStore: SettingsDataStore,
-    borderContrast: Float
+    borderContrast: Float,
+    showScrollBlur: Boolean
 ) {
     val haptic = LocalHapticFeedback.current
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
@@ -227,7 +228,8 @@ fun SharedTransitionScope.HabitDetailScreen(
                     dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight,
                     showAllDayOfWeekLabels = showAllDayOfWeekLabels,
                     showYearDivider = showYearDivider,
-                    showYearLabels = showYearLabels
+                    showYearLabels = showYearLabels,
+                    showScrollBlur = showScrollBlur
                 )
 
                 //Spacer(modifier = Modifier.height(4.dp))

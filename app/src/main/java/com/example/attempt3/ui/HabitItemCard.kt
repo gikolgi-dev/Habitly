@@ -148,6 +148,7 @@ fun HabitItemCard(
     showAllDayOfWeekLabels: Boolean,
     showYearDivider: Boolean,
     showYearLabels: Boolean,
+    showScrollBlur: Boolean = true,
     borderContrast: Float,
     onComplete: () -> Unit,
     onClick: () -> Unit,
@@ -293,7 +294,8 @@ fun HabitItemCard(
                     dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight,
                     showAllDayOfWeekLabels = showAllDayOfWeekLabels,
                     showYearDivider = showYearDivider,
-                    showYearLabels = showYearLabels
+                    showYearLabels = showYearLabels,
+                    showScrollBlur = showScrollBlur
                 )
             }
         }

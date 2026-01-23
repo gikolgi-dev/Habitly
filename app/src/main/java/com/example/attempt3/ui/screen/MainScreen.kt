@@ -148,6 +148,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     val showMonthLabels by settingsDataStore.monthLabels.collectAsState(initial = null)
     val showYearDivider by settingsDataStore.yearDivider.collectAsState(initial = null)
     val showYearLabels by settingsDataStore.yearLabels.collectAsState(initial = null)
+    val showScrollBlur by settingsDataStore.showScrollBlur.collectAsState(initial = true)
     val dayOfWeekLabelsVisible by settingsDataStore.dayOfWeekLabelsVisible.collectAsState(initial = null)
     val dayOfWeekLabelsOnRight by settingsDataStore.dayOfWeekLabelsOnRight.collectAsState(initial = null)
     val showAllDayOfWeekLabels by settingsDataStore.showAllDayOfWeekLabels.collectAsState(initial = null)
@@ -448,6 +449,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                         showAllDayOfWeekLabels = showAllDayOfWeekLabels!!,
                                                         showYearDivider = showYearDivider!!,
                                                         showYearLabels = showYearLabels!!,
+                                                        showScrollBlur = showScrollBlur!!,
                                                         borderContrast = borderContrast!!,
                                                         heatmapScrollEnabled = heatmapScrolling,
                                                         onComplete = {
@@ -578,7 +580,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                     showHabitSheet = true
                                 },
                                 settingsDataStore = settingsDataStore,
-                                borderContrast = borderContrast!!
+                                borderContrast = borderContrast!!,
+                                showScrollBlur = showScrollBlur!!
                             )
                         }
                     }
