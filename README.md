@@ -13,8 +13,6 @@ A simple and modern app to help you build and maintain good habits. Track your d
 
 ## 📱 How to Install
 
-You don't need to be a developer to use this app!
-
 1.  Go to the **[Releases](../../releases)** page of this repository.
 2.  Download the latest `.apk` file.
 3.  Open the file on your Android device to install it.
@@ -26,5 +24,6 @@ You don't need to be a developer to use this app!
 
 Please be aware that this app uses **Material 3 Expressive** extensively, which is currently experimental/unstable.
 
-*   The app has currently only been tested on a **Pixel 8**.
+*   The app has currently only been tested on a **Pixel 8** with android 16 installed.
 *   You might experience layout issues or crashes on other devices or screen sizes.
+*   If it wasn't obvious this is an android only app
