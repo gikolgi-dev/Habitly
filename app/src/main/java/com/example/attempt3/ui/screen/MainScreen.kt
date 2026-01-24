@@ -195,6 +195,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     var showSettingsScreen by remember { mutableStateOf(false) }
     var showArchiveSheet by remember { mutableStateOf(false) }
     var showReorderSheet by remember { mutableStateOf(false) }
+    var showStatisticScreen by remember { mutableStateOf(false) }
     var isFabMenuExpanded by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
 
@@ -300,7 +301,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
         }
     }
 
-    if (showHabitSheet || showSettingsScreen || habitToView != null || showArchiveSheet || isFabMenuExpanded || showReorderSheet) {
+    if (showHabitSheet || showSettingsScreen || habitToView != null || showArchiveSheet || isFabMenuExpanded || showReorderSheet || showStatisticScreen) {
         BackHandler {
             showHabitSheet = false
             showSettingsScreen = false
@@ -308,6 +309,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
             showArchiveSheet = false
             isFabMenuExpanded = false
             showReorderSheet = false
+            showStatisticScreen = false
         }
     }
 
@@ -382,7 +384,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
         )
     }
 
-    val isAnySheetOpen = showHabitSheet || showSettingsScreen || habitToView != null || showArchiveSheet || showReorderSheet
+    val isAnySheetOpen = showHabitSheet || showSettingsScreen || habitToView != null || showArchiveSheet || showReorderSheet || showStatisticScreen
 
     Box(Modifier.fillMaxSize()) {
         SharedTransitionLayout {
@@ -491,6 +493,28 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                         }
                     }
                 )
+
+                AnimatedVisibility(
+                    visible = showStatisticScreen,
+                    enter = fadeIn(),
+                    exit = fadeOut()
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.5f))
+                            .clickable { showStatisticScreen = false }
+                    )
+                }
+
+                AnimatedVisibility(
+                    visible = showStatisticScreen,
+                    modifier = Modifier.fillMaxSize(),
+                    enter = slideInVertically(animationSpec = tween(durationMillis = 250)) { -it },
+                    exit = slideOutVertically(animationSpec = tween(durationMillis = 250)) { -it }
+                ) {
+                    StatisticScreen(onBack = { showStatisticScreen = false })
+                }
 
                 AnimatedVisibility(
                     visible = showArchiveSheet,
@@ -849,7 +873,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
         AnimatedVisibility(
             modifier = Modifier.align(Alignment.BottomEnd),
             visible = habitsUiState is HabitsUiState.Success && !isAnySheetOpen,
-            enter = fadeIn(animationSpec = tween(delayMillis = 250)),
+            enter = fadeIn(),
             exit = fadeOut()
         ) {
             FabMenu(
@@ -866,6 +890,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 onShowArchived = { showArchiveSheet = true },
                 onShowSettings = { showSettingsScreen = true },
                 onShowReorder = { showReorderSheet = true },
+                onShowStatistics = { showStatisticScreen = true },
                 settingsDataStore = settingsDataStore
             )
         }

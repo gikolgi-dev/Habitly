@@ -6,6 +6,7 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Close
@@ -38,6 +39,7 @@ fun FabMenu(
     onShowArchived: () -> Unit,
     onShowSettings: () -> Unit,
     onShowReorder: () -> Unit,
+    onShowStatistics: () -> Unit,
     settingsDataStore: SettingsDataStore
 ) {
     val haptic = LocalHapticFeedback.current
@@ -47,6 +49,11 @@ fun FabMenu(
             text = "Settings",
             icon = Icons.Default.Settings,
             onClick = onShowSettings
+        ),
+        FabItem(
+            text = "Statistics",
+            icon = Icons.AutoMirrored.Filled.ShowChart,
+            onClick = onShowStatistics
         ),
         FabItem(
             text = "Reorder",
