@@ -513,7 +513,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                     enter = slideInVertically(animationSpec = tween(durationMillis = 250)) { -it },
                     exit = slideOutVertically(animationSpec = tween(durationMillis = 250)) { -it }
                 ) {
-                    StatisticScreen(onBack = { showStatisticScreen = false })
+                    StatisticScreen(viewModel = viewModel, onBack = { showStatisticScreen = false })
                 }
 
                 AnimatedVisibility(
