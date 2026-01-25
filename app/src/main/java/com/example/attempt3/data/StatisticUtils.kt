@@ -16,7 +16,8 @@ data class HabitStatistics(
     val longestStreak: Int,
     val completionRatio: Int,
     val averageCompletionTime: String,
-    val timeSinceCreation: Long
+    val timeSinceCreation: Long,
+    val daysSinceLongestStreak: Long
 )
 
 data class MonthlyCompletion(
@@ -30,7 +31,7 @@ fun calculateStatistics(habitWithCompletions: HabitWithCompletions): HabitStatis
     val completions = habitWithCompletions.completions
 
     // 1. Longest Streak
-    val maxStreak = calculateLongestStreak(habit, completions)
+    val (maxStreak, maxStreakEndDate) = calculateLongestStreak(habit, completions)
 
     // 2. Completion Ratio
     val totalCompletions = completions.sumOf { it.amountOfCompletions }
@@ -56,18 +57,37 @@ fun calculateStatistics(habitWithCompletions: HabitWithCompletions): HabitStatis
     
     val ratio = if (maxPossible > 0) (totalCompletions.toFloat() / maxPossible) * 100 else 0f
 
+    // Days since longest streak
+    val daysSinceLongestStreak = if (maxStreak > 0) {
+        val c1 = Calendar.getInstance()
+        c1.timeInMillis = now
+        val c2 = Calendar.getInstance()
+        c2.timeInMillis = maxStreakEndDate
+        
+        c1.set(Calendar.HOUR_OF_DAY, 0)
+        c1.set(Calendar.MINUTE, 0)
+        c1.set(Calendar.SECOND, 0)
+        c1.set(Calendar.MILLISECOND, 0)
+
+        c2.set(Calendar.HOUR_OF_DAY, 0)
+        c2.set(Calendar.MINUTE, 0)
+        c2.set(Calendar.SECOND, 0)
+        c2.set(Calendar.MILLISECOND, 0)
+        
+        val diff = c1.timeInMillis - c2.timeInMillis
+        max(0L, TimeUnit.MILLISECONDS.toDays(diff))
+    } else {
+        0L
+    }
+
     // 3. Average Completion Time (using circular mean)
     val avgTimeStr = if (completions.isNotEmpty()) {
         var sinSum = 0.0
         var cosSum = 0.0
         
         completions.forEach { completion ->
-            // Convert time of day to radians
-            // We use local time for the "time of day"
             val localTime = completion.date + (completion.timezoneOffsetInMinutes * 60 * 1000)
             val millisInDay = localTime % (24 * 60 * 60 * 1000)
-            // Normalize to [0, 2*PI]
-            // 24h = 2*PI
             val angle = (millisInDay.toDouble() / (24 * 60 * 60 * 1000)) * 2 * Math.PI
             sinSum += sin(angle)
             cosSum += cos(angle)
@@ -76,7 +96,6 @@ fun calculateStatistics(habitWithCompletions: HabitWithCompletions): HabitStatis
         val avgSin = sinSum / completions.size
         val avgCos = cosSum / completions.size
         
-        // Convert back to angle
         var avgAngle = atan2(avgSin, avgCos)
         if (avgAngle < 0) avgAngle += 2 * Math.PI
         
@@ -90,11 +109,11 @@ fun calculateStatistics(habitWithCompletions: HabitWithCompletions): HabitStatis
         "N/A"
     }
 
-    return HabitStatistics(maxStreak, ratio.toInt(), avgTimeStr,  maxPossible)
+    return HabitStatistics(maxStreak, ratio.toInt(), avgTimeStr,  maxPossible, daysSinceLongestStreak)
 }
 
-private fun calculateLongestStreak(habit: Habit, completions: List<Completion>): Int {
-    if (completions.isEmpty()) return 0
+private fun calculateLongestStreak(habit: Habit, completions: List<Completion>): Pair<Int, Long> {
+    if (completions.isEmpty()) return 0 to 0L
 
     val completedDays = completions.map { completion ->
         val c = Calendar.getInstance().apply { timeInMillis = completion.date }
@@ -105,13 +124,15 @@ private fun calculateLongestStreak(habit: Habit, completions: List<Completion>):
         c.timeInMillis
     }.toSet()
 
-    if (completedDays.isEmpty()) return 0
+    if (completedDays.isEmpty()) return 0 to 0L
 
     return when (habit.intervalUnit) {
         "day" -> {
              val sortedDays = completedDays.sorted()
              var maxStreak = 0
+             var maxStreakEnd = 0L
              var currentStreak = 0
+             var currentStreakEnd = 0L
              val minDate = sortedDays.first()
              val maxDate = sortedDays.last()
              
@@ -121,13 +142,21 @@ private fun calculateLongestStreak(habit: Habit, completions: List<Completion>):
              while (c.timeInMillis <= maxDate) {
                  if (completedDays.contains(c.timeInMillis)) {
                      currentStreak++
+                     currentStreakEnd = c.timeInMillis
                  } else {
-                     maxStreak = max(maxStreak, currentStreak)
+                     if (currentStreak > maxStreak) {
+                         maxStreak = currentStreak
+                         maxStreakEnd = currentStreakEnd
+                     }
                      currentStreak = 0
                  }
                  c.add(Calendar.DAY_OF_YEAR, 1)
              }
-             max(maxStreak, currentStreak)
+             if (currentStreak > maxStreak) {
+                 maxStreak = currentStreak
+                 maxStreakEnd = currentStreakEnd
+             }
+             maxStreak to maxStreakEnd
         }
         "week" -> {
             calculatePeriodStreak(habit, completedDays, Calendar.WEEK_OF_YEAR)
@@ -135,12 +164,12 @@ private fun calculateLongestStreak(habit: Habit, completions: List<Completion>):
         "month" -> {
             calculatePeriodStreak(habit, completedDays, Calendar.MONTH)
         }
-        else -> 0
+        else -> 0 to 0L
     }
 }
 
-private fun calculatePeriodStreak(habit: Habit, completedDays: Set<Long>, calendarField: Int): Int {
-    if (completedDays.isEmpty()) return 0
+private fun calculatePeriodStreak(habit: Habit, completedDays: Set<Long>, calendarField: Int): Pair<Int, Long> {
+    if (completedDays.isEmpty()) return 0 to 0L
     
     val minDate = completedDays.minOrNull()!!
     val now = System.currentTimeMillis()
@@ -148,7 +177,6 @@ private fun calculatePeriodStreak(habit: Habit, completedDays: Set<Long>, calend
     val c = Calendar.getInstance()
     c.timeInMillis = minDate
     
-    // Align to start of period
     c.set(Calendar.HOUR_OF_DAY, 0)
     c.set(Calendar.MINUTE, 0)
     c.set(Calendar.SECOND, 0)
@@ -164,12 +192,12 @@ private fun calculatePeriodStreak(habit: Habit, completedDays: Set<Long>, calend
     }
     
     var maxStreak = 0
+    var maxStreakEnd = 0L
     var currentStreak = 0
+    var currentStreakEnd = 0L
     
     val nowCal = Calendar.getInstance()
     
-    // Iterate periods until we pass "now"
-    // Use a safety break to avoid infinite loops if something goes wrong
     while (c.timeInMillis <= nowCal.timeInMillis) {
         val startOfPeriod = c.timeInMillis
         val nextPeriod = c.clone() as Calendar
@@ -198,15 +226,23 @@ private fun calculatePeriodStreak(habit: Habit, completedDays: Set<Long>, calend
              
              if (currentMisses <= allowedMisses) {
                  currentStreak += completionsInPeriod
+                 currentStreakEnd = now 
              } else {
-                 maxStreak = max(maxStreak, currentStreak)
-                 // Handle tail for current failed period
+                 if (currentStreak > maxStreak) {
+                     maxStreak = currentStreak
+                     maxStreakEnd = currentStreakEnd
+                 }
+                 
                  var tail = 0
                  val scanC = Calendar.getInstance()
                  var counting = false
-                 // Limit scan to start of period
+                 var tailEnd = 0L
+                 
                  while (scanC.timeInMillis >= startOfPeriod) {
                       if (completedDays.contains(scanC.timeInMillis)) {
+                          if (!counting) {
+                              tailEnd = scanC.timeInMillis
+                          }
                           counting = true
                           tail++
                       } else {
@@ -215,21 +251,29 @@ private fun calculatePeriodStreak(habit: Habit, completedDays: Set<Long>, calend
                       scanC.add(Calendar.DAY_OF_YEAR, -1)
                  }
                  currentStreak = tail
+                 if (tail > 0) currentStreakEnd = tailEnd
              }
         } else {
             if (completionsInPeriod >= target) {
                 currentStreak += completionsInPeriod
+                currentStreakEnd = endOfPeriod
             } else {
-                maxStreak = max(maxStreak, currentStreak)
+                if (currentStreak > maxStreak) {
+                    maxStreak = currentStreak
+                    maxStreakEnd = currentStreakEnd
+                }
                 currentStreak = 0 
             }
         }
         
-        maxStreak = max(maxStreak, currentStreak)
+        if (currentStreak > maxStreak) {
+            maxStreak = currentStreak
+            maxStreakEnd = currentStreakEnd
+        }
         c.add(calendarField, 1)
     }
     
-    return maxStreak
+    return maxStreak to maxStreakEnd
 }
 
 fun calculateMonthlyStats(habitWithCompletions: HabitWithCompletions): List<MonthlyCompletion> {

@@ -266,14 +266,6 @@ private fun HabitStatisticsContent(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                /*Text(
-                    text = "Statistics for ${habit.habit.name}",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )*/
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -281,6 +273,7 @@ private fun HabitStatisticsContent(
                     StatCard(
                         label = "Longest Streak",
                         value = "${stats.longestStreak} days",
+                        secondaryValue = if (stats.daysSinceLongestStreak > 0) "${stats.daysSinceLongestStreak} days ago" else "Current",
                         modifier = Modifier.weight(1f),
                         accentColor = lerp(accentColor, MaterialTheme.colorScheme.onSurface, 0.35f)
                     )
@@ -320,7 +313,13 @@ private fun HabitStatisticsContent(
 }
 
 @Composable
-fun StatCard(label: String, value: String, modifier: Modifier = Modifier, accentColor: Color = MaterialTheme.colorScheme.primary) {
+fun StatCard(
+    label: String, 
+    value: String, 
+    secondaryValue: String? = null,
+    modifier: Modifier = Modifier, 
+    accentColor: Color = MaterialTheme.colorScheme.primary
+) {
     Card(
         modifier = modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -342,6 +341,13 @@ fun StatCard(label: String, value: String, modifier: Modifier = Modifier, accent
                 fontWeight = FontWeight.Bold,
                 color = accentColor
             )
+            if (secondaryValue != null) {
+                Text(
+                    text = secondaryValue,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                )
+            }
         }
     }
 }
