@@ -27,6 +27,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
@@ -77,6 +78,7 @@ fun SharedTransitionScope.HabitDetailScreen(
     animatedVisibilityScope: AnimatedVisibilityScope,
     onDismiss: () -> Unit,
     onEditHabit: (Habit) -> Unit,
+    onShowStatistics: (Habit) -> Unit,
     settingsDataStore: SettingsDataStore,
     borderContrast: Float,
     showScrollBlur: Boolean,
@@ -267,7 +269,36 @@ fun SharedTransitionScope.HabitDetailScreen(
                                 tint = MaterialTheme.colorScheme.onSurface
                             )
                         }
-                        Spacer(modifier = Modifier.size(6.dp)) // Space between edit and archive/unarchive
+                        Spacer(modifier = Modifier.size(6.dp)) // Space between edit and statistics
+
+                        // Statistics button in a box
+                        Box(
+                            modifier = Modifier
+                                .size(35.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.65f))
+                                .border(
+                                    1.dp,
+                                    Color.Gray.copy(alpha = borderContrast*2),
+                                    RoundedCornerShape(8.dp)
+                                )
+                                .clickable {
+                                    if (vibrationsEnabled) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    }
+                                    onShowStatistics(habit)
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ShowChart,
+                                contentDescription = "Show Statistics",
+                                modifier = Modifier.size(20.dp),
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.size(6.dp)) // Space between statistics and archive/unarchive
 
                         // Archive/Unarchive button in a box
                         val archiveIcon = if (isArchivedView) Icons.Default.Restore else Icons.Default.Archive

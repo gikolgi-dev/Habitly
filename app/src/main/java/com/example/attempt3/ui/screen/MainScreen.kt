@@ -196,6 +196,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     var showArchiveSheet by remember { mutableStateOf(false) }
     var showReorderSheet by remember { mutableStateOf(false) }
     var showStatisticScreen by remember { mutableStateOf(false) }
+    var initialHabitIdForStats by remember { mutableStateOf<String?>(null) }
     var isFabMenuExpanded by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
 
@@ -301,16 +302,16 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
         }
     }
 
-    if (showHabitSheet || showSettingsScreen || habitToView != null || showArchiveSheet || isFabMenuExpanded || showReorderSheet || showStatisticScreen) {
-        BackHandler {
-            showHabitSheet = false
-            showSettingsScreen = false
-            habitToView = null
-            showArchiveSheet = false
-            isFabMenuExpanded = false
-            showReorderSheet = false
-            showStatisticScreen = false
-        }
+    val isAnySheetOpen = showHabitSheet || showSettingsScreen || habitToView != null || showArchiveSheet || showReorderSheet || showStatisticScreen
+
+    BackHandler(enabled = isAnySheetOpen || isFabMenuExpanded) {
+        if (isFabMenuExpanded) { isFabMenuExpanded = false; return@BackHandler }
+        if (showStatisticScreen) { showStatisticScreen = false; initialHabitIdForStats = null; return@BackHandler }
+        if (showHabitSheet) { showHabitSheet = false; return@BackHandler }
+        if (showSettingsScreen) { showSettingsScreen = false; return@BackHandler }
+        if (habitToView != null) { habitToView = null; return@BackHandler }
+        if (showArchiveSheet) { showArchiveSheet = false; return@BackHandler }
+        if (showReorderSheet) { showReorderSheet = false; return@BackHandler }
     }
 
     if (showTimePicker) {
@@ -383,8 +384,6 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
             containerColor = MaterialTheme.colorScheme.surface
         )
     }
-
-    val isAnySheetOpen = showHabitSheet || showSettingsScreen || habitToView != null || showArchiveSheet || showReorderSheet || showStatisticScreen
 
     Box(Modifier.fillMaxSize()) {
         SharedTransitionLayout {
@@ -495,28 +494,6 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 )
 
                 AnimatedVisibility(
-                    visible = showStatisticScreen,
-                    enter = fadeIn(),
-                    exit = fadeOut()
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.5f))
-                            .clickable { showStatisticScreen = false }
-                    )
-                }
-
-                AnimatedVisibility(
-                    visible = showStatisticScreen,
-                    modifier = Modifier.fillMaxSize(),
-                    enter = slideInVertically(animationSpec = tween(durationMillis = 250)) { -it },
-                    exit = slideOutVertically(animationSpec = tween(durationMillis = 250)) { -it }
-                ) {
-                    StatisticScreen(viewModel = viewModel, onBack = { showStatisticScreen = false })
-                }
-
-                AnimatedVisibility(
                     visible = showArchiveSheet,
                     enter = fadeIn(),
                     exit = fadeOut()
@@ -603,6 +580,10 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                     habitToEdit = it
                                     showHabitSheet = true
                                 },
+                                onShowStatistics = { habit ->
+                                    initialHabitIdForStats = habit.id
+                                    showStatisticScreen = true
+                                },
                                 settingsDataStore = settingsDataStore,
                                 borderContrast = borderContrast!!,
                                 showScrollBlur = showScrollBlur!!,
@@ -611,6 +592,38 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                             )
                         }
                     }
+                }
+
+                AnimatedVisibility(
+                    visible = showStatisticScreen,
+                    enter = fadeIn(),
+                    exit = fadeOut()
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.5f))
+                            .clickable { 
+                                showStatisticScreen = false 
+                                initialHabitIdForStats = null
+                            }
+                    )
+                }
+
+                AnimatedVisibility(
+                    visible = showStatisticScreen,
+                    modifier = Modifier.fillMaxSize(),
+                    enter = slideInVertically(animationSpec = tween(durationMillis = 250)) { -it },
+                    exit = slideOutVertically(animationSpec = tween(durationMillis = 250)) { -it }
+                ) {
+                    StatisticScreen(
+                        viewModel = viewModel, 
+                        onBack = { 
+                            showStatisticScreen = false 
+                            initialHabitIdForStats = null
+                        },
+                        initialHabitId = initialHabitIdForStats
+                    )
                 }
 
                 AnimatedVisibility(
@@ -890,7 +903,10 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 onShowArchived = { showArchiveSheet = true },
                 onShowSettings = { showSettingsScreen = true },
                 onShowReorder = { showReorderSheet = true },
-                onShowStatistics = { showStatisticScreen = true },
+                onShowStatistics = { 
+                    initialHabitIdForStats = null
+                    showStatisticScreen = true 
+                },
                 settingsDataStore = settingsDataStore
             )
         }
