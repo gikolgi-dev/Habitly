@@ -178,7 +178,7 @@ fun Heatmap(
             val weeksData = remember(totalWeeks, showMonthLabels, isScrollable) {
                 val monthFormat = SimpleDateFormat("MMM", Locale.getDefault())
                 
-                fun hasFirstOfMonth(cal: Calendar): String? {
+                fun getFirstOfMonthLabel(cal: Calendar): String? {
                     val checkCal = cal.clone() as Calendar
                     for (i in 0..6) {
                         if (checkCal.get(Calendar.DAY_OF_MONTH) == 1) {
@@ -189,7 +189,8 @@ fun Heatmap(
                     return null
                 }
 
-                List(totalWeeks) { weekIndex ->
+                // 1. Pre-calculate week objects with raw data
+                val rawWeeks = List(totalWeeks) { weekIndex ->
                     val cal = Calendar.getInstance()
                     cal.firstDayOfWeek = Calendar.MONDAY
                     cal.add(Calendar.WEEK_OF_YEAR, -weekIndex)
@@ -211,22 +212,6 @@ fun Heatmap(
                         d.timeInMillis
                     }
 
-                    val currentLabel = hasFirstOfMonth(weekStartDate)
-                    val monthLabel = if (currentLabel != null) {
-                        if (weekIndex == 0) null else currentLabel
-                    } else if (weekIndex == 1) {
-                        val nextWeekCal = weekStartDate.clone() as Calendar
-                        nextWeekCal.add(Calendar.WEEK_OF_YEAR, 1)
-                        val shiftedLabel = hasFirstOfMonth(nextWeekCal)
-                        shiftedLabel ?: if (weekIndex == totalWeeks - 1 && isScrollable) {
-                            monthFormat.format(weekStartDate.time)
-                        } else null
-                    } else if (weekIndex == totalWeeks - 1 && isScrollable) {
-                        monthFormat.format(weekStartDate.time)
-                    } else {
-                        null
-                    }
-
                     val checkSunCal = weekStartDate.clone() as Calendar
                     checkSunCal.add(Calendar.DAY_OF_YEAR, 6)
                     val currentYear = checkSunCal.get(Calendar.YEAR)
@@ -240,11 +225,35 @@ fun Heatmap(
                         yearCal.get(Calendar.YEAR).toString()
                     } else null
 
+                    Triple(weekStartDate, dayMillis, Pair(isStartOfYear, yearDigits))
+                }
+
+                // 2. Determine and Shift Month Labels to avoid edges
+                val monthLabels = MutableList<String?>(totalWeeks) { null }
+                for (i in 0 until totalWeeks) {
+                    val label = getFirstOfMonthLabel(rawWeeks[i].first)
+                    if (label != null) {
+                        // reverseLayout = true, so index 0 is right edge, totalWeeks-1 is left edge.
+                        val targetIndex = when {
+                            // If it's the rightmost column, move label one column to the left (index 1)
+                            i == 0 && totalWeeks > 1 -> 1
+                            // If it's the leftmost column, move label one column to the right (index totalWeeks-2)
+                            i == totalWeeks - 1 && totalWeeks > 1 -> totalWeeks - 2
+                            else -> i
+                        }
+                        if (monthLabels[targetIndex] == null) {
+                            monthLabels[targetIndex] = label
+                        }
+                    }
+                }
+
+                // 3. Construct final HeatmapWeekData
+                rawWeeks.mapIndexed { index, (weekStartDate, dayMillis, yearData) ->
                     HeatmapWeekData(
                         dayMillis = dayMillis,
-                        monthLabel = monthLabel,
-                        isStartOfYear = isStartOfYear,
-                        yearDigits = yearDigits
+                        monthLabel = monthLabels[index],
+                        isStartOfYear = yearData.first,
+                        yearDigits = yearData.second
                     )
                 }
             }

@@ -49,7 +49,7 @@ fun HeatmapWeekColumn(
     showYearDivider: Boolean,
     showYearLabels: Boolean
 ) {
-    val lineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+    val lineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
     val density = LocalDensity.current
     val horizontalSpacingPx = with(density) { horizontalSpacing.toPx() }
 
@@ -66,13 +66,13 @@ fun HeatmapWeekColumn(
             .drawBehind {
                 if (weekData.isStartOfYear && showYearDivider) {
                     val startY = if (showMonthLabels) 24.dp.toPx() else 0.dp.toPx()
-                    val xOffset = -(horizontalSpacingPx / 2)
+                    val xOffset = (horizontalSpacingPx / 2)-1
 
                     drawLine(
                         color = lineColor,
                         start = Offset(xOffset, startY),
                         end = Offset(xOffset, size.height),
-                        strokeWidth = 1.dp.toPx()
+                        strokeWidth = 0.75.dp.toPx()
                     )
                 }
             },
@@ -81,7 +81,7 @@ fun HeatmapWeekColumn(
         if (showMonthLabels) {
             Box(
                 modifier = Modifier.height(20.dp),
-                contentAlignment = Alignment.BottomStart
+                contentAlignment = Alignment.BottomCenter
             ) {
                 weekData.monthLabel?.let {
                     Text(
