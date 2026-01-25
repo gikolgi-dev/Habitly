@@ -65,6 +65,7 @@ fun ReorderScreen(habitViewModel: HabitViewModel, onBack: () -> Unit, settingsDa
     val habitsUiState by habitViewModel.habitsUiState.collectAsState()
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
     val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
+    val haptic = LocalHapticFeedback.current
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -75,7 +76,12 @@ fun ReorderScreen(habitViewModel: HabitViewModel, onBack: () -> Unit, settingsDa
                 CenterAlignedTopAppBar(
                     title = { Text("Reorder Habits", fontWeight = FontWeight.SemiBold) },
                     actions = {
-                        IconButton(onClick = onBack) {
+                        IconButton(onClick = {
+                            if (vibrationsEnabled) {
+                                haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+                            }
+                            onBack()
+                        }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Back", modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onBackground)
                         }
                     },
@@ -97,7 +103,7 @@ fun ReorderScreen(habitViewModel: HabitViewModel, onBack: () -> Unit, settingsDa
                             var verticalDragOffset by remember { mutableFloatStateOf(0f) }
                             val itemHeightDp = 88.dp
                             val itemHeightPx = with(LocalDensity.current) { itemHeightDp.toPx() }
-                            val haptic = LocalHapticFeedback.current
+                            
                             val viewConfiguration = LocalViewConfiguration.current
                             val shortPressViewConfiguration = remember(viewConfiguration) {
                                 object : ViewConfiguration {

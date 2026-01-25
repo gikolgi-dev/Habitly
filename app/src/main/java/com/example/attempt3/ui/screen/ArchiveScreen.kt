@@ -39,6 +39,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.attempt3.data.Database.Habit
@@ -60,6 +62,8 @@ fun ArchiveScreen(uiState: HabitsUiState, habitDao: HabitDao, onBack: () -> Unit
     val dayOfWeekLabelsVisible by settingsDataStore.dayOfWeekLabelsVisible.collectAsState(initial = false)
     val dayOfWeekLabelsOnRight by settingsDataStore.dayOfWeekLabelsOnRight.collectAsState(initial = false)
     val showAllDayOfWeekLabels by settingsDataStore.showAllDayOfWeekLabels.collectAsState(initial = false)
+    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
+    val haptic = LocalHapticFeedback.current
 
     if (habitToDelete != null) {
         AlertDialog(
@@ -110,7 +114,12 @@ fun ArchiveScreen(uiState: HabitsUiState, habitDao: HabitDao, onBack: () -> Unit
                 CenterAlignedTopAppBar(
                     title = { Text("Archived Habits", fontWeight = FontWeight.SemiBold) },
                     actions = {
-                        IconButton(onClick = onBack) {
+                        IconButton(onClick = {
+                            if (vibrationsEnabled) {
+                                haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+                            }
+                            onBack()
+                        }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(32.dp))
                         }
                     },

@@ -42,11 +42,14 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
@@ -56,7 +59,9 @@ import com.example.attempt3.data.Database.HabitsUiState
 import com.example.attempt3.data.MonthlyCompletion
 import com.example.attempt3.data.calculateMonthlyStats
 import com.example.attempt3.data.calculateStatistics
+import com.example.attempt3.data.settings.SettingsDataStore
 import com.example.attempt3.ui.components.MonthlyLineChart
+import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -64,10 +69,13 @@ import kotlin.math.absoluteValue
 fun StatisticScreen(
     viewModel: HabitViewModel,
     onBack: () -> Unit,
-    initialHabitId: String? = null
+    initialHabitId: String? = null,
+    settingsDataStore: SettingsDataStore
 ) {
     val habitsUiState by viewModel.habitsUiState.collectAsState()
     val habits = (habitsUiState as? HabitsUiState.Success)?.habits ?: emptyList()
+    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
+    val haptic = LocalHapticFeedback.current
 
     val actualCount = habits.size
     val pageCount = if (actualCount > 1) Int.MAX_VALUE else actualCount
@@ -139,7 +147,12 @@ fun StatisticScreen(
                     )
                 },
                 actions = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = {
+                        if (vibrationsEnabled) {
+                            haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+                        }
+                        onBack()
+                    }) {
                         Icon(
                             Icons.Default.Close, 
                             contentDescription = "Back", 
@@ -180,7 +193,8 @@ fun StatisticScreen(
                              val habitColor = habit.habit.color?.let { Color(it) } ?: primaryColor
                              HabitStatisticsContent(
                                  habit = habit,
-                                 accentColor = habitColor
+                                 accentColor = habitColor,
+                                 vibrationsEnabled = vibrationsEnabled
                              )
                          }
                      }
@@ -237,7 +251,8 @@ private fun PageIndicator(
 @Composable
 private fun HabitStatisticsContent(
     habit: HabitWithCompletions,
-    accentColor: Color
+    accentColor: Color,
+    vibrationsEnabled: Boolean
 ) {
     val stats = remember(habit) {
         calculateStatistics(habit)
@@ -305,7 +320,8 @@ private fun HabitStatisticsContent(
 
                 MonthlyCompletionGraph(
                     stats = monthlyStats,
-                    accentColor = accentColor
+                    accentColor = accentColor,
+                    vibrationsEnabled = vibrationsEnabled
                 )
             }
         }
@@ -356,7 +372,8 @@ fun StatCard(
 fun MonthlyCompletionGraph(
     stats: List<MonthlyCompletion>, 
     modifier: Modifier = Modifier,
-    accentColor: Color = MaterialTheme.colorScheme.primary
+    accentColor: Color = MaterialTheme.colorScheme.primary,
+    vibrationsEnabled: Boolean
 ) {
     var isZoomedOut by remember { mutableStateOf(false) }
     
@@ -398,18 +415,21 @@ fun MonthlyCompletionGraph(
                             .fillMaxWidth()
                             .height(180.dp),
                         showLabels = false,
-                        lineColor = accentColor
+                        lineColor = accentColor,
+                        vibrationsEnabled = vibrationsEnabled
                     )
                 } else {
                     val minWidthPerItem = 44.dp 
                     val calculatedWidth = minWidthPerItem * stats.size
+                    val scrollState = rememberScrollState()
+                    val coroutineScope = rememberCoroutineScope()
                     
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(180.dp)
                             .horizontalScroll(
-                                state = rememberScrollState(),
+                                state = scrollState,
                                 reverseScrolling = true
                             )
                     ) {
@@ -419,7 +439,21 @@ fun MonthlyCompletionGraph(
                                 .width(max(300.dp, calculatedWidth))
                                 .fillMaxHeight(),
                             showLabels = true,
-                            lineColor = accentColor
+                            lineColor = accentColor,
+                            vibrationsEnabled = vibrationsEnabled,
+                            onPointSelected = { x ->
+                                coroutineScope.launch {
+                                    val viewportWidth = scrollState.viewportSize
+                                    if (viewportWidth > 0) {
+                                        // For reverseScrolling = true:
+                                        // targetValue = maxValue + viewportWidth / 2 - x
+                                        val targetScrollValue = scrollState.maxValue + (viewportWidth / 2f) - x
+                                        scrollState.animateScrollTo(
+                                            targetScrollValue.coerceIn(0f, scrollState.maxValue.toFloat()).toInt()
+                                        )
+                                    }
+                                }
+                            }
                         )
                     }
                 }

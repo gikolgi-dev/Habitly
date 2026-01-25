@@ -622,7 +622,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                             showStatisticScreen = false 
                             initialHabitIdForStats = null
                         },
-                        initialHabitId = initialHabitIdForStats
+                        initialHabitId = initialHabitIdForStats,
+                        settingsDataStore = settingsDataStore
                     )
                 }
 

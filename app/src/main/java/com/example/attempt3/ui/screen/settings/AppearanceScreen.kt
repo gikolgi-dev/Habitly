@@ -183,7 +183,7 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
                                 settingsDataStore.setShowTintDialog(true)
                             }
                             if (vibrationsEnabled) {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
                             }
                         },
                         onClick = {}

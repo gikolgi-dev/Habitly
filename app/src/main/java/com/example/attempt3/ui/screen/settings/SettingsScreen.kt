@@ -104,6 +104,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
     val globalNotificationDays by settingsDataStore.globalNotificationDays.collectAsState(initial = setOf())
     val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
     val is24Hour by settingsDataStore.is24Hour.collectAsState(initial = false)
+    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
     val haptic = LocalHapticFeedback.current
     val notificationScheduler = remember { NotificationScheduler(context) }
     val theme by settingsDataStore.theme.collectAsState(initial = "system")
@@ -135,7 +136,9 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                 scope.launch {
                     settingsDataStore.setGlobalNotificationsEnabled(true)
                     notificationScheduler.scheduleGeneralNotification(globalNotificationTime, globalNotificationDays)
-                    haptic.performHapticFeedback(HapticFeedbackType.ToggleOn)
+                    if (vibrationsEnabled) {
+                        haptic.performHapticFeedback(HapticFeedbackType.ToggleOn)
+                    }
                 }
             }
         }
@@ -153,7 +156,9 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                 scope.launch {
                     settingsDataStore.setGlobalNotificationsEnabled(true)
                     notificationScheduler.scheduleGeneralNotification(globalNotificationTime, globalNotificationDays)
-                    haptic.performHapticFeedback(HapticFeedbackType.ToggleOn)
+                    if (vibrationsEnabled) {
+                        haptic.performHapticFeedback(HapticFeedbackType.ToggleOn)
+                    }
                 }
             } else {
                 requestPermission()
@@ -162,7 +167,9 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
             scope.launch {
                 settingsDataStore.setGlobalNotificationsEnabled(false)
                 notificationScheduler.cancelGeneralNotification()
-                haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+                if (vibrationsEnabled) {
+                    haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+                }
             }
         }
     }
@@ -364,6 +371,9 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                 navigationIcon = {
                     if (showAppearanceScreen || showGeneralScreen || showImportScreen) {
                         IconButton(onClick = {
+                            if (vibrationsEnabled) {
+                                haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+                            }
                             if (showAppearanceScreen) showAppearanceScreen = false
                             if (showGeneralScreen) showGeneralScreen = false
                             if (showImportScreen) showImportScreen = false
@@ -371,7 +381,12 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onBackground)
                         }
                     } else {
-                        IconButton(onClick = onDismiss) {
+                        IconButton(onClick = {
+                            if (vibrationsEnabled) {
+                                haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+                            }
+                            onDismiss()
+                        }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Close", modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onBackground)
                         }
                     }

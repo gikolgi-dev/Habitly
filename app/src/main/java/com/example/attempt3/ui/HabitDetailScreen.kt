@@ -196,6 +196,12 @@ fun SharedTransitionScope.HabitDetailScreen(
                     Spacer(modifier = Modifier.size(16.dp))
                     HabitTitleAndDescription(habit = habit, isDetailView = true, modifier = Modifier.weight(1f))
                     Box(
+                        modifier = Modifier.size(64.dp),
+                        contentAlignment = Alignment.Center
+
+                    )
+                    {
+                        Box(
                         modifier = Modifier
                             .size(48.dp)
                             .clip(RoundedCornerShape(8.dp))
@@ -208,7 +214,12 @@ fun SharedTransitionScope.HabitDetailScreen(
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null
-                            ) { onDismiss() },
+                            ) {
+                                if (vibrationsEnabled) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+                                }
+                                onDismiss()
+                            },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -217,7 +228,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                             modifier = Modifier.size(20.dp),
                             tint = MaterialTheme.colorScheme.onSurface
                         )
-                    }
+                    }}
                 }
 
 
