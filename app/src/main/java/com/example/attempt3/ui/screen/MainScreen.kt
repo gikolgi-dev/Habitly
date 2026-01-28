@@ -28,6 +28,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -42,10 +43,12 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -65,7 +68,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -418,62 +420,66 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                         modifier = Modifier.fillMaxSize()
                                     ) {
                                         val habitsWithCompletions = (habitsUiState as? HabitsUiState.Success)?.habits ?: emptyList()
-                                        val scrollState = rememberScrollState()
+                                        val lazyListState = rememberLazyListState()
 
-                                        Column(
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .verticalScroll(
-                                                    scrollState,
-                                                    enabled = habitToView == null && habitToEdit == null
-                                                )
-                                                .padding(top = paddingValues.calculateTopPadding()),
-                                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                                        LazyColumn(
+                                            state = lazyListState,
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentPadding = PaddingValues(top = paddingValues.calculateTopPadding()),
+                                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                                            userScrollEnabled = habitToView == null && habitToEdit == null
                                         ) {
-                                            AnimatedVisibility(visible = heroCardVisible) {
-                                                HeroCard(greeting = greeting, description = heroCardDescription)
-                                            }
-                                            habitsWithCompletions.forEach { habitWithCompletions ->
-                                                key(habitWithCompletions.habit.id) {
-                                                    val isCompleted = habitWithCompletions.completions.any { it.date in startOfDay..endOfDay }
-                                                    HabitItemCard(
-                                                        modifier = Modifier.sharedElementWithCallerManagedVisibility(
-                                                            rememberSharedContentState(key = "card-${habitWithCompletions.habit.id}"),
-                                                            visible = habitToView?.habit?.id != habitWithCompletions.habit.id
-                                                        ),
-                                                        habit = habitWithCompletions.habit,
-                                                        isCompleted = isCompleted,
-                                                        completions = habitWithCompletions.completions,
-                                                        showCheckbox = true,
-                                                        showMonthLabels = showMonthLabels!!,
-                                                        dayOfWeekLabelsVisible = dayOfWeekLabelsVisible!!,
-                                                        dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight!!,
-                                                        showAllDayOfWeekLabels = showAllDayOfWeekLabels!!,
-                                                        showYearDivider = showYearDivider!!,
-                                                        showYearLabels = showYearLabels!!,
-                                                        showScrollBlur = showScrollBlur!! && "Heatmap" in scrollBlurTargets,
-                                                        borderContrast = borderContrast!!,
-                                                        heatmapScrollEnabled = heatmapScrolling,
-                                                        onComplete = {
-                                                            if (vibrationsEnabled) {
-                                                                haptic.performHapticFeedback(
-                                                                    HapticFeedbackType.TextHandleMove
-                                                                )
-                                                            }
-                                                            viewModel.toggleCompletion(
-                                                                habitWithCompletions.habit,
-                                                                Calendar.getInstance(),
-                                                                isCompleted
-                                                            )
-                                                        },
-                                                        onClick = {
-                                                            habitToView = habitWithCompletions
-                                                        }
-                                                    )
+                                            item {
+                                                AnimatedVisibility(visible = heroCardVisible) {
+                                                    HeroCard(greeting = greeting, description = heroCardDescription)
                                                 }
                                             }
-                                            Spacer(modifier = Modifier.height(80.dp))
-                                            Spacer(modifier = Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
+                                            items(
+                                                items = habitsWithCompletions,
+                                                key = { it.habit.id }
+                                            ) { habitWithCompletions ->
+                                                val isCompleted = habitWithCompletions.completions.any { it.date in startOfDay..endOfDay }
+                                                HabitItemCard(
+                                                    modifier = Modifier.sharedElementWithCallerManagedVisibility(
+                                                        rememberSharedContentState(key = "card-${habitWithCompletions.habit.id}"),
+                                                        visible = habitToView?.habit?.id != habitWithCompletions.habit.id
+                                                    ),
+                                                    habit = habitWithCompletions.habit,
+                                                    isCompleted = isCompleted,
+                                                    completions = habitWithCompletions.completions,
+                                                    showCheckbox = true,
+                                                    showMonthLabels = showMonthLabels!!,
+                                                    dayOfWeekLabelsVisible = dayOfWeekLabelsVisible!!,
+                                                    dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight!!,
+                                                    showAllDayOfWeekLabels = showAllDayOfWeekLabels!!,
+                                                    showYearDivider = showYearDivider!!,
+                                                    showYearLabels = showYearLabels!!,
+                                                    showScrollBlur = showScrollBlur!! && "Heatmap" in scrollBlurTargets,
+                                                    borderContrast = borderContrast!!,
+                                                    heatmapScrollEnabled = heatmapScrolling,
+                                                    onComplete = {
+                                                        if (vibrationsEnabled) {
+                                                            haptic.performHapticFeedback(
+                                                                HapticFeedbackType.TextHandleMove
+                                                            )
+                                                        }
+                                                        viewModel.toggleCompletion(
+                                                            habitWithCompletions.habit,
+                                                            Calendar.getInstance(),
+                                                            isCompleted
+                                                        )
+                                                    },
+                                                    onClick = {
+                                                        habitToView = habitWithCompletions
+                                                    }
+                                                )
+                                            }
+                                            item {
+                                                Spacer(modifier = Modifier.height(80.dp))
+                                            }
+                                            item {
+                                                Spacer(modifier = Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
+                                            }
                                         }
                                     }
                                 }

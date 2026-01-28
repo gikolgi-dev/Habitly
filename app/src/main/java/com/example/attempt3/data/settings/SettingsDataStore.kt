@@ -271,7 +271,7 @@ class SettingsDataStore(private val context: Context) {
             settings[HEATMAP_SCROLLING_KEY] = false
             settings[SHOW_TINT_DIALOG_KEY] = true
             settings[SHOW_SCROLL_BLUR_KEY] = true
-            settings[SCROLL_BLUR_TARGETS_KEY] = "Heatmap,Line Chart"
+            settings[SCROLL_BLUR_TARGETS_KEY] = "Line Chart"
         }
     }
 }

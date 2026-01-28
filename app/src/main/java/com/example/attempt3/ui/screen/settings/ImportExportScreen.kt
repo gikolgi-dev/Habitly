@@ -16,14 +16,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.FileUpload
@@ -263,281 +264,277 @@ fun ImportExportScreen(db: HabitDatabase) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
 
     ) {
-        Row(modifier = Modifier.weight(1f)) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .fillMaxHeight()
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(color = MaterialTheme.colorScheme.surface)
-                    .border(
-                        1.dp,
-                        MaterialTheme.colorScheme.outline.copy(alpha = bordersAlpha),
-                        RoundedCornerShape(8.dp)
-                    )
-                    .padding(16.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(imageVector = Icons.Default.FileUpload, contentDescription = "Export Icon", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(48.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(8.dp))
+                .background(color = MaterialTheme.colorScheme.surface)
+                .border(
+                    1.dp,
+                    MaterialTheme.colorScheme.outline.copy(alpha = bordersAlpha),
+                    RoundedCornerShape(8.dp)
+                )
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(imageVector = Icons.Default.FileUpload, contentDescription = "Export Icon", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(48.dp))
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("Export", style = MaterialTheme.typography.headlineSmall)
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("Export habits and completion for safe keeping, migration and sharing", style = MaterialTheme.typography.bodySmall)
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(onClick = {
+                    val currentDate = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
+                    } else { "" }
+                    exportLauncher.launch("habits_backup_$currentDate.json")
+                }) {
+                    Text("Export Data")
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(8.dp))
+                .background(color = MaterialTheme.colorScheme.surface)
+                .border(
+                    1.dp,
+                    MaterialTheme.colorScheme.outline.copy(alpha = bordersAlpha),
+                    RoundedCornerShape(8.dp)
+                )
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            if (selectedFileUri == null) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Icon(imageVector = Icons.Default.FileDownload, contentDescription = "Import Icon", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(48.dp))
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("Export", style = MaterialTheme.typography.headlineSmall)
+                    Text("Import", style = MaterialTheme.typography.headlineSmall)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("Export habits and completion for safe keeping, migration and sharing", style = MaterialTheme.typography.bodySmall)
+                    Text("Import habits from here or other apps", style = MaterialTheme.typography.bodySmall)
                     Spacer(modifier = Modifier.height(16.dp))
-                    Button(onClick = {
-                        val currentDate = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
-                        } else { "" }
-                        exportLauncher.launch("habits_backup_$currentDate.json")
-                    }) {
-                        Text("Export Data")
+                    Button(onClick = { importLauncher.launch("application/json") }) {
+                        Text("Select File to Import")
+                    }
+                }
+            } else {
+                var importType by remember { mutableStateOf<ImportType?>(null) }
+                var mergeData by remember { mutableStateOf(false) }
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Bottom
+                ) {
+                    val fileName = selectedFileUri?.let { getFileName(it, context) } ?: "Unknown File"
+                    Text("File: $fileName", style = MaterialTheme.typography.bodyMedium)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(onClick = { importLauncher.launch("application/json") }) {
+                        Text("Change File")
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text("Select Source", style = MaterialTheme.typography.titleMedium)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = importType == ImportType.APP_BACKUP,
+                            onClick = { importType = ImportType.APP_BACKUP }
+                        )
+                        Text("This App")
+                        Spacer(Modifier.width(16.dp))
+                        RadioButton(
+                            selected = importType == ImportType.HABIT_KIT,
+                            onClick = { importType = ImportType.HABIT_KIT }
+                        )
+                        Text("HabitKit")
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 32.dp)
+                    ) {
+                        Text("Merge with existing data")
+                        Spacer(modifier = Modifier.weight(1f))
+                        Switch(
+                            checked = mergeData,
+                            onCheckedChange = { mergeData = it }
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Row {
+                        Button(onClick = { selectedFileUri = null }) {
+                            Text("Cancel")
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        Button(
+                            enabled = importType != null,
+                            onClick = {
+                                scope.launch {
+                                    try {
+                                        val jsonString = withContext(Dispatchers.IO) {
+                                            context.contentResolver.openInputStream(selectedFileUri!!)?.use { inputStream ->
+                                                BufferedReader(InputStreamReader(inputStream)).use { reader ->
+                                                    reader.readText()
+                                                }
+                                            }
+                                        }
+
+                                        if (jsonString != null) {
+                                            val habitsToInsert = mutableListOf<Habit>()
+                                            val completionsToInsert = mutableListOf<Completion>()
+
+                                            if (importType == ImportType.HABIT_KIT) {
+                                                val habitKitData = jsonParser.decodeFromString<HabitKitExport>(jsonString)
+
+                                                habitKitData.habits.forEach { kitHabit ->
+                                                    val reminder = habitKitData.reminders.find { it.habitId == kitHabit.id }
+
+                                                    val notificationsEnabled = reminder != null
+                                                    val notificationTime = if (reminder != null) String.format("%02d:%02d", reminder.hour, reminder.minute) else null
+
+                                                    val dayMap = mapOf(
+                                                        1 to "MON", 2 to "TUE", 3 to "WED", 4 to "THU", 5 to "FRI", 6 to "SAT", 7 to "SUN"
+                                                    )
+                                                    val notificationDays = reminder?.weekdayIndices?.mapNotNull { dayMap[it] }?.joinToString(",")
+
+                                                    val habit = Habit(
+                                                        id = kitHabit.id,
+                                                        name = kitHabit.name,
+                                                        description = kitHabit.description
+                                                            ?: "",
+                                                        icon = "default_icon", // Default icon as requested
+                                                        color = habitColorMap[kitHabit.color.lowercase()]
+                                                            ?: Color.GRAY,
+                                                        archived = kitHabit.archived,
+                                                        orderIndex = kitHabit.orderIndex,
+                                                        createdAt = kitHabit.createdAt,
+                                                        isInverse = kitHabit.isInverse,
+                                                        emoji = kitHabit.emoji,
+                                                        completionsPerInterval = 1, // Default value
+                                                        intervalUnit = "day",      // Default value
+                                                        notificationsEnabled = notificationsEnabled,
+                                                        notificationTime = notificationTime,
+                                                        notificationDays = notificationDays
+                                                    )
+                                                    habitsToInsert.add(habit)
+                                                }
+
+                                                habitKitData.completions.forEach { kitCompletion ->
+                                                    val dateMillis = try {
+                                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                                            try {
+                                                                    Instant.parse(kitCompletion.date).toEpochMilli()
+                                                            } catch (_: Exception) {
+                                                                try {
+                                                                    val localDateTime = LocalDateTime.parse(kitCompletion.date)
+                                                                    val offset = ZoneOffset.ofTotalSeconds(kitCompletion.timezoneOffsetInMinutes * 60)
+                                                                    localDateTime.toInstant(offset).toEpochMilli()
+                                                                } catch (_: Exception) {
+                                                                    val localDate = LocalDate.parse(kitCompletion.date)
+                                                                    val offset = ZoneOffset.ofTotalSeconds(kitCompletion.timezoneOffsetInMinutes * 60)
+                                                                    localDate.atStartOfDay().toInstant(offset).toEpochMilli()
+                                                                }
+                                                            }
+                                                        } else {
+                                                            0L // Fallback for older SDKs
+                                                        }
+                                                    } catch (e: Exception) {
+                                                        e.printStackTrace()
+                                                        0L
+                                                    }
+
+                                                    if (dateMillis != 0L && kitCompletion.amountOfCompletions > 0) {
+                                                        completionsToInsert.add(
+                                                            Completion(
+                                                                id = UUID.randomUUID()
+                                                                    .toString(),
+                                                                habitId = kitCompletion.habitId,
+                                                                date = dateMillis,
+                                                                timezoneOffsetInMinutes = kitCompletion.timezoneOffsetInMinutes,
+                                                                amountOfCompletions = kitCompletion.amountOfCompletions
+                                                            )
+                                                        )
+                                                    }
+                                                }
+
+                                            } else {
+                                                // Default APP_BACKUP logic
+                                                val exportedData = jsonParser.decodeFromString<ExportData>(jsonString)
+                                                habitsToInsert.addAll(exportedData.habits.map { exportedHabit ->
+                                                    Habit(
+                                                        id = exportedHabit.id,
+                                                        name = exportedHabit.name,
+                                                        description = exportedHabit.description,
+                                                        icon = exportedHabit.icon,
+                                                        color = exportedHabit.color,
+                                                        archived = exportedHabit.archived,
+                                                        orderIndex = exportedHabit.orderIndex,
+                                                        createdAt = exportedHabit.createdAt,
+                                                        isInverse = exportedHabit.isInverse,
+                                                        emoji = exportedHabit.emoji,
+                                                        completionsPerInterval = exportedHabit.completionsPerInterval,
+                                                        intervalUnit = exportedHabit.intervalUnit,
+                                                        notificationsEnabled = exportedHabit.notificationsEnabled,
+                                                        notificationTime = exportedHabit.notificationTime,
+                                                        notificationDays = exportedHabit.notificationDays
+                                                    )
+                                                })
+                                                completionsToInsert.addAll(exportedData.habits.flatMap { exportedHabit ->
+                                                    exportedHabit.completions.map { exportedCompletion ->
+                                                        Completion(
+                                                            id = exportedCompletion.id,
+                                                            habitId = exportedCompletion.habitId,
+                                                            date = exportedCompletion.date,
+                                                            timezoneOffsetInMinutes = exportedCompletion.timezoneOffsetInMinutes,
+                                                            amountOfCompletions = exportedCompletion.amountOfCompletions
+                                                        )
+                                                    }
+                                                })
+                                            }
+
+                                            withContext(Dispatchers.IO) {
+                                                if (!mergeData) {
+                                                    db.habitDao().clearAllTables()
+                                                }
+                                                db.habitDao().insertHabits(habitsToInsert)
+                                                db.habitDao().insertCompletions(completionsToInsert)
+                                            }
+                                            Toast.makeText(context, "Import successful", Toast.LENGTH_SHORT).show()
+                                            selectedFileUri = null
+                                        } else {
+                                            Toast.makeText(context, "Failed to read file", Toast.LENGTH_SHORT).show()
+                                        }
+                                    } catch (e: Exception) {
+                                        e.printStackTrace()
+                                        Toast.makeText(context, "Import failed: ${e.message}", Toast.LENGTH_LONG).show()
+                                    }
+                                }
+                            }
+                        ) {
+                            Text("Confirm Import")
+                        }
                     }
                 }
             }
         }
         Spacer(modifier = Modifier.height(16.dp))
-        Row(modifier = Modifier.weight(1f)) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .fillMaxHeight()
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(color = MaterialTheme.colorScheme.surface)
-                    .border(
-                        1.dp,
-                        MaterialTheme.colorScheme.outline.copy(alpha = bordersAlpha),
-                        RoundedCornerShape(8.dp)
-                    )
-                    .padding(16.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                if (selectedFileUri == null) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Icon(imageVector = Icons.Default.FileDownload, contentDescription = "Import Icon", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(48.dp))
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("Import", style = MaterialTheme.typography.headlineSmall)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("Import habits from here or other apps", style = MaterialTheme.typography.bodySmall)
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { importLauncher.launch("application/json") }) {
-                            Text("Select File to Import")
-                        }
-                    }
-                } else {
-                    var importType by remember { mutableStateOf<ImportType?>(null) }
-                    var mergeData by remember { mutableStateOf(false) }
-
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(bottom = 16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Bottom
-                    ) {
-                        val fileName = selectedFileUri?.let { getFileName(it, context) } ?: "Unknown File"
-                        Text("File: $fileName", style = MaterialTheme.typography.bodyMedium)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Button(onClick = { importLauncher.launch("application/json") }) {
-                            Text("Change File")
-                        }
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        Text("Select Source", style = MaterialTheme.typography.titleMedium)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            RadioButton(
-                                selected = importType == ImportType.APP_BACKUP,
-                                onClick = { importType = ImportType.APP_BACKUP }
-                            )
-                            Text("This App")
-                            Spacer(Modifier.width(16.dp))
-                            RadioButton(
-                                selected = importType == ImportType.HABIT_KIT,
-                                onClick = { importType = ImportType.HABIT_KIT }
-                            )
-                            Text("HabitKit")
-                        }
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 32.dp)
-                        ) {
-                            Text("Merge with existing data")
-                            Spacer(modifier = Modifier.weight(1f))
-                            Switch(
-                                checked = mergeData,
-                                onCheckedChange = { mergeData = it }
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(24.dp))
-
-                        Row {
-                            Button(onClick = { selectedFileUri = null }) {
-                                Text("Cancel")
-                            }
-                            Spacer(Modifier.width(8.dp))
-                            Button(
-                                enabled = importType != null,
-                                onClick = {
-                                    scope.launch {
-                                        try {
-                                            val jsonString = withContext(Dispatchers.IO) {
-                                                context.contentResolver.openInputStream(selectedFileUri!!)?.use { inputStream ->
-                                                    BufferedReader(InputStreamReader(inputStream)).use { reader ->
-                                                        reader.readText()
-                                                    }
-                                                }
-                                            }
-
-                                            if (jsonString != null) {
-                                                val habitsToInsert = mutableListOf<Habit>()
-                                                val completionsToInsert = mutableListOf<Completion>()
-
-                                                if (importType == ImportType.HABIT_KIT) {
-                                                    val habitKitData = jsonParser.decodeFromString<HabitKitExport>(jsonString)
-
-                                                    habitKitData.habits.forEach { kitHabit ->
-                                                        val reminder = habitKitData.reminders.find { it.habitId == kitHabit.id }
-
-                                                        val notificationsEnabled = reminder != null
-                                                        val notificationTime = if (reminder != null) String.format("%02d:%02d", reminder.hour, reminder.minute) else null
-
-                                                        val dayMap = mapOf(
-                                                            1 to "MON", 2 to "TUE", 3 to "WED", 4 to "THU", 5 to "FRI", 6 to "SAT", 7 to "SUN"
-                                                        )
-                                                        val notificationDays = reminder?.weekdayIndices?.mapNotNull { dayMap[it] }?.joinToString(",")
-
-                                                        val habit = Habit(
-                                                            id = kitHabit.id,
-                                                            name = kitHabit.name,
-                                                            description = kitHabit.description
-                                                                ?: "",
-                                                            icon = "default_icon", // Default icon as requested
-                                                            color = habitColorMap[kitHabit.color.lowercase()]
-                                                                ?: Color.GRAY,
-                                                            archived = kitHabit.archived,
-                                                            orderIndex = kitHabit.orderIndex,
-                                                            createdAt = kitHabit.createdAt,
-                                                            isInverse = kitHabit.isInverse,
-                                                            emoji = kitHabit.emoji,
-                                                            completionsPerInterval = 1, // Default value
-                                                            intervalUnit = "day",      // Default value
-                                                            notificationsEnabled = notificationsEnabled,
-                                                            notificationTime = notificationTime,
-                                                            notificationDays = notificationDays
-                                                        )
-                                                        habitsToInsert.add(habit)
-                                                    }
-
-                                                    habitKitData.completions.forEach { kitCompletion ->
-                                                        val dateMillis = try {
-                                                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                                                try {
-                                                                    Instant.parse(kitCompletion.date).toEpochMilli()
-                                                                } catch (_: Exception) {
-                                                                    try {
-                                                                        val localDateTime = LocalDateTime.parse(kitCompletion.date)
-                                                                        val offset = ZoneOffset.ofTotalSeconds(kitCompletion.timezoneOffsetInMinutes * 60)
-                                                                        localDateTime.toInstant(offset).toEpochMilli()
-                                                                    } catch (_: Exception) {
-                                                                        val localDate = LocalDate.parse(kitCompletion.date)
-                                                                        val offset = ZoneOffset.ofTotalSeconds(kitCompletion.timezoneOffsetInMinutes * 60)
-                                                                        localDate.atStartOfDay().toInstant(offset).toEpochMilli()
-                                                                    }
-                                                                }
-                                                            } else {
-                                                                0L // Fallback for older SDKs
-                                                            }
-                                                        } catch (e: Exception) {
-                                                            e.printStackTrace()
-                                                            0L
-                                                        }
-
-                                                        if (dateMillis != 0L && kitCompletion.amountOfCompletions > 0) {
-                                                            completionsToInsert.add(
-                                                                Completion(
-                                                                    id = UUID.randomUUID()
-                                                                        .toString(),
-                                                                    habitId = kitCompletion.habitId,
-                                                                    date = dateMillis,
-                                                                    timezoneOffsetInMinutes = kitCompletion.timezoneOffsetInMinutes,
-                                                                    amountOfCompletions = kitCompletion.amountOfCompletions
-                                                                )
-                                                            )
-                                                        }
-                                                    }
-
-                                                } else {
-                                                    // Default APP_BACKUP logic
-                                                    val exportedData = jsonParser.decodeFromString<ExportData>(jsonString)
-                                                    habitsToInsert.addAll(exportedData.habits.map { exportedHabit ->
-                                                        Habit(
-                                                            id = exportedHabit.id,
-                                                            name = exportedHabit.name,
-                                                            description = exportedHabit.description,
-                                                            icon = exportedHabit.icon,
-                                                            color = exportedHabit.color,
-                                                            archived = exportedHabit.archived,
-                                                            orderIndex = exportedHabit.orderIndex,
-                                                            createdAt = exportedHabit.createdAt,
-                                                            isInverse = exportedHabit.isInverse,
-                                                            emoji = exportedHabit.emoji,
-                                                            completionsPerInterval = exportedHabit.completionsPerInterval,
-                                                            intervalUnit = exportedHabit.intervalUnit,
-                                                            notificationsEnabled = exportedHabit.notificationsEnabled,
-                                                            notificationTime = exportedHabit.notificationTime,
-                                                            notificationDays = exportedHabit.notificationDays
-                                                        )
-                                                    })
-                                                    completionsToInsert.addAll(exportedData.habits.flatMap { exportedHabit ->
-                                                        exportedHabit.completions.map { exportedCompletion ->
-                                                            Completion(
-                                                                id = exportedCompletion.id,
-                                                                habitId = exportedCompletion.habitId,
-                                                                date = exportedCompletion.date,
-                                                                timezoneOffsetInMinutes = exportedCompletion.timezoneOffsetInMinutes,
-                                                                amountOfCompletions = exportedCompletion.amountOfCompletions
-                                                            )
-                                                        }
-                                                    })
-                                                }
-
-                                                withContext(Dispatchers.IO) {
-                                                    if (!mergeData) {
-                                                        db.habitDao().clearAllTables()
-                                                    }
-                                                    db.habitDao().insertHabits(habitsToInsert)
-                                                    db.habitDao().insertCompletions(completionsToInsert)
-                                                }
-                                                Toast.makeText(context, "Import successful", Toast.LENGTH_SHORT).show()
-                                                selectedFileUri = null
-                                            } else {
-                                                Toast.makeText(context, "Failed to read file", Toast.LENGTH_SHORT).show()
-                                            }
-                                        } catch (e: Exception) {
-                                            e.printStackTrace()
-                                            Toast.makeText(context, "Import failed: ${e.message}", Toast.LENGTH_LONG).show()
-                                        }
-                                    }
-                                }
-                            ) {
-                                Text("Confirm Import")
-                            }
-                        }
-                    }
-                }
-            }
-        }
     }
 }
