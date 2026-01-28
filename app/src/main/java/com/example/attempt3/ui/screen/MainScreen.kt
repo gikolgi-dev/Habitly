@@ -149,6 +149,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     val showYearDivider by settingsDataStore.yearDivider.collectAsState(initial = null)
     val showYearLabels by settingsDataStore.yearLabels.collectAsState(initial = null)
     val showScrollBlur by settingsDataStore.showScrollBlur.collectAsState(initial = true)
+    val scrollBlurTargets by settingsDataStore.scrollBlurTargets.collectAsState(initial = setOf("Heatmap", "Line Chart"))
     val dayOfWeekLabelsVisible by settingsDataStore.dayOfWeekLabelsVisible.collectAsState(initial = null)
     val dayOfWeekLabelsOnRight by settingsDataStore.dayOfWeekLabelsOnRight.collectAsState(initial = null)
     val showAllDayOfWeekLabels by settingsDataStore.showAllDayOfWeekLabels.collectAsState(initial = null)
@@ -450,7 +451,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                         showAllDayOfWeekLabels = showAllDayOfWeekLabels!!,
                                                         showYearDivider = showYearDivider!!,
                                                         showYearLabels = showYearLabels!!,
-                                                        showScrollBlur = showScrollBlur!!,
+                                                        showScrollBlur = showScrollBlur!! && "Heatmap" in scrollBlurTargets,
                                                         borderContrast = borderContrast!!,
                                                         heatmapScrollEnabled = heatmapScrolling,
                                                         onComplete = {
@@ -586,7 +587,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                 },
                                 settingsDataStore = settingsDataStore,
                                 borderContrast = borderContrast!!,
-                                showScrollBlur = showScrollBlur!!,
+                                showScrollBlur = showScrollBlur!! && "Heatmap" in scrollBlurTargets,
                                 showYearLabels = showYearLabels!!,
                                 showYearDivider = showYearDivider!!,
                             )

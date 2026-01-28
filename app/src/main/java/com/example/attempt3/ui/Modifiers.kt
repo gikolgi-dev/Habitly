@@ -2,7 +2,7 @@ package com.example.attempt3.ui
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.gestures.ScrollableState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
@@ -16,22 +16,22 @@ import androidx.compose.ui.unit.dp
 
 /**
  * Adds an animated fade-out effect to the specified edges of a scrollable component.
- * Supports horizontal fade-out on the left and right edges based on [LazyListState].
+ * Supports horizontal fade-out on the left and right edges based on [ScrollableState].
  * The gradients fade in and out as the user scrolls.
  */
 fun Modifier.fadingEdge(
-    lazyListState: LazyListState,
+    scrollableState: ScrollableState,
     enabled: Boolean = true
 ): Modifier = if (enabled) {
     this.composed {
         // Animate the "intensity" of the fade (0f = no fade, 1f = full gradient)
         val leftIntensity by animateFloatAsState(
-            targetValue = if (lazyListState.canScrollForward) 1f else 0f,
+            targetValue = if (scrollableState.canScrollForward) 1f else 0f,
             animationSpec = tween(durationMillis = 400),
             label = "leftEdgeFadeIntensity"
         )
         val rightIntensity by animateFloatAsState(
-            targetValue = if (lazyListState.canScrollBackward) 1f else 0f,
+            targetValue = if (scrollableState.canScrollBackward) 1f else 0f,
             animationSpec = tween(durationMillis = 400),
             label = "rightEdgeFadeIntensity"
         )

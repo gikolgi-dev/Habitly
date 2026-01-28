@@ -61,6 +61,7 @@ import com.example.attempt3.data.calculateMonthlyStats
 import com.example.attempt3.data.calculateStatistics
 import com.example.attempt3.data.settings.SettingsDataStore
 import com.example.attempt3.ui.components.MonthlyLineChart
+import com.example.attempt3.ui.fadingEdge
 import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
 
@@ -75,6 +76,8 @@ fun StatisticScreen(
     val habitsUiState by viewModel.habitsUiState.collectAsState()
     val habits = (habitsUiState as? HabitsUiState.Success)?.habits ?: emptyList()
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
+    val showScrollBlur by settingsDataStore.showScrollBlur.collectAsState(initial = true)
+    val scrollBlurTargets by settingsDataStore.scrollBlurTargets.collectAsState(initial = setOf("Heatmap", "Line Chart"))
     val haptic = LocalHapticFeedback.current
 
     val actualCount = habits.size
@@ -194,7 +197,8 @@ fun StatisticScreen(
                              HabitStatisticsContent(
                                  habit = habit,
                                  accentColor = habitColor,
-                                 vibrationsEnabled = vibrationsEnabled
+                                 vibrationsEnabled = vibrationsEnabled,
+                                 showScrollBlur = showScrollBlur && "Line Chart" in scrollBlurTargets
                              )
                          }
                      }
@@ -252,7 +256,8 @@ private fun PageIndicator(
 private fun HabitStatisticsContent(
     habit: HabitWithCompletions,
     accentColor: Color,
-    vibrationsEnabled: Boolean
+    vibrationsEnabled: Boolean,
+    showScrollBlur: Boolean
 ) {
     val stats = remember(habit) {
         calculateStatistics(habit)
@@ -321,7 +326,8 @@ private fun HabitStatisticsContent(
                 MonthlyCompletionGraph(
                     stats = monthlyStats,
                     accentColor = accentColor,
-                    vibrationsEnabled = vibrationsEnabled
+                    vibrationsEnabled = vibrationsEnabled,
+                    showScrollBlur = showScrollBlur
                 )
             }
         }
@@ -373,7 +379,8 @@ fun MonthlyCompletionGraph(
     stats: List<MonthlyCompletion>, 
     modifier: Modifier = Modifier,
     accentColor: Color = MaterialTheme.colorScheme.primary,
-    vibrationsEnabled: Boolean
+    vibrationsEnabled: Boolean,
+    showScrollBlur: Boolean
 ) {
     var isZoomedOut by remember { mutableStateOf(false) }
     
@@ -383,7 +390,7 @@ fun MonthlyCompletionGraph(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp).fillMaxWidth()
+            modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth()
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -428,6 +435,7 @@ fun MonthlyCompletionGraph(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(180.dp)
+                            .fadingEdge(scrollState, enabled = showScrollBlur)
                             .horizontalScroll(
                                 state = scrollState,
                                 reverseScrolling = true
@@ -458,6 +466,7 @@ fun MonthlyCompletionGraph(
                     }
                 }
             }
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }

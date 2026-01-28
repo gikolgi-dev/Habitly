@@ -70,6 +70,7 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
     val showYearLabels by settingsDataStore.yearLabels.collectAsState(initial = true)
     val showDayLabels by settingsDataStore.dayOfWeekLabelsVisible.collectAsState(initial = true)
     val showScrollBlur by settingsDataStore.showScrollBlur.collectAsState(initial = true)
+    val scrollBlurTargets by settingsDataStore.scrollBlurTargets.collectAsState(initial = setOf("Heatmap", "Line Chart"))
     val showAllDayOfWeekLabels by settingsDataStore.showAllDayOfWeekLabels.collectAsState(initial = true)
     val borderContrast by settingsDataStore.borders.collectAsState(initial = 0f)
     val appearanceTint by settingsDataStore.appearanceTint.collectAsState(initial = 0.1f)
@@ -482,6 +483,58 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
                             modifier = Modifier.padding(start = 16.dp)
                         )
                     }
+
+                    if (showScrollBlur) {
+                        val targets = listOf("Heatmap", "Line Chart")
+                        targets.forEach { target ->
+                            Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .selectable(
+                                        selected = target in scrollBlurTargets,
+                                        onClick = {
+                                            val newTargets = if (target in scrollBlurTargets) {
+                                                scrollBlurTargets - target
+                                            } else {
+                                                scrollBlurTargets + target
+                                            }
+                                            scope.launch {
+                                                settingsDataStore.setScrollBlurTargets(newTargets)
+                                            }
+                                            if (vibrationsEnabled) {
+                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            }
+                                        }
+                                    )
+                                    .padding(start = 16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Checkbox(
+                                    checked = target in scrollBlurTargets,
+                                    onCheckedChange = {
+                                        val newTargets = if (it) {
+                                            scrollBlurTargets + target
+                                        } else {
+                                            scrollBlurTargets - target
+                                        }
+                                        scope.launch {
+                                            settingsDataStore.setScrollBlurTargets(newTargets)
+                                        }
+                                        if (vibrationsEnabled) {
+                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        }
+                                    }
+                                )
+                                Text(
+                                    text = target,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    modifier = Modifier.padding(start = 16.dp)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+
                     val dayLabelDisplay = when {
                         !showDayLabels -> DayLabelDisplayOptions.Off
                         !showAllDayOfWeekLabels -> DayLabelDisplayOptions.Some

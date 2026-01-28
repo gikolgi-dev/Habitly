@@ -35,6 +35,7 @@ class SettingsDataStore(private val context: Context) {
         val HEATMAP_SCROLLING_KEY = booleanPreferencesKey("heatmap_scrolling")
         val SHOW_TINT_DIALOG_KEY = booleanPreferencesKey("show_tint_dialog")
         val SHOW_SCROLL_BLUR_KEY = booleanPreferencesKey("show_scroll_blur")
+        val SCROLL_BLUR_TARGETS_KEY = stringPreferencesKey("scroll_blur_targets")
     }
 
     val theme: Flow<String> = context.dataStore.data
@@ -241,6 +242,18 @@ class SettingsDataStore(private val context: Context) {
         }
     }
 
+    val scrollBlurTargets: Flow<Set<String>> = context.dataStore.data
+        .map { preferences ->
+            preferences[SCROLL_BLUR_TARGETS_KEY]?.split(',')?.filter { it.isNotEmpty() }?.toSet() 
+                ?: setOf("Heatmap", "Line Chart")
+        }
+
+    suspend fun setScrollBlurTargets(targets: Set<String>) {
+        context.dataStore.edit { settings ->
+            settings[SCROLL_BLUR_TARGETS_KEY] = targets.joinToString(",")
+        }
+    }
+
     suspend fun resetToDefault() {
         context.dataStore.edit { settings ->
             settings[THEME_KEY] = "system"
@@ -258,6 +271,7 @@ class SettingsDataStore(private val context: Context) {
             settings[HEATMAP_SCROLLING_KEY] = false
             settings[SHOW_TINT_DIALOG_KEY] = true
             settings[SHOW_SCROLL_BLUR_KEY] = true
+            settings[SCROLL_BLUR_TARGETS_KEY] = "Heatmap,Line Chart"
         }
     }
 }
