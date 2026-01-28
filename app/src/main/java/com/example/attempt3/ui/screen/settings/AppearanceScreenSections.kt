@@ -8,16 +8,12 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -27,25 +23,20 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.Layout
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
 import com.example.attempt3.data.settings.SettingsDataStore
-import com.example.attempt3.ui.DayLabelDisplayOptions
+import com.example.attempt3.ui.DayOfWeekSelector
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -199,13 +190,14 @@ fun HeatmapSection(
     showMonthLabels: Boolean,
     showYearDivider: Boolean,
     showYearLabels: Boolean,
-    showDayLabels: Boolean,
-    showAllDayOfWeekLabels: Boolean,
+    borderContrast: Float,
     vibrationsEnabled: Boolean,
     settingsDataStore: SettingsDataStore,
     scope: CoroutineScope,
     haptic: HapticFeedback
 ) {
+    val heatmapVisibleDays by settingsDataStore.heatmapVisibleDays.collectAsState(initial = setOf("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"))
+
     SettingsGroup(title = "Heatmap", settingsDataStore = settingsDataStore) {
         SettingsSwitchItem(
             text = "Toggle month labels",
@@ -240,72 +232,29 @@ fun HeatmapSection(
             }
         )
 
-        val dayLabelDisplay = when {
-            !showDayLabels -> DayLabelDisplayOptions.Off
-            !showAllDayOfWeekLabels -> DayLabelDisplayOptions.Some
-            else -> DayLabelDisplayOptions.All
-        }
-        val options = DayLabelDisplayOptions.entries.map { it.name }
-
-        Column(modifier = Modifier
-            .padding(horizontal = 4.dp, vertical = 4.dp)
-            .fillMaxWidth()){
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
             Text(
-                text = "Day label display:",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp),
-                color = Color.Gray,
-                style = MaterialTheme.typography.bodySmall,
-                textAlign = TextAlign.Left
+                text = "Visible day labels",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface
             )
-            TabRow(
-                selectedTabIndex = dayLabelDisplay.ordinal,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
-                    .clip(RoundedCornerShape(8.dp)),
-                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                indicator = { tabPositions ->
-                    Box(
-                        modifier = Modifier
-                            .tabIndicatorOffset(tabPositions[dayLabelDisplay.ordinal])
-                            .fillMaxHeight()
-                            .padding(4.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.primary)
-                            .zIndex(-1f)
-                    )
+            Text(
+                text = "Toggle which days are shown on the heatmap's side labels.",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.Gray,
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
+            DayOfWeekSelector(
+                selectedDays = heatmapVisibleDays,
+                onDaySelected = { day ->
+                    val newDays = if (heatmapVisibleDays.contains(day)) heatmapVisibleDays - day else heatmapVisibleDays + day
+                    scope.launch { settingsDataStore.setHeatmapVisibleDays(newDays) }
+                    if (vibrationsEnabled) {
+                        haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                    }
                 },
-                divider = {}
-            ) {
-                options.forEachIndexed { index, text ->
-                    val selected = dayLabelDisplay.ordinal == index
-                    Tab(
-                        selected = selected,
-                        onClick = {
-                            scope.launch {
-                                when (DayLabelDisplayOptions.entries[index]) {
-                                    DayLabelDisplayOptions.Off -> {
-                                        settingsDataStore.setDayOfWeekLabelsVisible(false)
-                                    }
-                                    DayLabelDisplayOptions.Some -> {
-                                        settingsDataStore.setDayOfWeekLabelsVisible(true)
-                                        settingsDataStore.setShowAllDayOfWeekLabels(false)
-                                    }
-                                    DayLabelDisplayOptions.All -> {
-                                        settingsDataStore.setDayOfWeekLabelsVisible(true)
-                                        settingsDataStore.setShowAllDayOfWeekLabels(true)
-                                    }
-                                }
-                            }
-                        },
-                        text = { Text(text = text) },
-                        selectedContentColor = MaterialTheme.colorScheme.onPrimary,
-                        unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
+                borderAlpha = if (borderContrast>0.05f) borderContrast else 0.05f
+            )
         }
     }
 }

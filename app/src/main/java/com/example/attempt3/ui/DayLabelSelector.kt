@@ -1,24 +1,30 @@
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package com.example.attempt3.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
+import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
 
 enum class DayLabelDisplayOptions {
     Off, Some, All
@@ -28,46 +34,97 @@ enum class DayLabelDisplayOptions {
 fun DayLabelSelector(
     selectedOption: DayLabelDisplayOptions,
     onOptionSelected: (DayLabelDisplayOptions) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    borderAlpha: Float = 0.1f
 ) {
-    val options = DayLabelDisplayOptions.entries.map { it.name }
-    Text(
-        text = "Day label display:",
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-        color = Color.Gray,
-        style = MaterialTheme.typography.bodySmall,
-        textAlign = TextAlign.Left)
-    //Spacer(modifier = Modifier.height(4.dp))
-    TabRow(
-        selectedTabIndex = selectedOption.ordinal,
-        modifier = modifier
-            .fillMaxWidth()
-            .height(48.dp)
-            .clip(RoundedCornerShape(8.dp)),
-        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-        indicator = { tabPositions ->
-            Box(
-                modifier = Modifier
-                    .tabIndicatorOffset(tabPositions[selectedOption.ordinal])
-                    .fillMaxHeight()
-                    .padding(4.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.primary)
-                    .zIndex(-1f)
-            )
-        },
-        divider = {}
-    ) {
-        options.forEachIndexed { index, text ->
-            val selected = selectedOption.ordinal == index
-            Tab(
-                selected = selected,
-                onClick = { onOptionSelected(DayLabelDisplayOptions.entries[index]) },
-                text = { Text(text = text) },
-                selectedContentColor = MaterialTheme.colorScheme.onPrimary,
-                unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+    val options = DayLabelDisplayOptions.entries
+    
+    Column(modifier = modifier) {
+        Text(
+            text = "Day label display:",
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+            color = Color.Gray,
+            style = MaterialTheme.typography.bodySmall
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            options.forEach { option ->
+                val isSelected = selectedOption == option
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .aspectRatio(2.2f)
+                        .border(
+                            width = if (isSelected) 0.dp else 1.dp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = borderAlpha),
+                            shape = MaterialShapes.Square.toShape()
+                        )
+                        .clip(MaterialShapes.Square.toShape())
+                        .background(
+                            if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent
+                        )
+                        .clickable { onOptionSelected(option) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = option.name,
+                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
         }
     }
+}
 
+@Composable
+fun DayOfWeekSelector(
+    selectedDays: Set<String>,
+    onDaySelected: (String) -> Unit,
+    enabled: Boolean = true,
+    borderAlpha: Float = 0.1f,
+    horizontalPadding: Dp = 0.dp
+) {
+    val days = listOf("M", "T", "W", "T", "F", "S", "S")
+    val dayValues = listOf("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = horizontalPadding, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        dayValues.forEachIndexed { index, day ->
+            val isSelected = selectedDays.contains(day)
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .aspectRatio(1f)
+                    .border(
+                        width = if(isSelected) 0.dp else 1.dp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = borderAlpha),
+                        shape = MaterialShapes.Square.toShape()
+                    )
+                    .clip(MaterialShapes.Square.toShape())
+                    .background(
+                        if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent
+                    )
+                    .clickable(enabled = enabled) { onDaySelected(day) },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = days[index],
+                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
 }

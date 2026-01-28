@@ -59,9 +59,8 @@ fun ArchiveScreen(uiState: HabitsUiState, habitDao: HabitDao, onBack: () -> Unit
     val showMonthLabels by settingsDataStore.monthLabels.collectAsState(initial = false)
     val showYearDivider by settingsDataStore.yearDivider.collectAsState(initial = true)
     val showYearLabels by settingsDataStore.yearLabels.collectAsState(initial = true)
-    val dayOfWeekLabelsVisible by settingsDataStore.dayOfWeekLabelsVisible.collectAsState(initial = false)
+    val heatmapVisibleDays by settingsDataStore.heatmapVisibleDays.collectAsState(initial = emptySet())
     val dayOfWeekLabelsOnRight by settingsDataStore.dayOfWeekLabelsOnRight.collectAsState(initial = false)
-    val showAllDayOfWeekLabels by settingsDataStore.showAllDayOfWeekLabels.collectAsState(initial = false)
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
     val haptic = LocalHapticFeedback.current
 
@@ -160,9 +159,8 @@ fun ArchiveScreen(uiState: HabitsUiState, habitDao: HabitDao, onBack: () -> Unit
                                         completions = habitWithCompletions.completions,
                                         showCheckbox = false,
                                         showMonthLabels = showMonthLabels,
-                                        dayOfWeekLabelsVisible = dayOfWeekLabelsVisible,
+                                        visibleDayLabels = heatmapVisibleDays,
                                         dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight,
-                                        showAllDayOfWeekLabels = showAllDayOfWeekLabels,
                                         showYearDivider = showYearDivider,
                                         showYearLabels = showYearLabels,
                                         borderContrast = borderContrast,

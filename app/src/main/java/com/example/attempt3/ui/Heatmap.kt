@@ -58,9 +58,8 @@ fun Heatmap(
     modifier: Modifier = Modifier,
     isScrollable: Boolean = true,
     showMonthLabels: Boolean,
-    dayOfWeekLabelsVisible: Boolean,
+    visibleDayLabels: Set<String>,
     dayOfWeekLabelsOnRight: Boolean,
-    showAllDayOfWeekLabels: Boolean,
     showYearDivider: Boolean = true,
     showYearLabels: Boolean = true,
     showScrollBlur: Boolean
@@ -111,10 +110,10 @@ fun Heatmap(
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         // Left Labels
-        if (dayOfWeekLabelsVisible && !dayOfWeekLabelsOnRight) {
+        if (visibleDayLabels.isNotEmpty() && !dayOfWeekLabelsOnRight) {
             DayOfWeekLabels(
                 labels = dayOfWeekLabels,
-                showAll = showAllDayOfWeekLabels,
+                visibleDayLabels = visibleDayLabels,
                 showMonthLabels = showMonthLabels,
                 cellSize = cellSize,
                 minSpacing = verticalSpacing
@@ -299,10 +298,10 @@ fun Heatmap(
         }
 
         // Right Labels
-        if (dayOfWeekLabelsVisible && dayOfWeekLabelsOnRight) {
+        if (visibleDayLabels.isNotEmpty() && dayOfWeekLabelsOnRight) {
             DayOfWeekLabels(
                 labels = dayOfWeekLabels,
-                showAll = showAllDayOfWeekLabels,
+                visibleDayLabels = visibleDayLabels,
                 showMonthLabels = showMonthLabels,
                 cellSize = cellSize,
                 minSpacing = verticalSpacing
@@ -314,12 +313,13 @@ fun Heatmap(
 @Composable
 fun DayOfWeekLabels(
     labels: List<String>,
-    showAll: Boolean,
+    visibleDayLabels: Set<String>,
     showMonthLabels: Boolean,
     cellSize: Dp,
     minSpacing: Dp,
     modifier: Modifier = Modifier
 ) {
+    val dayValues = listOf("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -333,11 +333,8 @@ fun DayOfWeekLabels(
             verticalArrangement = Arrangement.spacedBy(minSpacing)
         ) {
             labels.forEachIndexed { index, label ->
-                val isVisible = if (showAll) {
-                    true
-                } else {
-                    index % 2 != 0
-                }
+                val dayValue = dayValues[index]
+                val isVisible = dayValue in visibleDayLabels
 
                 Box(
                     modifier = Modifier.height(cellSize),

@@ -88,9 +88,8 @@ fun SharedTransitionScope.HabitDetailScreen(
     val haptic = LocalHapticFeedback.current
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
     val showMonthLabels by settingsDataStore.monthLabels.collectAsState(initial = false)
-    val dayOfWeekLabelsVisible by settingsDataStore.dayOfWeekLabelsVisible.collectAsState(initial = false)
     val dayOfWeekLabelsOnRight by settingsDataStore.dayOfWeekLabelsOnRight.collectAsState(initial = false)
-    val showAllDayOfWeekLabels by settingsDataStore.showAllDayOfWeekLabels.collectAsState(initial = false)
+    val heatmapVisibleDays by settingsDataStore.heatmapVisibleDays.collectAsState(initial = emptySet())
     var showDeleteConfirmation by remember { mutableStateOf(false) } // State for delete confirmation dialog
     val habit = habitWithCompletions.habit
     val completions = habitWithCompletions.completions
@@ -237,9 +236,8 @@ fun SharedTransitionScope.HabitDetailScreen(
                     habitColor = animatedColor,
                     modifier = Modifier.fillMaxWidth().padding(top = if (showMonthLabels) 0.dp else 8.dp),
                     showMonthLabels = showMonthLabels,
-                    dayOfWeekLabelsVisible = dayOfWeekLabelsVisible,
+                    visibleDayLabels = heatmapVisibleDays,
                     dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight,
-                    showAllDayOfWeekLabels = showAllDayOfWeekLabels,
                     showYearDivider = showYearDivider,
                     showYearLabels = showYearLabels,
                     showScrollBlur = showScrollBlur

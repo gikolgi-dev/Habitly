@@ -152,9 +152,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     val showYearLabels by settingsDataStore.yearLabels.collectAsState(initial = null)
     val showScrollBlur by settingsDataStore.showScrollBlur.collectAsState(initial = true)
     val scrollBlurTargets by settingsDataStore.scrollBlurTargets.collectAsState(initial = setOf("Heatmap", "Line Chart"))
-    val dayOfWeekLabelsVisible by settingsDataStore.dayOfWeekLabelsVisible.collectAsState(initial = null)
+    val heatmapVisibleDays by settingsDataStore.heatmapVisibleDays.collectAsState(initial = null)
     val dayOfWeekLabelsOnRight by settingsDataStore.dayOfWeekLabelsOnRight.collectAsState(initial = null)
-    val showAllDayOfWeekLabels by settingsDataStore.showAllDayOfWeekLabels.collectAsState(initial = null)
     val is24Hour by settingsDataStore.is24Hour.collectAsState(initial = false)
     val heroCardVisible by settingsDataStore.heroCardVisible.collectAsState(initial = true)
     val heatmapScrolling by settingsDataStore.heatmapScrolling.collectAsState(initial = false)
@@ -164,9 +163,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
             showMonthLabels != null &&
             showYearDivider != null &&
             showYearLabels != null &&
-            dayOfWeekLabelsVisible != null &&
-            dayOfWeekLabelsOnRight != null &&
-            showAllDayOfWeekLabels != null
+            heatmapVisibleDays != null &&
+            dayOfWeekLabelsOnRight != null
 
     val greeting = remember {
         when (now.get(Calendar.HOUR_OF_DAY)) {
@@ -449,9 +447,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                     completions = habitWithCompletions.completions,
                                                     showCheckbox = true,
                                                     showMonthLabels = showMonthLabels!!,
-                                                    dayOfWeekLabelsVisible = dayOfWeekLabelsVisible!!,
+                                                    visibleDayLabels = heatmapVisibleDays!!,
                                                     dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight!!,
-                                                    showAllDayOfWeekLabels = showAllDayOfWeekLabels!!,
                                                     showYearDivider = showYearDivider!!,
                                                     showYearLabels = showYearLabels!!,
                                                     showScrollBlur = showScrollBlur!! && "Heatmap" in scrollBlurTargets,

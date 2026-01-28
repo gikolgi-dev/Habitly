@@ -25,6 +25,7 @@ class SettingsDataStore(private val context: Context) {
         val DAY_OF_WEEK_LABELS_VISIBLE_KEY = booleanPreferencesKey("day_of_week_labels_visible")
         val DAY_OF_WEEK_LABELS_ON_RIGHT_KEY = booleanPreferencesKey("day_of_week_labels_on_right")
         val SHOW_ALL_DAY_OF_WEEK_LABELS_KEY = booleanPreferencesKey("show_all_day_of_week_labels")
+        val HEATMAP_VISIBLE_DAYS_KEY = stringPreferencesKey("heatmap_visible_days")
         val GLOBAL_NOTIFICATIONS_KEY = booleanPreferencesKey("global_notifications")
         val GLOBAL_NOTIFICATION_TIME_KEY = stringPreferencesKey("global_notification_time")
         val GLOBAL_NOTIFICATION_DAYS_KEY = stringPreferencesKey("global_notification_days")
@@ -132,6 +133,27 @@ class SettingsDataStore(private val context: Context) {
         }
     }
     
+    val heatmapVisibleDays: Flow<Set<String>> = context.dataStore.data
+        .map { preferences ->
+            val saved = preferences[HEATMAP_VISIBLE_DAYS_KEY]
+            if (saved != null) {
+                saved.split(',').filter { it.isNotEmpty() }.toSet()
+            } else {
+                // Migration logic from old boolean settings
+                val visible = preferences[DAY_OF_WEEK_LABELS_VISIBLE_KEY] ?: true
+                val all = preferences[SHOW_ALL_DAY_OF_WEEK_LABELS_KEY] ?: true
+                if (!visible) emptySet()
+                else if (all) setOf("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")
+                else setOf("TUE", "THU", "SAT")
+            }
+        }
+
+    suspend fun setHeatmapVisibleDays(days: Set<String>) {
+        context.dataStore.edit { settings ->
+            settings[HEATMAP_VISIBLE_DAYS_KEY] = days.joinToString(",")
+        }
+    }
+
     val globalNotificationsEnabled: Flow<Boolean> = context.dataStore.data
         .map { preferences ->
             preferences[GLOBAL_NOTIFICATIONS_KEY] ?: false
@@ -272,6 +294,7 @@ class SettingsDataStore(private val context: Context) {
             settings[SHOW_TINT_DIALOG_KEY] = true
             settings[SHOW_SCROLL_BLUR_KEY] = true
             settings[SCROLL_BLUR_TARGETS_KEY] = "Line Chart"
+            settings[HEATMAP_VISIBLE_DAYS_KEY] = "MON,TUE,WED,THU,FRI,SAT,SUN"
         }
     }
 }
