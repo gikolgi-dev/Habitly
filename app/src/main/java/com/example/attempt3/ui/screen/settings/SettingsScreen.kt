@@ -532,7 +532,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "Version 2.0.1",
+                                text = "Version 2.0.2",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color.Gray
                             )
