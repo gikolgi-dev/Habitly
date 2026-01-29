@@ -1,8 +1,10 @@
 package com.example.attempt3.ui.screen
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.ScrollableDefaults
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -41,7 +43,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
@@ -282,6 +283,7 @@ fun MonthlyCompletionGraph(
                     val calculatedWidth = minWidthPerItem * stats.size
                     val scrollState = rememberScrollState()
                     val coroutineScope = rememberCoroutineScope()
+                    val flingBehavior = ScrollableDefaults.flingBehavior()
 
                     Box(
                         modifier = Modifier
@@ -290,21 +292,29 @@ fun MonthlyCompletionGraph(
                             .fadingEdge(scrollState, enabled = showScrollBlur)
                             // Explicitly handle horizontal drags to prevent conflict with HorizontalPager.
                             // We only consume and handle the drag if the content is actually scrollable.
-                            .pointerInput(Unit) {
-                                detectHorizontalDragGestures { change, dragAmount ->
+                            // draggable provides inertia (fling) support via onDragStopped.
+                            .draggable(
+                                state = rememberDraggableState { delta ->
                                     if (scrollState.maxValue > 0) {
-                                        coroutineScope.launch {
-                                            // Adjusted to dragAmount to fix inversion when reverseScrolling is true
-                                            scrollState.scrollBy(dragAmount)
+                                        // delta is positive when dragging right.
+                                        // In reverseScrolling=true, dragging right increases the scroll value.
+                                        scrollState.dispatchRawDelta(delta)
+                                    }
+                                },
+                                orientation = Orientation.Horizontal,
+                                enabled = scrollState.maxValue > 0,
+                                onDragStopped = { velocity ->
+                                    scrollState.scroll {
+                                        with(flingBehavior) {
+                                            performFling(velocity)
                                         }
-                                        change.consume()
                                     }
                                 }
-                            }
+                            )
                             .horizontalScroll(
                                 state = scrollState,
                                 reverseScrolling = true,
-                                enabled = false // Manual handling via pointerInput above
+                                enabled = false // Manual handling via draggable above
                             )
                     ) {
                         MonthlyLineChart(
