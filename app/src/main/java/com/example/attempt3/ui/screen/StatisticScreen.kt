@@ -23,6 +23,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -74,6 +75,15 @@ fun StatisticScreen(
                 if (pagerState.currentPage != 0) {
                     pagerState.scrollToPage(0)
                 }
+            }
+        }
+    }
+
+    // Add haptic feedback when scrolling between habits
+    LaunchedEffect(pagerState) {
+        snapshotFlow { pagerState.currentPage }.collect {
+            if (vibrationsEnabled && actualCount > 1) {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
             }
         }
     }

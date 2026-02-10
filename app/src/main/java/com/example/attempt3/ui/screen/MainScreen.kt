@@ -72,6 +72,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -419,6 +420,15 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                     ) {
                                         val habitsWithCompletions = (habitsUiState as? HabitsUiState.Success)?.habits ?: emptyList()
                                         val lazyListState = rememberLazyListState()
+
+                                        // Add haptic feedback when scrolling between habits
+                                        LaunchedEffect(lazyListState) {
+                                            snapshotFlow { lazyListState.firstVisibleItemIndex }.collect {
+                                                if (vibrationsEnabled && habitsWithCompletions.isNotEmpty()) {
+                                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                }
+                                            }
+                                        }
 
                                         LazyColumn(
                                             state = lazyListState,
