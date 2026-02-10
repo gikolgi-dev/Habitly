@@ -93,8 +93,10 @@ fun MonthlyLineChart(
     ) {
         if (data.isEmpty()) return@Canvas
 
-        val textSpace = if (showLabels) 20.dp.toPx() else 0f
-        val graphHeight = size.height - textSpace
+        val topPadding = 40.dp.toPx()
+        val bottomPadding = if (showLabels) 20.dp.toPx() else 0f
+        val usableHeight = size.height - topPadding - bottomPadding
+        val xAxisY = size.height - bottomPadding
         val maxPercentage = 100f
         val horizontalPadding = 10.dp.toPx()
         
@@ -109,13 +111,13 @@ fun MonthlyLineChart(
                 size.width / 2
             }
             
-            val y = graphHeight - (item.percentage / maxPercentage) * graphHeight
+            val y = xAxisY - (item.percentage / maxPercentage) * usableHeight
             
             val point = Offset(x, y)
             
             if (i == 0) {
                 path.moveTo(point.x, point.y)
-                fillPath.moveTo(point.x, graphHeight)
+                fillPath.moveTo(point.x, xAxisY)
                 fillPath.lineTo(point.x, point.y)
             } else {
                  val conX1 = (previousPoint.x + point.x) / 2f
@@ -129,7 +131,7 @@ fun MonthlyLineChart(
             previousPoint = point
         }
         
-        fillPath.lineTo(previousPoint.x, graphHeight)
+        fillPath.lineTo(previousPoint.x, xAxisY)
         fillPath.close()
 
         drawPath(
@@ -139,7 +141,7 @@ fun MonthlyLineChart(
                     lineColor.copy(alpha = 0.3f),
                     Color.Transparent
                 ),
-                endY = graphHeight
+                endY = xAxisY
             )
         )
 
@@ -159,7 +161,7 @@ fun MonthlyLineChart(
                 size.width / 2
             }
             
-            val y = graphHeight - (item.percentage / maxPercentage) * graphHeight
+            val y = xAxisY - (item.percentage / maxPercentage) * usableHeight
             
             // Draw outline for selected point
             if (i == selectedIndex) {
@@ -185,7 +187,7 @@ fun MonthlyLineChart(
                  
                  // Constrain boxX to prevent clipping at edges
                  val boxX = (x - boxWidth / 2).coerceIn(0f, size.width - boxWidth)
-                 val boxY = y - 8.dp.toPx() - boxHeight
+                 val boxY = (y - 8.dp.toPx() - boxHeight).coerceAtLeast(0f)
                  
                  drawRoundRect(
                      color = lineColor,
