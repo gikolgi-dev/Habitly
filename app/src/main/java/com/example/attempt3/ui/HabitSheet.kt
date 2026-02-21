@@ -389,7 +389,7 @@ fun HabitSheetContent(
                                     .animateContentSize()
                                    .fillMaxSize(if (isSelected) 0.6f else 0f)
                                     .clip(RoundedCornerShape(4.dp))
-                                    .background(MaterialTheme.colorScheme.surface)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant)
                             )
                         }
                     }
@@ -438,7 +438,7 @@ fun HabitSheetContent(
                                         modifier = Modifier
                                             .fillMaxSize(0.6f)
                                             .clip(RoundedCornerShape(4.dp))
-                                            .background(MaterialTheme.colorScheme.surface)
+                                            .background(MaterialTheme.colorScheme.surfaceVariant)
                                     )
                                 } else {
                                     val iconTint = if (backgroundForCustomButton.isBright()) Color.Black else Color.White

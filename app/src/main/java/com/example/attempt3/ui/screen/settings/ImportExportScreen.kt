@@ -273,7 +273,7 @@ fun ImportExportScreen(db: HabitDatabase) {
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(8.dp))
-                .background(color = MaterialTheme.colorScheme.surface)
+                .background(color = MaterialTheme.colorScheme.surfaceVariant)
                 .border(
                     1.dp,
                     MaterialTheme.colorScheme.outline.copy(alpha = bordersAlpha),
@@ -304,7 +304,7 @@ fun ImportExportScreen(db: HabitDatabase) {
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(8.dp))
-                .background(color = MaterialTheme.colorScheme.surface)
+                .background(color = MaterialTheme.colorScheme.surfaceVariant)
                 .border(
                     1.dp,
                     MaterialTheme.colorScheme.outline.copy(alpha = bordersAlpha),

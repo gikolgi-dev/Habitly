@@ -18,7 +18,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
@@ -57,7 +56,7 @@ fun Attempt3Theme(
             )
         }
         baseColorScheme.copy(
-            background = lerp(
+            /*background = lerp(
                 start = Color(0xFF111111),
                 stop = baseColorScheme.primaryContainer,
                 fraction = appearanceTint
@@ -68,7 +67,7 @@ fun Attempt3Theme(
                 fraction = appearanceTint
             ),
             onSurface = Color(0xFFE7E7EA),
-            onBackground = Color(0xFFE7E7EA)
+            onBackground = Color(0xFFE7E7EA)*/
         )
     } else {
         val baseColorScheme = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -88,7 +87,7 @@ fun Attempt3Theme(
             )
         }
         baseColorScheme.copy(
-            background = lerp(
+            /*background = lerp(
                 start = Color(0xFFFFFFFF),
                 stop = baseColorScheme.primaryContainer,
                 fraction = appearanceTint
@@ -99,7 +98,7 @@ fun Attempt3Theme(
                 fraction = appearanceTint
             ),
             onSurface = Color(0xFF121216),
-            onBackground = Color(0xFF121216)
+            onBackground = Color(0xFF121216)*/
         )
     }
 

@@ -78,7 +78,7 @@ fun SettingsGroup(
                     Color.Gray.copy(alpha = borderContrast),
                     RoundedCornerShape(8.dp)
                 )
-                .background(MaterialTheme.colorScheme.surface)
+                .background(MaterialTheme.colorScheme.surfaceVariant)
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 content()
@@ -269,7 +269,7 @@ fun ModernSettingsItem(
             Color.Gray.copy(alpha = borderContrast)
         ),
         shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Row(
             modifier = Modifier.padding(16.dp),

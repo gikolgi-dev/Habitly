@@ -26,7 +26,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -102,100 +101,97 @@ fun ArchiveScreen(uiState: HabitsUiState, habitDao: HabitDao, onBack: () -> Unit
                 }
             },
             dismissButton = null,
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     }
 
-    Surface(
+    Scaffold(
         modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
-        Scaffold(
-            topBar = {
-                CenterAlignedTopAppBar(
-                    title = { Text("Archived Habits", fontWeight = FontWeight.SemiBold) },
-                    actions = {
-                        IconButton(onClick = {
-                            if (vibrationsEnabled) {
-                                haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
-                            }
-                            onBack()
-                        }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(32.dp))
+        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text("Archived Habits", fontWeight = FontWeight.SemiBold) },
+                actions = {
+                    IconButton(onClick = {
+                        if (vibrationsEnabled) {
+                            haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
                         }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent,
-                        scrolledContainerColor = MaterialTheme.colorScheme.background
-                    )
+                        onBack()
+                    }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(32.dp))
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceVariant
                 )
-            },
-            content = { paddingValues ->
-                Box(modifier = Modifier.padding(paddingValues)) {
-                    AnimatedVisibility(
-                        visible = uiState is HabitsUiState.Success,
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        val habitsWithCompletions = (uiState as? HabitsUiState.Success)?.habits ?: emptyList()
+            )
+        },
+        content = { paddingValues ->
+            Box(modifier = Modifier.padding(paddingValues)) {
+                AnimatedVisibility(
+                    visible = uiState is HabitsUiState.Success,
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    val habitsWithCompletions = (uiState as? HabitsUiState.Success)?.habits ?: emptyList()
 
-                        if (habitsWithCompletions.isEmpty()) {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text("No archived habits.")
-                            }
-                        } else {
-                            val lazyListState = rememberLazyListState()
+                    if (habitsWithCompletions.isEmpty()) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("No archived habits.")
+                        }
+                    } else {
+                        val lazyListState = rememberLazyListState()
 
-                            // Add haptic feedback when scrolling between habits
-                            LaunchedEffect(lazyListState) {
-                                snapshotFlow { lazyListState.firstVisibleItemIndex }.collect {
-                                    if (vibrationsEnabled && habitsWithCompletions.isNotEmpty()) {
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    }
+                        // Add haptic feedback when scrolling between habits
+                        LaunchedEffect(lazyListState) {
+                            snapshotFlow { lazyListState.firstVisibleItemIndex }.collect {
+                                if (vibrationsEnabled && habitsWithCompletions.isNotEmpty()) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 }
                             }
+                        }
 
-                            LazyColumn(
-                                state = lazyListState,
-                                modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(bottom = 80.dp),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                items(habitsWithCompletions, key = { it.habit.id }) { habitWithCompletions ->
-                                    HabitItemCard(
-                                        habit = habitWithCompletions.habit,
-                                        isCompleted = false, // Not relevant for archived habits
-                                        completions = habitWithCompletions.completions,
-                                        showCheckbox = false,
-                                        showMonthLabels = showMonthLabels,
-                                        visibleDayLabels = heatmapVisibleDays,
-                                        dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight,
-                                        showYearDivider = showYearDivider,
-                                        showYearLabels = showYearLabels,
-                                        borderContrast = borderContrast,
-                                        onComplete = { },
-                                        onClick = { },
-                                        onUnarchive = {
-                                            scope.launch {
-                                                habitDao.updateHabit(
-                                                    habitWithCompletions.habit.copy(
-                                                        archived = false
-                                                    )
+                        LazyColumn(
+                            state = lazyListState,
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(bottom = 80.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(habitsWithCompletions, key = { it.habit.id }) { habitWithCompletions ->
+                                HabitItemCard(
+                                    habit = habitWithCompletions.habit,
+                                    isCompleted = false, // Not relevant for archived habits
+                                    completions = habitWithCompletions.completions,
+                                    showCheckbox = false,
+                                    showMonthLabels = showMonthLabels,
+                                    visibleDayLabels = heatmapVisibleDays,
+                                    dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight,
+                                    showYearDivider = showYearDivider,
+                                    showYearLabels = showYearLabels,
+                                    borderContrast = borderContrast,
+                                    onComplete = { },
+                                    onClick = { },
+                                    onUnarchive = {
+                                        scope.launch {
+                                            habitDao.updateHabit(
+                                                habitWithCompletions.habit.copy(
+                                                    archived = false
                                                 )
-                                            }
-                                        },
-                                        onDelete = {
-                                            habitToDelete = habitWithCompletions.habit
+                                            )
                                         }
-                                    )
-                                }
+                                    },
+                                    onDelete = {
+                                        habitToDelete = habitWithCompletions.habit
+                                    }
+                                )
                             }
                         }
                     }
                 }
             }
-        )
-    }
+        }
+    )
 }

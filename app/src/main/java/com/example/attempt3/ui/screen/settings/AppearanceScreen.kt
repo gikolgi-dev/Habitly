@@ -70,7 +70,7 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
         ) {
             Surface(
                 shape = RoundedCornerShape(28.dp),
-                color = MaterialTheme.colorScheme.surface,
+                color = MaterialTheme.colorScheme.surfaceVariant,
                 tonalElevation = 6.dp
             ) {
                 Column(

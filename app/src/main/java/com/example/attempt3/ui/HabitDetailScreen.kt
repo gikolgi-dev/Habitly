@@ -129,7 +129,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                 }
             },
             dismissButton = null,
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     }
 
@@ -155,7 +155,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                 ) {/* Prevents click from dismissing the dialog if clicked inside the card */ },
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
             ),
             border = BorderStroke(
                 1.dp,

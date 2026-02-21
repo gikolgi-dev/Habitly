@@ -214,7 +214,7 @@ fun ReorderHabitItem(habit: Habit, borderContrast: Float, modifier: Modifier = M
             .padding(horizontal = 12.dp, vertical = 4.dp),
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
         ),
         border = BorderStroke(1.dp, Color.Gray.copy(alpha = borderContrast))
     ) {

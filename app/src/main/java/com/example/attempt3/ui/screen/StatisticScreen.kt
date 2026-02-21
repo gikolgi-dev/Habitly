@@ -88,7 +88,7 @@ fun StatisticScreen(
         }
     }
 
-    val surfaceColor = MaterialTheme.colorScheme.surface
+    val surfaceColor = MaterialTheme.colorScheme.surfaceVariant
     val primaryColor = MaterialTheme.colorScheme.primary
 
     val currentHabitColor by remember(habits, actualCount, primaryColor) {
