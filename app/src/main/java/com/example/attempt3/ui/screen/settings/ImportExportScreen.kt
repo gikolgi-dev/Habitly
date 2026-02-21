@@ -22,9 +22,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.FileUpload
@@ -264,16 +262,16 @@ fun ImportExportScreen(db: HabitDatabase) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp),
+            .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
 
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .weight(1f)
                 .clip(RoundedCornerShape(8.dp))
-                .background(color = MaterialTheme.colorScheme.surfaceVariant)
+                .background(color = MaterialTheme.colorScheme.surface)
                 .border(
                     1.dp,
                     MaterialTheme.colorScheme.outline.copy(alpha = bordersAlpha),
@@ -303,8 +301,9 @@ fun ImportExportScreen(db: HabitDatabase) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .weight(1f)
                 .clip(RoundedCornerShape(8.dp))
-                .background(color = MaterialTheme.colorScheme.surfaceVariant)
+                .background(color = MaterialTheme.colorScheme.surface)
                 .border(
                     1.dp,
                     MaterialTheme.colorScheme.outline.copy(alpha = bordersAlpha),
@@ -535,6 +534,5 @@ fun ImportExportScreen(db: HabitDatabase) {
                 }
             }
         }
-        Spacer(modifier = Modifier.height(16.dp))
     }
 }
