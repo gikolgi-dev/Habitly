@@ -126,11 +126,12 @@ fun SettingsSwitchItem(
     checked: Boolean,
     settingsDataStore: SettingsDataStore,
     modifier: Modifier = Modifier,
+    description: String? = null,
     position: SettingsItemPosition = SettingsItemPosition.Alone,
     showDivider: Boolean = false,
     onCheckedChange: (Boolean) -> Unit
 ) {
-    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 46.dp) {
+    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 48.dp) {
         SettingsItemBox(settingsDataStore = settingsDataStore, position = position, modifier = modifier) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Row(
@@ -140,23 +141,32 @@ fun SettingsSwitchItem(
                             selected = checked,
                             onClick = { onCheckedChange(!checked) }
                         )
-                        .padding(horizontal = 4.dp, vertical = 2.dp),
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = text,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        description?.let {
+                            Text(
+                                text = it,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                     Switch(
                         checked = checked,
                         onCheckedChange = { onCheckedChange(it) },
                         modifier = Modifier.padding(start = 16.dp)
                     )
-                    Text(
-                        text = text,
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.padding(start = 16.dp)
-                    )
                 }
                 if (showDivider) {
                     HorizontalDivider(
-                        modifier = Modifier.padding(start = 84.dp, end = 16.dp),
+                        modifier = Modifier.padding(start = 16.dp, end = 16.dp),
                         thickness = 0.5.dp,
                         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                     )

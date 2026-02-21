@@ -206,10 +206,12 @@ fun HeatmapSection(
 
     SettingsGroup(title = "Heatmap", settingsDataStore = settingsDataStore) {
         SettingsSwitchItem(
-            text = "Toggle month labels",
+            text = "Month labels",
+            description = "Show the names of months above the heatmap",
             checked = showMonthLabels,
             settingsDataStore = settingsDataStore,
-            position = SettingsItemPosition.Top
+            position = SettingsItemPosition.Top,
+            showDivider = true
         ) {
             scope.launch { settingsDataStore.setMonthLabels(it) }
             if (vibrationsEnabled) {
@@ -218,10 +220,12 @@ fun HeatmapSection(
         }
 
         SettingsSwitchItem(
-            text = "Toggle year divider",
+            text = "Year divider",
+            description = "Add a visual gap between different years",
             checked = showYearDivider,
             settingsDataStore = settingsDataStore,
-            position = SettingsItemPosition.Middle
+            position = SettingsItemPosition.Middle,
+            showDivider = true
         ) {
             scope.launch { settingsDataStore.setYearDivider(it) }
             if (vibrationsEnabled) {
@@ -230,7 +234,8 @@ fun HeatmapSection(
         }
 
         SettingsSwitchItem(
-            text = "Toggle year labels",
+            text = "Year labels",
+            description = "Display the year next to the heatmap",
             checked = showYearLabels,
             settingsDataStore = settingsDataStore,
             position = SettingsItemPosition.Middle
@@ -357,7 +362,8 @@ fun AccessibilitySection(
         }
         
         SettingsSwitchItem(
-            text = "Toggle scroll blur",
+            text = "Scroll blur",
+            description = "Apply a blur effect to the top and bottom of scrolling lists",
             checked = showScrollBlur,
             settingsDataStore = settingsDataStore,
             position = if (showScrollBlur) SettingsItemPosition.Middle else SettingsItemPosition.Bottom

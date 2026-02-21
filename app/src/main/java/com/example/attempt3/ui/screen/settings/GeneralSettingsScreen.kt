@@ -45,10 +45,12 @@ fun GeneralSettingsScreen(
             settingsDataStore = settingsDataStore
         ) {
             SettingsSwitchItem(
-                text = "Enable vibrations",
+                text = "Haptic feedback",
+                description = "Enable subtle vibrations for interactions",
                 checked = vibrationsEnabled,
                 settingsDataStore = settingsDataStore,
-                position = SettingsItemPosition.Top
+                position = SettingsItemPosition.Top,
+                showDivider = true
             ) {
                 scope.launch {
                     settingsDataStore.setVibrations(it)
@@ -56,10 +58,12 @@ fun GeneralSettingsScreen(
                 haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
             }
             SettingsSwitchItem(
-                text = "Show welcome card",
+                text = "Welcome card",
+                description = "Show the greeting card on the home screen",
                 checked = heroCardVisible,
                 settingsDataStore = settingsDataStore,
-                position = SettingsItemPosition.Middle
+                position = SettingsItemPosition.Middle,
+                showDivider = true
             ) {
                 scope.launch {
                     settingsDataStore.setHeroCardVisible(it)
@@ -67,7 +71,8 @@ fun GeneralSettingsScreen(
                 haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
             }
             SettingsSwitchItem(
-                text = "Enable heatmap scrolling",
+                text = "Heatmap scrolling",
+                description = "Allow horizontal scrolling on the main heatmap",
                 checked = heatmapScrolling,
                 settingsDataStore = settingsDataStore,
                 position = SettingsItemPosition.Middle
