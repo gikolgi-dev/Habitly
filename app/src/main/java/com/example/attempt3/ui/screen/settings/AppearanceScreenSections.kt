@@ -362,7 +362,7 @@ fun AccessibilitySection(
             enter = expandVertically() + fadeIn(),
             exit = shrinkVertically() + fadeOut()
         ) {
-            Column {
+            Column(modifier = Modifier.padding(bottom = 6.dp)) {
                 val targets = listOf("Heatmap", "Line Chart")
                 targets.forEach { target ->
                     SettingsChildCheckboxItem(

@@ -9,9 +9,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -163,19 +166,28 @@ fun SettingsChildCheckboxItem(
         Row(
             modifier = modifier
                 .fillMaxWidth()
+                .height(IntrinsicSize.Min)
                 .selectable(
                     selected = checked,
                     enabled = enabled,
                     onClick = { onCheckedChange(!checked) }
                 )
-                .padding(horizontal = 4.dp, vertical = 1.dp),
+                .padding(horizontal = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Indent and vertical line to indicate child status, aligned under the left side of the switch above
+            Spacer(modifier = Modifier.width(16.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .width(1.5.dp)
+                    .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+            )
             Checkbox(
                 checked = checked,
                 onCheckedChange = { if (enabled) onCheckedChange(it) },
                 enabled = enabled,
-                modifier = Modifier.padding(start = 16.dp)
+                modifier = Modifier.padding(start = 12.dp, top = 2.dp, bottom = 2.dp)
             )
             Text(
                 text = text,
