@@ -1,4 +1,4 @@
-# Habit Tracker
+# Habitly
 
 A simple and modern app to help you build and maintain good habits. Track your daily progress, visualize your consistency with heatmaps, and set reminders to stay on track.
 
