@@ -59,6 +59,8 @@ fun ThemeSection(
         title = "Theme",
         settingsDataStore = settingsDataStore,
         modifier = Modifier.combinedClickable(
+            interactionSource = remember { MutableInteractionSource() },
+            indication = null,
             onLongClick = {
                 scope.launch {
                     settingsDataStore.setShowTintDialog(true)
