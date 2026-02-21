@@ -244,7 +244,7 @@ fun HabitSheetContent(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Interval", style = MaterialTheme.typography.headlineSmall)
+                Text("Streak interval", style = MaterialTheme.typography.headlineSmall)
                 Spacer(modifier = Modifier.height(8.dp))
                 AnimatedVisibility(
                     visible = intervalUnit != "day",
