@@ -99,7 +99,7 @@ fun SharedTransitionScope.HabitDetailScreen(
 
     if (showDeleteConfirmation) {
         AlertDialog(
-            onDismissRequest = { showDeleteConfirmation = false },
+            onDismissRequest = { },
             title = { Text("Are you sure?") },
             text = { Text("Are you sure you want to delete this habit? This action cannot be undone.") },
             confirmButton = {
@@ -109,7 +109,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     OutlinedButton(
-                        onClick = { showDeleteConfirmation = false },
+                        onClick = { },
                         shape = CircleShape,
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface)

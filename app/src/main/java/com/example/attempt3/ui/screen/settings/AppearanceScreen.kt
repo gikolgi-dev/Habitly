@@ -66,7 +66,7 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
 
     if (showTintDialogState) {
         BasicAlertDialog(
-            onDismissRequest = { showTintDialogState = false }
+            onDismissRequest = { }
         ) {
             Surface(
                 shape = RoundedCornerShape(28.dp),
@@ -117,7 +117,7 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         OutlinedButton(
-                            onClick = { showTintDialogState = false },
+                            onClick = { },
                             shape = CircleShape,
                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface)
@@ -132,7 +132,6 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
                                         settingsDataStore.setShowTintDialog(false)
                                     }
                                 }
-                                showTintDialogState = false
                             },
                             shape = CircleShape
                         ) {
@@ -162,7 +161,6 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
                 haptic = haptic,
                 onShowTintDialog = { newValue ->
                     pendingTintValue = newValue
-                    showTintDialogState = true
                 }
             )
 

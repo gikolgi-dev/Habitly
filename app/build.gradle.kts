@@ -88,9 +88,6 @@ dependencies {
     // DataStore
     implementation("androidx.datastore:datastore-preferences:1.1.1")
 
-    // Accompanist
-    implementation("com.google.accompanist:accompanist-systemuicontroller:0.36.0")
-
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

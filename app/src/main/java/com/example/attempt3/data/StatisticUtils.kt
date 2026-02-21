@@ -214,7 +214,7 @@ private fun calculatePeriodStreak(habit: Habit, completedDays: Set<Long>, calend
         }
         
         val target = habit.completionsPerInterval
-        val isCurrentPeriod = (now >= startOfPeriod && now <= endOfPeriod)
+        val isCurrentPeriod = (now in startOfPeriod..endOfPeriod)
         
         if (isCurrentPeriod) {
              val diff = now - startOfPeriod

@@ -26,6 +26,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.toShape
@@ -288,6 +291,27 @@ fun ModernSettingsItem(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun SettingsSegmentedSelector(
+    options: List<String>,
+    selectedIndex: Int,
+    onSelectionChange: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    SingleChoiceSegmentedButtonRow(
+        modifier = modifier.fillMaxWidth()
+    ) {
+        options.forEachIndexed { index, label ->
+            SegmentedButton(
+                shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
+                onClick = { onSelectionChange(index) },
+                selected = index == selectedIndex,
+                label = { Text(label) }
+            )
         }
     }
 }
