@@ -27,7 +27,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -67,143 +66,140 @@ fun ReorderScreen(habitViewModel: HabitViewModel, onBack: () -> Unit, settingsDa
     val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
     val haptic = LocalHapticFeedback.current
 
-    Surface(
+    Scaffold(
         modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
-        Scaffold(
-            topBar = {
-                CenterAlignedTopAppBar(
-                    title = { Text("Reorder Habits", fontWeight = FontWeight.SemiBold) },
-                    actions = {
-                        IconButton(onClick = {
-                            if (vibrationsEnabled) {
-                                haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
-                            }
-                            onBack()
-                        }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Back", modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onBackground)
+        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text("Reorder Habits", fontWeight = FontWeight.SemiBold) },
+                actions = {
+                    IconButton(onClick = {
+                        if (vibrationsEnabled) {
+                            haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
                         }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent,
-                        scrolledContainerColor = MaterialTheme.colorScheme.background
-                    )
+                        onBack()
+                    }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Back", modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onBackground)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceVariant
                 )
-            },
-            content = { paddingValues ->
-                Box(modifier = Modifier.padding(paddingValues)) {
-                    when (val state = habitsUiState) {
-                        is HabitsUiState.Loading -> {
-                            Text("Loading...")
-                        }
-                        is HabitsUiState.Success -> {
-                            var habits by remember(state.habits) { mutableStateOf(state.habits.map { it.habit }) }
-                            var draggedItemIndex by remember { mutableStateOf<Int?>(null) }
-                            var verticalDragOffset by remember { mutableFloatStateOf(0f) }
-                            val itemHeightDp = 88.dp
-                            val itemHeightPx = with(LocalDensity.current) { itemHeightDp.toPx() }
-                            
-                            val viewConfiguration = LocalViewConfiguration.current
-                            val shortPressViewConfiguration = remember(viewConfiguration) {
-                                object : ViewConfiguration {
-                                    override val longPressTimeoutMillis: Long = 50L // Default is 500L
-                                    override val doubleTapTimeoutMillis: Long = viewConfiguration.doubleTapTimeoutMillis
-                                    override val doubleTapMinTimeMillis: Long = viewConfiguration.doubleTapMinTimeMillis
-                                    override val touchSlop: Float = viewConfiguration.touchSlop
-                                }
+            )
+        },
+        content = { paddingValues ->
+            Box(modifier = Modifier.padding(paddingValues)) {
+                when (val state = habitsUiState) {
+                    is HabitsUiState.Loading -> {
+                        Text("Loading...")
+                    }
+                    is HabitsUiState.Success -> {
+                        var habits by remember(state.habits) { mutableStateOf(state.habits.map { it.habit }) }
+                        var draggedItemIndex by remember { mutableStateOf<Int?>(null) }
+                        var verticalDragOffset by remember { mutableFloatStateOf(0f) }
+                        val itemHeightDp = 88.dp
+                        val itemHeightPx = with(LocalDensity.current) { itemHeightDp.toPx() }
+                        
+                        val viewConfiguration = LocalViewConfiguration.current
+                        val shortPressViewConfiguration = remember(viewConfiguration) {
+                            object : ViewConfiguration {
+                                override val longPressTimeoutMillis: Long = 50L // Default is 500L
+                                override val doubleTapTimeoutMillis: Long = viewConfiguration.doubleTapTimeoutMillis
+                                override val doubleTapMinTimeMillis: Long = viewConfiguration.doubleTapMinTimeMillis
+                                override val touchSlop: Float = viewConfiguration.touchSlop
                             }
+                        }
 
-                            CompositionLocalProvider(LocalViewConfiguration provides shortPressViewConfiguration) {
-                                LazyColumn(
-                                    modifier = Modifier.padding(vertical = 8.dp),
-                                    userScrollEnabled = draggedItemIndex == null
-                                ) {
-                                    itemsIndexed(habits, key = { _, habit -> habit.id }) { index, habit ->
-                                        val isBeingDragged = index == draggedItemIndex
-                                        val displacement = if (isBeingDragged) verticalDragOffset else 0f
-                                        val latestIndex by rememberUpdatedState(index)
+                        CompositionLocalProvider(LocalViewConfiguration provides shortPressViewConfiguration) {
+                            LazyColumn(
+                                modifier = Modifier.padding(vertical = 8.dp),
+                                userScrollEnabled = draggedItemIndex == null
+                            ) {
+                                itemsIndexed(habits, key = { _, habit -> habit.id }) { index, habit ->
+                                    val isBeingDragged = index == draggedItemIndex
+                                    val displacement = if (isBeingDragged) verticalDragOffset else 0f
+                                    val latestIndex by rememberUpdatedState(index)
 
-                                        ReorderHabitItem(
-                                            habit = habit,
-                                            borderContrast = borderContrast,
-                                            modifier = Modifier
-                                                .graphicsLayer {
-                                                    translationY = displacement
-                                                    shadowElevation = if (isBeingDragged) 8.dp.toPx() else 0f
-                                                }
-                                                .pointerInput(habit) {
-                                                    detectDragGesturesAfterLongPress(
-                                                        onDragStart = {
-                                                            draggedItemIndex = latestIndex
+                                    ReorderHabitItem(
+                                        habit = habit,
+                                        borderContrast = borderContrast,
+                                        modifier = Modifier
+                                            .graphicsLayer {
+                                                translationY = displacement
+                                                shadowElevation = if (isBeingDragged) 8.dp.toPx() else 0f
+                                            }
+                                            .pointerInput(habit) {
+                                                detectDragGesturesAfterLongPress(
+                                                    onDragStart = {
+                                                        draggedItemIndex = latestIndex
+                                                        if (vibrationsEnabled) {
+                                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                        }
+                                                    },
+                                                    onDragEnd = {
+                                                        draggedItemIndex?.let {
+                                                            val reorderedHabits = habits.mapIndexed { newIndex, h ->
+                                                                h.copy(orderIndex = newIndex)
+                                                            }
+                                                            habitViewModel.reorderHabits(reorderedHabits)
                                                             if (vibrationsEnabled) {
-                                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                                haptic.performHapticFeedback(HapticFeedbackType.GestureEnd)
                                                             }
-                                                        },
-                                                        onDragEnd = {
-                                                            draggedItemIndex?.let {
-                                                                val reorderedHabits = habits.mapIndexed { newIndex, h ->
-                                                                    h.copy(orderIndex = newIndex)
+                                                        }
+                                                        draggedItemIndex = null
+                                                        verticalDragOffset = 0f
+                                                    },
+                                                    onDragCancel = {
+                                                        draggedItemIndex = null
+                                                        verticalDragOffset = 0f
+                                                    },
+                                                    onDrag = { change, dragAmount ->
+                                                        change.consume()
+                                                        draggedItemIndex?.let {
+                                                            val newOffset = verticalDragOffset + dragAmount.y
+                                                            val topBound = -it * itemHeightPx
+                                                            val bottomBound = (habits.size - 1 - it) * itemHeightPx
+                                                            verticalDragOffset = newOffset.coerceIn(topBound, bottomBound)
+
+                                                            val draggedItem = habits[it]
+                                                            val newIndexDown = (it + 1).coerceAtMost(habits.size - 1)
+                                                            val newIndexUp = (it - 1).coerceAtLeast(0)
+
+                                                            if (verticalDragOffset > itemHeightPx * 0.5f && it != newIndexDown) {
+                                                                habits = habits.toMutableList().apply {
+                                                                    removeAt(it)
+                                                                    add(newIndexDown, draggedItem)
                                                                 }
-                                                                habitViewModel.reorderHabits(reorderedHabits)
+                                                                verticalDragOffset -= itemHeightPx
+                                                                draggedItemIndex = newIndexDown
                                                                 if (vibrationsEnabled) {
-                                                                    haptic.performHapticFeedback(HapticFeedbackType.GestureEnd)
+                                                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                                                 }
-                                                            }
-                                                            draggedItemIndex = null
-                                                            verticalDragOffset = 0f
-                                                        },
-                                                        onDragCancel = {
-                                                            draggedItemIndex = null
-                                                            verticalDragOffset = 0f
-                                                        },
-                                                        onDrag = { change, dragAmount ->
-                                                            change.consume()
-                                                            draggedItemIndex?.let {
-                                                                val newOffset = verticalDragOffset + dragAmount.y
-                                                                val topBound = -it * itemHeightPx
-                                                                val bottomBound = (habits.size - 1 - it) * itemHeightPx
-                                                                verticalDragOffset = newOffset.coerceIn(topBound, bottomBound)
-
-                                                                val draggedItem = habits[it]
-                                                                val newIndexDown = (it + 1).coerceAtMost(habits.size - 1)
-                                                                val newIndexUp = (it - 1).coerceAtLeast(0)
-
-                                                                if (verticalDragOffset > itemHeightPx * 0.5f && it != newIndexDown) {
-                                                                    habits = habits.toMutableList().apply {
-                                                                        removeAt(it)
-                                                                        add(newIndexDown, draggedItem)
-                                                                    }
-                                                                    verticalDragOffset -= itemHeightPx
-                                                                    draggedItemIndex = newIndexDown
-                                                                    if (vibrationsEnabled) {
-                                                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                                    }
-                                                                } else if (verticalDragOffset < -itemHeightPx * 0.5f && it != newIndexUp) {
-                                                                    habits = habits.toMutableList().apply {
-                                                                        removeAt(it)
-                                                                        add(newIndexUp, draggedItem)
-                                                                    }
-                                                                    verticalDragOffset += itemHeightPx
-                                                                    draggedItemIndex = newIndexUp
-                                                                    if (vibrationsEnabled) {
-                                                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                                    }
+                                                            } else if (verticalDragOffset < -itemHeightPx * 0.5f && it != newIndexUp) {
+                                                                habits = habits.toMutableList().apply {
+                                                                    removeAt(it)
+                                                                    add(newIndexUp, draggedItem)
+                                                                }
+                                                                verticalDragOffset += itemHeightPx
+                                                                draggedItemIndex = newIndexUp
+                                                                if (vibrationsEnabled) {
+                                                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                                                 }
                                                             }
                                                         }
-                                                    )
-                                                }
-                                        )
-                                    }
+                                                    }
+                                                )
+                                            }
+                                    )
                                 }
                             }
                         }
                     }
                 }
             }
-        )
-    }
+        }
+    )
 }
 
 @Composable
@@ -214,7 +210,7 @@ fun ReorderHabitItem(habit: Habit, borderContrast: Float, modifier: Modifier = M
             .padding(horizontal = 12.dp, vertical = 4.dp),
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = MaterialTheme.colorScheme.surface
         ),
         border = BorderStroke(1.dp, Color.Gray.copy(alpha = borderContrast))
     ) {

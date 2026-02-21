@@ -45,7 +45,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -408,7 +407,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                 )
             )
         },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.surfaceVariant
     ) { paddingValues ->
         Box(modifier = Modifier
             .padding(paddingValues)
@@ -419,7 +418,10 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                 exit = slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(300)),
                 enter = slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(300))
             ) {
-                LazyColumn {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(top = 8.dp)
+                ) {
                     item {
                         SettingsGroup(settingsDataStore = settingsDataStore) {
                             GroupedSettingsItem(
@@ -427,19 +429,18 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                                 subtitle = "Toggle vibrations",
                                 icon = Icons.Default.Tune,
                                 iconBackgroundColor = MaterialTheme.colorScheme.primaryContainer,
-                                iconColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                iconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                settingsDataStore = settingsDataStore,
+                                position = SettingsItemPosition.Top
                             ) { showGeneralScreen = true }
-                            HorizontalDivider(
-                                color = Color.Gray.copy(0.1f),
-                                modifier = Modifier.fillMaxWidth(0.90f)
-                                    .align(Alignment.CenterHorizontally)
-                            )
                             GroupedSettingsItem(
                                 title = "Appearance",
                                 subtitle = "Change the look and feel of the app",
                                 icon = Icons.Default.Palette,
                                 iconBackgroundColor = MaterialTheme.colorScheme.secondaryContainer,
-                                iconColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                iconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                settingsDataStore = settingsDataStore,
+                                position = SettingsItemPosition.Bottom
                             ) { showAppearanceScreen = true }
                         }
                     }
@@ -449,10 +450,10 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                             subtitle = "Set daily notification completion reminder",
                             icon = Icons.Default.Notifications,
                             iconBackgroundColor = MaterialTheme.colorScheme.tertiary,
-                            onClick = { },
                             iconColor = MaterialTheme.colorScheme.onTertiary,
-                            settingsDataStore = settingsDataStore
-                        )
+                            settingsDataStore = settingsDataStore,
+                            position = SettingsItemPosition.Alone
+                        ) { showNotificationSheet = true }
                     }
                     item {
                         SettingsGroup(settingsDataStore = settingsDataStore) {
@@ -461,19 +462,18 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                                 subtitle = "Import and export habit data",
                                 icon = Icons.Default.ImportExport,
                                 iconBackgroundColor = Color(0xFF73C177).copy(alpha = if (useDarkTheme) 1f else 0.35f),
-                                iconColor = Color(0xFF246D29)
+                                iconColor = Color(0xFF246D29),
+                                settingsDataStore = settingsDataStore,
+                                position = SettingsItemPosition.Top
                             ) { showImportScreen = true }
-                            HorizontalDivider(
-                                color = Color.Gray.copy(0.1f),
-                                modifier = Modifier.fillMaxWidth(0.90f)
-                                    .align(Alignment.CenterHorizontally)
-                            )
                             GroupedSettingsItem(
                                 title = "Clear all data",
                                 subtitle = "Delete all habits and their completions",
                                 icon = Icons.Default.Delete,
                                 iconBackgroundColor = MaterialTheme.colorScheme.errorContainer,
-                                iconColor = MaterialTheme.colorScheme.onErrorContainer
+                                iconColor = MaterialTheme.colorScheme.onErrorContainer,
+                                settingsDataStore = settingsDataStore,
+                                position = SettingsItemPosition.Bottom
                             ) { showConfirmationDialog.value = true }
                         }
                     }

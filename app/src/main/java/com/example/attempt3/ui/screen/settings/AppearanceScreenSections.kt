@@ -3,7 +3,6 @@
 package com.example.attempt3.ui.screen.settings
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -11,6 +10,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -72,117 +72,121 @@ fun ThemeSection(
             onClick = {}
         )
     ) {
-        val themes = listOf("Light", "Dark", "System")
-        themes.forEach { theme ->
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .selectable(
-                        selected = (theme.lowercase() == currentTheme),
-                        onClick = {
-                            scope.launch {
-                                settingsDataStore.setTheme(theme.lowercase())
+        SettingsItemBox(settingsDataStore = settingsDataStore, position = SettingsItemPosition.Alone) {
+            Column {
+                val themes = listOf("Light", "Dark", "System")
+                themes.forEach { theme ->
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .selectable(
+                                selected = (theme.lowercase() == currentTheme),
+                                onClick = {
+                                    scope.launch {
+                                        settingsDataStore.setTheme(theme.lowercase())
+                                    }
+                                    if (vibrationsEnabled) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    }
+                                }
+                            )
+                            .padding(start = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = (theme.lowercase() == currentTheme),
+                            onClick = {
+                                scope.launch {
+                                    settingsDataStore.setTheme(theme.lowercase())
+                                }
+                                if (vibrationsEnabled) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                }
                             }
-                            if (vibrationsEnabled) {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        )
+                        Text(
+                            text = theme,
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.padding(start = 8.dp)
+                        )
+                    }
+                }
+
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    Text(
+                        text = "Set background tint",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Slider(
+                        value = appearanceTint,
+                        onValueChange = { newValue ->
+                            val isFirstTinting = (appearanceTint == 0f && newValue > 0f)
+                            if (isFirstTinting && showTintDialogPref) {
+                                onShowTintDialog(newValue)
+                            } else {
+                                scope.launch {
+                                    settingsDataStore.setAppearanceTint(newValue)
+                                }
+                            }
+                        },
+                        valueRange = 0f..1f,
+                        steps = 19,
+                        interactionSource = tintInteractionSource,
+                        colors = SliderDefaults.colors(
+                            activeTickColor = MaterialTheme.colorScheme.onSurface.copy(alpha = .5f),
+                            inactiveTickColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+                        ),
+                        thumb = {
+                            Layout(
+                                content = {
+                                    if (isTintDragged) {
+                                        Surface(
+                                            shape = RoundedCornerShape(4.dp),
+                                            color = MaterialTheme.colorScheme.primary,
+                                        ) {
+                                            Text(
+                                                text = "%.2f".format(appearanceTint),
+                                                modifier = Modifier.padding(4.dp),
+                                                color = MaterialTheme.colorScheme.onPrimary,
+                                                style = MaterialTheme.typography.bodySmall
+                                            )
+                                        }
+                                    }
+                                    SliderDefaults.Thumb(
+                                        interactionSource = tintInteractionSource,
+                                        colors = SliderDefaults.colors(),
+                                        enabled = true
+                                    )
+                                }
+                            ) { measurables, constraints ->
+                                val thumbPlaceable = measurables.last().measure(constraints)
+                                val indicatorPlaceable = if (isTintDragged) {
+                                    measurables.first().measure(constraints.copy(minWidth = 0, minHeight = 0))
+                                } else {
+                                    null
+                                }
+
+                                layout(thumbPlaceable.width, thumbPlaceable.height) {
+                                    thumbPlaceable.placeRelative(0, 0)
+                                    indicatorPlaceable?.let {
+                                        val indicatorY = (thumbPlaceable.height - it.height) / 2
+                                        val indicatorX = if (appearanceTint > 0.5f) {
+                                            -it.width - 8.dp.roundToPx()
+                                        } else {
+                                            thumbPlaceable.width + 8.dp.roundToPx()
+                                        }
+                                        it.placeRelative(indicatorX, indicatorY)
+                                    }
+                                }
                             }
                         }
                     )
-                    .padding(start = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                RadioButton(
-                    selected = (theme.lowercase() == currentTheme),
-                    onClick = {
-                        scope.launch {
-                            settingsDataStore.setTheme(theme.lowercase())
-                        }
-                        if (vibrationsEnabled) {
-                            haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
-                        }
-                    }
-                )
-                Text(
-                    text = theme,
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.padding(start = 8.dp)
-                )
-            }
-        }
-
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-        ) {
-            Text(
-                text = "Set background tint",
-                style = MaterialTheme.typography.bodyLarge
-            )
-            Slider(
-                value = appearanceTint,
-                onValueChange = { newValue ->
-                    val isFirstTinting = (appearanceTint == 0f && newValue > 0f)
-                    if (isFirstTinting && showTintDialogPref) {
-                        onShowTintDialog(newValue)
-                    } else {
-                        scope.launch {
-                            settingsDataStore.setAppearanceTint(newValue)
-                        }
-                    }
-                },
-                valueRange = 0f..1f,
-                steps = 19,
-                interactionSource = tintInteractionSource,
-                colors = SliderDefaults.colors(
-                    activeTickColor = MaterialTheme.colorScheme.onSurface.copy(alpha = .5f),
-                    inactiveTickColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
-                ),
-                thumb = {
-                    Layout(
-                        content = {
-                            if (isTintDragged) {
-                                Surface(
-                                    shape = RoundedCornerShape(4.dp),
-                                    color = MaterialTheme.colorScheme.primary,
-                                ) {
-                                    Text(
-                                        text = "%.2f".format(appearanceTint),
-                                        modifier = Modifier.padding(4.dp),
-                                        color = MaterialTheme.colorScheme.onPrimary,
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
-                                }
-                            }
-                            SliderDefaults.Thumb(
-                                interactionSource = tintInteractionSource,
-                                colors = SliderDefaults.colors(),
-                                enabled = true
-                            )
-                        }
-                    ) { measurables, constraints ->
-                        val thumbPlaceable = measurables.last().measure(constraints)
-                        val indicatorPlaceable = if (isTintDragged) {
-                            measurables.first().measure(constraints.copy(minWidth = 0, minHeight = 0))
-                        } else {
-                            null
-                        }
-
-                        layout(thumbPlaceable.width, thumbPlaceable.height) {
-                            thumbPlaceable.placeRelative(0, 0)
-                            indicatorPlaceable?.let {
-                                val indicatorY = (thumbPlaceable.height - it.height) / 2
-                                val indicatorX = if (appearanceTint > 0.5f) {
-                                    -it.width - 8.dp.roundToPx()
-                                } else {
-                                    thumbPlaceable.width + 8.dp.roundToPx()
-                                }
-                                it.placeRelative(indicatorX, indicatorY)
-                            }
-                        }
-                    }
                 }
-            )
+            }
         }
     }
 }
@@ -204,59 +208,64 @@ fun HeatmapSection(
         SettingsSwitchItem(
             text = "Toggle month labels",
             checked = showMonthLabels,
-            onCheckedChange = {
-                scope.launch { settingsDataStore.setMonthLabels(it) }
-                if (vibrationsEnabled) {
-                    haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
-                }
+            settingsDataStore = settingsDataStore,
+            position = SettingsItemPosition.Top
+        ) {
+            scope.launch { settingsDataStore.setMonthLabels(it) }
+            if (vibrationsEnabled) {
+                haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
             }
-        )
+        }
 
         SettingsSwitchItem(
             text = "Toggle year divider",
             checked = showYearDivider,
-            onCheckedChange = {
-                scope.launch { settingsDataStore.setYearDivider(it) }
-                if (vibrationsEnabled) {
-                    haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
-                }
+            settingsDataStore = settingsDataStore,
+            position = SettingsItemPosition.Middle
+        ) {
+            scope.launch { settingsDataStore.setYearDivider(it) }
+            if (vibrationsEnabled) {
+                haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
             }
-        )
+        }
 
         SettingsSwitchItem(
             text = "Toggle year labels",
             checked = showYearLabels,
-            onCheckedChange = {
-                scope.launch { settingsDataStore.setYearLabels(it) }
-                if (vibrationsEnabled) {
-                    haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
-                }
+            settingsDataStore = settingsDataStore,
+            position = SettingsItemPosition.Middle
+        ) {
+            scope.launch { settingsDataStore.setYearLabels(it) }
+            if (vibrationsEnabled) {
+                haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
             }
-        )
+        }
 
-        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-            Text(
-                text = "Visible day labels",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = "Toggle which days are shown on the heatmap's side labels.",
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.Gray,
-                modifier = Modifier.padding(bottom = 4.dp)
-            )
-            DayOfWeekSelector(
-                selectedDays = heatmapVisibleDays,
-                onDaySelected = { day ->
-                    val newDays = if (heatmapVisibleDays.contains(day)) heatmapVisibleDays - day else heatmapVisibleDays + day
-                    scope.launch { settingsDataStore.setHeatmapVisibleDays(newDays) }
-                    if (vibrationsEnabled) {
-                        haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
-                    }
-                },
-                borderAlpha = if (borderContrast>0.05f) borderContrast else 0.05f
-            )
+        SettingsItemBox(settingsDataStore = settingsDataStore, position = SettingsItemPosition.Bottom) {
+            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                Text(
+                    text = "Visible day labels",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Toggle which days are shown on the heatmap's side labels.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
+                DayOfWeekSelector(
+                    selectedDays = heatmapVisibleDays,
+                    onDaySelected = { day ->
+                        val newDays = if (heatmapVisibleDays.contains(day)) heatmapVisibleDays - day else heatmapVisibleDays + day
+                        scope.launch { settingsDataStore.setHeatmapVisibleDays(newDays) }
+                        if (vibrationsEnabled) {
+                            haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                        }
+                    },
+                    borderAlpha = if (borderContrast > 0.05f) borderContrast else 0.05f
+                )
+            }
         }
     }
 }
@@ -275,113 +284,116 @@ fun AccessibilitySection(
     val isDragged = interactionSource.collectIsDraggedAsState().value
 
     SettingsGroup(title = "Accessibility", settingsDataStore = settingsDataStore) {
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-        ) {
-            Text(
-                text = "Set border contrast",
-                style = MaterialTheme.typography.bodyLarge
-            )
-            Slider(
-                value = borderContrast,
-                onValueChange = {
-                    scope.launch {
-                        settingsDataStore.setBorders(it)
-                    }
-                },
-                valueRange = 0f..1f,
-                steps = 19,
-                interactionSource = interactionSource,
-                colors = SliderDefaults.colors(
-                    activeTickColor = MaterialTheme.colorScheme.onSurface.copy(alpha = .5f),
-                    inactiveTickColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
-                ),
-                thumb = {
-                    Layout(
-                        content = {
-                            if (isDragged) {
-                                Surface(
-                                    shape = RoundedCornerShape(4.dp),
-                                    color = MaterialTheme.colorScheme.primary,
-                                ) {
-                                    Text(
-                                        text = "%.2f".format(borderContrast),
-                                        modifier = Modifier.padding(4.dp),
-                                        color = MaterialTheme.colorScheme.onPrimary,
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
+        SettingsItemBox(settingsDataStore = settingsDataStore, position = SettingsItemPosition.Top) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text = "Set border contrast",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Slider(
+                    value = borderContrast,
+                    onValueChange = {
+                        scope.launch {
+                            settingsDataStore.setBorders(it)
+                        }
+                    },
+                    valueRange = 0f..1f,
+                    steps = 19,
+                    interactionSource = interactionSource,
+                    colors = SliderDefaults.colors(
+                        activeTickColor = MaterialTheme.colorScheme.onSurface.copy(alpha = .5f),
+                        inactiveTickColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+                    ),
+                    thumb = {
+                        Layout(
+                            content = {
+                                if (isDragged) {
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = MaterialTheme.colorScheme.primary,
+                                    ) {
+                                        Text(
+                                            text = "%.2f".format(borderContrast),
+                                            modifier = Modifier.padding(4.dp),
+                                            color = MaterialTheme.colorScheme.onPrimary,
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
+                                    }
                                 }
+                                SliderDefaults.Thumb(
+                                    interactionSource = interactionSource,
+                                    colors = SliderDefaults.colors(),
+                                    enabled = true
+                                )
                             }
-                            SliderDefaults.Thumb(
-                                interactionSource = interactionSource,
-                                colors = SliderDefaults.colors(),
-                                enabled = true
-                            )
-                        }
-                    ) { measurables, constraints ->
-                        val thumbPlaceable = measurables.last().measure(constraints)
-                        val indicatorPlaceable = if (isDragged) {
-                            measurables.first().measure(constraints.copy(minWidth = 0, minHeight = 0))
-                        } else {
-                            null
-                        }
+                        ) { measurables, constraints ->
+                            val thumbPlaceable = measurables.last().measure(constraints)
+                            val indicatorPlaceable = if (isDragged) {
+                                measurables.first().measure(constraints.copy(minWidth = 0, minHeight = 0))
+                            } else {
+                                null
+                            }
 
-                        layout(thumbPlaceable.width, thumbPlaceable.height) {
-                            thumbPlaceable.placeRelative(0, 0)
-                            indicatorPlaceable?.let {
-                                val indicatorY = (thumbPlaceable.height - it.height) / 2
-                                val indicatorX = if (borderContrast > 0.5f) {
-                                    -it.width - 8.dp.roundToPx()
-                                } else {
-                                    thumbPlaceable.width + 8.dp.roundToPx()
+                            layout(thumbPlaceable.width, thumbPlaceable.height) {
+                                thumbPlaceable.placeRelative(0, 0)
+                                indicatorPlaceable?.let {
+                                    val indicatorY = (thumbPlaceable.height - it.height) / 2
+                                    val indicatorX = if (borderContrast > 0.5f) {
+                                        -it.width - 8.dp.roundToPx()
+                                    } else {
+                                        thumbPlaceable.width + 8.dp.roundToPx()
+                                    }
+                                    it.placeRelative(indicatorX, indicatorY)
                                 }
-                                it.placeRelative(indicatorX, indicatorY)
                             }
                         }
                     }
-                }
-            )
+                )
+            }
         }
-        val switchPadding by animateDpAsState(if(showScrollBlur) 0.dp else 4.dp, label = "switchPadding")
+        
         SettingsSwitchItem(
             text = "Toggle scroll blur",
             checked = showScrollBlur,
-            onCheckedChange = {
-                scope.launch { settingsDataStore.setshowScrollBlur(it) }
-                if (vibrationsEnabled) {
-                    haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
-                }
-            },
-            modifier = Modifier.padding(horizontal = 0.dp, vertical = switchPadding)
-        )
+            settingsDataStore = settingsDataStore,
+            position = if (showScrollBlur) SettingsItemPosition.Middle else SettingsItemPosition.Bottom
+        ) {
+            scope.launch { settingsDataStore.setshowScrollBlur(it) }
+            if (vibrationsEnabled) {
+                haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+            }
+        }
 
         AnimatedVisibility(
             visible = showScrollBlur,
             enter = expandVertically() + fadeIn(),
             exit = shrinkVertically() + fadeOut()
         ) {
-            Column(modifier = Modifier.padding(bottom = 6.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.padding(top = 4.dp)) {
                 val targets = listOf("Heatmap", "Line Chart")
-                targets.forEach { target ->
+                targets.forEachIndexed { index, target ->
                     SettingsChildCheckboxItem(
                         text = target,
                         checked = target in scrollBlurTargets,
-                        onCheckedChange = { isChecked ->
-                            val newTargets = if (isChecked) {
-                                scrollBlurTargets + target
-                            } else {
-                                scrollBlurTargets - target
-                            }
-                            scope.launch {
-                                settingsDataStore.setScrollBlurTargets(newTargets)
-                            }
-                            if (vibrationsEnabled) {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            }
+                        settingsDataStore = settingsDataStore,
+                        position = if (index == targets.size - 1) SettingsItemPosition.Bottom else SettingsItemPosition.Middle
+                    ) { isChecked ->
+                        val newTargets = if (isChecked) {
+                            scrollBlurTargets + target
+                        } else {
+                            scrollBlurTargets - target
                         }
-                    )
+                        scope.launch {
+                            settingsDataStore.setScrollBlurTargets(newTargets)
+                        }
+                        if (vibrationsEnabled) {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        }
+                    }
                 }
             }
         }
