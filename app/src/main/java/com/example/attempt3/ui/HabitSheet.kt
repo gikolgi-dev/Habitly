@@ -203,7 +203,7 @@ fun HabitSheetContent(
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
             colors = cardColors(MaterialTheme.colorScheme.background)
         ) {
-            Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+            Column(modifier = Modifier.padding(horizontal = 12.dp,vertical = 4.dp)) {
                 OutlinedTextField(
                     value = habitName,
                     onValueChange = onHabitNameChanged,
@@ -231,6 +231,7 @@ fun HabitSheetContent(
                         unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                     )
                 )
+                Spacer(modifier = Modifier.height(8.dp))
             }
         }
 
