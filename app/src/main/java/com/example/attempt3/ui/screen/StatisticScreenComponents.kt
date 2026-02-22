@@ -69,6 +69,13 @@ fun HabitStatisticsContent(
     val monthlyStats = remember(habit) {
         calculateMonthlyStats(habit)
     }
+    
+    // Capture theme color outside the remember lambda to avoid @Composable invocation error
+    val onSurface = MaterialTheme.colorScheme.onSurface
+    val displayAccentColor = remember(accentColor, onSurface) {
+        lerp(accentColor, onSurface, 0.3f)
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -81,8 +88,10 @@ fun HabitStatisticsContent(
             modifier = Modifier
                 .fillMaxWidth(0.95f)
                 .wrapContentHeight(),
-            colors = CardDefaults.cardColors(MaterialTheme.colorScheme.background),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = borderContrast))
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+            ),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = borderContrast))
         ) {
             Column(
                 modifier = Modifier
@@ -95,7 +104,7 @@ fun HabitStatisticsContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(IntrinsicSize.Min),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     StatCard(
                         label = "Longest Streak",
@@ -104,16 +113,16 @@ fun HabitStatisticsContent(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight(),
-                        accentColor = lerp(accentColor, MaterialTheme.colorScheme.onSurface, 0.35f),
+                        accentColor = displayAccentColor,
                         borderContrast = borderContrast
                     )
                     StatCard(
-                        label = "Completion Ratio",
+                        label = "Completed Ratio",
                         value = "${stats.completionRatio}%",
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight(),
-                        accentColor = lerp(accentColor, MaterialTheme.colorScheme.onSurface, 0.35f),
+                        accentColor = displayAccentColor,
                         borderContrast = borderContrast
                     )
                 }
@@ -122,24 +131,24 @@ fun HabitStatisticsContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(IntrinsicSize.Min),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     StatCard(
-                        label = "Average Completion Time",
+                        label = "Avg. Completion add Time",
                         value = stats.averageCompletionTime,
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight(),
-                        accentColor = lerp(accentColor, MaterialTheme.colorScheme.onSurface, 0.35f),
+                        accentColor = displayAccentColor,
                         borderContrast = borderContrast
                     )
                     StatCard(
-                        label = "Days Since Habit Creation",
+                        label = "Days since creation",
                         value = "${stats.timeSinceCreation}",
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight(),
-                        accentColor = lerp(accentColor, MaterialTheme.colorScheme.onSurface, 0.35f),
+                        accentColor = displayAccentColor,
                         borderContrast = borderContrast
                     )
                 }
@@ -160,20 +169,20 @@ fun HabitStatisticsContent(
 fun StatCard(
     label: String,
     value: String,
-    secondaryValue: String? = null,
     modifier: Modifier = Modifier,
+    secondaryValue: String? = null,
     accentColor: Color = MaterialTheme.colorScheme.primary,
     borderContrast: Float
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = borderContrast))
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = borderContrast))
     ) {
         Column(
             modifier = Modifier
-                .padding(16.dp)
+                .padding(12.dp)
                 .fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
@@ -181,20 +190,22 @@ fun StatCard(
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.Medium
             )
-            Spacer(modifier = Modifier.size(8.dp))
+            Spacer(modifier = Modifier.size(4.dp))
             Text(
                 text = value,
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = accentColor
             )
             if (secondaryValue != null) {
+                Spacer(modifier = Modifier.size(2.dp))
                 Text(
                     text = secondaryValue,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                 )
             }
         }
@@ -211,24 +222,24 @@ fun PageIndicator(
     Surface(
         modifier = modifier,
         shape = MaterialTheme.shapes.extraLarge,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f),
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        shadowElevation = 2.5.dp,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = borderContrast))
+        shadowElevation = 4.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = borderContrast))
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            habits.forEachIndexed { index, habit ->
+            habits.forEachIndexed { index, _ ->
                 val isSelected = index == currentPage
-                val habitColor = habit.habit.color?.let { Color(it) } ?: MaterialTheme.colorScheme.primary
+                val habitColor = habits[index].habit.color.let { Color(it) }
                 Box(
                     modifier = Modifier
                         .size(if (isSelected) 10.dp else 8.dp)
                         .background(
-                            color = if (isSelected) habitColor else habitColor.copy(alpha = 0.25f),
+                            color = if (isSelected) habitColor else habitColor.copy(alpha = 0.3f),
                             shape = CircleShape
                         )
                 )
@@ -250,9 +261,9 @@ fun MonthlyCompletionGraph(
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = borderContrast))
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = borderContrast))
     ) {
         Column(
             modifier = Modifier
@@ -266,21 +277,24 @@ fun MonthlyCompletionGraph(
             ) {
                 Text(
                     text = "Monthly Completion",
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 IconButton(onClick = { isZoomedOut = !isZoomedOut }) {
                     Icon(
                         imageVector = if (isZoomedOut) Icons.Default.ZoomIn else Icons.Default.ZoomOut,
-                        contentDescription = if (isZoomedOut) "Zoom In" else "Zoom Out"
+                        contentDescription = if (isZoomedOut) "Zoom In" else "Zoom Out",
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             if (stats.isEmpty()) {
-                Text("No data available", style = MaterialTheme.typography.bodyMedium)
+                Box(modifier = Modifier.height(180.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Text("No data available", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             } else {
                 if (isZoomedOut) {
                     MonthlyLineChart(
@@ -304,14 +318,9 @@ fun MonthlyCompletionGraph(
                             .fillMaxWidth()
                             .height(180.dp)
                             .fadingEdge(scrollState, enabled = showScrollBlur)
-                            // Explicitly handle horizontal drags to prevent conflict with HorizontalPager.
-                            // We only consume and handle the drag if the content is actually scrollable.
-                            // draggable provides inertia (fling) support via onDragStopped.
                             .draggable(
                                 state = rememberDraggableState { delta ->
                                     if (scrollState.maxValue > 0) {
-                                        // delta is positive when dragging right.
-                                        // In reverseScrolling=true, dragging right increases the scroll value.
                                         scrollState.dispatchRawDelta(delta)
                                     }
                                 },
@@ -328,7 +337,7 @@ fun MonthlyCompletionGraph(
                             .horizontalScroll(
                                 state = scrollState,
                                 reverseScrolling = true,
-                                enabled = false // Manual handling via draggable above
+                                enabled = false 
                             )
                     ) {
                         MonthlyLineChart(
