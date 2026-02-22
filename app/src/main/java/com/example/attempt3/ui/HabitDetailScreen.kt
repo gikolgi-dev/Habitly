@@ -12,6 +12,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -96,10 +97,18 @@ fun SharedTransitionScope.HabitDetailScreen(
     val streak = remember(habit, completions) { calculateStreak(habit, completions) }
     val useHabitColorForCard by settingsDataStore.useHabitColorForCard.collectAsState(initial = true)
 
+    val theme by settingsDataStore.theme.collectAsState(initial = "system")
+    val useDarkTheme = when (theme) {
+        "light" -> false
+        "dark" -> true
+        else -> isSystemInDarkTheme()
+    }
+    val secondaryContainerAlpha = if (useDarkTheme) 0.25f else 1f
+
     val cardBackgroundColor = if (useHabitColorForCard) {
         lerp(Color(habit.color), MaterialTheme.colorScheme.surface, 0.85f)
     } else {
-        MaterialTheme.colorScheme.surfaceVariant
+        MaterialTheme.colorScheme.surface
     }
 
     val cardBorderColor = if (useHabitColorForCard) {
@@ -200,7 +209,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                         modifier = Modifier
                             .size(48.dp)
                             .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.background.copy(alpha = 0.65f))
+                            .background(MaterialTheme.colorScheme.secondaryContainer.copy(secondaryContainerAlpha))
                             .border(
                                 1.dp,
                                 cardBorderColor,
@@ -253,7 +262,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                             modifier = Modifier
                                 .size(35.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.65f))
+                                .background(MaterialTheme.colorScheme.secondaryContainer.copy(secondaryContainerAlpha))
                                 .border(
                                     1.dp,
                                     cardBorderColor,
@@ -281,7 +290,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                             modifier = Modifier
                                 .size(35.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.65f))
+                                .background(MaterialTheme.colorScheme.secondaryContainer.copy(secondaryContainerAlpha))
                                 .border(
                                     1.dp,
                                     cardBorderColor,
@@ -312,7 +321,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                             modifier = Modifier
                                 .size(35.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.65f))
+                                .background(MaterialTheme.colorScheme.secondaryContainer.copy(secondaryContainerAlpha))
                                 .border(
                                     1.dp,
                                     cardBorderColor,
@@ -345,7 +354,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                             modifier = Modifier
                                 .height(35.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.65f))
+                                .background(MaterialTheme.colorScheme.secondaryContainer.copy(secondaryContainerAlpha))
                                 .border(
                                     1.dp,
                                     cardBorderColor,
