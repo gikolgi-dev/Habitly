@@ -347,85 +347,6 @@ fun SettingsCheckboxItem(
 }
 
 @Composable
-fun SettingsChildCheckboxItemContent(
-    text: String,
-    checked: Boolean,
-    enabled: Boolean = true,
-    showDivider: Boolean = false,
-    onCheckedChange: (Boolean) -> Unit
-) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(IntrinsicSize.Min)
-                .selectable(
-                    selected = checked,
-                    enabled = enabled,
-                    onClick = { onCheckedChange(!checked) }
-                )
-                .padding(horizontal = 4.dp, vertical = 2.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Spacer(modifier = Modifier.width(16.dp))
-            Box(
-                modifier = Modifier
-                    .padding(vertical = 8.dp)
-                    .fillMaxHeight()
-                    .width(1.5.dp)
-                    .background(
-                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
-                        RoundedCornerShape(1.dp)
-                    )
-            )
-            Checkbox(
-                checked = checked,
-                onCheckedChange = { if (enabled) onCheckedChange(it) },
-                enabled = enabled,
-                modifier = Modifier.padding(start = 12.dp)
-            )
-            Text(
-                text = text,
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
-                modifier = Modifier.padding(start = 4.dp)
-            )
-        }
-        if (showDivider) {
-            HorizontalDivider(
-                modifier = Modifier.padding(start = 78.dp, end = 16.dp),
-                thickness = 0.5.dp,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-            )
-        }
-    }
-}
-
-@Composable
-fun SettingsChildCheckboxItem(
-    text: String,
-    checked: Boolean,
-    settingsDataStore: SettingsDataStore,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    position: SettingsItemPosition = SettingsItemPosition.Alone,
-    showDivider: Boolean = false,
-    onCheckedChange: (Boolean) -> Unit
-) {
-    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 40.dp) {
-        SettingsItemBox(settingsDataStore = settingsDataStore, position = position, modifier = modifier) {
-            SettingsChildCheckboxItemContent(
-                text = text,
-                checked = checked,
-                enabled = enabled,
-                showDivider = showDivider,
-                onCheckedChange = onCheckedChange
-            )
-        }
-    }
-}
-
-@Composable
 fun RotatingCookie(
     icon: ImageVector,
     iconBackgroundColor: Color,
@@ -597,7 +518,15 @@ fun SettingsSegmentedSelector(
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
                 onClick = { onSelectionChange(index) },
                 selected = index == selectedIndex,
-                label = { Text(label) }
+                label = { Text(label) },
+                colors = SegmentedButtonDefaults.colors(
+                    activeContainerColor = MaterialTheme.colorScheme.primary,
+                    activeContentColor = MaterialTheme.colorScheme.onPrimary,
+                    activeBorderColor = MaterialTheme.colorScheme.primary,
+                    inactiveContainerColor = MaterialTheme.colorScheme.surface,
+                    inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    inactiveBorderColor = MaterialTheme.colorScheme.outline
+                )
             )
         }
     }

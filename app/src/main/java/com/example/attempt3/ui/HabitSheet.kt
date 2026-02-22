@@ -273,7 +273,15 @@ fun HabitSheetContent(
                         SegmentedButton(
                             selected = intervalUnit == intervalValues[index],
                             onClick = { onIntervalUnitChanged(intervalValues[index]) },
-                            shape = SegmentedButtonDefaults.itemShape(index = index, count = items.size)
+                            shape = SegmentedButtonDefaults.itemShape(index = index, count = items.size),
+                            colors = SegmentedButtonDefaults.colors(
+                                activeContainerColor = MaterialTheme.colorScheme.primary,
+                                activeContentColor = MaterialTheme.colorScheme.onPrimary,
+                                activeBorderColor = MaterialTheme.colorScheme.primary,
+                                inactiveContainerColor = MaterialTheme.colorScheme.surface,
+                                inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                inactiveBorderColor = MaterialTheme.colorScheme.outline
+                            )
                         ) {
                             Text(label)
                         }

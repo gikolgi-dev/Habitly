@@ -292,9 +292,9 @@ class SettingsDataStore(private val context: Context) {
             settings[HEATMAP_SCROLLING_KEY] = false
             settings[SHOW_SCROLL_BLUR_KEY] = true
             settings[SCROLL_BLUR_TARGETS_KEY] = "Line Chart"
-            settings[HEATMAP_VISIBLE_DAYS_KEY] = "MON,TUE,WED,THU,FRI,SAT,SUN"
+            settings[HEATMAP_VISIBLE_DAYS_KEY] = ""
             settings[DISABLE_ANIMATIONS_KEY] = false
-            settings[USE_HABIT_COLOR_FOR_CARD_KEY] = true
+            settings[USE_HABIT_COLOR_FOR_CARD_KEY] = false
         }
     }
 }

@@ -49,8 +49,7 @@ fun GeneralSettingsScreen(
                 description = "Enable subtle vibrations for interactions",
                 checked = vibrationsEnabled,
                 settingsDataStore = settingsDataStore,
-                position = SettingsItemPosition.Top,
-                showDivider = true
+                position = SettingsItemPosition.Top
             ) {
                 scope.launch {
                     settingsDataStore.setVibrations(it)
@@ -62,8 +61,7 @@ fun GeneralSettingsScreen(
                 description = "Show the greeting card on the home screen",
                 checked = heroCardVisible,
                 settingsDataStore = settingsDataStore,
-                position = SettingsItemPosition.Middle,
-                showDivider = true
+                position = SettingsItemPosition.Middle
             ) {
                 scope.launch {
                     settingsDataStore.setHeroCardVisible(it)
@@ -86,12 +84,12 @@ fun GeneralSettingsScreen(
                 Column(
                     Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 12.dp)
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
                 ) {
                     Text(
                         text = "Hour format",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     SettingsSegmentedSelector(

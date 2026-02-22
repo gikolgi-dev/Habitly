@@ -122,8 +122,7 @@ fun HeatmapSection(
             description = "Show the names of months above the heatmap",
             checked = showMonthLabels,
             settingsDataStore = settingsDataStore,
-            position = SettingsItemPosition.Top,
-            showDivider = true
+            position = SettingsItemPosition.Top
         ) {
             scope.launch { settingsDataStore.setMonthLabels(it) }
             if (vibrationsEnabled) {
@@ -136,8 +135,7 @@ fun HeatmapSection(
             description = "Add a visual gap between different years",
             checked = showYearDivider,
             settingsDataStore = settingsDataStore,
-            position = SettingsItemPosition.Middle,
-            showDivider = true
+            position = SettingsItemPosition.Middle
         ) {
             scope.launch { settingsDataStore.setYearDivider(it) }
             if (vibrationsEnabled) {
