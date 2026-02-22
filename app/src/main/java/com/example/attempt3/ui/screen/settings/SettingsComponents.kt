@@ -2,6 +2,12 @@
 
 package com.example.attempt3.ui.screen.settings
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -14,6 +20,7 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -44,9 +51,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.attempt3.data.settings.SettingsDataStore
 
@@ -284,6 +293,53 @@ fun SettingsChildCheckboxItem(
 }
 
 @Composable
+fun RotatingCookie(
+    icon: ImageVector,
+    iconBackgroundColor: Color,
+    iconColor: Color,
+    settingsDataStore: SettingsDataStore,
+    size: Dp = 46.dp,
+    iconSize: Dp = 30.dp,
+    contentDescription: String? = null
+) {
+    val disableAnimations by settingsDataStore.disableAnimations.collectAsState(initial = false)
+    
+    val rotation = if (!disableAnimations) {
+        val infiniteTransition = rememberInfiniteTransition(label = "rotation")
+        val animatedRotation by infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 360f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(30000, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "rotation"
+        )
+        animatedRotation
+    } else {
+        0f
+    }
+
+    Box(
+        modifier = Modifier.size(size),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .rotate(rotation)
+                .background(iconBackgroundColor, MaterialShapes.Cookie12Sided.toShape())
+        )
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = iconColor,
+            modifier = Modifier.size(iconSize)
+        )
+    }
+}
+
+@Composable
 fun GroupedSettingsItem(
     title: String,
     subtitle: String? = null,
@@ -303,19 +359,13 @@ fun GroupedSettingsItem(
                 modifier = Modifier.padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(46.dp)
-                        .background(iconBackgroundColor, MaterialShapes.Cookie12Sided.toShape()),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = title,
-                        tint = iconColor,
-                        modifier = Modifier.size(30.dp)
-                    )
-                }
+                RotatingCookie(
+                    icon = icon,
+                    iconBackgroundColor = iconBackgroundColor,
+                    iconColor = iconColor,
+                    settingsDataStore = settingsDataStore,
+                    contentDescription = title
+                )
                 Spacer(modifier = Modifier.width(16.dp))
                 Column {
                     Text(
@@ -373,19 +423,13 @@ fun ModernSettingsItem(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(46.dp)
-                    .background(iconBackgroundColor, MaterialShapes.Cookie12Sided.toShape()),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = title,
-                    tint = iconColor,
-                    modifier = Modifier.size(30.dp)
-                )
-            }
+            RotatingCookie(
+                icon = icon,
+                iconBackgroundColor = iconBackgroundColor,
+                iconColor = iconColor,
+                settingsDataStore = settingsDataStore,
+                contentDescription = title
+            )
             Spacer(modifier = Modifier.width(12.dp))
             Column {
                 Text(
