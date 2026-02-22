@@ -38,7 +38,7 @@ fun Attempt3Theme(
     }
     val context = LocalContext.current
 
-    val colorScheme = if (isDark) {
+    val baseColorScheme = if (isDark) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             dynamicDarkColorScheme(context)
         } else {
@@ -56,7 +56,7 @@ fun Attempt3Theme(
             )
         }
     } else {
-        val baseColorScheme = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             dynamicLightColorScheme(context)
         } else {
             lightColorScheme(
@@ -72,11 +72,12 @@ fun Attempt3Theme(
                 onError = Color.White
             )
         }
-        baseColorScheme.copy(
-            surface = baseColorScheme.surfaceVariant,
-            surfaceVariant = baseColorScheme.surface
-        )
     }
+
+    val colorScheme = baseColorScheme.copy(
+        surface = baseColorScheme.surfaceVariant,
+        surfaceVariant = baseColorScheme.surface
+    )
 
     val view = LocalView.current
     if (!view.isInEditMode) {

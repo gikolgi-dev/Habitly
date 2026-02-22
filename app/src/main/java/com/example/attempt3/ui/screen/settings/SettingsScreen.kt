@@ -31,7 +31,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ImportExport
 import androidx.compose.material.icons.filled.Notifications
@@ -41,7 +40,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -52,6 +50,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -370,6 +369,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                     if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
                     onDismiss()
                 },
+                settingsDataStore = settingsDataStore,
                 isRoot = true
             ) { paddingValues ->
                 LazyColumn(
@@ -512,6 +512,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                     if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
                     navController.popBackStack()
                 },
+                settingsDataStore = settingsDataStore,
                 actions = {
                     IconButton(onClick = { scope.launch { settingsDataStore.resetToDefault() } }) {
                         Icon(painter = painterResource(id = R.drawable.resetwrench), contentDescription = "Reset Settings", tint = MaterialTheme.colorScheme.onSurface)
@@ -538,7 +539,8 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                 onBack = {
                     if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
                     navController.popBackStack()
-                }
+                },
+                settingsDataStore = settingsDataStore
             ) { paddingValues ->
                 GeneralSettingsScreen(
                     settingsDataStore = settingsDataStore,
@@ -559,7 +561,8 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                 onBack = {
                     if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
                     navController.popBackStack()
-                }
+                },
+                settingsDataStore = settingsDataStore
             ) { paddingValues ->
                 ImportExportScreen(
                     db = db,
@@ -578,7 +581,8 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                 onBack = {
                     if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
                     navController.popBackStack()
-                }
+                },
+                settingsDataStore = settingsDataStore
             ) { paddingValues ->
                 ScrollBlurSubScreen(
                     settingsDataStore = settingsDataStore,
@@ -594,26 +598,27 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
 fun SettingsScaffold(
     title: String,
     onBack: () -> Unit,
+    settingsDataStore: SettingsDataStore,
     isRoot: Boolean = false,
     actions: @Composable RowScope.() -> Unit = {},
     content: @Composable (PaddingValues) -> Unit
 ) {
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text(title, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface) },
+            TopAppBar(
+                title = { 
+                    Text(
+                        text = title, 
+                        fontWeight = FontWeight.SemiBold, 
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(start = 12.dp)
+                    ) 
+                },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = if (isRoot) "Close" else "Back",
-                            modifier = Modifier.size(24.dp),
-                            tint = MaterialTheme.colorScheme.onBackground
-                        )
-                    }
+                    SettingsBackButton(onBack = onBack, settingsDataStore = settingsDataStore, isRoot = isRoot)
                 },
                 actions = actions,
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent,
                     scrolledContainerColor = MaterialTheme.colorScheme.background
                 )

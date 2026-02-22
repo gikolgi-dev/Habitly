@@ -27,8 +27,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -43,6 +45,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.toShape
@@ -252,12 +255,12 @@ fun SettingsSwitchNavigationItem(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(24.dp)
                 )
-                Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.width(6.dp))
                 Box(
                     modifier = Modifier
                         .fillMaxHeight()
-                        .padding(vertical = 12.dp)
-                        .width(1.dp)
+                        .padding(vertical = 16.dp)
+                        .width(0.75.dp)
                         .background(MaterialTheme.colorScheme.onSurfaceVariant)
                 )
 
@@ -294,14 +297,14 @@ fun SettingsCheckboxItemContent(
                     enabled = enabled,
                     onClick = { onCheckedChange(!checked) }
                 )
-                .padding(horizontal = 4.dp, vertical = 2.dp),
+                .padding(all = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Checkbox(
                 checked = checked,
                 onCheckedChange = { if (enabled) onCheckedChange(it) },
                 enabled = enabled,
-                modifier = Modifier.padding(start = 24.dp)
+                modifier = Modifier.padding(start = 6.dp)
             )
             Text(
                 text = text,
@@ -595,6 +598,70 @@ fun SettingsSegmentedSelector(
                 onClick = { onSelectionChange(index) },
                 selected = index == selectedIndex,
                 label = { Text(label) }
+            )
+        }
+    }
+}
+
+@Composable
+fun MainSettingsToggle(
+    text: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        onClick = { onCheckedChange(!checked) },
+        shape = RoundedCornerShape(64.dp),
+        color = MaterialTheme.colorScheme.primaryContainer,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+            Switch(
+                checked = checked,
+                onCheckedChange = onCheckedChange
+            )
+        }
+    }
+}
+
+@Composable
+fun SettingsBackButton(
+    onBack: () -> Unit,
+    settingsDataStore: SettingsDataStore,
+    isRoot: Boolean = false
+) {
+    val borderContrast by settingsDataStore.borders.collectAsState(initial = 0f)
+    
+    Surface(
+        onClick = onBack,
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.outline.copy(alpha = borderContrast)
+        ),
+        modifier = Modifier
+            .padding(start = 12.dp)
+            .size(40.dp)
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = if (isRoot) "Close" else "Back",
+                modifier = Modifier.size(24.dp),
+                tint = MaterialTheme.colorScheme.onSurface
             )
         }
     }
