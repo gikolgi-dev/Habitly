@@ -62,7 +62,8 @@ fun Heatmap(
     dayOfWeekLabelsOnRight: Boolean,
     showYearDivider: Boolean = true,
     showYearLabels: Boolean = true,
-    showScrollBlur: Boolean
+    showScrollBlur: Boolean,
+    minWeeks: Int = 0
 ) {
     // 1. Prepare static configuration
     val dayOfWeekLabels = remember {
@@ -140,10 +141,10 @@ fun Heatmap(
                 minHorizontalSpacing
             }
 
-            val totalWeeks = remember(completions, numWeeksOnScreen, isScrollable) {
+            val totalWeeks = remember(completions, numWeeksOnScreen, isScrollable, minWeeks) {
                 val oldestCompletion = completions.minByOrNull { it.date }
-                if (oldestCompletion == null) {
-                    numWeeksOnScreen
+                val weeksDiff = if (oldestCompletion == null) {
+                    0
                 } else {
                     val oldestCal = Calendar.getInstance().apply {
                         timeInMillis = oldestCompletion.date
@@ -168,9 +169,13 @@ fun Heatmap(
                     }
 
                     val diff = todayCal.timeInMillis - oldestCal.timeInMillis
-                    val weeksDiff = (diff / (1000L * 60 * 60 * 24 * 7)).toInt() + 1
-                    
-                    if (isScrollable) weeksDiff.coerceAtLeast(numWeeksOnScreen) else numWeeksOnScreen
+                    (diff / (1000L * 60 * 60 * 24 * 7)).toInt() + 1
+                }
+                
+                if (isScrollable) {
+                    maxOf(weeksDiff, numWeeksOnScreen, minWeeks)
+                } else {
+                    numWeeksOnScreen
                 }
             }
 

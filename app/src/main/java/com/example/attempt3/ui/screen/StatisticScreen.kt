@@ -50,6 +50,7 @@ fun StatisticScreen(
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
     val showScrollBlur by settingsDataStore.showScrollBlur.collectAsState(initial = true)
     val scrollBlurTargets by settingsDataStore.scrollBlurTargets.collectAsState(initial = setOf("Heatmap", "Line Chart"))
+    val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
     val haptic = LocalHapticFeedback.current
 
     val actualCount = habits.size
@@ -154,7 +155,7 @@ fun StatisticScreen(
     ) { paddingValues ->
         Surface(
             modifier = Modifier.fillMaxSize(),
-            color = backgroundColor
+            color = MaterialTheme.colorScheme.surface
         ) {
             Box(
                 modifier = Modifier
@@ -179,7 +180,8 @@ fun StatisticScreen(
                                 habit = habit,
                                 accentColor = habitColor,
                                 vibrationsEnabled = vibrationsEnabled,
-                                showScrollBlur = showScrollBlur && "Line Chart" in scrollBlurTargets
+                                showScrollBlur = showScrollBlur && "Line Chart" in scrollBlurTargets,
+                                borderContrast = borderContrast
                             )
                         }
                     }
@@ -188,6 +190,7 @@ fun StatisticScreen(
                         PageIndicator(
                             habits = habits,
                             currentPage = pagerState.currentPage % actualCount,
+                            borderContrast = borderContrast,
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
                                 .padding(bottom = 16.dp)

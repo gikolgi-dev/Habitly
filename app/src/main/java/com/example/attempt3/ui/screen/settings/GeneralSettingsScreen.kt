@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -17,7 +16,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
@@ -26,7 +24,8 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun GeneralSettingsScreen(
-    settingsDataStore: SettingsDataStore
+    settingsDataStore: SettingsDataStore,
+    modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
@@ -36,7 +35,7 @@ fun GeneralSettingsScreen(
     val haptic = LocalHapticFeedback.current
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -46,67 +45,67 @@ fun GeneralSettingsScreen(
             settingsDataStore = settingsDataStore
         ) {
             SettingsSwitchItem(
-                text = "Enable vibrations",
+                text = "Haptic feedback",
+                description = "Enable subtle vibrations for interactions",
                 checked = vibrationsEnabled,
-                onCheckedChange = {
-                    scope.launch {
-                        settingsDataStore.setVibrations(it)
-                    }
-                    haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
-                }
-            )
-            HorizontalDivider(
-                color = Color.Gray.copy(0.1f),
-                modifier = Modifier.fillMaxWidth(0.90f).align(Alignment.CenterHorizontally)
-            )
-            SettingsSwitchItem(
-                text = "Show welcome card",
-                checked = heroCardVisible,
-                onCheckedChange = {
-                    scope.launch {
-                        settingsDataStore.setHeroCardVisible(it)
-                    }
-                    haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
-                }
-            )
-            HorizontalDivider(
-                color = Color.Gray.copy(0.1f),
-                modifier = Modifier.fillMaxWidth(0.90f).align(Alignment.CenterHorizontally)
-            )
-            SettingsSwitchItem(
-                text = "Enable heatmap scrolling",
-                checked = heatmapScrolling,
-                onCheckedChange = {
-                    scope.launch {
-                        settingsDataStore.setHeatmapScrolling(it)
-                    }
-                    haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
-                }
-            )
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 12.dp)
+                settingsDataStore = settingsDataStore,
+                position = SettingsItemPosition.Top
             ) {
-                Text(
-                    text = "Hour format",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                SettingsSegmentedSelector(
-                    options = listOf("12-h", "24-h"),
-                    selectedIndex = if (is24Hour) 1 else 0,
-                    onSelectionChange = { index ->
-                        val newValue = index == 1
-                        if (is24Hour != newValue) {
-                            scope.launch {
-                                settingsDataStore.setIs24Hour(newValue)
+                scope.launch {
+                    settingsDataStore.setVibrations(it)
+                }
+                haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+            }
+            SettingsSwitchItem(
+                text = "Welcome card",
+                description = "Show the greeting card on the home screen",
+                checked = heroCardVisible,
+                settingsDataStore = settingsDataStore,
+                position = SettingsItemPosition.Middle
+            ) {
+                scope.launch {
+                    settingsDataStore.setHeroCardVisible(it)
+                }
+                haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+            }
+            SettingsSwitchItem(
+                text = "Heatmap scrolling",
+                description = "Allow horizontal scrolling on the main heatmap",
+                checked = heatmapScrolling,
+                settingsDataStore = settingsDataStore,
+                position = SettingsItemPosition.Middle
+            ) {
+                scope.launch {
+                    settingsDataStore.setHeatmapScrolling(it)
+                }
+                haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+            }
+            SettingsItemBox(settingsDataStore = settingsDataStore, position = SettingsItemPosition.Bottom) {
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                ) {
+                    Text(
+                        text = "Hour format",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    SettingsSegmentedSelector(
+                        options = listOf("12-h", "24-h"),
+                        selectedIndex = if (is24Hour) 1 else 0,
+                        onSelectionChange = { index ->
+                            val newValue = index == 1
+                            if (is24Hour != newValue) {
+                                scope.launch {
+                                    settingsDataStore.setIs24Hour(newValue)
+                                }
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             }
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         }
-                    }
-                )
+                    )
+                }
             }
         }
         Spacer(modifier = Modifier.height(16.dp))

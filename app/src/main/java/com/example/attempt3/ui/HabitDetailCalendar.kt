@@ -116,7 +116,8 @@ fun MonthCalendar(
                         )
                     } ${month.get(Calendar.YEAR)}",
                     style = MaterialTheme.typography.titleMedium,
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
 

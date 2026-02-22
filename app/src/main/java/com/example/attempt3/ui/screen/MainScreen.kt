@@ -412,7 +412,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                     floatingActionButtonPosition = FabPosition.End,
                     content = { paddingValues ->
                         Box(modifier = Modifier.fillMaxSize()) {
-                            Surface(modifier = mainContentModifier.fillMaxSize(),color = MaterialTheme.colorScheme.background) {
+                            Surface(modifier = mainContentModifier.fillMaxSize(),color = MaterialTheme.colorScheme.surface) {
                                 Box(modifier = Modifier.fillMaxSize()) {
                                     AnimatedVisibility(
                                         visible = habitsUiState is HabitsUiState.Success && areSettingsLoaded,
@@ -934,7 +934,7 @@ fun HeroCard(greeting: String, description: String, modifier: Modifier = Modifie
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 2.dp),
-        shape = RoundedCornerShape(16.dp),
+        shape = MaterialTheme.shapes.large,
         elevation = CardDefaults.elevatedCardElevation()
     ) {
         Box(

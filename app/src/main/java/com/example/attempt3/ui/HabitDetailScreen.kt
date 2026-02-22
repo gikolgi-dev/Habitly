@@ -12,6 +12,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,7 +33,6 @@ import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -42,11 +42,9 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -57,6 +55,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
@@ -90,12 +89,33 @@ fun SharedTransitionScope.HabitDetailScreen(
     val showMonthLabels by settingsDataStore.monthLabels.collectAsState(initial = false)
     val dayOfWeekLabelsOnRight by settingsDataStore.dayOfWeekLabelsOnRight.collectAsState(initial = false)
     val heatmapVisibleDays by settingsDataStore.heatmapVisibleDays.collectAsState(initial = emptySet())
+    val disableAnimations by settingsDataStore.disableAnimations.collectAsState(initial = false)
     var showDeleteConfirmation by remember { mutableStateOf(false) } // State for delete confirmation dialog
     val habit = habitWithCompletions.habit
     val completions = habitWithCompletions.completions
     val animatedColor by animateColorAsState(targetValue = Color(habit.color), animationSpec = tween(durationMillis = 500))
     val streak = remember(habit, completions) { calculateStreak(habit, completions) }
+    val useHabitColorForCard by settingsDataStore.useHabitColorForCard.collectAsState(initial = true)
 
+    val theme by settingsDataStore.theme.collectAsState(initial = "system")
+    val useDarkTheme = when (theme) {
+        "light" -> false
+        "dark" -> true
+        else -> isSystemInDarkTheme()
+    }
+    val secondaryContainerAlpha = if (useDarkTheme) 0.25f else 1f
+
+    val cardBackgroundColor = if (useHabitColorForCard) {
+        lerp(Color(habit.color), MaterialTheme.colorScheme.surfaceVariant, 0.85f)
+    } else {
+        MaterialTheme.colorScheme.surfaceVariant
+    }
+
+    val cardBorderColor = if (useHabitColorForCard) {
+        lerp(Color(habit.color), lerp(Color(habit.color), MaterialTheme.colorScheme.surfaceVariant, 0.85f), 1f - borderContrast)
+    } else {
+        MaterialTheme.colorScheme.outline.copy(alpha = borderContrast)
+    }
 
     if (showDeleteConfirmation) {
         AlertDialog(
@@ -153,45 +173,30 @@ fun SharedTransitionScope.HabitDetailScreen(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null
                 ) {/* Prevents click from dismissing the dialog if clicked inside the card */ },
-            shape = RoundedCornerShape(16.dp),
+            shape = MaterialTheme.shapes.large,
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
+                containerColor = cardBackgroundColor
             ),
             border = BorderStroke(
                 1.dp,
-                Color.Gray.copy(alpha = borderContrast)
+                cardBorderColor
             ),
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(8.dp)
+                    .padding(10.dp)
                     .verticalScroll(rememberScrollState())
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    val icon = habitIconMap[habit.icon] ?: Icons.Default.Refresh // Fallback icon
-                    Box(
-                        modifier = Modifier
-                            .size(64.dp)
-                            .clip(MaterialShapes.Cookie12Sided.toShape())
-                            .background(animatedColor.copy(alpha = 0.1f))
-                            .border(
-                                1.dp,
-                                animatedColor.copy(alpha = borderContrast),
-                                MaterialShapes.Cookie12Sided.toShape()
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = habit.icon,
-                            modifier = Modifier.size(40.dp),
-                            tint = animatedColor.copy(alpha = 0.85f)
-                        )
-                    }
+                    RotatingHabitIcon(
+                        habit = habit, 
+                        borderContrast = borderContrast,
+                        shouldAnimate = !disableAnimations
+                    )
                     Spacer(modifier = Modifier.size(16.dp))
                     HabitTitleAndDescription(habit = habit, isDetailView = true, modifier = Modifier.weight(1f))
                     Box(
@@ -204,10 +209,10 @@ fun SharedTransitionScope.HabitDetailScreen(
                         modifier = Modifier
                             .size(48.dp)
                             .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.background.copy(alpha = 0.65f))
+                            .background(MaterialTheme.colorScheme.secondaryContainer.copy(secondaryContainerAlpha))
                             .border(
                                 1.dp,
-                                Color.Gray.copy(alpha = borderContrast*2),
+                                cardBorderColor,
                                 RoundedCornerShape(8.dp)
                             )
                             .clickable(
@@ -240,7 +245,8 @@ fun SharedTransitionScope.HabitDetailScreen(
                     dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight,
                     showYearDivider = showYearDivider,
                     showYearLabels = showYearLabels,
-                    showScrollBlur = showScrollBlur
+                    showScrollBlur = showScrollBlur,
+                    minWeeks = 30 // Display a bit more heatmap columns even if they are empty
                 )
 
                 //Spacer(modifier = Modifier.height(4.dp))
@@ -257,10 +263,10 @@ fun SharedTransitionScope.HabitDetailScreen(
                             modifier = Modifier
                                 .size(35.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.65f))
+                                .background(MaterialTheme.colorScheme.secondaryContainer.copy(secondaryContainerAlpha))
                                 .border(
                                     1.dp,
-                                    Color.Gray.copy(alpha = borderContrast*2),
+                                    cardBorderColor,
                                     RoundedCornerShape(8.dp)
                                 )
                                 .clickable {
@@ -285,10 +291,10 @@ fun SharedTransitionScope.HabitDetailScreen(
                             modifier = Modifier
                                 .size(35.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.65f))
+                                .background(MaterialTheme.colorScheme.secondaryContainer.copy(secondaryContainerAlpha))
                                 .border(
                                     1.dp,
-                                    Color.Gray.copy(alpha = borderContrast*2),
+                                    cardBorderColor,
                                     RoundedCornerShape(8.dp)
                                 )
                                 .clickable {
@@ -316,10 +322,10 @@ fun SharedTransitionScope.HabitDetailScreen(
                             modifier = Modifier
                                 .size(35.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.65f))
+                                .background(MaterialTheme.colorScheme.secondaryContainer.copy(secondaryContainerAlpha))
                                 .border(
                                     1.dp,
-                                    Color.Gray.copy(alpha = borderContrast*2),
+                                    cardBorderColor,
                                     RoundedCornerShape(8.dp)
                                 )
                                 .clickable {
@@ -349,10 +355,10 @@ fun SharedTransitionScope.HabitDetailScreen(
                             modifier = Modifier
                                 .height(35.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.65f))
+                                .background(MaterialTheme.colorScheme.secondaryContainer.copy(secondaryContainerAlpha))
                                 .border(
                                     1.dp,
-                                    Color.Gray.copy(alpha = borderContrast * 2),
+                                    cardBorderColor,
                                     RoundedCornerShape(8.dp)
                                 ),
                             contentAlignment = Alignment.Center
@@ -382,7 +388,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.Center
                             ) {
-                                Text("$streak")
+                                Text("$streak", color = MaterialTheme.colorScheme.onSurface)
                                 Spacer(modifier = Modifier.size(2.dp))
                                 Icon(
                                     imageVector = Icons.Default.LocalFireDepartment,
