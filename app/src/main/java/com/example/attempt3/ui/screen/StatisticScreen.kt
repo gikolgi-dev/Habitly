@@ -89,7 +89,7 @@ fun StatisticScreen(
         }
     }
 
-    val surfaceColor = MaterialTheme.colorScheme.surfaceVariant
+    val surfaceColor = MaterialTheme.colorScheme.surface
     val primaryColor = MaterialTheme.colorScheme.primary
 
     val currentHabitColor by remember(habits, actualCount, primaryColor) {
@@ -155,7 +155,7 @@ fun StatisticScreen(
     ) { paddingValues ->
         Surface(
             modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.surfaceVariant
+            color = MaterialTheme.colorScheme.surface
         ) {
             Box(
                 modifier = Modifier

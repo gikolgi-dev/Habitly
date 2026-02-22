@@ -101,13 +101,13 @@ fun ArchiveScreen(uiState: HabitsUiState, habitDao: HabitDao, onBack: () -> Unit
                 }
             },
             dismissButton = null,
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = MaterialTheme.colorScheme.surface
         )
     }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("Archived Habits", fontWeight = FontWeight.SemiBold) },
@@ -123,7 +123,7 @@ fun ArchiveScreen(uiState: HabitsUiState, habitDao: HabitDao, onBack: () -> Unit
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent,
-                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceVariant
+                    scrolledContainerColor = MaterialTheme.colorScheme.surface
                 )
             )
         },

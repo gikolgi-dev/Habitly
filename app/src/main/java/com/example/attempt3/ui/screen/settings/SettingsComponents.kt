@@ -94,7 +94,7 @@ fun SettingsItemBox(
         modifier = modifier
             .fillMaxWidth()
             .clip(shape)
-            .background(MaterialTheme.colorScheme.surface)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
             .border(
                 1.dp,
                 MaterialTheme.colorScheme.outline.copy(alpha = borderContrast),
@@ -550,7 +550,7 @@ fun ModernSettingsItem(
             MaterialTheme.colorScheme.outline.copy(alpha = borderContrast)
         ),
         shape = shape,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
@@ -647,7 +647,7 @@ fun SettingsBackButton(
     Surface(
         onClick = onBack,
         shape = CircleShape,
-        color = MaterialTheme.colorScheme.surface,
+        color = MaterialTheme.colorScheme.surfaceVariant,
         border = BorderStroke(
             width = 1.dp,
             color = MaterialTheme.colorScheme.outline.copy(alpha = borderContrast)

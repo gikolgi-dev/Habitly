@@ -125,7 +125,7 @@ fun CustomTimePickerDialog(
                     Color.Gray.copy(alpha = borderContrast),
                     RoundedCornerShape(8.dp)
                 )
-                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .background(MaterialTheme.colorScheme.surface)
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {

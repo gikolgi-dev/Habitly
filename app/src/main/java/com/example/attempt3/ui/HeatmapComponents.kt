@@ -130,7 +130,7 @@ fun HeatmapWeekColumn(
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurface,
                                     shadow = Shadow(
-                                        color = MaterialTheme.colorScheme.surfaceVariant,
+                                        color = MaterialTheme.colorScheme.surface,
                                         blurRadius = 2f
                                     )
                                 )

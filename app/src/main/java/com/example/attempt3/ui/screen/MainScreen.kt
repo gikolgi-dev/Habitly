@@ -383,7 +383,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 }
             },
             dismissButton = null,
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = MaterialTheme.colorScheme.surface
         )
     }
 
@@ -412,7 +412,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                     floatingActionButtonPosition = FabPosition.End,
                     content = { paddingValues ->
                         Box(modifier = Modifier.fillMaxSize()) {
-                            Surface(modifier = mainContentModifier.fillMaxSize(),color = MaterialTheme.colorScheme.surfaceVariant) {
+                            Surface(modifier = mainContentModifier.fillMaxSize(),color = MaterialTheme.colorScheme.surface) {
                                 Box(modifier = Modifier.fillMaxSize()) {
                                     AnimatedVisibility(
                                         visible = habitsUiState is HabitsUiState.Success && areSettingsLoaded,
@@ -732,7 +732,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                             .offset { IntOffset(0, sheetOffsetY.value.roundToInt()) }
                             .nestedScroll(nestedScrollConnection),
                         shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant
+                        color = MaterialTheme.colorScheme.surface
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Box(

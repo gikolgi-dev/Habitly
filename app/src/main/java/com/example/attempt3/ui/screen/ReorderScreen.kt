@@ -69,7 +69,7 @@ fun ReorderScreen(habitViewModel: HabitViewModel, onBack: () -> Unit, settingsDa
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("Reorder Habits", fontWeight = FontWeight.SemiBold) },
@@ -85,7 +85,7 @@ fun ReorderScreen(habitViewModel: HabitViewModel, onBack: () -> Unit, settingsDa
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent,
-                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceVariant
+                    scrolledContainerColor = MaterialTheme.colorScheme.surface
                 )
             )
         },
@@ -214,13 +214,13 @@ fun ReorderHabitItem(
     modifier: Modifier = Modifier
 ) {
     val cardBackgroundColor = if (useHabitColorForCard) {
-        lerp(Color(habit.color), MaterialTheme.colorScheme.surfaceVariant, 0.85f)
+        lerp(Color(habit.color), MaterialTheme.colorScheme.surface, 0.85f)
     } else {
-        MaterialTheme.colorScheme.surface
+        MaterialTheme.colorScheme.surfaceVariant
     }
 
     val cardBorderColor = if (useHabitColorForCard) {
-        lerp(Color(habit.color), MaterialTheme.colorScheme.surfaceVariant, 1f - borderContrast)
+        lerp(Color(habit.color), MaterialTheme.colorScheme.surface, 1f - borderContrast)
     } else {
         MaterialTheme.colorScheme.outline.copy(alpha = borderContrast)
     }

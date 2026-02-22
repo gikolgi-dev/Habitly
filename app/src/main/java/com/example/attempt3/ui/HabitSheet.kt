@@ -310,7 +310,7 @@ fun HabitSheetContent(
                         )
                         val animatedBackgroundColor by animateColorAsState(
                             targetValue = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+                            else MaterialTheme.colorScheme.surface.copy(alpha = 0.2f),
                             label = "backgroundColor"
                         )
 
@@ -389,7 +389,7 @@ fun HabitSheetContent(
                                     .animateContentSize()
                                    .fillMaxSize(if (isSelected) 0.6f else 0f)
                                     .clip(RoundedCornerShape(4.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                                    .background(MaterialTheme.colorScheme.surface)
                             )
                         }
                     }
@@ -438,7 +438,7 @@ fun HabitSheetContent(
                                         modifier = Modifier
                                             .fillMaxSize(0.6f)
                                             .clip(RoundedCornerShape(4.dp))
-                                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                                            .background(MaterialTheme.colorScheme.surface)
                                     )
                                 } else {
                                     val iconTint = if (backgroundForCustomButton.isBright()) Color.Black else Color.White

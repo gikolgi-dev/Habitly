@@ -204,7 +204,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                 }
             },
             dismissButton = null,
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = MaterialTheme.colorScheme.surface
         )
     }
 
@@ -245,7 +245,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                 }
             },
             dismissButton = null,
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = MaterialTheme.colorScheme.surface
         )
     }
 
@@ -441,7 +441,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                             Row(
                                 modifier = Modifier
                                     .clip(MaterialTheme.shapes.medium)
-                                    .background(MaterialTheme.colorScheme.surface)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant)
                                     .border(
                                         width = 1.dp,
                                         color = MaterialTheme.colorScheme.outline.copy(borderContrast),
@@ -624,7 +624,7 @@ fun SettingsScaffold(
                 )
             )
         },
-        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        containerColor = MaterialTheme.colorScheme.surface,
         content = content
     )
 }

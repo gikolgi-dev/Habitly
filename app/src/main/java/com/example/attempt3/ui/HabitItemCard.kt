@@ -163,13 +163,13 @@ fun HabitItemCard(
     val useHabitColorForCard by settingsDataStore.useHabitColorForCard.collectAsState(initial = true)
 
     val cardBackgroundColor = if (useHabitColorForCard) {
-        lerp(Color(habit.color), MaterialTheme.colorScheme.surface, 0.85f)
+        lerp(Color(habit.color), MaterialTheme.colorScheme.surfaceVariant, 0.85f)
     } else {
-        MaterialTheme.colorScheme.surface
+        MaterialTheme.colorScheme.surfaceVariant
     }
 
     val cardBorderColor = if (useHabitColorForCard) {
-        lerp(Color(habit.color), lerp(Color(habit.color), MaterialTheme.colorScheme.surface, 0.85f), 1f - borderContrast)
+        lerp(Color(habit.color), lerp(Color(habit.color), MaterialTheme.colorScheme.surfaceVariant, 0.85f), 1f - borderContrast)
     } else {
         MaterialTheme.colorScheme.outline.copy(alpha = borderContrast)
     }
