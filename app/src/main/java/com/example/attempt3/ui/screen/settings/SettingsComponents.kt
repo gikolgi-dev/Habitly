@@ -83,7 +83,7 @@ fun SettingsItemBox(
             .background(MaterialTheme.colorScheme.surface)
             .border(
                 1.dp,
-                Color.Gray.copy(alpha = borderContrast),
+                MaterialTheme.colorScheme.outline.copy(alpha = borderContrast),
                 shape
             )
     ) {
@@ -107,7 +107,7 @@ fun SettingsGroup(
             Text(
                 text = it,
                 style = MaterialTheme.typography.titleSmall,
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(start = 8.dp, bottom = 4.dp)
             )
         }
@@ -327,7 +327,7 @@ fun GroupedSettingsItem(
                         Text(
                             text = it,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -364,7 +364,7 @@ fun ModernSettingsItem(
             .padding(horizontal = 16.dp, vertical = 0.dp),
         border = BorderStroke(
             1.dp,
-            Color.Gray.copy(alpha = borderContrast)
+            MaterialTheme.colorScheme.outline.copy(alpha = borderContrast)
         ),
         shape = shape,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -397,7 +397,7 @@ fun ModernSettingsItem(
                     Text(
                         text = it,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }

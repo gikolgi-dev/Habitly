@@ -153,7 +153,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null
                 ) {/* Prevents click from dismissing the dialog if clicked inside the card */ },
-            shape = RoundedCornerShape(16.dp),
+            shape = MaterialTheme.shapes.large,
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant
             ),
@@ -382,7 +382,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.Center
                             ) {
-                                Text("$streak")
+                                Text("$streak", color = MaterialTheme.colorScheme.onSurface)
                                 Spacer(modifier = Modifier.size(2.dp))
                                 Icon(
                                     imageVector = Icons.Default.LocalFireDepartment,

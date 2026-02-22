@@ -21,7 +21,6 @@ class SettingsDataStore(private val context: Context) {
         val VIBRATIONS_KEY = booleanPreferencesKey("vibrations")
         val BORDERS_KEY = floatPreferencesKey("borders_float") // Renamed key
         val OLD_BORDERS_KEY = booleanPreferencesKey("borders") // Old key
-        val APPEARANCE_TINT_KEY = floatPreferencesKey("appearance_tint")
         val DAY_OF_WEEK_LABELS_VISIBLE_KEY = booleanPreferencesKey("day_of_week_labels_visible")
         val DAY_OF_WEEK_LABELS_ON_RIGHT_KEY = booleanPreferencesKey("day_of_week_labels_on_right")
         val SHOW_ALL_DAY_OF_WEEK_LABELS_KEY = booleanPreferencesKey("show_all_day_of_week_labels")
@@ -34,7 +33,6 @@ class SettingsDataStore(private val context: Context) {
         val YEAR_DIVIDER_KEY = booleanPreferencesKey("year_divider")
         val YEAR_LABELS_KEY = booleanPreferencesKey("year_labels")
         val HEATMAP_SCROLLING_KEY = booleanPreferencesKey("heatmap_scrolling")
-        val SHOW_TINT_DIALOG_KEY = booleanPreferencesKey("show_tint_dialog")
         val SHOW_SCROLL_BLUR_KEY = booleanPreferencesKey("show_scroll_blur")
         val SCROLL_BLUR_TARGETS_KEY = stringPreferencesKey("scroll_blur_targets")
     }
@@ -92,17 +90,6 @@ class SettingsDataStore(private val context: Context) {
     suspend fun setBorders(alpha: Float) {
         context.dataStore.edit { settings ->
             settings[BORDERS_KEY] = alpha
-        }
-    }
-
-    val appearanceTint: Flow<Float> = context.dataStore.data
-        .map { preferences ->
-            preferences[APPEARANCE_TINT_KEY] ?: 0.08f
-        }
-
-    suspend fun setAppearanceTint(alpha: Float) {
-        context.dataStore.edit { settings ->
-            settings[APPEARANCE_TINT_KEY] = alpha
         }
     }
 
@@ -242,17 +229,6 @@ class SettingsDataStore(private val context: Context) {
         }
     }
 
-    val showTintDialog: Flow<Boolean> = context.dataStore.data
-        .map { preferences ->
-            preferences[SHOW_TINT_DIALOG_KEY] ?: true
-        }
-
-    suspend fun setShowTintDialog(show: Boolean) {
-        context.dataStore.edit { settings ->
-            settings[SHOW_TINT_DIALOG_KEY] = show
-        }
-    }
-
     val showScrollBlur: Flow<Boolean> = context.dataStore.data
         .map { preferences ->
             preferences[SHOW_SCROLL_BLUR_KEY] ?: true
@@ -282,7 +258,6 @@ class SettingsDataStore(private val context: Context) {
             settings[MONTH_LABELS_KEY] = false
             settings[DAY_OF_WEEK_LABELS_VISIBLE_KEY] = false
             settings[BORDERS_KEY] = 0f
-            settings[APPEARANCE_TINT_KEY] = 0f
             settings[GLOBAL_NOTIFICATIONS_KEY] = false
             settings[GLOBAL_NOTIFICATION_TIME_KEY] = "09:00"
             settings[GLOBAL_NOTIFICATION_DAYS_KEY] = "MON,TUE,WED,THU,FRI,SAT,SUN"
@@ -291,7 +266,6 @@ class SettingsDataStore(private val context: Context) {
             settings[YEAR_DIVIDER_KEY] = false
             settings[YEAR_LABELS_KEY] = false
             settings[HEATMAP_SCROLLING_KEY] = false
-            settings[SHOW_TINT_DIALOG_KEY] = true
             settings[SHOW_SCROLL_BLUR_KEY] = true
             settings[SCROLL_BLUR_TARGETS_KEY] = "Line Chart"
             settings[HEATMAP_VISIBLE_DAYS_KEY] = "MON,TUE,WED,THU,FRI,SAT,SUN"

@@ -283,9 +283,9 @@ fun ImportExportScreen(db: HabitDatabase) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Icon(imageVector = Icons.Default.FileUpload, contentDescription = "Export Icon", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(48.dp))
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("Export", style = MaterialTheme.typography.headlineSmall)
+                Text("Export", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurface)
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("Export habits and completion for safe keeping, migration and sharing", style = MaterialTheme.typography.bodySmall)
+                Text("Export habits and completion for safe keeping, migration and sharing", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(onClick = {
                     val currentDate = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -319,9 +319,9 @@ fun ImportExportScreen(db: HabitDatabase) {
                 ) {
                     Icon(imageVector = Icons.Default.FileDownload, contentDescription = "Import Icon", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(48.dp))
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("Import", style = MaterialTheme.typography.headlineSmall)
+                    Text("Import", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurface)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("Import habits from here or other apps", style = MaterialTheme.typography.bodySmall)
+                    Text("Import habits from here or other apps", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(onClick = { importLauncher.launch("application/json") }) {
                         Text("Select File to Import")
@@ -339,14 +339,14 @@ fun ImportExportScreen(db: HabitDatabase) {
                     verticalArrangement = Arrangement.Bottom
                 ) {
                     val fileName = selectedFileUri?.let { getFileName(it, context) } ?: "Unknown File"
-                    Text("File: $fileName", style = MaterialTheme.typography.bodyMedium)
+                    Text("File: $fileName", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
                     Spacer(modifier = Modifier.height(8.dp))
                     Button(onClick = { importLauncher.launch("application/json") }) {
                         Text("Change File")
                     }
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    Text("Select Source", style = MaterialTheme.typography.titleMedium)
+                    Text("Select Source", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(
                         verticalAlignment = Alignment.CenterVertically
@@ -355,13 +355,13 @@ fun ImportExportScreen(db: HabitDatabase) {
                             selected = importType == ImportType.APP_BACKUP,
                             onClick = { importType = ImportType.APP_BACKUP }
                         )
-                        Text("This App")
+                        Text("This App", color = MaterialTheme.colorScheme.onSurface)
                         Spacer(Modifier.width(16.dp))
                         RadioButton(
                             selected = importType == ImportType.HABIT_KIT,
                             onClick = { importType = ImportType.HABIT_KIT }
                         )
-                        Text("HabitKit")
+                        Text("HabitKit", color = MaterialTheme.colorScheme.onSurface)
                     }
                     Spacer(modifier = Modifier.height(16.dp))
 
@@ -369,7 +369,7 @@ fun ImportExportScreen(db: HabitDatabase) {
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.padding(horizontal = 32.dp)
                     ) {
-                        Text("Merge with existing data")
+                        Text("Merge with existing data", color = MaterialTheme.colorScheme.onSurface)
                         Spacer(modifier = Modifier.weight(1f))
                         Switch(
                             checked = mergeData,

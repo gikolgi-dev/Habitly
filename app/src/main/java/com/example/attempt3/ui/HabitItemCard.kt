@@ -165,13 +165,12 @@ fun HabitItemCard(
             .then(modifier)
             .clip(RoundedCornerShape(8.dp))
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(8.dp),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(lerp(Color(habit.color),MaterialTheme.colorScheme.surfaceVariant, 0.85f)
-
         ),
         border = BorderStroke(
             1.dp,
-            Color.Gray.copy(alpha = borderContrast)
+            /*Color(habit.color).copy(alpha = borderContrast)*/lerp(Color(habit.color),MaterialTheme.colorScheme.surfaceVariant, 1f-borderContrast)
         ),
     ) {
         Column(modifier = Modifier.padding(8.dp)) {

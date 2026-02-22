@@ -934,7 +934,7 @@ fun HeroCard(greeting: String, description: String, modifier: Modifier = Modifie
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 2.dp),
-        shape = RoundedCornerShape(16.dp),
+        shape = MaterialTheme.shapes.large,
         elevation = CardDefaults.elevatedCardElevation()
     ) {
         Box(

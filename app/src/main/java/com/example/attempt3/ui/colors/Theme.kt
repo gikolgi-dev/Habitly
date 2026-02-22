@@ -29,7 +29,6 @@ fun Attempt3Theme(
     content: @Composable () -> Unit
 ) {
     val theme by settingsDataStore.theme.collectAsState(initial = "system")
-    val appearanceTint by settingsDataStore.appearanceTint.collectAsState(initial = 0.08f)
     val isSystemDark = isSystemInDarkTheme()
     val isDark = when (theme) {
         "light" -> false
@@ -39,7 +38,7 @@ fun Attempt3Theme(
     val context = LocalContext.current
 
     val colorScheme = if (isDark) {
-        val baseColorScheme = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             dynamicDarkColorScheme(context)
         } else {
             darkColorScheme(
@@ -55,22 +54,8 @@ fun Attempt3Theme(
                 onError = Color.Black
             )
         }
-        baseColorScheme.copy(
-            /*background = lerp(
-                start = Color(0xFF111111),
-                stop = baseColorScheme.primaryContainer,
-                fraction = appearanceTint
-            ),
-            surface = lerp(
-                start = Color(0xFF232323),
-                stop = lerp(baseColorScheme.primaryContainer, Color.White, 0.1f),
-                fraction = appearanceTint
-            ),
-            onSurface = Color(0xFFE7E7EA),
-            onBackground = Color(0xFFE7E7EA)*/
-        )
     } else {
-        val baseColorScheme = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             dynamicLightColorScheme(context)
         } else {
             darkColorScheme( // Fallback for older APIs
@@ -86,20 +71,6 @@ fun Attempt3Theme(
                 onError = Color.White
             )
         }
-        baseColorScheme.copy(
-            /*background = lerp(
-                start = Color(0xFFFFFFFF),
-                stop = baseColorScheme.primaryContainer,
-                fraction = appearanceTint
-            ),
-            surface = lerp(
-                start = Color(0xFFF9F9F9),
-                stop = lerp(baseColorScheme.primaryContainer, Color.Black, 0.1f),
-                fraction = appearanceTint
-            ),
-            onSurface = Color(0xFF121216),
-            onBackground = Color(0xFF121216)*/
-        )
     }
 
     val view = LocalView.current

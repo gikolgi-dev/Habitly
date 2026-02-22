@@ -187,8 +187,8 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
     if (showConfirmationDialog.value) {
         AlertDialog(
             onDismissRequest = { showConfirmationDialog.value = false },
-            title = { Text("Clear all data?") },
-            text = { Text("This action is irreversible and will delete all your habits and completions.") },
+            title = { Text("Clear all data?", color = MaterialTheme.colorScheme.onSurface) },
+            text = { Text("This action is irreversible and will delete all your habits and completions.", color = MaterialTheme.colorScheme.onSurfaceVariant) },
             confirmButton = {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -223,8 +223,8 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
     if (showSecondConfirmationDialog.value) {
         AlertDialog(
             onDismissRequest = { showSecondConfirmationDialog.value = false },
-            title = { Text("Are you absolutely sure?") },
-            text = { Text("This is your final warning. All data will be lost.") },
+            title = { Text("Are you absolutely sure?", color = MaterialTheme.colorScheme.onSurface) },
+            text = { Text("This is your final warning. All data will be lost.", color = MaterialTheme.colorScheme.onSurfaceVariant) },
             confirmButton = {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -294,7 +294,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
 
     if (showNotificationSheet) {
         ModalBottomSheet(
-            onDismissRequest = { },
+            onDismissRequest = { showNotificationSheet = false },
             dragHandle = { BottomSheetDefaults.DragHandle(Modifier.fillMaxWidth(0.15f)) }
         ) {
             Column(modifier = blurModifier) {
@@ -310,6 +310,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                         fontSize = 32.sp,
                         text = "Daily notifications",
                         style = MaterialTheme.typography.titleLargeEmphasized,
+                        color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.weight(1f)
                     )
                     Switch(
@@ -328,7 +329,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                         fontSize = 14.sp,
                         text = "Create a daily notification to remind you of adding completions.",
                         style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Spacer(modifier = Modifier.height(16.dp))
@@ -366,7 +367,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
         modifier = blurModifier,
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text(if (showAppearanceScreen) "Appearance" else if (showGeneralScreen) "General" else if (showImportScreen) "Data Management" else "Settings", fontWeight = FontWeight.SemiBold) },
+                title = { Text(if (showAppearanceScreen) "Appearance" else if (showGeneralScreen) "General" else if (showImportScreen) "Data Management" else "Settings", fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface) },
                 navigationIcon = {
                     if (showAppearanceScreen || showGeneralScreen || showImportScreen) {
                         IconButton(onClick = {
@@ -397,7 +398,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                                 settingsDataStore.resetToDefault()
                             }
                         }) {
-                            Icon(painter = painterResource(id = R.drawable.resetwrench), contentDescription = "Reset Settings")
+                            Icon(painter = painterResource(id = R.drawable.resetwrench), contentDescription = "Reset Settings", tint = MaterialTheme.colorScheme.onSurface)
                         }
                     }
                 },
@@ -487,10 +488,10 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                             Row(
                                 modifier = Modifier
                                     .clip(MaterialTheme.shapes.medium)
-                                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                                    .background(MaterialTheme.colorScheme.surface)
                                     .border(
                                         width = 1.dp,
-                                        color = Color.Gray.copy(borderContrast),
+                                        color = MaterialTheme.colorScheme.outline.copy(borderContrast),
                                         shape = MaterialTheme.shapes.medium
                                     )
                                     .clickable { uriHandler.openUri("https://github.com/gikolgi-dev/Habitly") }
@@ -506,13 +507,15 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                                         }
                                     ),
                                     contentDescription = "GitHub",
-                                    modifier = Modifier.size(32.dp)
+                                    modifier = Modifier.size(32.dp),
+                                    tint = MaterialTheme.colorScheme.onSurface
                                 )
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Text(
                                     text = "View on GitHub",
                                     style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.SemiBold
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                             }
                         }
@@ -526,15 +529,15 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                             verticalArrangement = Arrangement.Center
                         ) {
                             Text(
-                                text = "Made with ❤\uFE0F",
+                                text = "Made with ❤️",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = Color.Gray
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = "Version 2.0.4",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = Color.Gray
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
