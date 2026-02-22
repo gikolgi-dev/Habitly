@@ -21,7 +21,11 @@ import androidx.compose.ui.unit.dp
 import com.example.attempt3.data.settings.SettingsDataStore
 
 @Composable
-fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsDataStore) {
+fun AppearanceScreen(
+    modifier: Modifier = Modifier,
+    settingsDataStore: SettingsDataStore,
+    onNavigateToScrollBlur: () -> Unit
+) {
     val scope = rememberCoroutineScope()
     val currentTheme by settingsDataStore.theme.collectAsState(initial = "system")
     val useHabitColorForCard by settingsDataStore.useHabitColorForCard.collectAsState(initial = true)
@@ -76,7 +80,8 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
                 vibrationsEnabled = vibrationsEnabled,
                 settingsDataStore = settingsDataStore,
                 scope = scope,
-                haptic = haptic
+                haptic = haptic,
+                onNavigateToScrollBlur = onNavigateToScrollBlur
             )
 
             Spacer(modifier = Modifier.height(16.dp))

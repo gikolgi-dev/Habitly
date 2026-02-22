@@ -9,19 +9,18 @@ import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -75,6 +74,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import com.example.attempt3.R
 import com.example.attempt3.data.Database.HabitDatabase
 import com.example.attempt3.data.settings.SettingsDataStore
@@ -89,12 +91,10 @@ import kotlinx.coroutines.withContext
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: SettingsDataStore) {
+    val navController = rememberNavController()
     val scope = rememberCoroutineScope()
     val showConfirmationDialog = remember { mutableStateOf(false) }
     val showSecondConfirmationDialog = remember { mutableStateOf(false) }
-    var showAppearanceScreen by remember { mutableStateOf(false) }
-    var showGeneralScreen by remember { mutableStateOf(false) }
-    var showImportScreen by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
     var showNotificationSheet by remember { mutableStateOf(false) }
     val context = LocalContext.current
@@ -170,17 +170,6 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                     haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
                 }
             }
-        }
-    }
-    BackHandler(enabled = showAppearanceScreen || showGeneralScreen || showImportScreen) {
-        if (showAppearanceScreen) {
-            showAppearanceScreen = false
-        }
-        if (showGeneralScreen) {
-            showGeneralScreen = false
-        }
-        if (showImportScreen) {
-            showImportScreen = false
         }
     }
 
@@ -363,65 +352,29 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
         }
     }
 
-    Scaffold(
-        modifier = blurModifier,
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text(if (showAppearanceScreen) "Appearance" else if (showGeneralScreen) "General" else if (showImportScreen) "Data Management" else "Settings", fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface) },
-                navigationIcon = {
-                    if (showAppearanceScreen || showGeneralScreen || showImportScreen) {
-                        IconButton(onClick = {
-                            if (vibrationsEnabled) {
-                                haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
-                            }
-                            if (showAppearanceScreen) showAppearanceScreen = false
-                            if (showGeneralScreen) showGeneralScreen = false
-                            if (showImportScreen) showImportScreen = false
-                        }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onBackground)
-                        }
-                    } else {
-                        IconButton(onClick = {
-                            if (vibrationsEnabled) {
-                                haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
-                            }
-                            onDismiss()
-                        }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Close", modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onBackground)
-                        }
-                    }
-                },
-                actions = {
-                    if (showAppearanceScreen) {
-                        IconButton(onClick = {
-                            scope.launch {
-                                settingsDataStore.resetToDefault()
-                            }
-                        }) {
-                            Icon(painter = painterResource(id = R.drawable.resetwrench), contentDescription = "Reset Settings", tint = MaterialTheme.colorScheme.onSurface)
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                    scrolledContainerColor = MaterialTheme.colorScheme.background
-                )
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.surfaceVariant
-    ) { paddingValues ->
-        Box(modifier = Modifier
-            .padding(paddingValues)
-            .fillMaxSize()
+    NavHost(
+        navController = navController,
+        startDestination = "main",
+        modifier = blurModifier.fillMaxSize()
+    ) {
+        // Main Screen
+        composable(
+            route = "main",
+            exitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left, animationSpec = tween(250)) },
+            popEnterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(250)) }
         ) {
-            AnimatedVisibility(
-                visible = !showAppearanceScreen && !showGeneralScreen && !showImportScreen,
-                exit = slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(300)),
-                enter = slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(300))
-            ) {
+            BackHandler { onDismiss() }
+            SettingsScaffold(
+                title = "Settings",
+                onBack = {
+                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+                    onDismiss()
+                },
+                isRoot = true
+            ) { paddingValues ->
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(top = 8.dp)
+                    modifier = Modifier.padding(paddingValues).padding(top = 8.dp)
                 ) {
                     item {
                         SettingsGroup(settingsDataStore = settingsDataStore) {
@@ -433,7 +386,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                                 iconColor = MaterialTheme.colorScheme.onPrimaryContainer,
                                 settingsDataStore = settingsDataStore,
                                 position = SettingsItemPosition.Top
-                            ) { showGeneralScreen = true }
+                            ) { navController.navigate("general") }
                             GroupedSettingsItem(
                                 title = "Appearance",
                                 subtitle = "Change the look and feel of the app",
@@ -442,7 +395,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                                 iconColor = MaterialTheme.colorScheme.onSecondaryContainer,
                                 settingsDataStore = settingsDataStore,
                                 position = SettingsItemPosition.Bottom
-                            ) { showAppearanceScreen = true }
+                            ) { navController.navigate("appearance") }
                         }
                     }
                     item {
@@ -466,7 +419,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                                 iconColor = Color(0xFF246D29),
                                 settingsDataStore = settingsDataStore,
                                 position = SettingsItemPosition.Top
-                            ) { showImportScreen = true }
+                            ) { navController.navigate("import") }
                             GroupedSettingsItem(
                                 title = "Clear all data",
                                 subtitle = "Delete all habits and their completions",
@@ -543,36 +496,130 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                     }
                 }
             }
+        }
 
-            AnimatedVisibility(
-                visible = showAppearanceScreen,
-                enter = slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(300)),
-                exit = slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(300))
-            ) {
+        // Sub Screens
+        composable(
+            route = "appearance",
+            enterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left, animationSpec = tween(250)) },
+            exitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left, animationSpec = tween(250)) },
+            popEnterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(250)) },
+            popExitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(250)) }
+        ) {
+            SettingsScaffold(
+                title = "Appearance",
+                onBack = {
+                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+                    navController.popBackStack()
+                },
+                actions = {
+                    IconButton(onClick = { scope.launch { settingsDataStore.resetToDefault() } }) {
+                        Icon(painter = painterResource(id = R.drawable.resetwrench), contentDescription = "Reset Settings", tint = MaterialTheme.colorScheme.onSurface)
+                    }
+                }
+            ) { paddingValues ->
                 AppearanceScreen(
-                    settingsDataStore = settingsDataStore
+                    modifier = Modifier.padding(paddingValues),
+                    settingsDataStore = settingsDataStore,
+                    onNavigateToScrollBlur = { navController.navigate("scroll_blur") }
                 )
             }
+        }
 
-            AnimatedVisibility(
-                visible = showImportScreen,
-                enter = slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(300)),
-                exit = slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(300))
-            ) {
-                ImportExportScreen(
-                    db = db
-                )
-            }
-
-            AnimatedVisibility(
-                visible = showGeneralScreen,
-                enter = slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(300)),
-                exit = slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(300))
-            ) {
+        composable(
+            route = "general",
+            enterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left, animationSpec = tween(250)) },
+            exitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left, animationSpec = tween(250)) },
+            popEnterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(250)) },
+            popExitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(250)) }
+        ) {
+            SettingsScaffold(
+                title = "General",
+                onBack = {
+                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+                    navController.popBackStack()
+                }
+            ) { paddingValues ->
                 GeneralSettingsScreen(
-                    settingsDataStore = settingsDataStore
+                    settingsDataStore = settingsDataStore,
+                    modifier = Modifier.padding(paddingValues)
+                )
+            }
+        }
+
+        composable(
+            route = "import",
+            enterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left, animationSpec = tween(250)) },
+            exitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left, animationSpec = tween(250)) },
+            popEnterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(250)) },
+            popExitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(250)) }
+        ) {
+            SettingsScaffold(
+                title = "Data Management",
+                onBack = {
+                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+                    navController.popBackStack()
+                }
+            ) { paddingValues ->
+                ImportExportScreen(
+                    db = db,
+                    modifier = Modifier.padding(paddingValues)
+                )
+            }
+        }
+
+        composable(
+            route = "scroll_blur",
+            enterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left, animationSpec = tween(250)) },
+            popExitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(250)) }
+        ) {
+            SettingsScaffold(
+                title = "Scroll Blur",
+                onBack = {
+                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+                    navController.popBackStack()
+                }
+            ) { paddingValues ->
+                ScrollBlurSubScreen(
+                    settingsDataStore = settingsDataStore,
+                    modifier = Modifier.padding(paddingValues)
                 )
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SettingsScaffold(
+    title: String,
+    onBack: () -> Unit,
+    isRoot: Boolean = false,
+    actions: @Composable RowScope.() -> Unit = {},
+    content: @Composable (PaddingValues) -> Unit
+) {
+    Scaffold(
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text(title, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = if (isRoot) "Close" else "Back",
+                            modifier = Modifier.size(24.dp),
+                            tint = MaterialTheme.colorScheme.onBackground
+                        )
+                    }
+                },
+                actions = actions,
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = Color.Transparent,
+                    scrolledContainerColor = MaterialTheme.colorScheme.background
+                )
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        content = content
+    )
 }

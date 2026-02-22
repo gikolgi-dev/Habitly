@@ -24,7 +24,8 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun GeneralSettingsScreen(
-    settingsDataStore: SettingsDataStore
+    settingsDataStore: SettingsDataStore,
+    modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
@@ -34,7 +35,7 @@ fun GeneralSettingsScreen(
     val haptic = LocalHapticFeedback.current
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally

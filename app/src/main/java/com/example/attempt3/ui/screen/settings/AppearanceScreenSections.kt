@@ -2,14 +2,8 @@
 
 package com.example.attempt3.ui.screen.settings
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -202,7 +196,8 @@ fun AccessibilitySection(
     vibrationsEnabled: Boolean,
     settingsDataStore: SettingsDataStore,
     scope: CoroutineScope,
-    haptic: HapticFeedback
+    haptic: HapticFeedback,
+    onNavigateToScrollBlur: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isDragged = interactionSource.collectIsDraggedAsState().value
@@ -281,50 +276,20 @@ fun AccessibilitySection(
             }
         }
         
-        SettingsSwitchItem(
+        SettingsSwitchNavigationItem(
             text = "Scroll blur",
             description = "Apply a blur effect to the top and bottom of scrolling lists",
             checked = showScrollBlur,
             settingsDataStore = settingsDataStore,
             position = SettingsItemPosition.Middle,
-            showDivider = true
-        ) {
-            scope.launch { settingsDataStore.setshowScrollBlur(it) }
-            if (vibrationsEnabled) {
-                haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
-            }
-        }
-
-        AnimatedVisibility(
-            visible = showScrollBlur,
-            enter = expandVertically() + fadeIn(),
-            exit = shrinkVertically() + fadeOut()
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.padding(top = 4.dp)) {
-                val targets = listOf("Heatmap", "Line Chart")
-                targets.forEachIndexed { index, target ->
-                    SettingsChildCheckboxItem(
-                        text = target,
-                        checked = target in scrollBlurTargets,
-                        settingsDataStore = settingsDataStore,
-                        position = if (index == targets.size - 1) SettingsItemPosition.Middle else SettingsItemPosition.Middle,
-                        showDivider = true
-                    ) { isChecked ->
-                        val newTargets = if (isChecked) {
-                            scrollBlurTargets + target
-                        } else {
-                            scrollBlurTargets - target
-                        }
-                        scope.launch {
-                            settingsDataStore.setScrollBlurTargets(newTargets)
-                        }
-                        if (vibrationsEnabled) {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        }
-                    }
+            onCheckedChange = {
+                scope.launch { settingsDataStore.setshowScrollBlur(it) }
+                if (vibrationsEnabled) {
+                    haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
                 }
-            }
-        }
+            },
+            onClick = onNavigateToScrollBlur
+        )
 
         SettingsSwitchItem(
             text = "Disable icon rotation",

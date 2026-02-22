@@ -185,7 +185,7 @@ fun SharedTransitionScope.HabitDetailScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(8.dp)
+                    .padding(10.dp)
                     .verticalScroll(rememberScrollState())
             ) {
                 Row(

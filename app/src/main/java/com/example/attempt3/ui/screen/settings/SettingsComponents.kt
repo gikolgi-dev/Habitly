@@ -28,6 +28,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -130,6 +132,55 @@ fun SettingsGroup(
 }
 
 @Composable
+fun SettingsSwitchItemContent(
+    text: String,
+    checked: Boolean,
+    description: String? = null,
+    showDivider: Boolean = false,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .selectable(
+                    selected = checked,
+                    onClick = { onCheckedChange(!checked) }
+                )
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                description?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            Switch(
+                checked = checked,
+                onCheckedChange = { onCheckedChange(it) },
+                modifier = Modifier.padding(start = 16.dp)
+            )
+        }
+        if (showDivider) {
+            HorizontalDivider(
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp),
+                thickness = 0.5.dp,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            )
+        }
+    }
+}
+
+@Composable
 fun SettingsSwitchItem(
     text: String,
     checked: Boolean,
@@ -142,14 +193,40 @@ fun SettingsSwitchItem(
 ) {
     CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 48.dp) {
         SettingsItemBox(settingsDataStore = settingsDataStore, position = position, modifier = modifier) {
-            Column(modifier = Modifier.fillMaxWidth()) {
+            SettingsSwitchItemContent(
+                text = text,
+                checked = checked,
+                description = description,
+                showDivider = showDivider,
+                onCheckedChange = onCheckedChange
+            )
+        }
+    }
+}
+
+@Composable
+fun SettingsSwitchNavigationItem(
+    text: String,
+    checked: Boolean,
+    settingsDataStore: SettingsDataStore,
+    modifier: Modifier = Modifier,
+    description: String? = null,
+    position: SettingsItemPosition = SettingsItemPosition.Alone,
+    onCheckedChange: (Boolean) -> Unit,
+    onClick: () -> Unit
+) {
+    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 48.dp) {
+        SettingsItemBox(settingsDataStore = settingsDataStore, position = position, modifier = modifier) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(IntrinsicSize.Min),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Row(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .selectable(
-                            selected = checked,
-                            onClick = { onCheckedChange(!checked) }
-                        )
+                        .weight(1f)
+                        .clickable(onClick = onClick)
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -167,20 +244,77 @@ fun SettingsSwitchItem(
                             )
                         }
                     }
+
+                }
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .padding(vertical = 12.dp)
+                        .width(1.dp)
+                        .background(MaterialTheme.colorScheme.onSurfaceVariant)
+                )
+
+                Box(
+                    modifier = Modifier
+                        .clickable { onCheckedChange(!checked) }
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
                     Switch(
                         checked = checked,
-                        onCheckedChange = { onCheckedChange(it) },
-                        modifier = Modifier.padding(start = 16.dp)
-                    )
-                }
-                if (showDivider) {
-                    HorizontalDivider(
-                        modifier = Modifier.padding(start = 16.dp, end = 16.dp),
-                        thickness = 0.5.dp,
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                        onCheckedChange = onCheckedChange
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun SettingsCheckboxItemContent(
+    text: String,
+    checked: Boolean,
+    enabled: Boolean = true,
+    showDivider: Boolean = false,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .selectable(
+                    selected = checked,
+                    enabled = enabled,
+                    onClick = { onCheckedChange(!checked) }
+                )
+                .padding(horizontal = 4.dp, vertical = 2.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Checkbox(
+                checked = checked,
+                onCheckedChange = { if (enabled) onCheckedChange(it) },
+                enabled = enabled,
+                modifier = Modifier.padding(start = 24.dp)
+            )
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+            )
+        }
+        if (showDivider) {
+            HorizontalDivider(
+                modifier = Modifier.padding(start = 78.dp, end = 16.dp),
+                thickness = 0.5.dp,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            )
         }
     }
 }
@@ -198,38 +332,68 @@ fun SettingsCheckboxItem(
 ) {
     CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 46.dp) {
         SettingsItemBox(settingsDataStore = settingsDataStore, position = position, modifier = modifier) {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .selectable(
-                            selected = checked,
-                            enabled = enabled,
-                            onClick = { onCheckedChange(!checked) }
-                        )
-                        .padding(horizontal = 4.dp, vertical = 2.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Checkbox(
-                        checked = checked,
-                        onCheckedChange = { if (enabled) onCheckedChange(it) },
-                        enabled = enabled,
-                        modifier = Modifier.padding(start = 24.dp)
+            SettingsCheckboxItemContent(
+                text = text,
+                checked = checked,
+                enabled = enabled,
+                showDivider = showDivider,
+                onCheckedChange = onCheckedChange
+            )
+        }
+    }
+}
+
+@Composable
+fun SettingsChildCheckboxItemContent(
+    text: String,
+    checked: Boolean,
+    enabled: Boolean = true,
+    showDivider: Boolean = false,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min)
+                .selectable(
+                    selected = checked,
+                    enabled = enabled,
+                    onClick = { onCheckedChange(!checked) }
+                )
+                .padding(horizontal = 4.dp, vertical = 2.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Spacer(modifier = Modifier.width(16.dp))
+            Box(
+                modifier = Modifier
+                    .padding(vertical = 8.dp)
+                    .fillMaxHeight()
+                    .width(1.5.dp)
+                    .background(
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+                        RoundedCornerShape(1.dp)
                     )
-                    Text(
-                        text = text,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
-                    )
-                }
-                if (showDivider) {
-                    HorizontalDivider(
-                        modifier = Modifier.padding(start = 78.dp, end = 16.dp),
-                        thickness = 0.5.dp,
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                    )
-                }
-            }
+            )
+            Checkbox(
+                checked = checked,
+                onCheckedChange = { if (enabled) onCheckedChange(it) },
+                enabled = enabled,
+                modifier = Modifier.padding(start = 12.dp)
+            )
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                modifier = Modifier.padding(start = 4.dp)
+            )
+        }
+        if (showDivider) {
+            HorizontalDivider(
+                modifier = Modifier.padding(start = 78.dp, end = 16.dp),
+                thickness = 0.5.dp,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            )
         }
     }
 }
@@ -247,47 +411,13 @@ fun SettingsChildCheckboxItem(
 ) {
     CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 40.dp) {
         SettingsItemBox(settingsDataStore = settingsDataStore, position = position, modifier = modifier) {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(IntrinsicSize.Min)
-                        .selectable(
-                            selected = checked,
-                            enabled = enabled,
-                            onClick = { onCheckedChange(!checked) }
-                        )
-                        .padding(horizontal = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Box(
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .width(1.5.dp)
-                            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
-                    )
-                    Checkbox(
-                        checked = checked,
-                        onCheckedChange = { if (enabled) onCheckedChange(it) },
-                        enabled = enabled,
-                        modifier = Modifier.padding(start = 12.dp, top = 2.dp, bottom = 2.dp)
-                    )
-                    Text(
-                        text = text,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
-                        modifier = Modifier.padding(start = 4.dp)
-                    )
-                }
-                if (showDivider) {
-                    HorizontalDivider(
-                        modifier = Modifier.padding(start = 78.dp, end = 16.dp),
-                        thickness = 0.5.dp,
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                    )
-                }
-            }
+            SettingsChildCheckboxItemContent(
+                text = text,
+                checked = checked,
+                enabled = enabled,
+                showDivider = showDivider,
+                onCheckedChange = onCheckedChange
+            )
         }
     }
 }
