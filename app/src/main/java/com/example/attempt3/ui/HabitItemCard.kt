@@ -161,6 +161,19 @@ fun HabitItemCard(
     val context = LocalContext.current
     val settingsDataStore = remember { SettingsDataStore(context) }
     val disableAnimations by settingsDataStore.disableAnimations.collectAsState(initial = false)
+    val useHabitColorForCard by settingsDataStore.useHabitColorForCard.collectAsState(initial = true)
+
+    val cardBackgroundColor = if (useHabitColorForCard) {
+        lerp(Color(habit.color), MaterialTheme.colorScheme.surface, 0.85f)
+    } else {
+        MaterialTheme.colorScheme.surface
+    }
+
+    val cardBorderColor = if (useHabitColorForCard) {
+        lerp(Color(habit.color), lerp(Color(habit.color), MaterialTheme.colorScheme.surface, 0.85f), 1f - borderContrast)
+    } else {
+        MaterialTheme.colorScheme.outline.copy(alpha = borderContrast)
+    }
 
     Card(
         modifier = Modifier
@@ -169,12 +182,14 @@ fun HabitItemCard(
             .then(modifier)
             .clip(RoundedCornerShape(8.dp))
             .clickable(onClick = onClick),
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(lerp(Color(habit.color),MaterialTheme.colorScheme.surfaceVariant, 0.85f)
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(
+            containerColor = cardBackgroundColor,
+            contentColor = MaterialTheme.colorScheme.onSurface
         ),
         border = BorderStroke(
             1.dp,
-            lerp(Color(habit.color),MaterialTheme.colorScheme.surfaceVariant, 1f-borderContrast)
+            cardBorderColor
         ),
     ) {
         Column(modifier = Modifier.padding(8.dp)) {

@@ -54,6 +54,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
@@ -93,7 +94,19 @@ fun SharedTransitionScope.HabitDetailScreen(
     val completions = habitWithCompletions.completions
     val animatedColor by animateColorAsState(targetValue = Color(habit.color), animationSpec = tween(durationMillis = 500))
     val streak = remember(habit, completions) { calculateStreak(habit, completions) }
+    val useHabitColorForCard by settingsDataStore.useHabitColorForCard.collectAsState(initial = true)
 
+    val cardBackgroundColor = if (useHabitColorForCard) {
+        lerp(Color(habit.color), MaterialTheme.colorScheme.surface, 0.85f)
+    } else {
+        MaterialTheme.colorScheme.surfaceVariant
+    }
+
+    val cardBorderColor = if (useHabitColorForCard) {
+        lerp(Color(habit.color), lerp(Color(habit.color), MaterialTheme.colorScheme.surface, 0.85f), 1f - borderContrast)
+    } else {
+        MaterialTheme.colorScheme.outline.copy(alpha = borderContrast)
+    }
 
     if (showDeleteConfirmation) {
         AlertDialog(
@@ -153,11 +166,11 @@ fun SharedTransitionScope.HabitDetailScreen(
                 ) {/* Prevents click from dismissing the dialog if clicked inside the card */ },
             shape = MaterialTheme.shapes.large,
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                containerColor = cardBackgroundColor
             ),
             border = BorderStroke(
                 1.dp,
-                Color.Gray.copy(alpha = borderContrast)
+                cardBorderColor
             ),
         ) {
             Column(
@@ -190,7 +203,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                             .background(MaterialTheme.colorScheme.background.copy(alpha = 0.65f))
                             .border(
                                 1.dp,
-                                Color.Gray.copy(alpha = borderContrast*2),
+                                cardBorderColor,
                                 RoundedCornerShape(8.dp)
                             )
                             .clickable(
@@ -243,7 +256,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                                 .background(MaterialTheme.colorScheme.background.copy(alpha = 0.65f))
                                 .border(
                                     1.dp,
-                                    Color.Gray.copy(alpha = borderContrast*2),
+                                    cardBorderColor,
                                     RoundedCornerShape(8.dp)
                                 )
                                 .clickable {
@@ -271,7 +284,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                                 .background(MaterialTheme.colorScheme.background.copy(alpha = 0.65f))
                                 .border(
                                     1.dp,
-                                    Color.Gray.copy(alpha = borderContrast*2),
+                                    cardBorderColor,
                                     RoundedCornerShape(8.dp)
                                 )
                                 .clickable {
@@ -302,7 +315,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                                 .background(MaterialTheme.colorScheme.background.copy(alpha = 0.65f))
                                 .border(
                                     1.dp,
-                                    Color.Gray.copy(alpha = borderContrast*2),
+                                    cardBorderColor,
                                     RoundedCornerShape(8.dp)
                                 )
                                 .clickable {
@@ -335,7 +348,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                                 .background(MaterialTheme.colorScheme.background.copy(alpha = 0.65f))
                                 .border(
                                     1.dp,
-                                    Color.Gray.copy(alpha = borderContrast * 2),
+                                    cardBorderColor,
                                     RoundedCornerShape(8.dp)
                                 ),
                             contentAlignment = Alignment.Center

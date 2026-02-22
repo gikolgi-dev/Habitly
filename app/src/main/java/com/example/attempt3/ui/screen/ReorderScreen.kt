@@ -64,6 +64,7 @@ fun ReorderScreen(habitViewModel: HabitViewModel, onBack: () -> Unit, settingsDa
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
     val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
     val disableAnimations by settingsDataStore.disableAnimations.collectAsState(initial = false)
+    val useHabitColorForCard by settingsDataStore.useHabitColorForCard.collectAsState(initial = true)
     val haptic = LocalHapticFeedback.current
 
     Scaffold(
@@ -125,6 +126,7 @@ fun ReorderScreen(habitViewModel: HabitViewModel, onBack: () -> Unit, settingsDa
                                         habit = habit,
                                         borderContrast = borderContrast,
                                         disableAnimations = disableAnimations,
+                                        useHabitColorForCard = useHabitColorForCard,
                                         modifier = Modifier
                                             .graphicsLayer {
                                                 translationY = displacement
@@ -204,16 +206,34 @@ fun ReorderScreen(habitViewModel: HabitViewModel, onBack: () -> Unit, settingsDa
 }
 
 @Composable
-fun ReorderHabitItem(habit: Habit, borderContrast: Float, disableAnimations: Boolean, modifier: Modifier = Modifier) {
+fun ReorderHabitItem(
+    habit: Habit, 
+    borderContrast: Float, 
+    disableAnimations: Boolean, 
+    useHabitColorForCard: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val cardBackgroundColor = if (useHabitColorForCard) {
+        lerp(Color(habit.color), MaterialTheme.colorScheme.surfaceVariant, 0.85f)
+    } else {
+        MaterialTheme.colorScheme.surface
+    }
+
+    val cardBorderColor = if (useHabitColorForCard) {
+        lerp(Color(habit.color), MaterialTheme.colorScheme.surfaceVariant, 1f - borderContrast)
+    } else {
+        MaterialTheme.colorScheme.outline.copy(alpha = borderContrast)
+    }
+
     Card(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 4.dp),
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
-            containerColor = lerp(Color(habit.color),MaterialTheme.colorScheme.surfaceVariant, 0.85f)
+            containerColor = cardBackgroundColor
         ),
-        border = BorderStroke(1.dp, lerp(Color(habit.color),MaterialTheme.colorScheme.surfaceVariant, 1f-borderContrast))
+        border = BorderStroke(1.dp, cardBorderColor)
     ) {
         Row(
             modifier = Modifier.padding(8.dp),

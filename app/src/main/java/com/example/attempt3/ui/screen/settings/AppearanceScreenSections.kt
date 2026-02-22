@@ -41,6 +41,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun ThemeSection(
     currentTheme: String,
+    useHabitColorForCard: Boolean,
     borderContrast: Float,
     vibrationsEnabled: Boolean,
     settingsDataStore: SettingsDataStore,
@@ -51,7 +52,7 @@ fun ThemeSection(
         title = "Theme",
         settingsDataStore = settingsDataStore
     ) {
-        SettingsItemBox(settingsDataStore = settingsDataStore, position = SettingsItemPosition.Alone) {
+        SettingsItemBox(settingsDataStore = settingsDataStore, position = SettingsItemPosition.Top) {
             Column {
                 val themes = listOf("Light", "Dark", "System")
                 themes.forEach { theme ->
@@ -91,6 +92,18 @@ fun ThemeSection(
                         )
                     }
                 }
+            }
+        }
+        SettingsSwitchItem(
+            text = "Habit color on cards",
+            description = "Color card backgrounds based on habit colors",
+            checked = useHabitColorForCard,
+            settingsDataStore = settingsDataStore,
+            position = SettingsItemPosition.Bottom
+        ) {
+            scope.launch { settingsDataStore.setUseHabitColorForCard(it) }
+            if (vibrationsEnabled) {
+                haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
             }
         }
     }

@@ -12,6 +12,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
@@ -55,10 +56,10 @@ fun Attempt3Theme(
             )
         }
     } else {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        val baseColorScheme = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             dynamicLightColorScheme(context)
         } else {
-            darkColorScheme( // Fallback for older APIs
+            lightColorScheme(
                 primary = Color(0xFF6200EE),
                 onPrimary = Color.White,
                 secondary = Color(0xFF03DAC6),
@@ -71,6 +72,10 @@ fun Attempt3Theme(
                 onError = Color.White
             )
         }
+        baseColorScheme.copy(
+            surface = baseColorScheme.surfaceVariant,
+            surfaceVariant = baseColorScheme.surface
+        )
     }
 
     val view = LocalView.current

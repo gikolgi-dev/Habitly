@@ -24,6 +24,7 @@ import com.example.attempt3.data.settings.SettingsDataStore
 fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsDataStore) {
     val scope = rememberCoroutineScope()
     val currentTheme by settingsDataStore.theme.collectAsState(initial = "system")
+    val useHabitColorForCard by settingsDataStore.useHabitColorForCard.collectAsState(initial = true)
     val showMonthLabels by settingsDataStore.monthLabels.collectAsState(initial = true)
     val showYearDivider by settingsDataStore.yearDivider.collectAsState(initial = true)
     val showYearLabels by settingsDataStore.yearLabels.collectAsState(initial = true)
@@ -44,6 +45,7 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
         Column(modifier = Modifier.fillMaxWidth()) {
             ThemeSection(
                 currentTheme = currentTheme,
+                useHabitColorForCard = useHabitColorForCard,
                 borderContrast = borderContrast,
                 vibrationsEnabled = vibrationsEnabled,
                 settingsDataStore = settingsDataStore,

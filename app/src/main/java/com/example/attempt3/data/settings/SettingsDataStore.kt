@@ -36,6 +36,7 @@ class SettingsDataStore(private val context: Context) {
         val SHOW_SCROLL_BLUR_KEY = booleanPreferencesKey("show_scroll_blur")
         val SCROLL_BLUR_TARGETS_KEY = stringPreferencesKey("scroll_blur_targets")
         val DISABLE_ANIMATIONS_KEY = booleanPreferencesKey("disable_animations")
+        val USE_HABIT_COLOR_FOR_CARD_KEY = booleanPreferencesKey("use_habit_color_for_card")
     }
 
     val theme: Flow<String> = context.dataStore.data
@@ -264,6 +265,17 @@ class SettingsDataStore(private val context: Context) {
         }
     }
 
+    val useHabitColorForCard: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[USE_HABIT_COLOR_FOR_CARD_KEY] ?: true
+        }
+
+    suspend fun setUseHabitColorForCard(use: Boolean) {
+        context.dataStore.edit { settings ->
+            settings[USE_HABIT_COLOR_FOR_CARD_KEY] = use
+        }
+    }
+
     suspend fun resetToDefault() {
         context.dataStore.edit { settings ->
             settings[THEME_KEY] = "system"
@@ -282,6 +294,7 @@ class SettingsDataStore(private val context: Context) {
             settings[SCROLL_BLUR_TARGETS_KEY] = "Line Chart"
             settings[HEATMAP_VISIBLE_DAYS_KEY] = "MON,TUE,WED,THU,FRI,SAT,SUN"
             settings[DISABLE_ANIMATIONS_KEY] = false
+            settings[USE_HABIT_COLOR_FOR_CARD_KEY] = true
         }
     }
 }
