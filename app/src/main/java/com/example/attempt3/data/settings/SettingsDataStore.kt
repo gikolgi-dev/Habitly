@@ -35,6 +35,7 @@ class SettingsDataStore(private val context: Context) {
         val HEATMAP_SCROLLING_KEY = booleanPreferencesKey("heatmap_scrolling")
         val SHOW_SCROLL_BLUR_KEY = booleanPreferencesKey("show_scroll_blur")
         val SCROLL_BLUR_TARGETS_KEY = stringPreferencesKey("scroll_blur_targets")
+        val DISABLE_ANIMATIONS_KEY = booleanPreferencesKey("disable_animations")
     }
 
     val theme: Flow<String> = context.dataStore.data
@@ -252,6 +253,17 @@ class SettingsDataStore(private val context: Context) {
         }
     }
 
+    val disableAnimations: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[DISABLE_ANIMATIONS_KEY] ?: false
+        }
+
+    suspend fun setDisableAnimations(disable: Boolean) {
+        context.dataStore.edit { settings ->
+            settings[DISABLE_ANIMATIONS_KEY] = disable
+        }
+    }
+
     suspend fun resetToDefault() {
         context.dataStore.edit { settings ->
             settings[THEME_KEY] = "system"
@@ -269,6 +281,7 @@ class SettingsDataStore(private val context: Context) {
             settings[SHOW_SCROLL_BLUR_KEY] = true
             settings[SCROLL_BLUR_TARGETS_KEY] = "Line Chart"
             settings[HEATMAP_VISIBLE_DAYS_KEY] = "MON,TUE,WED,THU,FRI,SAT,SUN"
+            settings[DISABLE_ANIMATIONS_KEY] = false
         }
     }
 }

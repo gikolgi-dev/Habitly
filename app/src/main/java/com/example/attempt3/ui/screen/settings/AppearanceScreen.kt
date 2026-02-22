@@ -31,6 +31,7 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
     val scrollBlurTargets by settingsDataStore.scrollBlurTargets.collectAsState(initial = setOf("Heatmap", "Line Chart"))
     val borderContrast by settingsDataStore.borders.collectAsState(initial = 0f)
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
+    val disableAnimations by settingsDataStore.disableAnimations.collectAsState(initial = false)
 
     val haptic = LocalHapticFeedback.current
 
@@ -69,6 +70,7 @@ fun AppearanceScreen(modifier: Modifier = Modifier, settingsDataStore: SettingsD
                 borderContrast = borderContrast,
                 showScrollBlur = showScrollBlur,
                 scrollBlurTargets = scrollBlurTargets,
+                disableAnimations = disableAnimations,
                 vibrationsEnabled = vibrationsEnabled,
                 settingsDataStore = settingsDataStore,
                 scope = scope,

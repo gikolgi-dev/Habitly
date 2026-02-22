@@ -32,7 +32,6 @@ import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -42,11 +41,9 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -90,6 +87,7 @@ fun SharedTransitionScope.HabitDetailScreen(
     val showMonthLabels by settingsDataStore.monthLabels.collectAsState(initial = false)
     val dayOfWeekLabelsOnRight by settingsDataStore.dayOfWeekLabelsOnRight.collectAsState(initial = false)
     val heatmapVisibleDays by settingsDataStore.heatmapVisibleDays.collectAsState(initial = emptySet())
+    val disableAnimations by settingsDataStore.disableAnimations.collectAsState(initial = false)
     var showDeleteConfirmation by remember { mutableStateOf(false) } // State for delete confirmation dialog
     val habit = habitWithCompletions.habit
     val completions = habitWithCompletions.completions
@@ -172,26 +170,11 @@ fun SharedTransitionScope.HabitDetailScreen(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    val icon = habitIconMap[habit.icon] ?: Icons.Default.Refresh // Fallback icon
-                    Box(
-                        modifier = Modifier
-                            .size(64.dp)
-                            .clip(MaterialShapes.Cookie12Sided.toShape())
-                            .background(animatedColor.copy(alpha = 0.1f))
-                            .border(
-                                1.dp,
-                                animatedColor.copy(alpha = borderContrast),
-                                MaterialShapes.Cookie12Sided.toShape()
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = habit.icon,
-                            modifier = Modifier.size(40.dp),
-                            tint = animatedColor.copy(alpha = 0.85f)
-                        )
-                    }
+                    RotatingHabitIcon(
+                        habit = habit, 
+                        borderContrast = borderContrast,
+                        shouldAnimate = !disableAnimations
+                    )
                     Spacer(modifier = Modifier.size(16.dp))
                     HabitTitleAndDescription(habit = habit, isDetailView = true, modifier = Modifier.weight(1f))
                     Box(

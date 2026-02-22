@@ -185,6 +185,7 @@ fun AccessibilitySection(
     borderContrast: Float,
     showScrollBlur: Boolean,
     scrollBlurTargets: Set<String>,
+    disableAnimations: Boolean,
     vibrationsEnabled: Boolean,
     settingsDataStore: SettingsDataStore,
     scope: CoroutineScope,
@@ -272,7 +273,8 @@ fun AccessibilitySection(
             description = "Apply a blur effect to the top and bottom of scrolling lists",
             checked = showScrollBlur,
             settingsDataStore = settingsDataStore,
-            position = if (showScrollBlur) SettingsItemPosition.Middle else SettingsItemPosition.Bottom
+            position = SettingsItemPosition.Middle,
+            showDivider = true
         ) {
             scope.launch { settingsDataStore.setshowScrollBlur(it) }
             if (vibrationsEnabled) {
@@ -292,7 +294,8 @@ fun AccessibilitySection(
                         text = target,
                         checked = target in scrollBlurTargets,
                         settingsDataStore = settingsDataStore,
-                        position = if (index == targets.size - 1) SettingsItemPosition.Bottom else SettingsItemPosition.Middle
+                        position = if (index == targets.size - 1) SettingsItemPosition.Middle else SettingsItemPosition.Middle,
+                        showDivider = true
                     ) { isChecked ->
                         val newTargets = if (isChecked) {
                             scrollBlurTargets + target
@@ -307,6 +310,19 @@ fun AccessibilitySection(
                         }
                     }
                 }
+            }
+        }
+
+        SettingsSwitchItem(
+            text = "Disable icon rotation",
+            description = "Stop habit icons from rotating slowly",
+            checked = disableAnimations,
+            settingsDataStore = settingsDataStore,
+            position = SettingsItemPosition.Bottom
+        ) {
+            scope.launch { settingsDataStore.setDisableAnimations(it) }
+            if (vibrationsEnabled) {
+                haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
             }
         }
     }

@@ -1,8 +1,8 @@
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package com.example.attempt3.ui.screen
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,15 +14,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.DragHandle
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -40,9 +39,9 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -56,7 +55,7 @@ import com.example.attempt3.data.Database.Habit
 import com.example.attempt3.data.Database.HabitViewModel
 import com.example.attempt3.data.Database.HabitsUiState
 import com.example.attempt3.data.settings.SettingsDataStore
-import com.example.attempt3.ui.habitIconMap
+import com.example.attempt3.ui.RotatingHabitIcon
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,6 +63,7 @@ fun ReorderScreen(habitViewModel: HabitViewModel, onBack: () -> Unit, settingsDa
     val habitsUiState by habitViewModel.habitsUiState.collectAsState()
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
     val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
+    val disableAnimations by settingsDataStore.disableAnimations.collectAsState(initial = false)
     val haptic = LocalHapticFeedback.current
 
     Scaffold(
@@ -124,6 +124,7 @@ fun ReorderScreen(habitViewModel: HabitViewModel, onBack: () -> Unit, settingsDa
                                     ReorderHabitItem(
                                         habit = habit,
                                         borderContrast = borderContrast,
+                                        disableAnimations = disableAnimations,
                                         modifier = Modifier
                                             .graphicsLayer {
                                                 translationY = displacement
@@ -203,41 +204,26 @@ fun ReorderScreen(habitViewModel: HabitViewModel, onBack: () -> Unit, settingsDa
 }
 
 @Composable
-fun ReorderHabitItem(habit: Habit, borderContrast: Float, modifier: Modifier = Modifier) {
+fun ReorderHabitItem(habit: Habit, borderContrast: Float, disableAnimations: Boolean, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 4.dp),
-        shape = RoundedCornerShape(8.dp),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = lerp(Color(habit.color),MaterialTheme.colorScheme.surfaceVariant, 0.85f)
         ),
-        border = BorderStroke(1.dp, Color.Gray.copy(alpha = borderContrast))
+        border = BorderStroke(1.dp, lerp(Color(habit.color),MaterialTheme.colorScheme.surfaceVariant, 1f-borderContrast))
     ) {
         Row(
             modifier = Modifier.padding(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            val icon = habitIconMap[habit.icon] ?: Icons.Default.Refresh // Fallback icon
-            Box(
-                modifier = Modifier
-                    .size(64.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Color(habit.color).copy(alpha = 0.1f))
-                    .border(
-                        1.dp,
-                        Color(habit.color).copy(borderContrast),
-                        RoundedCornerShape(8.dp)
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = habit.icon,
-                    modifier = Modifier.size(40.dp),
-                    tint = Color(habit.color).copy(alpha = 0.85f)
-                )
-            }
+            RotatingHabitIcon(
+                habit = habit, 
+                borderContrast = borderContrast,
+                shouldAnimate = !disableAnimations
+            )
             Spacer(modifier = Modifier.size(16.dp))
 
             Column(

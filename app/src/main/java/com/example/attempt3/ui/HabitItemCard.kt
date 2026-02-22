@@ -27,7 +27,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -37,8 +36,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -55,6 +54,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asAndroidPath
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
@@ -64,6 +64,7 @@ import androidx.graphics.shapes.Morph
 import androidx.graphics.shapes.toPath
 import com.example.attempt3.data.Database.Completion
 import com.example.attempt3.data.Database.Habit
+import com.example.attempt3.data.settings.SettingsDataStore
 import com.example.attempt3.ui.colors.isBright
 
 private val circleToSquareMorph = Morph(MaterialShapes.Circle, MaterialShapes.Square)
@@ -157,6 +158,9 @@ fun HabitItemCard(
     heatmapScrollEnabled: Boolean = false,
     @SuppressLint("ModifierParameter") modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val settingsDataStore = remember { SettingsDataStore(context) }
+    val disableAnimations by settingsDataStore.disableAnimations.collectAsState(initial = false)
 
     Card(
         modifier = Modifier
@@ -170,7 +174,7 @@ fun HabitItemCard(
         ),
         border = BorderStroke(
             1.dp,
-            /*Color(habit.color).copy(alpha = borderContrast)*/lerp(Color(habit.color),MaterialTheme.colorScheme.surfaceVariant, 1f-borderContrast)
+            lerp(Color(habit.color),MaterialTheme.colorScheme.surfaceVariant, 1f-borderContrast)
         ),
     ) {
         Column(modifier = Modifier.padding(8.dp)) {
@@ -178,30 +182,12 @@ fun HabitItemCard(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Display the habit's icon
-                val icon = habitIconMap[habit.icon] ?: Icons.Default.Refresh // Fallback icon
-                Box(
-                    modifier = Modifier
-                        .size(64.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(
-                            Color(habit.color).copy(alpha = 0.1f),
-                            MaterialShapes.Cookie12Sided.toShape()
-                        )
-                        .border(
-                            1.dp,
-                            Color(habit.color).copy(alpha = borderContrast),
-                            MaterialShapes.Cookie12Sided.toShape()
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = habit.icon,
-                        modifier = Modifier.size(40.dp),
-                        tint = Color(habit.color).copy(alpha = 0.85f)
-                    )
-                }
+                RotatingHabitIcon(
+                    habit = habit,
+                    borderContrast = borderContrast,
+                    shouldAnimate = !disableAnimations
+                )
+
                 Spacer(modifier = Modifier.size(16.dp))
 
                 HabitTitleAndDescription(habit = habit, isDetailView = false, modifier = Modifier.weight(1f))
