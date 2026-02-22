@@ -1,5 +1,6 @@
 package com.example.attempt3.ui.screen
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.ScrollableDefaults
@@ -59,7 +60,8 @@ fun HabitStatisticsContent(
     habit: HabitWithCompletions,
     accentColor: Color,
     vibrationsEnabled: Boolean,
-    showScrollBlur: Boolean
+    showScrollBlur: Boolean,
+    borderContrast: Float
 ) {
     val stats = remember(habit) {
         calculateStatistics(habit)
@@ -79,7 +81,8 @@ fun HabitStatisticsContent(
             modifier = Modifier
                 .fillMaxWidth(0.95f)
                 .wrapContentHeight(),
-            colors = CardDefaults.cardColors(MaterialTheme.colorScheme.background)
+            colors = CardDefaults.cardColors(MaterialTheme.colorScheme.background),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = borderContrast))
         ) {
             Column(
                 modifier = Modifier
@@ -101,7 +104,8 @@ fun HabitStatisticsContent(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight(),
-                        accentColor = lerp(accentColor, MaterialTheme.colorScheme.onSurface, 0.35f)
+                        accentColor = lerp(accentColor, MaterialTheme.colorScheme.onSurface, 0.35f),
+                        borderContrast = borderContrast
                     )
                     StatCard(
                         label = "Completion Ratio",
@@ -109,7 +113,8 @@ fun HabitStatisticsContent(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight(),
-                        accentColor = lerp(accentColor, MaterialTheme.colorScheme.onSurface, 0.35f)
+                        accentColor = lerp(accentColor, MaterialTheme.colorScheme.onSurface, 0.35f),
+                        borderContrast = borderContrast
                     )
                 }
 
@@ -125,7 +130,8 @@ fun HabitStatisticsContent(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight(),
-                        accentColor = lerp(accentColor, MaterialTheme.colorScheme.onSurface, 0.35f)
+                        accentColor = lerp(accentColor, MaterialTheme.colorScheme.onSurface, 0.35f),
+                        borderContrast = borderContrast
                     )
                     StatCard(
                         label = "Days Since Habit Creation",
@@ -133,7 +139,8 @@ fun HabitStatisticsContent(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight(),
-                        accentColor = lerp(accentColor, MaterialTheme.colorScheme.onSurface, 0.35f)
+                        accentColor = lerp(accentColor, MaterialTheme.colorScheme.onSurface, 0.35f),
+                        borderContrast = borderContrast
                     )
                 }
 
@@ -141,7 +148,8 @@ fun HabitStatisticsContent(
                     stats = monthlyStats,
                     accentColor = accentColor,
                     vibrationsEnabled = vibrationsEnabled,
-                    showScrollBlur = showScrollBlur
+                    showScrollBlur = showScrollBlur,
+                    borderContrast = borderContrast
                 )
             }
         }
@@ -154,12 +162,14 @@ fun StatCard(
     value: String,
     secondaryValue: String? = null,
     modifier: Modifier = Modifier,
-    accentColor: Color = MaterialTheme.colorScheme.primary
+    accentColor: Color = MaterialTheme.colorScheme.primary,
+    borderContrast: Float
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = borderContrast))
     ) {
         Column(
             modifier = Modifier
@@ -195,6 +205,7 @@ fun StatCard(
 fun PageIndicator(
     habits: List<HabitWithCompletions>,
     currentPage: Int,
+    borderContrast: Float,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -202,7 +213,8 @@ fun PageIndicator(
         shape = MaterialTheme.shapes.extraLarge,
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f),
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        shadowElevation = 2.5.dp
+        shadowElevation = 2.5.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = borderContrast))
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
@@ -231,14 +243,16 @@ fun MonthlyCompletionGraph(
     modifier: Modifier = Modifier,
     accentColor: Color = MaterialTheme.colorScheme.primary,
     vibrationsEnabled: Boolean,
-    showScrollBlur: Boolean
+    showScrollBlur: Boolean,
+    borderContrast: Float
 ) {
     var isZoomedOut by remember { mutableStateOf(false) }
 
     Card(
         modifier = modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = borderContrast))
     ) {
         Column(
             modifier = Modifier
