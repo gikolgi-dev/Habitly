@@ -245,7 +245,8 @@ fun SharedTransitionScope.HabitDetailScreen(
                     dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight,
                     showYearDivider = showYearDivider,
                     showYearLabels = showYearLabels,
-                    showScrollBlur = showScrollBlur
+                    showScrollBlur = showScrollBlur,
+                    minWeeks = 30 // Display a bit more heatmap columns even if they are empty
                 )
 
                 //Spacer(modifier = Modifier.height(4.dp))
