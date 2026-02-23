@@ -181,7 +181,7 @@ fun HeatmapSection(
                             haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
                         }
                     },
-                    borderAlpha = if (borderContrast > 0.05f) borderContrast else 0.05f
+                    borderAlpha = borderContrast
                 )
             }
         }

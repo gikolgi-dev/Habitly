@@ -7,7 +7,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -31,59 +30,6 @@ enum class DayLabelDisplayOptions {
 }
 
 @Composable
-fun DayLabelSelector(
-    selectedOption: DayLabelDisplayOptions,
-    onOptionSelected: (DayLabelDisplayOptions) -> Unit,
-    modifier: Modifier = Modifier,
-    borderAlpha: Float = 0.1f
-) {
-    val options = DayLabelDisplayOptions.entries
-    
-    Column(modifier = modifier) {
-        Text(
-            text = "Day label display:",
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-            color = Color.Gray,
-            style = MaterialTheme.typography.bodySmall
-        )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            options.forEach { option ->
-                val isSelected = selectedOption == option
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .aspectRatio(2.2f)
-                        .border(
-                            width = if (isSelected) 0.dp else 1.dp,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = borderAlpha),
-                            shape = MaterialShapes.Square.toShape()
-                        )
-                        .clip(MaterialShapes.Square.toShape())
-                        .background(
-                            if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent
-                        )
-                        .clickable { onOptionSelected(option) },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = option.name,
-                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
 fun DayOfWeekSelector(
     selectedDays: Set<String>,
     onDaySelected: (String) -> Unit,
@@ -93,6 +39,7 @@ fun DayOfWeekSelector(
 ) {
     val days = listOf("M", "T", "W", "T", "F", "S", "S")
     val dayValues = listOf("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")
+    val effectiveBorderAlpha = if (borderAlpha > 0.1f) borderAlpha else 0.1f
 
     Row(
         modifier = Modifier
@@ -109,7 +56,7 @@ fun DayOfWeekSelector(
                     .aspectRatio(1f)
                     .border(
                         width = if(isSelected) 0.dp else 1.dp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = borderAlpha),
+                        color = MaterialTheme.colorScheme.outline.copy(alpha = effectiveBorderAlpha),
                         shape = MaterialShapes.Square.toShape()
                     )
                     .clip(MaterialShapes.Square.toShape())

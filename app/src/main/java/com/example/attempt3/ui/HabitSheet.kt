@@ -183,6 +183,7 @@ fun HabitSheetContent(
 ) {
     val haptic = LocalHapticFeedback.current
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
+    val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
 
     val isScrolled by remember { derivedStateOf { scrollState.value > 0 } }
     val dividerAlpha by animateFloatAsState(targetValue = if (isScrolled) 1f else 0f, label = "dividerAlpha")
@@ -280,7 +281,7 @@ fun HabitSheetContent(
                                 activeBorderColor = MaterialTheme.colorScheme.primary,
                                 inactiveContainerColor = MaterialTheme.colorScheme.surface,
                                 inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                inactiveBorderColor = MaterialTheme.colorScheme.outline
+                                inactiveBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = borderContrast)
                             )
                         ) {
                             Text(label)
@@ -313,7 +314,7 @@ fun HabitSheetContent(
                         val isSelected = habitIconKey == iconKey
                         val animatedBorderWidth by animateDpAsState(targetValue = if (isSelected) 2.dp else 1.dp, label = "borderWidth")
                         val animatedBorderColor by animateColorAsState(
-                            targetValue = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray.copy(alpha = 0.3f),
+                            targetValue = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray.copy(alpha = borderContrast),
                             label = "borderColor"
                         )
                         val animatedBackgroundColor by animateColorAsState(
@@ -409,7 +410,7 @@ fun HabitSheetContent(
                         val borderForCustomButton = if (isFinalCustomColorSelected || livePreviewColor != null) {
                             MaterialTheme.colorScheme.primary
                         } else {
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = borderContrast)
                         }
 
                         Box(
@@ -490,7 +491,7 @@ fun HabitSheetContent(
                         onTimeClick = onTimePickerClick,
                         onDaySelected = onNotificationDaySelected,
                         isEnabled = notificationsEnabled && hasNotificationPermission,
-                        borderAlpha = 0.1f
+                        borderAlpha = borderContrast
                     )
                 }
             }
