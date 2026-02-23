@@ -291,6 +291,15 @@ fun calculateMonthlyStats(habitWithCompletions: HabitWithCompletions): List<Mont
     val calendar = Calendar.getInstance()
     val nowCalendar = Calendar.getInstance()
     
+    // Start of today
+    val startOfTodayCal = Calendar.getInstance().apply {
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }
+    val startOfToday = startOfTodayCal.timeInMillis
+
     calendar.timeInMillis = effectiveStartDate
     calendar.set(Calendar.DAY_OF_MONTH, 1)
     calendar.set(Calendar.HOUR_OF_DAY, 0)
@@ -301,28 +310,37 @@ fun calculateMonthlyStats(habitWithCompletions: HabitWithCompletions): List<Mont
     val stats = mutableListOf<MonthlyCompletion>()
 
     while (true) {
-        if (calendar.get(Calendar.YEAR) > nowCalendar.get(Calendar.YEAR) || 
-            (calendar.get(Calendar.YEAR) == nowCalendar.get(Calendar.YEAR) && calendar.get(Calendar.MONTH) > nowCalendar.get(Calendar.MONTH))) {
-            break
-        }
-
         val loopYear = calendar.get(Calendar.YEAR)
         val loopMonth = calendar.get(Calendar.MONTH)
         
-        val daysInMonth = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
-        val daysToCount = if (loopYear == nowCalendar.get(Calendar.YEAR) && loopMonth == nowCalendar.get(Calendar.MONTH)) {
-            nowCalendar.get(Calendar.DAY_OF_MONTH)
+        if (loopYear > nowCalendar.get(Calendar.YEAR) || 
+            (loopYear == nowCalendar.get(Calendar.YEAR) && loopMonth > nowCalendar.get(Calendar.MONTH))) {
+            break
+        }
+
+        val isCurrentMonth = loopYear == nowCalendar.get(Calendar.YEAR) && loopMonth == nowCalendar.get(Calendar.MONTH)
+        
+        val daysToCount: Int
+        val effectiveEndOfRange: Long
+
+        if (isCurrentMonth) {
+            daysToCount = nowCalendar.get(Calendar.DAY_OF_MONTH) - 1
+            if (daysToCount <= 0) {
+                // If it's the first day of the month, don't show the current month as requested
+                break
+            }
+            effectiveEndOfRange = startOfToday - 1
         } else {
-            daysInMonth
+            daysToCount = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
+            val nextMonthCal = calendar.clone() as Calendar
+            nextMonthCal.add(Calendar.MONTH, 1)
+            effectiveEndOfRange = nextMonthCal.timeInMillis - 1
         }
 
         val startOfMonth = calendar.timeInMillis
-        val nextMonthCal = calendar.clone() as Calendar
-        nextMonthCal.add(Calendar.MONTH, 1)
-        val endOfMonth = nextMonthCal.timeInMillis - 1
-
+        
         val completionsInMonth = completions.filter { 
-            it.date in startOfMonth..endOfMonth 
+            it.date in startOfMonth..effectiveEndOfRange 
         }.sumOf { it.amountOfCompletions }
 
         val possibleCompletions = if (habit.intervalUnit == "day") {
