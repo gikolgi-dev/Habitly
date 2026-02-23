@@ -27,10 +27,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -560,37 +558,6 @@ fun MainSettingsToggle(
             Switch(
                 checked = checked,
                 onCheckedChange = onCheckedChange
-            )
-        }
-    }
-}
-
-@Composable
-fun SettingsBackButton(
-    onBack: () -> Unit,
-    settingsDataStore: SettingsDataStore,
-    isRoot: Boolean = false
-) {
-    val borderContrast by settingsDataStore.borders.collectAsState(initial = 0f)
-    
-    Surface(
-        onClick = onBack,
-        shape = CircleShape,
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        border = BorderStroke(
-            width = 1.dp,
-            color = MaterialTheme.colorScheme.outline.copy(alpha = borderContrast)
-        ),
-        modifier = Modifier
-            .padding(start = 12.dp)
-            .size(40.dp)
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = if (isRoot) "Close" else "Back",
-                modifier = Modifier.size(24.dp),
-                tint = MaterialTheme.colorScheme.onSurface
             )
         }
     }

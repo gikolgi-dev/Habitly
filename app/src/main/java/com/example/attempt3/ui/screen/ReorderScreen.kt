@@ -23,7 +23,6 @@ import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -55,6 +54,7 @@ import com.example.attempt3.data.Database.Habit
 import com.example.attempt3.data.Database.HabitViewModel
 import com.example.attempt3.data.Database.HabitsUiState
 import com.example.attempt3.data.settings.SettingsDataStore
+import com.example.attempt3.ui.AppBackButton
 import com.example.attempt3.ui.RotatingHabitIcon
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -74,14 +74,16 @@ fun ReorderScreen(habitViewModel: HabitViewModel, onBack: () -> Unit, settingsDa
             CenterAlignedTopAppBar(
                 title = { Text("Reorder Habits", fontWeight = FontWeight.SemiBold) },
                 actions = {
-                    IconButton(onClick = {
-                        if (vibrationsEnabled) {
-                            haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
-                        }
-                        onBack()
-                    }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Back", modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onBackground)
-                    }
+                    AppBackButton(
+                        onBack = {
+                            if (vibrationsEnabled) {
+                                haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+                            }
+                            onBack()
+                        },
+                        settingsDataStore = settingsDataStore,
+                        icon = Icons.AutoMirrored.Filled.ArrowForward
+                    )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent,

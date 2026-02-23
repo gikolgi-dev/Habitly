@@ -80,6 +80,7 @@ import com.example.attempt3.R
 import com.example.attempt3.data.Database.HabitDatabase
 import com.example.attempt3.data.settings.SettingsDataStore
 import com.example.attempt3.notifications.NotificationScheduler
+import com.example.attempt3.ui.AppBackButton
 import com.example.attempt3.ui.CustomTimePickerDialog
 import com.example.attempt3.ui.NotificationTimeSelectors
 import kotlinx.coroutines.Dispatchers
@@ -180,10 +181,10 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
             confirmButton = {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     OutlinedButton(
+                        modifier = Modifier.weight(1f),
                         onClick = { showConfirmationDialog.value = false },
                         shape = CircleShape,
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
@@ -191,7 +192,9 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                     ) {
                         Text("Cancel")
                     }
+                    Spacer(modifier = Modifier.width(12.dp))
                     Button(
+                        modifier = Modifier.weight(1f),
                         onClick = {
                             showConfirmationDialog.value = false
                             showSecondConfirmationDialog.value = true
@@ -216,10 +219,10 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
             confirmButton = {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     OutlinedButton(
+                        modifier = Modifier.weight(1f),
                         onClick = { showSecondConfirmationDialog.value = false },
                         shape = CircleShape,
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
@@ -227,7 +230,9 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                     ) {
                         Text("Cancel")
                     }
+                    Spacer(modifier = Modifier.width(12.dp))
                     Button(
+                        modifier = Modifier.weight(1f),
                         onClick = {
                             scope.launch(Dispatchers.IO) {
                                 db.clearAllTables()
@@ -240,7 +245,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                         shape = CircleShape,
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
                     ) {
-                        Text("Yes, Delete Everything", color = Color.White)
+                        Text("Delete", color = Color.White)
                     }
                 }
             },
@@ -615,7 +620,7 @@ fun SettingsScaffold(
                     ) 
                 },
                 navigationIcon = {
-                    SettingsBackButton(onBack = onBack, settingsDataStore = settingsDataStore, isRoot = isRoot)
+                    AppBackButton(onBack = onBack, settingsDataStore = settingsDataStore, isRoot = isRoot)
                 },
                 actions = actions,
                 colors = TopAppBarDefaults.topAppBarColors(

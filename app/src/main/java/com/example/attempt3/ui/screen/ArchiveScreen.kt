@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -21,8 +20,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -48,6 +45,7 @@ import com.example.attempt3.data.Database.Habit
 import com.example.attempt3.data.Database.HabitDao
 import com.example.attempt3.data.Database.HabitsUiState
 import com.example.attempt3.data.settings.SettingsDataStore
+import com.example.attempt3.ui.AppBackButton
 import com.example.attempt3.ui.HabitItemCard
 import kotlinx.coroutines.launch
 
@@ -73,10 +71,10 @@ fun ArchiveScreen(uiState: HabitsUiState, habitDao: HabitDao, onBack: () -> Unit
             confirmButton = {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     OutlinedButton(
+                        modifier = Modifier.weight(1f),
                         onClick = { habitToDelete = null },
                         shape = CircleShape,
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
@@ -85,6 +83,7 @@ fun ArchiveScreen(uiState: HabitsUiState, habitDao: HabitDao, onBack: () -> Unit
                         Text("Cancel")
                     }
                     Button(
+                        modifier = Modifier.weight(1f),
                         onClick = {
                             scope.launch {
                                 habitToDelete?.let {
@@ -112,14 +111,16 @@ fun ArchiveScreen(uiState: HabitsUiState, habitDao: HabitDao, onBack: () -> Unit
             CenterAlignedTopAppBar(
                 title = { Text("Archived Habits", fontWeight = FontWeight.SemiBold) },
                 actions = {
-                    IconButton(onClick = {
-                        if (vibrationsEnabled) {
-                            haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
-                        }
-                        onBack()
-                    }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(32.dp))
-                    }
+                    AppBackButton(
+                        onBack = {
+                            if (vibrationsEnabled) {
+                                haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+                            }
+                            onBack()
+                        },
+                        settingsDataStore = settingsDataStore,
+                        icon = Icons.AutoMirrored.Filled.ArrowForward
+                    )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent,
