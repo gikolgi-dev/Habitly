@@ -228,7 +228,7 @@ fun SettingsSwitchNavigationItem(
                     modifier = Modifier
                         .weight(1f)
                         .clickable(onClick = onClick)
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                        .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
@@ -245,15 +245,15 @@ fun SettingsSwitchNavigationItem(
                             )
                         }
                     }
-
+                    
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(24.dp)
+                    )
                 }
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(Modifier.width(6.dp))
+
                 Box(
                     modifier = Modifier
                         .fillMaxHeight()

@@ -24,7 +24,8 @@ import com.example.attempt3.data.settings.SettingsDataStore
 fun AppearanceScreen(
     modifier: Modifier = Modifier,
     settingsDataStore: SettingsDataStore,
-    onNavigateToScrollBlur: () -> Unit
+    onNavigateToScrollBlur: () -> Unit,
+    onNavigateToHabitColor: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
     val currentTheme by settingsDataStore.theme.collectAsState(initial = "system")
@@ -54,7 +55,8 @@ fun AppearanceScreen(
                 vibrationsEnabled = vibrationsEnabled,
                 settingsDataStore = settingsDataStore,
                 scope = scope,
-                haptic = haptic
+                haptic = haptic,
+                onNavigateToHabitColor = onNavigateToHabitColor
             )
 
             Spacer(modifier = Modifier.height(8.dp))

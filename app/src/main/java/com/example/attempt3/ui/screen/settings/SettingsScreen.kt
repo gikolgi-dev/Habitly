@@ -391,7 +391,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                                 iconColor = MaterialTheme.colorScheme.onPrimaryContainer,
                                 settingsDataStore = settingsDataStore,
                                 position = SettingsItemPosition.Top
-                            ) { navController.navigate("general") }
+                            ) { navController.navigate("general") { launchSingleTop = true } }
                             GroupedSettingsItem(
                                 title = "Appearance",
                                 subtitle = "Change the look and feel of the app",
@@ -400,7 +400,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                                 iconColor = MaterialTheme.colorScheme.onSecondaryContainer,
                                 settingsDataStore = settingsDataStore,
                                 position = SettingsItemPosition.Bottom
-                            ) { navController.navigate("appearance") }
+                            ) { navController.navigate("appearance") { launchSingleTop = true } }
                         }
                     }
                     item {
@@ -424,7 +424,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                                 iconColor = Color(0xFF246D29),
                                 settingsDataStore = settingsDataStore,
                                 position = SettingsItemPosition.Top
-                            ) { navController.navigate("import") }
+                            ) { navController.navigate("import") { launchSingleTop = true } }
                             GroupedSettingsItem(
                                 title = "Clear all data",
                                 subtitle = "Delete all habits and their completions",
@@ -527,7 +527,8 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                 AppearanceScreen(
                     modifier = Modifier.padding(paddingValues),
                     settingsDataStore = settingsDataStore,
-                    onNavigateToScrollBlur = { navController.navigate("scroll_blur") }
+                    onNavigateToScrollBlur = { navController.navigate("scroll_blur") { launchSingleTop = true } },
+                    onNavigateToHabitColor = { navController.navigate("habit_color") { launchSingleTop = true } }
                 )
             }
         }
@@ -590,6 +591,26 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                 settingsDataStore = settingsDataStore
             ) { paddingValues ->
                 ScrollBlurSubScreen(
+                    settingsDataStore = settingsDataStore,
+                    modifier = Modifier.padding(paddingValues)
+                )
+            }
+        }
+
+        composable(
+            route = "habit_color",
+            enterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left, animationSpec = tween(250)) },
+            popExitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(250)) }
+        ) {
+            SettingsScaffold(
+                title = "Habit Color",
+                onBack = {
+                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+                    navController.popBackStack()
+                },
+                settingsDataStore = settingsDataStore
+            ) { paddingValues ->
+                HabitColorSubScreen(
                     settingsDataStore = settingsDataStore,
                     modifier = Modifier.padding(paddingValues)
                 )

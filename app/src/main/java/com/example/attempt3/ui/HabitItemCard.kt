@@ -161,14 +161,17 @@ fun HabitItemCard(
     val settingsDataStore = remember { SettingsDataStore(context) }
     val disableAnimations by settingsDataStore.disableAnimations.collectAsState(initial = false)
     val useHabitColorForCard by settingsDataStore.useHabitColorForCard.collectAsState(initial = true)
+    val habitColorTargets by settingsDataStore.habitColorTargets.collectAsState(initial = setOf("Habit Cards", "Statistic Screen"))
 
-    val cardBackgroundColor = if (useHabitColorForCard) {
+    val useHabitColor = useHabitColorForCard && "Habit Cards" in habitColorTargets
+
+    val cardBackgroundColor = if (useHabitColor) {
         lerp(Color(habit.color), MaterialTheme.colorScheme.surfaceVariant, 0.85f)
     } else {
         MaterialTheme.colorScheme.surfaceVariant
     }
 
-    val cardBorderColor = if (useHabitColorForCard) {
+    val cardBorderColor = if (useHabitColor) {
         lerp(Color(habit.color), lerp(Color(habit.color), MaterialTheme.colorScheme.surfaceVariant, 0.85f), 1f - borderContrast)
     } else {
         MaterialTheme.colorScheme.outline.copy(alpha = borderContrast)

@@ -37,6 +37,7 @@ class SettingsDataStore(private val context: Context) {
         val SCROLL_BLUR_TARGETS_KEY = stringPreferencesKey("scroll_blur_targets")
         val DISABLE_ANIMATIONS_KEY = booleanPreferencesKey("disable_animations")
         val USE_HABIT_COLOR_FOR_CARD_KEY = booleanPreferencesKey("use_habit_color_for_card")
+        val HABIT_COLOR_TARGETS_KEY = stringPreferencesKey("habit_color_targets")
     }
 
     val theme: Flow<String> = context.dataStore.data
@@ -276,6 +277,18 @@ class SettingsDataStore(private val context: Context) {
         }
     }
 
+    val habitColorTargets: Flow<Set<String>> = context.dataStore.data
+        .map { preferences ->
+            preferences[HABIT_COLOR_TARGETS_KEY]?.split(',')?.filter { it.isNotEmpty() }?.toSet()
+                ?: setOf("Habit Cards", "Statistic Screen")
+        }
+
+    suspend fun setHabitColorTargets(targets: Set<String>) {
+        context.dataStore.edit { settings ->
+            settings[HABIT_COLOR_TARGETS_KEY] = targets.joinToString(",")
+        }
+    }
+
     suspend fun resetToDefault() {
         context.dataStore.edit { settings ->
             settings[THEME_KEY] = "system"
@@ -295,6 +308,7 @@ class SettingsDataStore(private val context: Context) {
             settings[HEATMAP_VISIBLE_DAYS_KEY] = ""
             settings[DISABLE_ANIMATIONS_KEY] = false
             settings[USE_HABIT_COLOR_FOR_CARD_KEY] = false
+            settings[HABIT_COLOR_TARGETS_KEY] = "Habit Cards,Statistic Screen"
         }
     }
 }

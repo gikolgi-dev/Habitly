@@ -51,7 +51,10 @@ fun StatisticScreen(
     val scrollBlurTargets by settingsDataStore.scrollBlurTargets.collectAsState(initial = setOf("Heatmap", "Line Chart"))
     val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
     val useHabitColorForCard by settingsDataStore.useHabitColorForCard.collectAsState(initial = true)
+    val habitColorTargets by settingsDataStore.habitColorTargets.collectAsState(initial = setOf("Habit Cards", "Statistic Screen"))
     val haptic = LocalHapticFeedback.current
+
+    val useHabitColorInStatistics = useHabitColorForCard && "Statistic Screen" in habitColorTargets
 
     val actualCount = habits.size
     val pageCount = if (actualCount > 1) Int.MAX_VALUE else actualCount
@@ -99,7 +102,7 @@ fun StatisticScreen(
     }
 
     val animatedBackgroundColor by animateColorAsState(
-        targetValue = if (useHabitColorForCard && habits.isNotEmpty()) {
+        targetValue = if (useHabitColorInStatistics && habits.isNotEmpty()) {
             lerp(currentHabitColor, MaterialTheme.colorScheme.surface, 0.95f)
         } else {
             MaterialTheme.colorScheme.surface
@@ -108,7 +111,7 @@ fun StatisticScreen(
         label = "backgroundColor"
     )
 
-    val backButtonBackgroundColor = if (useHabitColorForCard && habits.isNotEmpty()) {
+    val backButtonBackgroundColor = if (useHabitColorInStatistics && habits.isNotEmpty()) {
         lerp(currentHabitColor, MaterialTheme.colorScheme.surfaceVariant, 0.85f)
     } else {
         MaterialTheme.colorScheme.surfaceVariant
@@ -178,7 +181,7 @@ fun StatisticScreen(
                                 vibrationsEnabled = vibrationsEnabled,
                                 showScrollBlur = showScrollBlur && "Line Chart" in scrollBlurTargets,
                                 borderContrast = borderContrast,
-                                useHabitColorForCard = useHabitColorForCard
+                                useHabitColorForCard = useHabitColorInStatistics
                             )
                         }
                     }
@@ -188,7 +191,7 @@ fun StatisticScreen(
                             habits = habits,
                             currentPage = pagerState.currentPage % actualCount,
                             borderContrast = borderContrast,
-                            useHabitColorForCard = useHabitColorForCard,
+                            useHabitColorForCard = useHabitColorInStatistics,
                             currentHabitColor = currentHabitColor,
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)

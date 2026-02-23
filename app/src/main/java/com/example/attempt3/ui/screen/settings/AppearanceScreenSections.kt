@@ -40,7 +40,8 @@ fun ThemeSection(
     vibrationsEnabled: Boolean,
     settingsDataStore: SettingsDataStore,
     scope: CoroutineScope,
-    haptic: HapticFeedback
+    haptic: HapticFeedback,
+    onNavigateToHabitColor: () -> Unit
 ) {
     SettingsGroup(
         title = "Theme",
@@ -88,18 +89,20 @@ fun ThemeSection(
                 }
             }
         }
-        SettingsSwitchItem(
-            text = "Habit color on cards",
-            description = "Color card backgrounds based on habit colors",
+        SettingsSwitchNavigationItem(
+            text = "Habit color accents",
+            description = "Add color accents to habit related elements",
             checked = useHabitColorForCard,
             settingsDataStore = settingsDataStore,
-            position = SettingsItemPosition.Bottom
-        ) {
-            scope.launch { settingsDataStore.setUseHabitColorForCard(it) }
-            if (vibrationsEnabled) {
-                haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
-            }
-        }
+            position = SettingsItemPosition.Bottom,
+            onCheckedChange = {
+                scope.launch { settingsDataStore.setUseHabitColorForCard(it) }
+                if (vibrationsEnabled) {
+                    haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+                }
+            },
+            onClick = onNavigateToHabitColor
+        )
     }
 }
 
