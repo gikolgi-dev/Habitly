@@ -64,6 +64,7 @@ import com.example.attempt3.data.Database.Habit
 import com.example.attempt3.data.Database.HabitViewModel
 import com.example.attempt3.data.Database.HabitWithCompletions
 import com.example.attempt3.data.settings.SettingsDataStore
+import com.example.attempt3.ui.components.RotatingHabitIcon
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
 
@@ -193,7 +194,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     RotatingHabitIcon(
-                        habit = habit, 
+                        habit = habit,
                         borderContrast = borderContrast,
                         shouldAnimate = !disableAnimations
                     )

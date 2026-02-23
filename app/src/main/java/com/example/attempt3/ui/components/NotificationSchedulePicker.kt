@@ -1,4 +1,4 @@
-package com.example.attempt3.ui
+package com.example.attempt3.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke

@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
-package com.example.attempt3.ui
+package com.example.attempt3.ui.components
 
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -28,6 +28,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.attempt3.data.Database.Habit
+import com.example.attempt3.ui.habitIconMap
 
 @Composable
 fun RotatingHabitIcon(

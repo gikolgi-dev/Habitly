@@ -101,12 +101,12 @@ import com.example.attempt3.data.Database.HabitWithCompletions
 import com.example.attempt3.data.Database.HabitsUiState
 import com.example.attempt3.data.settings.SettingsDataStore
 import com.example.attempt3.notifications.NotificationScheduler
-import com.example.attempt3.ui.CustomTimePickerDialog
 import com.example.attempt3.ui.HabitDetailScreen
 import com.example.attempt3.ui.HabitItemCard
 import com.example.attempt3.ui.HabitSheetContent
 import com.example.attempt3.ui.SaveHabitButton
 import com.example.attempt3.ui.colors.habitColors
+import com.example.attempt3.ui.components.CustomTimePickerDialog
 import com.example.attempt3.ui.defaultHabitIconKey
 import com.example.attempt3.ui.screen.settings.SettingsScreen
 import com.github.skydoves.colorpicker.compose.ColorEnvelope

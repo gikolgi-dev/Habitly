@@ -28,7 +28,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.unit.dp
 import com.example.attempt3.data.settings.SettingsDataStore
-import com.example.attempt3.ui.DayOfWeekSelector
+import com.example.attempt3.ui.components.DayOfWeekSelector
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 

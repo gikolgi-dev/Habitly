@@ -1,4 +1,4 @@
-package com.example.attempt3.ui.screen
+package com.example.attempt3.ui.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -51,7 +51,6 @@ import com.example.attempt3.data.Database.HabitWithCompletions
 import com.example.attempt3.data.MonthlyCompletion
 import com.example.attempt3.data.calculateMonthlyStats
 import com.example.attempt3.data.calculateStatistics
-import com.example.attempt3.ui.components.MonthlyLineChart
 import com.example.attempt3.ui.fadingEdge
 import kotlinx.coroutines.launch
 

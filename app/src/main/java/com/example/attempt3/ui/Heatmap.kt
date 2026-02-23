@@ -31,6 +31,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.attempt3.data.Database.Completion
+import com.example.attempt3.ui.components.HeatmapWeekColumn
+import com.example.attempt3.ui.components.HeatmapWeekData
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale

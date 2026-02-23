@@ -65,6 +65,7 @@ import com.example.attempt3.data.Database.Completion
 import com.example.attempt3.data.Database.Habit
 import com.example.attempt3.data.settings.SettingsDataStore
 import com.example.attempt3.ui.colors.isBright
+import com.example.attempt3.ui.components.RotatingHabitIcon
 
 private val circleToSquareMorph = Morph(MaterialShapes.Circle, MaterialShapes.Square)
 

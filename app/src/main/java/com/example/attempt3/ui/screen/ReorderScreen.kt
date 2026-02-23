@@ -55,7 +55,7 @@ import com.example.attempt3.data.Database.HabitViewModel
 import com.example.attempt3.data.Database.HabitsUiState
 import com.example.attempt3.data.settings.SettingsDataStore
 import com.example.attempt3.ui.AppBackButton
-import com.example.attempt3.ui.RotatingHabitIcon
+import com.example.attempt3.ui.components.RotatingHabitIcon
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

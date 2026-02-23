@@ -81,8 +81,8 @@ import com.example.attempt3.data.Database.HabitDatabase
 import com.example.attempt3.data.settings.SettingsDataStore
 import com.example.attempt3.notifications.NotificationScheduler
 import com.example.attempt3.ui.AppBackButton
-import com.example.attempt3.ui.CustomTimePickerDialog
-import com.example.attempt3.ui.NotificationTimeSelectors
+import com.example.attempt3.ui.components.CustomTimePickerDialog
+import com.example.attempt3.ui.components.NotificationTimeSelectors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
