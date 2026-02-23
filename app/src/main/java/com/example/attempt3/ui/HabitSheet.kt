@@ -201,7 +201,7 @@ fun HabitSheetContent(
         Card(
             modifier = Modifier.fillMaxWidth(),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-            colors = cardColors(MaterialTheme.colorScheme.background)
+            colors = cardColors(MaterialTheme.colorScheme.surfaceVariant)
         ) {
             Column(modifier = Modifier.padding(horizontal = 12.dp,vertical = 4.dp)) {
                 OutlinedTextField(
@@ -238,13 +238,13 @@ fun HabitSheetContent(
         Card(
             modifier = Modifier.fillMaxWidth(),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-            colors = cardColors(MaterialTheme.colorScheme.background)
+            colors = cardColors(MaterialTheme.colorScheme.surfaceVariant)
         ) {
             Column(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Streak interval", style = MaterialTheme.typography.headlineSmall)
+                Text("Streak interval", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurface)
                 Spacer(modifier = Modifier.height(8.dp))
                 AnimatedVisibility(
                     visible = intervalUnit != "day",
@@ -293,13 +293,13 @@ fun HabitSheetContent(
         Card(
             modifier = Modifier.fillMaxWidth(),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-            colors = cardColors(MaterialTheme.colorScheme.background)
+            colors = cardColors(MaterialTheme.colorScheme.surfaceVariant)
         ) {
             Column(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Choose an Icon", style = MaterialTheme.typography.headlineSmall)
+                Text("Choose an Icon", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurface)
                 Spacer(modifier = Modifier.height(8.dp))
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(8),
@@ -359,13 +359,13 @@ fun HabitSheetContent(
         Card(
             modifier = Modifier.fillMaxWidth(),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-            colors = cardColors(MaterialTheme.colorScheme.background)
+            colors = cardColors(MaterialTheme.colorScheme.surfaceVariant)
         ) {
             Column(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Choose a Color", style = MaterialTheme.typography.headlineSmall)
+                Text("Choose a Color", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurface)
                 Spacer(modifier = Modifier.height(8.dp))
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(8),
@@ -462,7 +462,7 @@ fun HabitSheetContent(
         Card(
             modifier = Modifier.fillMaxWidth(),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-            colors = cardColors(MaterialTheme.colorScheme.background)
+            colors = cardColors(MaterialTheme.colorScheme.surfaceVariant)
         ) {
             Column(
                 modifier = Modifier
@@ -476,7 +476,7 @@ fun HabitSheetContent(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("Enable Notifications", style = MaterialTheme.typography.titleMedium)
+                    Text("Enable Notifications", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
                     Switch(
                         checked = notificationsEnabled,
                         onCheckedChange = null,
