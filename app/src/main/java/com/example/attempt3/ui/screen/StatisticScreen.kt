@@ -1,5 +1,7 @@
 package com.example.attempt3.ui.screen
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -24,6 +26,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
@@ -47,6 +50,7 @@ fun StatisticScreen(
     val showScrollBlur by settingsDataStore.showScrollBlur.collectAsState(initial = true)
     val scrollBlurTargets by settingsDataStore.scrollBlurTargets.collectAsState(initial = setOf("Heatmap", "Line Chart"))
     val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
+    val useHabitColorForCard by settingsDataStore.useHabitColorForCard.collectAsState(initial = true)
     val haptic = LocalHapticFeedback.current
 
     val actualCount = habits.size
@@ -94,6 +98,22 @@ fun StatisticScreen(
         }
     }
 
+    val animatedBackgroundColor by animateColorAsState(
+        targetValue = if (useHabitColorForCard && habits.isNotEmpty()) {
+            lerp(currentHabitColor, MaterialTheme.colorScheme.surface, 0.95f)
+        } else {
+            MaterialTheme.colorScheme.surface
+        },
+        animationSpec = tween(durationMillis = 300),
+        label = "backgroundColor"
+    )
+
+    val backButtonBackgroundColor = if (useHabitColorForCard && habits.isNotEmpty()) {
+        lerp(currentHabitColor, MaterialTheme.colorScheme.surfaceVariant, 0.85f)
+    } else {
+        MaterialTheme.colorScheme.surfaceVariant
+    }
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -117,7 +137,8 @@ fun StatisticScreen(
                         },
                         settingsDataStore = settingsDataStore,
                         icon = Icons.Default.Close,
-                        tint = currentHabitColor
+                        tint = currentHabitColor,
+                        backgroundColor = backButtonBackgroundColor
                     )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -126,10 +147,11 @@ fun StatisticScreen(
                 )
             )
         },
+        containerColor = animatedBackgroundColor
     ) { paddingValues ->
         Surface(
             modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.surface
+            color = Color.Transparent
         ) {
             Box(
                 modifier = Modifier
@@ -149,13 +171,14 @@ fun StatisticScreen(
                         val index = page % actualCount
                         val habit = habits.getOrNull(index)
                         if (habit != null) {
-                            val habitColor = habit.habit.color?.let { Color(it) } ?: primaryColor
+                            val habitColor = Color(habit.habit.color)
                             HabitStatisticsContent(
                                 habit = habit,
                                 accentColor = habitColor,
                                 vibrationsEnabled = vibrationsEnabled,
                                 showScrollBlur = showScrollBlur && "Line Chart" in scrollBlurTargets,
-                                borderContrast = borderContrast
+                                borderContrast = borderContrast,
+                                useHabitColorForCard = useHabitColorForCard
                             )
                         }
                     }
@@ -165,6 +188,8 @@ fun StatisticScreen(
                             habits = habits,
                             currentPage = pagerState.currentPage % actualCount,
                             borderContrast = borderContrast,
+                            useHabitColorForCard = useHabitColorForCard,
+                            currentHabitColor = currentHabitColor,
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
                                 .padding(bottom = 16.dp)

@@ -27,6 +27,7 @@ fun AppBackButton(
     isRoot: Boolean = false,
     icon: ImageVector = Icons.AutoMirrored.Filled.ArrowBack,
     tint: Color = MaterialTheme.colorScheme.onSurface,
+    backgroundColor: Color = MaterialTheme.colorScheme.surfaceVariant,
     modifier: Modifier = Modifier
 ) {
     val borderContrast by settingsDataStore.borders.collectAsState(initial = 0f)
@@ -34,7 +35,7 @@ fun AppBackButton(
     Surface(
         onClick = onBack,
         shape = CircleShape,
-        color = MaterialTheme.colorScheme.surfaceVariant,
+        color = backgroundColor,
         border = BorderStroke(
             width = 1.dp,
             color = MaterialTheme.colorScheme.outline.copy(alpha = borderContrast)

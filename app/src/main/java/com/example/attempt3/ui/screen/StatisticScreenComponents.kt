@@ -61,7 +61,8 @@ fun HabitStatisticsContent(
     accentColor: Color,
     vibrationsEnabled: Boolean,
     showScrollBlur: Boolean,
-    borderContrast: Float
+    borderContrast: Float,
+    useHabitColorForCard: Boolean = true
 ) {
     val stats = remember(habit) {
         calculateStatistics(habit)
@@ -74,6 +75,18 @@ fun HabitStatisticsContent(
     val onSurface = MaterialTheme.colorScheme.onSurface
     val displayAccentColor = remember(accentColor, onSurface) {
         lerp(accentColor, onSurface, 0.3f)
+    }
+
+    val cardBackgroundColor = if (useHabitColorForCard) {
+        lerp(accentColor, MaterialTheme.colorScheme.surfaceVariant, 0.85f)
+    } else {
+        MaterialTheme.colorScheme.surfaceContainerLow
+    }
+
+    val cardBorderColor = if (useHabitColorForCard) {
+        lerp(accentColor, lerp(accentColor, MaterialTheme.colorScheme.surfaceVariant, 0.85f), 1f - borderContrast)
+    } else {
+        MaterialTheme.colorScheme.outlineVariant.copy(alpha = borderContrast)
     }
 
     Column(
@@ -89,9 +102,9 @@ fun HabitStatisticsContent(
                 .fillMaxWidth(0.95f)
                 .wrapContentHeight(),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                containerColor = cardBackgroundColor
             ),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = borderContrast))
+            border = BorderStroke(1.dp, cardBorderColor)
         ) {
             Column(
                 modifier = Modifier
@@ -114,7 +127,9 @@ fun HabitStatisticsContent(
                             .weight(1f)
                             .fillMaxHeight(),
                         accentColor = displayAccentColor,
-                        borderContrast = borderContrast
+                        borderContrast = borderContrast,
+                        useHabitColorForCard = useHabitColorForCard,
+                        habitColor = accentColor
                     )
                     StatCard(
                         label = "Completed Ratio",
@@ -123,7 +138,9 @@ fun HabitStatisticsContent(
                             .weight(1f)
                             .fillMaxHeight(),
                         accentColor = displayAccentColor,
-                        borderContrast = borderContrast
+                        borderContrast = borderContrast,
+                        useHabitColorForCard = useHabitColorForCard,
+                        habitColor = accentColor
                     )
                 }
 
@@ -134,13 +151,15 @@ fun HabitStatisticsContent(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     StatCard(
-                        label = "Avg. Completion add Time",
+                        label = "Avg. Completion Time",
                         value = stats.averageCompletionTime,
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight(),
                         accentColor = displayAccentColor,
-                        borderContrast = borderContrast
+                        borderContrast = borderContrast,
+                        useHabitColorForCard = useHabitColorForCard,
+                        habitColor = accentColor
                     )
                     StatCard(
                         label = "Days since creation",
@@ -149,7 +168,9 @@ fun HabitStatisticsContent(
                             .weight(1f)
                             .fillMaxHeight(),
                         accentColor = displayAccentColor,
-                        borderContrast = borderContrast
+                        borderContrast = borderContrast,
+                        useHabitColorForCard = useHabitColorForCard,
+                        habitColor = accentColor
                     )
                 }
 
@@ -158,7 +179,9 @@ fun HabitStatisticsContent(
                     accentColor = accentColor,
                     vibrationsEnabled = vibrationsEnabled,
                     showScrollBlur = showScrollBlur,
-                    borderContrast = borderContrast
+                    borderContrast = borderContrast,
+                    useHabitColorForCard = useHabitColorForCard,
+                    habitColor = accentColor
                 )
             }
         }
@@ -172,13 +195,27 @@ fun StatCard(
     modifier: Modifier = Modifier,
     secondaryValue: String? = null,
     accentColor: Color = MaterialTheme.colorScheme.primary,
-    borderContrast: Float
+    borderContrast: Float,
+    useHabitColorForCard: Boolean = false,
+    habitColor: Color = Color.Transparent
 ) {
+    val cardBackgroundColor = if (useHabitColorForCard) {
+        lerp(habitColor, MaterialTheme.colorScheme.surfaceVariant, 0.75f)
+    } else {
+        MaterialTheme.colorScheme.surfaceContainer
+    }
+
+    val cardBorderColor = if (useHabitColorForCard) {
+        lerp(habitColor, lerp(habitColor, MaterialTheme.colorScheme.surfaceVariant, 0.75f), 1f - borderContrast)
+    } else {
+        MaterialTheme.colorScheme.outlineVariant.copy(alpha = borderContrast)
+    }
+
     Card(
         modifier = modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = borderContrast))
+        colors = CardDefaults.cardColors(containerColor = cardBackgroundColor),
+        border = BorderStroke(1.dp, cardBorderColor)
     ) {
         Column(
             modifier = Modifier
@@ -217,15 +254,29 @@ fun PageIndicator(
     habits: List<HabitWithCompletions>,
     currentPage: Int,
     borderContrast: Float,
+    useHabitColorForCard: Boolean = false,
+    currentHabitColor: Color = Color.Transparent,
     modifier: Modifier = Modifier
 ) {
+    val containerColor = if (useHabitColorForCard) {
+        lerp(currentHabitColor, MaterialTheme.colorScheme.surfaceVariant, 0.85f).copy(alpha = 0.95f)
+    } else {
+        MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f)
+    }
+
+    val borderColor = if (useHabitColorForCard) {
+        lerp(currentHabitColor, lerp(currentHabitColor, MaterialTheme.colorScheme.surfaceVariant, 0.85f), 1f - borderContrast)
+    } else {
+        MaterialTheme.colorScheme.outlineVariant.copy(alpha = borderContrast)
+    }
+
     Surface(
         modifier = modifier,
         shape = MaterialTheme.shapes.extraLarge,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f),
+        color = containerColor,
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
         shadowElevation = 4.dp,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = borderContrast))
+        border = BorderStroke(1.dp, borderColor)
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
@@ -255,15 +306,29 @@ fun MonthlyCompletionGraph(
     accentColor: Color = MaterialTheme.colorScheme.primary,
     vibrationsEnabled: Boolean,
     showScrollBlur: Boolean,
-    borderContrast: Float
+    borderContrast: Float,
+    useHabitColorForCard: Boolean = false,
+    habitColor: Color = Color.Transparent
 ) {
     var isZoomedOut by remember { mutableStateOf(false) }
+
+    val cardBackgroundColor = if (useHabitColorForCard) {
+        lerp(habitColor, MaterialTheme.colorScheme.surfaceVariant, 0.75f)
+    } else {
+        MaterialTheme.colorScheme.surfaceContainer
+    }
+
+    val cardBorderColor = if (useHabitColorForCard) {
+        lerp(habitColor, lerp(habitColor, MaterialTheme.colorScheme.surfaceVariant, 0.75f), 1f - borderContrast)
+    } else {
+        MaterialTheme.colorScheme.outlineVariant.copy(alpha = borderContrast)
+    }
 
     Card(
         modifier = modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = borderContrast))
+        colors = CardDefaults.cardColors(containerColor = cardBackgroundColor),
+        border = BorderStroke(1.dp, cardBorderColor)
     ) {
         Column(
             modifier = Modifier
