@@ -14,9 +14,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -28,12 +25,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.ImportExport
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Palette
@@ -64,7 +61,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
@@ -439,52 +435,40 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                         }
                     }
                     item {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .clip(MaterialTheme.shapes.medium)
-                                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                                    .border(
-                                        width = 1.dp,
-                                        color = MaterialTheme.colorScheme.outline.copy(borderContrast),
-                                        shape = MaterialTheme.shapes.medium
-                                    )
-                                    .clickable { uriHandler.openUri("https://github.com/gikolgi-dev/Habitly") }
-                                    .padding(horizontal = 16.dp, vertical = 10.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    painter = painterResource(
-                                        if (useDarkTheme) {
-                                            R.drawable.github_mark_white
-                                        } else {
-                                            R.drawable.github_mark
-                                        }
-                                    ),
-                                    contentDescription = "GitHub",
-                                    modifier = Modifier.size(32.dp),
-                                    tint = MaterialTheme.colorScheme.onSurface
-                                )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Text(
-                                    text = "View on GitHub",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
+                        SettingsGroup(settingsDataStore = settingsDataStore) {
+                            GroupedSettingsItem(
+                                title = "View on GitHub",
+                                subtitle = "Check out the source code",
+                                painter = painterResource(
+                                    if (useDarkTheme) {
+                                        R.drawable.github_mark_white
+                                    } else {
+                                        R.drawable.github_mark
+                                    }
+                                ),
+                                iconBackgroundColor = Color.Gray.copy(alpha = if (useDarkTheme) 0.5f else 0.15f),
+                                iconColor = MaterialTheme.colorScheme.onSurface,
+                                settingsDataStore = settingsDataStore,
+                                position = SettingsItemPosition.Top,
+                                showDivider = true
+                            ) { uriHandler.openUri("https://github.com/gikolgi-dev/Habitly") }
+                            GroupedSettingsItem(
+                                title = "License",
+                                subtitle = "This app is licensed under GNU GPL v3.0",
+                                icon = Icons.Default.Description,
+                                iconBackgroundColor = MaterialTheme.colorScheme.secondaryContainer,
+                                iconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                settingsDataStore = settingsDataStore,
+                                position = SettingsItemPosition.Bottom
+                            ) { uriHandler.openUri("https://www.gnu.org/licenses/gpl-3.0.html") }
                         }
                     }
+
                     item {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 4.dp),
+                                .padding(vertical = 12.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
                         ) {

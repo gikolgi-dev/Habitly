@@ -59,6 +59,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -115,7 +116,7 @@ fun SettingsGroup(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .padding(horizontal = 16.dp, vertical = 0.dp)
     ) {
         title?.let {
             Text(
@@ -394,6 +395,53 @@ fun RotatingCookie(
 }
 
 @Composable
+fun RotatingCookie(
+    painter: Painter,
+    iconBackgroundColor: Color,
+    iconColor: Color,
+    settingsDataStore: SettingsDataStore,
+    size: Dp = 46.dp,
+    iconSize: Dp = 30.dp,
+    contentDescription: String? = null
+) {
+    val disableAnimations by settingsDataStore.disableAnimations.collectAsState(initial = false)
+    
+    val rotation = if (!disableAnimations) {
+        val infiniteTransition = rememberInfiniteTransition(label = "rotation")
+        val animatedRotation by infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 360f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(30000, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "rotation"
+        )
+        animatedRotation
+    } else {
+        0f
+    }
+
+    Box(
+        modifier = Modifier.size(size),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .rotate(rotation)
+                .background(iconBackgroundColor, MaterialShapes.Cookie12Sided.toShape())
+        )
+        Icon(
+            painter = painter,
+            contentDescription = contentDescription,
+            tint = iconColor,
+            modifier = Modifier.size(iconSize)
+        )
+    }
+}
+
+@Composable
 fun GroupedSettingsItem(
     title: String,
     subtitle: String? = null,
@@ -415,6 +463,60 @@ fun GroupedSettingsItem(
             ) {
                 RotatingCookie(
                     icon = icon,
+                    iconBackgroundColor = iconBackgroundColor,
+                    iconColor = iconColor,
+                    settingsDataStore = settingsDataStore,
+                    contentDescription = title
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+                Column {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    subtitle?.let {
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+            if (showDivider) {
+                HorizontalDivider(
+                    modifier = Modifier.padding(start = 78.dp, end = 16.dp),
+                    thickness = 0.5.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun GroupedSettingsItem(
+    title: String,
+    subtitle: String? = null,
+    painter: Painter,
+    iconBackgroundColor: Color,
+    iconColor: Color,
+    settingsDataStore: SettingsDataStore,
+    position: SettingsItemPosition = SettingsItemPosition.Alone,
+    showDivider: Boolean = false,
+    onClick: () -> Unit
+) {
+    SettingsItemBox(settingsDataStore = settingsDataStore, position = position) {
+        Column(modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                RotatingCookie(
+                    painter = painter,
                     iconBackgroundColor = iconBackgroundColor,
                     iconColor = iconColor,
                     settingsDataStore = settingsDataStore,
