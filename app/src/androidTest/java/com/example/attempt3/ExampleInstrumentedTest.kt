@@ -1,3 +1,5 @@
+/* Habitly - Licensed under GNU GPL v3.0 or later. See <https://www.gnu.org/licenses/gpl-3.0.html> */
+
 package com.example.attempt3
 
 import androidx.test.ext.junit.runners.AndroidJUnit4

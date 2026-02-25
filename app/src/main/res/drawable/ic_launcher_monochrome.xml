@@ -1,3 +1,5 @@
+<!--Habitly - Licensed under GNU GPL v3.0 or later. See <https://www.gnu.org/licenses/gpl-3.0.html>-->
+
 <vector xmlns:android="http://schemas.android.com/apk/res/android" android:autoMirrored="true" android:height="108dp" android:viewportHeight="108" android:viewportWidth="108" android:width="108dp">
       
     <path android:fillColor="#ffffff" android:pathData="M47.82,66.87C47.82,65.03 49.31,63.54 51.15,63.54H56.85C58.69,63.54 60.18,65.03 60.18,66.87V72.56C60.18,74.4 58.69,75.9 56.85,75.9H51.15C49.31,75.9 47.82,74.4 47.82,72.56V66.87Z"/>

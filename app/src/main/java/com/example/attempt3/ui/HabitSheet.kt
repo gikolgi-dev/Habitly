@@ -1,3 +1,5 @@
+/* Habitly - Licensed under GNU GPL v3.0 or later. See <https://www.gnu.org/licenses/gpl-3.0.html> */
+
 @file:OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class,
     ExperimentalMaterial3ExpressiveApi::class
 )
@@ -115,6 +117,7 @@ import com.example.attempt3.ui.colors.habitColors
 import com.example.attempt3.ui.colors.isBright
 import com.example.attempt3.ui.components.NotificationTimeSelectors
 import androidx.compose.foundation.lazy.grid.items as gridItems
+
 val habitIconMap = mapOf(
     "Book" to Icons.Default.Book,
     "DirectionsRun" to Icons.AutoMirrored.Default.DirectionsRun,
@@ -509,9 +512,9 @@ fun SaveHabitButton(
     settingsDataStore: SettingsDataStore,
     onClick: () -> Unit
 ) {
-    val isKeyboardOpen by rememberUpdatedState(WindowInsets.isImeVisible)
     val haptic = LocalHapticFeedback.current
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
+    val isKeyboardOpen by rememberUpdatedState(WindowInsets.isImeVisible)
     val padding by animateDpAsState(targetValue = if (isKeyboardOpen) 8.dp else 20.dp, label = "buttonPadding")
 
     Button(
