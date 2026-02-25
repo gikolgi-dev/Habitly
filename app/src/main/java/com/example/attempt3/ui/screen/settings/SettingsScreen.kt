@@ -479,7 +479,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "Version 2.1.1",
+                                text = "Version 2.1.2",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
