@@ -383,7 +383,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                         SettingsGroup(settingsDataStore = settingsDataStore) {
                             GroupedSettingsItem(
                                 title = "General",
-                                subtitle = "Toggle vibrations",
+                                subtitle = "Toggle app-wide features",
                                 icon = Icons.Default.Tune,
                                 iconBackgroundColor = MaterialTheme.colorScheme.primaryContainer,
                                 iconColor = MaterialTheme.colorScheme.onPrimaryContainer,
