@@ -329,7 +329,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                 NotificationTimeSelectors(
                     notificationTime = globalNotificationTime,
                     selectedDays = globalNotificationDays,
-                    onTimeClick = { },
+                    onTimeClick = { if (isEnabled) showTimePicker = true },
                     onDaySelected = { day ->
                         scope.launch {
                             val newDays = if (globalNotificationDays.contains(day)) {
@@ -348,6 +348,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                     },
                     isEnabled = isEnabled,
                     borderAlpha = borderContrast,
+                    is24Hour = is24Hour,
                     modifier = Modifier.padding(horizontal = 20.dp)
                 )
             }
