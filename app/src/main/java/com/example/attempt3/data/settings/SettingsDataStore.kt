@@ -21,8 +21,8 @@ class SettingsDataStore(private val context: Context) {
         val THEME_KEY = stringPreferencesKey("theme")
         val MONTH_LABELS_KEY = booleanPreferencesKey("month_labels")
         val VIBRATIONS_KEY = booleanPreferencesKey("vibrations")
-        val BORDERS_KEY = floatPreferencesKey("borders_float") // Renamed key
-        val OLD_BORDERS_KEY = booleanPreferencesKey("borders") // Old key
+        val BORDERS_KEY = floatPreferencesKey("borders_float")
+        val OLD_BORDERS_KEY = booleanPreferencesKey("borders")
         val DAY_OF_WEEK_LABELS_VISIBLE_KEY = booleanPreferencesKey("day_of_week_labels_visible")
         val DAY_OF_WEEK_LABELS_ON_RIGHT_KEY = booleanPreferencesKey("day_of_week_labels_on_right")
         val SHOW_ALL_DAY_OF_WEEK_LABELS_KEY = booleanPreferencesKey("show_all_day_of_week_labels")
@@ -45,7 +45,7 @@ class SettingsDataStore(private val context: Context) {
 
     val theme: Flow<String> = context.dataStore.data
         .map { preferences ->
-            preferences[THEME_KEY] ?: "system"
+            preferences[THEME_KEY] ?: DefaultSettings.THEME
         }
 
     suspend fun setTheme(theme: String) {
@@ -56,7 +56,7 @@ class SettingsDataStore(private val context: Context) {
 
     val monthLabels: Flow<Boolean> = context.dataStore.data
         .map { preferences ->
-            preferences[MONTH_LABELS_KEY] ?: true
+            preferences[MONTH_LABELS_KEY] ?: DefaultSettings.MONTH_LABELS
         }
 
     suspend fun setMonthLabels(show: Boolean) {
@@ -67,7 +67,7 @@ class SettingsDataStore(private val context: Context) {
 
     val vibrations: Flow<Boolean> = context.dataStore.data
         .map { preferences ->
-            preferences[VIBRATIONS_KEY] ?: true
+            preferences[VIBRATIONS_KEY] ?: DefaultSettings.VIBRATIONS
         }
 
     suspend fun setVibrations(enabled: Boolean) {
@@ -82,7 +82,7 @@ class SettingsDataStore(private val context: Context) {
                 floatValue
             } else {
                 val oldValue = preferences[OLD_BORDERS_KEY]
-                val newValue = if (oldValue == true) 1.0f else if (oldValue == false) 0.0f else 0.25f
+                val newValue = if (oldValue == true) 1.0f else if (oldValue == false) 0.0f else DefaultSettings.BORDERS
                 
                 // Migrate to the new key and remove the old one
                 context.dataStore.edit {
@@ -101,7 +101,7 @@ class SettingsDataStore(private val context: Context) {
 
     val dayOfWeekLabelsVisible: Flow<Boolean> = context.dataStore.data
         .map { preferences ->
-            preferences[DAY_OF_WEEK_LABELS_VISIBLE_KEY] ?: true
+            preferences[DAY_OF_WEEK_LABELS_VISIBLE_KEY] ?: DefaultSettings.DAY_OF_WEEK_LABELS_VISIBLE
         }
 
     suspend fun setDayOfWeekLabelsVisible(visible: Boolean) {
@@ -112,12 +112,18 @@ class SettingsDataStore(private val context: Context) {
 
     val dayOfWeekLabelsOnRight: Flow<Boolean> = context.dataStore.data
         .map { preferences ->
-            preferences[DAY_OF_WEEK_LABELS_ON_RIGHT_KEY] ?: false // Default to left
+            preferences[DAY_OF_WEEK_LABELS_ON_RIGHT_KEY] ?: DefaultSettings.DAY_OF_WEEK_LABELS_ON_RIGHT
         }
+
+    suspend fun setDayOfWeekLabelsOnRight(onRight: Boolean) {
+        context.dataStore.edit { settings ->
+            settings[DAY_OF_WEEK_LABELS_ON_RIGHT_KEY] = onRight
+        }
+    }
 
     val showAllDayOfWeekLabels: Flow<Boolean> = context.dataStore.data
         .map { preferences ->
-            preferences[SHOW_ALL_DAY_OF_WEEK_LABELS_KEY] ?: true // Default to all
+            preferences[SHOW_ALL_DAY_OF_WEEK_LABELS_KEY] ?: DefaultSettings.SHOW_ALL_DAY_OF_WEEK_LABELS
         }
 
     suspend fun setShowAllDayOfWeekLabels(showAll: Boolean) {
@@ -133,11 +139,18 @@ class SettingsDataStore(private val context: Context) {
                 saved.split(',').filter { it.isNotEmpty() }.toSet()
             } else {
                 // Migration logic from old boolean settings
-                val visible = preferences[DAY_OF_WEEK_LABELS_VISIBLE_KEY] ?: true
-                val all = preferences[SHOW_ALL_DAY_OF_WEEK_LABELS_KEY] ?: true
-                if (!visible) emptySet()
-                else if (all) setOf("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")
-                else setOf("TUE", "THU", "SAT")
+                val visible = preferences[DAY_OF_WEEK_LABELS_VISIBLE_KEY]
+                val all = preferences[SHOW_ALL_DAY_OF_WEEK_LABELS_KEY]
+                
+                if (visible == null && all == null) {
+                    DefaultSettings.HEATMAP_VISIBLE_DAYS.split(',').filter { it.isNotEmpty() }.toSet()
+                } else {
+                    val isVisible = visible ?: true
+                    val isAll = all ?: true
+                    if (!isVisible) emptySet()
+                    else if (isAll) setOf("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")
+                    else setOf("TUE", "THU", "SAT")
+                }
             }
         }
 
@@ -149,7 +162,7 @@ class SettingsDataStore(private val context: Context) {
 
     val globalNotificationsEnabled: Flow<Boolean> = context.dataStore.data
         .map { preferences ->
-            preferences[GLOBAL_NOTIFICATIONS_KEY] ?: false
+            preferences[GLOBAL_NOTIFICATIONS_KEY] ?: DefaultSettings.GLOBAL_NOTIFICATIONS
         }
     
     suspend fun setGlobalNotificationsEnabled(enabled: Boolean) {
@@ -160,7 +173,7 @@ class SettingsDataStore(private val context: Context) {
     
     val globalNotificationTime: Flow<String> = context.dataStore.data
         .map { preferences ->
-            preferences[GLOBAL_NOTIFICATION_TIME_KEY] ?: "09:00"
+            preferences[GLOBAL_NOTIFICATION_TIME_KEY] ?: DefaultSettings.GLOBAL_NOTIFICATION_TIME
         }
     
     suspend fun setGlobalNotificationTime(time: String) {
@@ -171,7 +184,12 @@ class SettingsDataStore(private val context: Context) {
 
     val globalNotificationDays: Flow<Set<String>> = context.dataStore.data
         .map { preferences ->
-            preferences[GLOBAL_NOTIFICATION_DAYS_KEY]?.split(',')?.toSet() ?: setOf("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")
+            val saved = preferences[GLOBAL_NOTIFICATION_DAYS_KEY]
+            if (saved != null) {
+                saved.split(',').filter { it.isNotEmpty() }.toSet()
+            } else {
+                DefaultSettings.GLOBAL_NOTIFICATION_DAYS.split(',').filter { it.isNotEmpty() }.toSet()
+            }
         }
 
     suspend fun setGlobalNotificationDays(days: Set<String>) {
@@ -182,7 +200,7 @@ class SettingsDataStore(private val context: Context) {
 
     val skipCompletedHabitNotifications: Flow<Boolean> = context.dataStore.data
         .map { preferences ->
-            preferences[SKIP_COMPLETED_HABIT_NOTIFICATIONS_KEY] ?: false
+            preferences[SKIP_COMPLETED_HABIT_NOTIFICATIONS_KEY] ?: DefaultSettings.SKIP_COMPLETED_HABIT_NOTIFICATIONS
         }
 
     suspend fun setSkipCompletedHabitNotifications(skip: Boolean) {
@@ -193,7 +211,7 @@ class SettingsDataStore(private val context: Context) {
 
     val is24Hour: Flow<Boolean> = context.dataStore.data
         .map { preferences ->
-            preferences[IS_24_HOUR_KEY] ?: false
+            preferences[IS_24_HOUR_KEY] ?: DefaultSettings.IS_24_HOUR
         }
 
     suspend fun setIs24Hour(is24Hour: Boolean) {
@@ -204,7 +222,7 @@ class SettingsDataStore(private val context: Context) {
 
     val heroCardVisible: Flow<Boolean> = context.dataStore.data
         .map { preferences ->
-            preferences[HERO_CARD_VISIBLE_KEY] ?: true
+            preferences[HERO_CARD_VISIBLE_KEY] ?: DefaultSettings.HERO_CARD_VISIBLE
         }
 
     suspend fun setHeroCardVisible(visible: Boolean) {
@@ -215,7 +233,7 @@ class SettingsDataStore(private val context: Context) {
 
     val yearDivider: Flow<Boolean> = context.dataStore.data
         .map { preferences ->
-            preferences[YEAR_DIVIDER_KEY] ?: true
+            preferences[YEAR_DIVIDER_KEY] ?: DefaultSettings.YEAR_DIVIDER
         }
 
     suspend fun setYearDivider(show: Boolean) {
@@ -226,7 +244,7 @@ class SettingsDataStore(private val context: Context) {
 
     val yearLabels: Flow<Boolean> = context.dataStore.data
         .map { preferences ->
-            preferences[YEAR_LABELS_KEY] ?: true
+            preferences[YEAR_LABELS_KEY] ?: DefaultSettings.YEAR_LABELS
         }
 
     suspend fun setYearLabels(show: Boolean) {
@@ -237,7 +255,7 @@ class SettingsDataStore(private val context: Context) {
 
     val heatmapScrolling: Flow<Boolean> = context.dataStore.data
         .map { preferences ->
-            preferences[HEATMAP_SCROLLING_KEY] ?: false
+            preferences[HEATMAP_SCROLLING_KEY] ?: DefaultSettings.HEATMAP_SCROLLING
         }
 
     suspend fun setHeatmapScrolling(enabled: Boolean) {
@@ -248,7 +266,7 @@ class SettingsDataStore(private val context: Context) {
 
     val showScrollBlur: Flow<Boolean> = context.dataStore.data
         .map { preferences ->
-            preferences[SHOW_SCROLL_BLUR_KEY] ?: true
+            preferences[SHOW_SCROLL_BLUR_KEY] ?: DefaultSettings.SHOW_SCROLL_BLUR
         }
 
     suspend fun setshowScrollBlur(show: Boolean) {
@@ -259,8 +277,12 @@ class SettingsDataStore(private val context: Context) {
 
     val scrollBlurTargets: Flow<Set<String>> = context.dataStore.data
         .map { preferences ->
-            preferences[SCROLL_BLUR_TARGETS_KEY]?.split(',')?.filter { it.isNotEmpty() }?.toSet() 
-                ?: setOf("Heatmap", "Line Chart")
+            val saved = preferences[SCROLL_BLUR_TARGETS_KEY]
+            if (saved != null) {
+                saved.split(',').filter { it.isNotEmpty() }.toSet()
+            } else {
+                DefaultSettings.SCROLL_BLUR_TARGETS.split(',').filter { it.isNotEmpty() }.toSet()
+            }
         }
 
     suspend fun setScrollBlurTargets(targets: Set<String>) {
@@ -271,7 +293,7 @@ class SettingsDataStore(private val context: Context) {
 
     val disableAnimations: Flow<Boolean> = context.dataStore.data
         .map { preferences ->
-            preferences[DISABLE_ANIMATIONS_KEY] ?: false
+            preferences[DISABLE_ANIMATIONS_KEY] ?: DefaultSettings.DISABLE_ANIMATIONS
         }
 
     suspend fun setDisableAnimations(disable: Boolean) {
@@ -282,7 +304,7 @@ class SettingsDataStore(private val context: Context) {
 
     val useHabitColorForCard: Flow<Boolean> = context.dataStore.data
         .map { preferences ->
-            preferences[USE_HABIT_COLOR_FOR_CARD_KEY] ?: true
+            preferences[USE_HABIT_COLOR_FOR_CARD_KEY] ?: DefaultSettings.USE_HABIT_COLOR_FOR_CARD
         }
 
     suspend fun setUseHabitColorForCard(use: Boolean) {
@@ -293,8 +315,12 @@ class SettingsDataStore(private val context: Context) {
 
     val habitColorTargets: Flow<Set<String>> = context.dataStore.data
         .map { preferences ->
-            preferences[HABIT_COLOR_TARGETS_KEY]?.split(',')?.filter { it.isNotEmpty() }?.toSet()
-                ?: setOf("Habit Cards", "Statistic Screen")
+            val saved = preferences[HABIT_COLOR_TARGETS_KEY]
+            if (saved != null) {
+                saved.split(',').filter { it.isNotEmpty() }.toSet()
+            } else {
+                DefaultSettings.HABIT_COLOR_TARGETS.split(',').filter { it.isNotEmpty() }.toSet()
+            }
         }
 
     suspend fun setHabitColorTargets(targets: Set<String>) {
@@ -305,25 +331,28 @@ class SettingsDataStore(private val context: Context) {
 
     suspend fun resetToDefault() {
         context.dataStore.edit { settings ->
-            settings[THEME_KEY] = "system"
-            settings[MONTH_LABELS_KEY] = false
-            settings[DAY_OF_WEEK_LABELS_VISIBLE_KEY] = false
-            settings[BORDERS_KEY] = 0f
-            settings[GLOBAL_NOTIFICATIONS_KEY] = false
-            settings[GLOBAL_NOTIFICATION_TIME_KEY] = "09:00"
-            settings[GLOBAL_NOTIFICATION_DAYS_KEY] = "MON,TUE,WED,THU,FRI,SAT,SUN"
-            settings[SKIP_COMPLETED_HABIT_NOTIFICATIONS_KEY] = false
-            settings[IS_24_HOUR_KEY] = false
-            settings[HERO_CARD_VISIBLE_KEY] = true
-            settings[YEAR_DIVIDER_KEY] = false
-            settings[YEAR_LABELS_KEY] = false
-            settings[HEATMAP_SCROLLING_KEY] = false
-            settings[SHOW_SCROLL_BLUR_KEY] = true
-            settings[SCROLL_BLUR_TARGETS_KEY] = "Line Chart"
-            settings[HEATMAP_VISIBLE_DAYS_KEY] = ""
-            settings[DISABLE_ANIMATIONS_KEY] = false
-            settings[USE_HABIT_COLOR_FOR_CARD_KEY] = false
-            settings[HABIT_COLOR_TARGETS_KEY] = "Habit Cards,Statistic Screen"
+            settings[THEME_KEY] = DefaultSettings.THEME
+            settings[MONTH_LABELS_KEY] = DefaultSettings.MONTH_LABELS
+            settings[VIBRATIONS_KEY] = DefaultSettings.VIBRATIONS
+            settings[BORDERS_KEY] = DefaultSettings.BORDERS
+            settings[DAY_OF_WEEK_LABELS_VISIBLE_KEY] = DefaultSettings.DAY_OF_WEEK_LABELS_VISIBLE
+            settings[DAY_OF_WEEK_LABELS_ON_RIGHT_KEY] = DefaultSettings.DAY_OF_WEEK_LABELS_ON_RIGHT
+            settings[SHOW_ALL_DAY_OF_WEEK_LABELS_KEY] = DefaultSettings.SHOW_ALL_DAY_OF_WEEK_LABELS
+            settings[HEATMAP_VISIBLE_DAYS_KEY] = DefaultSettings.HEATMAP_VISIBLE_DAYS
+            settings[GLOBAL_NOTIFICATIONS_KEY] = DefaultSettings.GLOBAL_NOTIFICATIONS
+            settings[GLOBAL_NOTIFICATION_TIME_KEY] = DefaultSettings.GLOBAL_NOTIFICATION_TIME
+            settings[GLOBAL_NOTIFICATION_DAYS_KEY] = DefaultSettings.GLOBAL_NOTIFICATION_DAYS
+            settings[SKIP_COMPLETED_HABIT_NOTIFICATIONS_KEY] = DefaultSettings.SKIP_COMPLETED_HABIT_NOTIFICATIONS
+            settings[IS_24_HOUR_KEY] = DefaultSettings.IS_24_HOUR
+            settings[HERO_CARD_VISIBLE_KEY] = DefaultSettings.HERO_CARD_VISIBLE
+            settings[YEAR_DIVIDER_KEY] = DefaultSettings.YEAR_DIVIDER
+            settings[YEAR_LABELS_KEY] = DefaultSettings.YEAR_LABELS
+            settings[HEATMAP_SCROLLING_KEY] = DefaultSettings.HEATMAP_SCROLLING
+            settings[SHOW_SCROLL_BLUR_KEY] = DefaultSettings.SHOW_SCROLL_BLUR
+            settings[SCROLL_BLUR_TARGETS_KEY] = DefaultSettings.SCROLL_BLUR_TARGETS
+            settings[DISABLE_ANIMATIONS_KEY] = DefaultSettings.DISABLE_ANIMATIONS
+            settings[USE_HABIT_COLOR_FOR_CARD_KEY] = DefaultSettings.USE_HABIT_COLOR_FOR_CARD
+            settings[HABIT_COLOR_TARGETS_KEY] = DefaultSettings.HABIT_COLOR_TARGETS
         }
     }
 }
