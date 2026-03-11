@@ -34,6 +34,7 @@ fun GeneralSettingsScreen(
     val is24Hour by settingsDataStore.is24Hour.collectAsState(initial = false)
     val heroCardVisible by settingsDataStore.heroCardVisible.collectAsState(initial = true)
     val heatmapScrolling by settingsDataStore.heatmapScrolling.collectAsState(initial = false)
+    val skipCompleted by settingsDataStore.skipCompletedHabitNotifications.collectAsState(initial = false)
     val haptic = LocalHapticFeedback.current
 
     Column(
@@ -79,6 +80,18 @@ fun GeneralSettingsScreen(
             ) {
                 scope.launch {
                     settingsDataStore.setHeatmapScrolling(it)
+                }
+                haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+            }
+            SettingsSwitchItem(
+                text = "Skip completed habit notifications",
+                description = "Don't notify if the habit is already completed today",
+                checked = skipCompleted,
+                settingsDataStore = settingsDataStore,
+                position = SettingsItemPosition.Middle
+            ) {
+                scope.launch {
+                    settingsDataStore.setSkipCompletedHabitNotifications(it)
                 }
                 haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
             }

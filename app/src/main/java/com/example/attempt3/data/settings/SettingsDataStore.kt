@@ -30,6 +30,7 @@ class SettingsDataStore(private val context: Context) {
         val GLOBAL_NOTIFICATIONS_KEY = booleanPreferencesKey("global_notifications")
         val GLOBAL_NOTIFICATION_TIME_KEY = stringPreferencesKey("global_notification_time")
         val GLOBAL_NOTIFICATION_DAYS_KEY = stringPreferencesKey("global_notification_days")
+        val SKIP_COMPLETED_HABIT_NOTIFICATIONS_KEY = booleanPreferencesKey("skip_completed_habit_notifications")
         val IS_24_HOUR_KEY = booleanPreferencesKey("is_24_hour")
         val HERO_CARD_VISIBLE_KEY = booleanPreferencesKey("hero_card_visible")
         val YEAR_DIVIDER_KEY = booleanPreferencesKey("year_divider")
@@ -179,6 +180,17 @@ class SettingsDataStore(private val context: Context) {
         }
     }
 
+    val skipCompletedHabitNotifications: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[SKIP_COMPLETED_HABIT_NOTIFICATIONS_KEY] ?: false
+        }
+
+    suspend fun setSkipCompletedHabitNotifications(skip: Boolean) {
+        context.dataStore.edit { settings ->
+            settings[SKIP_COMPLETED_HABIT_NOTIFICATIONS_KEY] = skip
+        }
+    }
+
     val is24Hour: Flow<Boolean> = context.dataStore.data
         .map { preferences ->
             preferences[IS_24_HOUR_KEY] ?: false
@@ -300,6 +312,7 @@ class SettingsDataStore(private val context: Context) {
             settings[GLOBAL_NOTIFICATIONS_KEY] = false
             settings[GLOBAL_NOTIFICATION_TIME_KEY] = "09:00"
             settings[GLOBAL_NOTIFICATION_DAYS_KEY] = "MON,TUE,WED,THU,FRI,SAT,SUN"
+            settings[SKIP_COMPLETED_HABIT_NOTIFICATIONS_KEY] = false
             settings[IS_24_HOUR_KEY] = false
             settings[HERO_CARD_VISIBLE_KEY] = true
             settings[YEAR_DIVIDER_KEY] = false
