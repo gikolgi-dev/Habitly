@@ -4,13 +4,9 @@
 
 package com.example.attempt3.ui.screen
 
-import android.Manifest
 import android.annotation.SuppressLint
-import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
@@ -93,7 +89,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import com.example.attempt3.data.Database.Habit
 import com.example.attempt3.data.Database.HabitDao
 import com.example.attempt3.data.Database.HabitDatabase
@@ -108,6 +103,7 @@ import com.example.attempt3.ui.HabitSheetContent
 import com.example.attempt3.ui.SaveHabitButton
 import com.example.attempt3.ui.colors.habitColors
 import com.example.attempt3.ui.components.CustomTimePickerDialog
+import com.example.attempt3.ui.components.rememberNotificationPermissionHandler
 import com.example.attempt3.ui.defaultHabitIconKey
 import com.example.attempt3.ui.screen.settings.SettingsScreen
 import com.github.skydoves.colorpicker.compose.ColorEnvelope
@@ -128,6 +124,10 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     val haptic = LocalHapticFeedback.current
     val context = LocalContext.current
     val notificationScheduler = remember { NotificationScheduler(context) }
+    
+    val notificationPermissionHandler = rememberNotificationPermissionHandler {
+        // Optional logic when permission is granted
+    }
 
     val habitsUiState by viewModel.habitsUiState.collectAsState()
     val archivedHabitsUiState by viewModel.archivedHabitsUiState.collectAsState()
@@ -217,35 +217,6 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     var notificationsEnabled by remember { mutableStateOf(false) }
     var notificationTime by remember { mutableStateOf<String?>("09:00") }
     var notificationDays by remember { mutableStateOf<Set<String>>(emptySet()) }
-
-    var hasNotificationPermission by remember {
-        mutableStateOf(
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                ContextCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.POST_NOTIFICATIONS
-                ) == PackageManager.PERMISSION_GRANTED
-            } else {
-                true
-            }
-        )
-    }
-
-    val notificationPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-        onResult = { isGranted ->
-            hasNotificationPermission = isGranted
-            if (isGranted) {
-                notificationsEnabled = true
-            }
-        }
-    )
-
-    fun requestPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-        }
-    }
 
     fun validate(completionsText: String) {
         if (intervalUnit == "day") {
@@ -765,18 +736,18 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                 settingsDataStore = settingsDataStore,
                                 notificationsEnabled = notificationsEnabled,
                                 onNotificationsEnabledChanged = {
-                                    if (hasNotificationPermission) {
+                                    if (notificationPermissionHandler.hasPermission) {
                                         notificationsEnabled = it
                                     } else {
-                                        requestPermission()
+                                        notificationPermissionHandler.requestPermission()
                                     }
                                 },
                                 notificationTime = notificationTime,
                                 onTimePickerClick = {
-                                    if (hasNotificationPermission) {
+                                    if (notificationPermissionHandler.hasPermission) {
                                         showTimePicker = true
                                     } else {
-                                        requestPermission()
+                                        notificationPermissionHandler.requestPermission()
                                     }
                                 },
                                 notificationDays = notificationDays,
@@ -787,7 +758,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                         notificationDays + day
                                     }
                                 },
-                                hasNotificationPermission = hasNotificationPermission
+                                hasNotificationPermission = notificationPermissionHandler.hasPermission
                             )
                         }
                     }

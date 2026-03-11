@@ -4,13 +4,10 @@
 
 package com.example.attempt3.ui.screen.settings
 
-import android.Manifest
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
@@ -70,7 +67,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -81,6 +77,7 @@ import com.example.attempt3.notifications.NotificationScheduler
 import com.example.attempt3.ui.AppBackButton
 import com.example.attempt3.ui.components.CustomTimePickerDialog
 import com.example.attempt3.ui.components.NotificationTimeSelectors
+import com.example.attempt3.ui.components.rememberNotificationPermissionHandler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -126,44 +123,19 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
         }
     }
 
-    var hasNotificationPermission by remember {
-        mutableStateOf(
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                ContextCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.POST_NOTIFICATIONS
-                ) == PackageManager.PERMISSION_GRANTED
-            } else {
-                true
+    val notificationPermissionHandler = rememberNotificationPermissionHandler {
+        scope.launch {
+            settingsDataStore.setGlobalNotificationsEnabled(true)
+            notificationScheduler.scheduleGeneralNotification(globalNotificationTime, globalNotificationDays)
+            if (vibrationsEnabled) {
+                haptic.performHapticFeedback(HapticFeedbackType.ToggleOn)
             }
-        )
-    }
-
-    val notificationPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-        onResult = { isGranted ->
-            hasNotificationPermission = isGranted
-            if (isGranted) {
-                scope.launch {
-                    settingsDataStore.setGlobalNotificationsEnabled(true)
-                    notificationScheduler.scheduleGeneralNotification(globalNotificationTime, globalNotificationDays)
-                    if (vibrationsEnabled) {
-                        haptic.performHapticFeedback(HapticFeedbackType.ToggleOn)
-                    }
-                }
-            }
-        }
-    )
-
-    fun requestPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }
 
     fun handleNotificationToggle(enable: Boolean) {
         if (enable) {
-            if (hasNotificationPermission) {
+            if (notificationPermissionHandler.hasPermission) {
                 scope.launch {
                     settingsDataStore.setGlobalNotificationsEnabled(true)
                     notificationScheduler.scheduleGeneralNotification(globalNotificationTime, globalNotificationDays)
@@ -172,7 +144,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                     }
                 }
             } else {
-                requestPermission()
+                notificationPermissionHandler.requestPermission()
             }
         } else {
             scope.launch {
@@ -319,7 +291,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                         modifier = Modifier.weight(1f)
                     )
                     Switch(
-                        checked = globalNotificationsEnabled && hasNotificationPermission,
+                        checked = globalNotificationsEnabled && notificationPermissionHandler.hasPermission,
                         onCheckedChange = { handleNotificationToggle(it) }
                     )
                 }
@@ -339,11 +311,11 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                 }
                 Spacer(modifier = Modifier.height(16.dp))
 
-                val isEnabled = globalNotificationsEnabled && hasNotificationPermission
+                val isEnabled = globalNotificationsEnabled && notificationPermissionHandler.hasPermission
                 NotificationTimeSelectors(
                     notificationTime = globalNotificationTime,
                     selectedDays = globalNotificationDays,
-                    onTimeClick = { if (isEnabled) showTimePicker = true },
+                    onTimeClick = { if (isEnabled) showTimePicker = true else notificationPermissionHandler.requestPermission() },
                     onDaySelected = { day ->
                         scope.launch {
                             val newDays = if (globalNotificationDays.contains(day)) {
