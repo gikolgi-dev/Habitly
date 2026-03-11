@@ -9,10 +9,14 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -34,7 +38,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -50,14 +57,28 @@ fun NotificationTimeSelectors(
     onDaySelected: (String) -> Unit,
     isEnabled: Boolean,
     borderAlpha: Float,
+    is24Hour: Boolean,
     modifier: Modifier = Modifier
 ) {
     val alpha by animateFloatAsState(targetValue = if (isEnabled) 1f else 0.5f, label = "")
+
+    @Suppress("DEPRECATION")
+    val timeTextStyle = MaterialTheme.typography.displayLarge.copy(
+        color = MaterialTheme.colorScheme.primary,
+        fontWeight = FontWeight.Light,
+        fontFamily = FontFamily.SansSerif,
+        platformStyle = PlatformTextStyle(includeFontPadding = false),
+        lineHeightStyle = LineHeightStyle(
+            alignment = LineHeightStyle.Alignment.Center,
+            trim = LineHeightStyle.Trim.Both
+        )
+    )
+
     Column(
         modifier = modifier
             .alpha(alpha)
     ) {
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(
@@ -65,19 +86,118 @@ fun NotificationTimeSelectors(
                     onClick = onTimeClick,
                     indication = null,
                     interactionSource = remember { MutableInteractionSource() }
-                ),
-            horizontalAlignment = Alignment.CenterHorizontally
+                )
+                .padding(vertical = 8.dp),
+            contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = notificationTime,
-                modifier = Modifier.fillMaxWidth(),
-                style = MaterialTheme.typography.displayLarge.copy(
-                    fontSize = 140.sp, // Start large
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.W600
-                ),
-                textAlign = TextAlign.Center
-            )
+            if (notificationTime == "Not Set") {
+                Text(
+                    text = "Not Set",
+                    modifier = Modifier.fillMaxWidth(),
+                    style = timeTextStyle.copy(
+                        fontSize = 80.sp,
+                        lineHeight = 80.sp
+                    ),
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    softWrap = false
+                )
+            } else {
+                val parts = notificationTime.split(":")
+                if (parts.size == 2) {
+                    val hour = parts[0].toIntOrNull() ?: 0
+                    val minute = parts[1].toIntOrNull() ?: 0
+
+                    if (is24Hour) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = String.format(java.util.Locale.getDefault(), "%02d", hour),
+                                style = timeTextStyle.copy(
+                                    fontSize = 140.sp,
+                                    lineHeight = 140.sp
+                                ),
+                                maxLines = 1,
+                                softWrap = false
+                            )
+
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text(
+                                text = String.format(java.util.Locale.getDefault(), "%02d", minute),
+                                style = timeTextStyle.copy(
+                                    fontSize = 140.sp,
+                                    lineHeight = 140.sp
+                                ),
+                                maxLines = 1,
+                                softWrap = false
+                            )
+                        }
+                    } else {
+                        val amPm = if (hour < 12) "AM" else "PM"
+                        val displayHour = when {
+                            hour == 0 -> 12
+                            hour > 12 -> hour - 12
+                            else -> hour
+                        }
+                        
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = String.format(java.util.Locale.getDefault(), "%02d", displayHour),
+                                style = timeTextStyle.copy(
+                                    fontSize = 140.sp,
+                                    lineHeight = 140.sp
+                                ),
+                                maxLines = 1,
+                                softWrap = false
+                            )
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = String.format(java.util.Locale.getDefault(), "%02d", minute),
+                                    style = timeTextStyle.copy(
+                                        fontSize = 90.sp,
+                                        lineHeight = 90.sp
+                                    ),
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                                Text(
+                                    text = amPm,
+                                    style = timeTextStyle.copy(
+                                        fontSize = 36.sp,
+                                        lineHeight = 36.sp
+                                    ),
+                                    modifier = Modifier.offset(y = (-4).dp),
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    Text(
+                        text = notificationTime,
+                        modifier = Modifier.fillMaxWidth(),
+                        style = timeTextStyle.copy(
+                            fontSize = 80.sp,
+                            lineHeight = 80.sp
+                        ),
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        softWrap = false
+                    )
+                }
+            }
         }
         DayOfWeekSelector(
             selectedDays = selectedDays,

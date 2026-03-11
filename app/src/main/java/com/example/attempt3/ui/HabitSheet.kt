@@ -188,6 +188,7 @@ fun HabitSheetContent(
     val haptic = LocalHapticFeedback.current
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
     val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
+    val is24Hour by settingsDataStore.is24Hour.collectAsState(initial = false)
 
     val isScrolled by remember { derivedStateOf { scrollState.value > 0 } }
     val dividerAlpha by animateFloatAsState(targetValue = if (isScrolled) 1f else 0f, label = "dividerAlpha")
@@ -495,7 +496,8 @@ fun HabitSheetContent(
                         onTimeClick = onTimePickerClick,
                         onDaySelected = onNotificationDaySelected,
                         isEnabled = notificationsEnabled && hasNotificationPermission,
-                        borderAlpha = borderContrast
+                        borderAlpha = borderContrast,
+                        is24Hour = is24Hour
                     )
                 }
             }

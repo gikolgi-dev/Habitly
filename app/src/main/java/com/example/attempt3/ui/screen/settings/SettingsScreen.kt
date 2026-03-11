@@ -112,6 +112,20 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
         else -> isSystemInDarkTheme()
     }
 
+    val versionName = remember {
+        try {
+            val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                context.packageManager.getPackageInfo(context.packageName, PackageManager.PackageInfoFlags.of(0))
+            } else {
+                @Suppress("DEPRECATION")
+                context.packageManager.getPackageInfo(context.packageName, 0)
+            }
+            packageInfo.versionName ?: "Unknown"
+        } catch (e: Exception) {
+            "Unknown"
+        }
+    }
+
     var hasNotificationPermission by remember {
         mutableStateOf(
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -329,7 +343,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                 NotificationTimeSelectors(
                     notificationTime = globalNotificationTime,
                     selectedDays = globalNotificationDays,
-                    onTimeClick = { },
+                    onTimeClick = { if (isEnabled) showTimePicker = true },
                     onDaySelected = { day ->
                         scope.launch {
                             val newDays = if (globalNotificationDays.contains(day)) {
@@ -348,6 +362,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                     },
                     isEnabled = isEnabled,
                     borderAlpha = borderContrast,
+                    is24Hour = is24Hour,
                     modifier = Modifier.padding(horizontal = 20.dp)
                 )
             }
@@ -383,7 +398,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                         SettingsGroup(settingsDataStore = settingsDataStore) {
                             GroupedSettingsItem(
                                 title = "General",
-                                subtitle = "Toggle vibrations",
+                                subtitle = "Toggle app-wide features",
                                 icon = Icons.Default.Tune,
                                 iconBackgroundColor = MaterialTheme.colorScheme.primaryContainer,
                                 iconColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -479,7 +494,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "Version 2.1.2",
+                                text = "Version $versionName",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

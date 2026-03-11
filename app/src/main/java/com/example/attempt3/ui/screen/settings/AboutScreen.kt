@@ -2,6 +2,8 @@
 
 package com.example.attempt3.ui.screen.settings
 
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -20,9 +22,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -34,12 +38,27 @@ fun AboutScreen(
     settingsDataStore: SettingsDataStore,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
     val theme by settingsDataStore.theme.collectAsState(initial = "system")
     val useDarkTheme = when (theme) {
         "light" -> false
         "dark" -> true
         else -> isSystemInDarkTheme()
+    }
+
+    val versionName = remember {
+        try {
+            val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                context.packageManager.getPackageInfo(context.packageName, PackageManager.PackageInfoFlags.of(0))
+            } else {
+                @Suppress("DEPRECATION")
+                context.packageManager.getPackageInfo(context.packageName, 0)
+            }
+            packageInfo.versionName ?: "Unknown"
+        } catch (e: Exception) {
+            "Unknown"
+        }
     }
 
     LazyColumn(
@@ -99,7 +118,7 @@ fun AboutScreen(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Version 2.1.1",
+                    text = "Version $versionName",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
