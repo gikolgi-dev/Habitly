@@ -37,7 +37,6 @@ fun AppearanceScreen(
     val showYearDivider by settingsDataStore.yearDivider.collectAsState(initial = true)
     val showYearLabels by settingsDataStore.yearLabels.collectAsState(initial = true)
     val showScrollBlur by settingsDataStore.showScrollBlur.collectAsState(initial = true)
-    val scrollBlurTargets by settingsDataStore.scrollBlurTargets.collectAsState(initial = setOf("Heatmap", "Line Chart"))
     val borderContrast by settingsDataStore.borders.collectAsState(initial = 0f)
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
     val disableAnimations by settingsDataStore.disableAnimations.collectAsState(initial = false)
@@ -55,7 +54,6 @@ fun AppearanceScreen(
                 currentTheme = currentTheme,
                 useMaterialTheming = useMaterialTheming,
                 useHabitColorForCard = useHabitColorForCard,
-                borderContrast = borderContrast,
                 vibrationsEnabled = vibrationsEnabled,
                 settingsDataStore = settingsDataStore,
                 scope = scope,
@@ -81,7 +79,6 @@ fun AppearanceScreen(
             AccessibilitySection(
                 borderContrast = borderContrast,
                 showScrollBlur = showScrollBlur,
-                scrollBlurTargets = scrollBlurTargets,
                 disableAnimations = disableAnimations,
                 vibrationsEnabled = vibrationsEnabled,
                 settingsDataStore = settingsDataStore,

@@ -39,7 +39,6 @@ fun ThemeSection(
     currentTheme: String,
     useMaterialTheming: Boolean,
     useHabitColorForCard: Boolean,
-    borderContrast: Float,
     vibrationsEnabled: Boolean,
     settingsDataStore: SettingsDataStore,
     scope: CoroutineScope,
@@ -209,7 +208,6 @@ fun HeatmapSection(
 fun AccessibilitySection(
     borderContrast: Float,
     showScrollBlur: Boolean,
-    scrollBlurTargets: Set<String>,
     disableAnimations: Boolean,
     vibrationsEnabled: Boolean,
     settingsDataStore: SettingsDataStore,
