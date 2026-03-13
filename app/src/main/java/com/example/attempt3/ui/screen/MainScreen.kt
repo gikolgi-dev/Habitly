@@ -432,7 +432,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                     dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight!!,
                                                     showYearDivider = showYearDivider!!,
                                                     showYearLabels = showYearLabels!!,
-                                                    showScrollBlur = showScrollBlur!! && "Heatmap" in scrollBlurTargets,
+                                                    showScrollBlur = showScrollBlur && "Heatmap" in scrollBlurTargets,
                                                     borderContrast = borderContrast!!,
                                                     heatmapScrollEnabled = heatmapScrolling,
                                                     useHabitColor = useHabitColor,
@@ -572,7 +572,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                     showStatisticScreen = true
                                 },
                                 borderContrast = borderContrast!!,
-                                showScrollBlur = showScrollBlur!! && "Heatmap" in scrollBlurTargets,
+                                showScrollBlur = showScrollBlur && "Heatmap" in scrollBlurTargets,
                                 showYearLabels = showYearLabels!!,
                                 showYearDivider = showYearDivider!!,
                                 vibrationsEnabled = vibrationsEnabled,
@@ -636,8 +636,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 AnimatedVisibility(
                     visible = showSettingsScreen,
                     modifier = Modifier.fillMaxSize(),
-                    enter = slideInHorizontally(animationSpec = tween(durationMillis = 250)) { it },
-                    exit = slideOutHorizontally(animationSpec = tween(durationMillis = 250)) { it }
+                    enter = slideInHorizontally(animationSpec = tween(durationMillis = 300)) { it },
+                    exit = slideOutHorizontally(animationSpec = tween(durationMillis = 300)) { it }
                 ) {
                     SettingsScreen(
                         onDismiss = { showSettingsScreen = false },

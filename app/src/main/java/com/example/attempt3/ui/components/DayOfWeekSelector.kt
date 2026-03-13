@@ -29,9 +29,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-enum class DayLabelDisplayOptions {
-    Off, Some, All
-}
 
 @Composable
 fun DayOfWeekSelector(

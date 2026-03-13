@@ -10,6 +10,10 @@ import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -351,13 +355,38 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
     NavHost(
         navController = navController,
         startDestination = "main",
-        modifier = blurModifier.fillMaxSize()
+        modifier = blurModifier.fillMaxSize(),
+        enterTransition = {
+            slideIntoContainer(
+                AnimatedContentTransitionScope.SlideDirection.Left,
+                animationSpec = tween(400)
+            )
+        },
+        exitTransition = {
+            scaleOut(
+                targetScale = 0.9f,
+                animationSpec = tween(400)
+            ) + fadeOut(animationSpec = tween(400))
+        },
+        popEnterTransition = {
+            scaleIn(
+                initialScale = 0.9f,
+                animationSpec = tween(400)
+            ) + fadeIn(animationSpec = tween(400))
+        },
+        popExitTransition = {
+            scaleOut(
+                targetScale = 0.85f,
+                animationSpec = tween(400)
+            ) + slideOutOfContainer(
+                AnimatedContentTransitionScope.SlideDirection.Right,
+                animationSpec = tween(400)
+            ) + fadeOut(animationSpec = tween(400))
+        }
     ) {
         // Main Screen
         composable(
-            route = "main",
-            exitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left, animationSpec = tween(250)) },
-            popEnterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(250)) }
+            route = "main"
         ) {
             BackHandler { onDismiss() }
             SettingsScaffold(
@@ -485,11 +514,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
 
         // Sub Screens
         composable(
-            route = "appearance",
-            enterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left, animationSpec = tween(250)) },
-            exitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left, animationSpec = tween(250)) },
-            popEnterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(250)) },
-            popExitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(250)) }
+            route = "appearance"
         ) {
             SettingsScaffold(
                 title = "Appearance",
@@ -514,11 +539,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
         }
 
         composable(
-            route = "general",
-            enterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left, animationSpec = tween(250)) },
-            exitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left, animationSpec = tween(250)) },
-            popEnterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(250)) },
-            popExitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(250)) }
+            route = "general"
         ) {
             SettingsScaffold(
                 title = "General",
@@ -536,11 +557,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
         }
 
         composable(
-            route = "import",
-            enterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left, animationSpec = tween(250)) },
-            exitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left, animationSpec = tween(250)) },
-            popEnterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(250)) },
-            popExitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(250)) }
+            route = "import"
         ) {
             SettingsScaffold(
                 title = "Data Management",
@@ -558,9 +575,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
         }
 
         composable(
-            route = "scroll_blur",
-            enterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left, animationSpec = tween(250)) },
-            popExitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(250)) }
+            route = "scroll_blur"
         ) {
             SettingsScaffold(
                 title = "Scroll Blur",
@@ -578,9 +593,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
         }
 
         composable(
-            route = "habit_color",
-            enterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left, animationSpec = tween(250)) },
-            popExitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(250)) }
+            route = "habit_color"
         ) {
             SettingsScaffold(
                 title = "Habit Color",
