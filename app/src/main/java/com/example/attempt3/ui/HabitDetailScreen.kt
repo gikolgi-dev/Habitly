@@ -48,7 +48,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -65,7 +64,6 @@ import com.example.attempt3.data.Database.Completion
 import com.example.attempt3.data.Database.Habit
 import com.example.attempt3.data.Database.HabitViewModel
 import com.example.attempt3.data.Database.HabitWithCompletions
-import com.example.attempt3.data.settings.SettingsDataStore
 import com.example.attempt3.ui.components.RotatingHabitIcon
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
@@ -81,26 +79,25 @@ fun SharedTransitionScope.HabitDetailScreen(
     onDismiss: () -> Unit,
     onEditHabit: (Habit) -> Unit,
     onShowStatistics: (Habit) -> Unit,
-    settingsDataStore: SettingsDataStore,
     borderContrast: Float,
     showScrollBlur: Boolean,
     showYearLabels: Boolean,
-    showYearDivider: Boolean
+    showYearDivider: Boolean,
+    vibrationsEnabled: Boolean,
+    showMonthLabels: Boolean,
+    dayOfWeekLabelsOnRight: Boolean,
+    heatmapVisibleDays: Set<String>,
+    disableAnimations: Boolean,
+    useHabitColorForCard: Boolean,
+    theme: String
 ) {
     val haptic = LocalHapticFeedback.current
-    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
-    val showMonthLabels by settingsDataStore.monthLabels.collectAsState(initial = false)
-    val dayOfWeekLabelsOnRight by settingsDataStore.dayOfWeekLabelsOnRight.collectAsState(initial = false)
-    val heatmapVisibleDays by settingsDataStore.heatmapVisibleDays.collectAsState(initial = emptySet())
-    val disableAnimations by settingsDataStore.disableAnimations.collectAsState(initial = false)
     var showDeleteConfirmation by remember { mutableStateOf(false) } // State for delete confirmation dialog
     val habit = habitWithCompletions.habit
     val completions = habitWithCompletions.completions
     val animatedColor by animateColorAsState(targetValue = Color(habit.color), animationSpec = tween(durationMillis = 500))
     val streak = remember(habit, completions) { calculateStreak(habit, completions) }
-    val useHabitColorForCard by settingsDataStore.useHabitColorForCard.collectAsState(initial = true)
 
-    val theme by settingsDataStore.theme.collectAsState(initial = "system")
     val useDarkTheme = when (theme) {
         "light" -> false
         "dark" -> true

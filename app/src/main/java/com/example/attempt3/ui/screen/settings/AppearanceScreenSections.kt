@@ -37,8 +37,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun ThemeSection(
     currentTheme: String,
+    useMaterialTheming: Boolean,
     useHabitColorForCard: Boolean,
-    borderContrast: Float,
     vibrationsEnabled: Boolean,
     settingsDataStore: SettingsDataStore,
     scope: CoroutineScope,
@@ -91,6 +91,20 @@ fun ThemeSection(
                 }
             }
         }
+        
+        SettingsSwitchItem(
+            text = "Use material theming",
+            description = "Match the background colors with your system's dynamic color theme",
+            checked = useMaterialTheming,
+            settingsDataStore = settingsDataStore,
+            position = SettingsItemPosition.Middle
+        ) {
+            scope.launch { settingsDataStore.setUseMaterialTheming(it) }
+            if (vibrationsEnabled) {
+                haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+            }
+        }
+        
         SettingsSwitchNavigationItem(
             text = "Habit color accents",
             description = "Add color accents to habit related elements",
@@ -194,7 +208,6 @@ fun HeatmapSection(
 fun AccessibilitySection(
     borderContrast: Float,
     showScrollBlur: Boolean,
-    scrollBlurTargets: Set<String>,
     disableAnimations: Boolean,
     vibrationsEnabled: Boolean,
     settingsDataStore: SettingsDataStore,

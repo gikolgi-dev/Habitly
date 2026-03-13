@@ -63,6 +63,12 @@ fun ArchiveScreen(uiState: HabitsUiState, habitDao: HabitDao, onBack: () -> Unit
     val heatmapVisibleDays by settingsDataStore.heatmapVisibleDays.collectAsState(initial = emptySet())
     val dayOfWeekLabelsOnRight by settingsDataStore.dayOfWeekLabelsOnRight.collectAsState(initial = false)
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
+    
+    val useHabitColorForCard by settingsDataStore.useHabitColorForCard.collectAsState(initial = true)
+    val disableAnimations by settingsDataStore.disableAnimations.collectAsState(initial = false)
+    val habitColorTargets by settingsDataStore.habitColorTargets.collectAsState(initial = setOf("Habit Cards", "Statistic Screen"))
+    val useHabitColor = useHabitColorForCard && "Habit Cards" in habitColorTargets
+    
     val haptic = LocalHapticFeedback.current
 
     if (habitToDelete != null) {
@@ -175,6 +181,8 @@ fun ArchiveScreen(uiState: HabitsUiState, habitDao: HabitDao, onBack: () -> Unit
                                     showYearDivider = showYearDivider,
                                     showYearLabels = showYearLabels,
                                     borderContrast = borderContrast,
+                                    useHabitColor = useHabitColor,
+                                    disableAnimations = disableAnimations,
                                     onComplete = { },
                                     onClick = { },
                                     onUnarchive = {

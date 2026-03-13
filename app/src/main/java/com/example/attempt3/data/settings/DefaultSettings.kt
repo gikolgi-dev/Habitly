@@ -4,6 +4,7 @@ package com.example.attempt3.data.settings
 
 object DefaultSettings {
     const val THEME = "system"
+    const val USE_MATERIAL_THEMING = true
     const val MONTH_LABELS = false
     const val VIBRATIONS = true
     const val BORDERS = 0.0f
