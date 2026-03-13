@@ -12,11 +12,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -76,7 +73,9 @@ fun NotificationTimeSelectors(
 
     Column(
         modifier = modifier
-            .alpha(alpha)
+            .fillMaxWidth()
+            .alpha(alpha),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
             modifier = Modifier
@@ -87,7 +86,8 @@ fun NotificationTimeSelectors(
                     indication = null,
                     interactionSource = remember { MutableInteractionSource() }
                 )
-                .padding(vertical = 8.dp),
+                .padding(vertical = 0.dp),
+
             contentAlignment = Alignment.Center
         ) {
             if (notificationTime == "Not Set") {
@@ -109,80 +109,9 @@ fun NotificationTimeSelectors(
                     val minute = parts[1].toIntOrNull() ?: 0
 
                     if (is24Hour) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = String.format(java.util.Locale.getDefault(), "%02d", hour),
-                                style = timeTextStyle.copy(
-                                    fontSize = 140.sp,
-                                    lineHeight = 140.sp
-                                ),
-                                maxLines = 1,
-                                softWrap = false
-                            )
-
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Text(
-                                text = String.format(java.util.Locale.getDefault(), "%02d", minute),
-                                style = timeTextStyle.copy(
-                                    fontSize = 140.sp,
-                                    lineHeight = 140.sp
-                                ),
-                                maxLines = 1,
-                                softWrap = false
-                            )
-                        }
+                        TimeDisplay24h(hour, minute, timeTextStyle)
                     } else {
-                        val amPm = if (hour < 12) "AM" else "PM"
-                        val displayHour = when {
-                            hour == 0 -> 12
-                            hour > 12 -> hour - 12
-                            else -> hour
-                        }
-                        
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = String.format(java.util.Locale.getDefault(), "%02d", displayHour),
-                                style = timeTextStyle.copy(
-                                    fontSize = 140.sp,
-                                    lineHeight = 140.sp
-                                ),
-                                maxLines = 1,
-                                softWrap = false
-                            )
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
-                            ) {
-                                Text(
-                                    text = String.format(java.util.Locale.getDefault(), "%02d", minute),
-                                    style = timeTextStyle.copy(
-                                        fontSize = 90.sp,
-                                        lineHeight = 90.sp
-                                    ),
-                                    maxLines = 1,
-                                    softWrap = false
-                                )
-                                Text(
-                                    text = amPm,
-                                    style = timeTextStyle.copy(
-                                        fontSize = 36.sp,
-                                        lineHeight = 36.sp
-                                    ),
-                                    modifier = Modifier.offset(y = (-4).dp),
-                                    maxLines = 1,
-                                    softWrap = false
-                                )
-                            }
-                        }
+                        TimeDisplay12h(hour, minute, timeTextStyle)
                     }
                 } else {
                     Text(
