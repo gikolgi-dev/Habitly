@@ -16,8 +16,8 @@ android {
         applicationId = "com.habitly.habitly"
         minSdk = 24
         targetSdk = 36
-        versionCode = 1
-        versionName = "2.1.2"
+        versionCode = 2
+        versionName = "2.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
