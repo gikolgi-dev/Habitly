@@ -4,6 +4,8 @@
 
 package com.example.attempt3.ui.components
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -52,6 +54,11 @@ fun DayOfWeekSelector(
     ) {
         dayValues.forEachIndexed { index, day ->
             val isSelected = selectedDays.contains(day)
+            val animatedColorState = animateColorAsState(
+                targetValue = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                animationSpec = tween(durationMillis = 300), // Adjust speed here
+                label = "ColorTransition"
+            )
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -63,7 +70,7 @@ fun DayOfWeekSelector(
                     )
                     .clip(MaterialShapes.Square.toShape())
                     .background(
-                        if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent
+                        animatedColorState.value
                     )
                     .clickable(enabled = enabled) { onDaySelected(day) },
                 contentAlignment = Alignment.Center
