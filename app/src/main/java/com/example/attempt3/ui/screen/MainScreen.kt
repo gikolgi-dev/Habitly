@@ -160,6 +160,14 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     val heroCardVisible by settingsDataStore.heroCardVisible.collectAsState(initial = true)
     val heatmapScrolling by settingsDataStore.heatmapScrolling.collectAsState(initial = false)
 
+    // Additional settings for consistent Shared Element Transition colors/animations
+    val disableAnimations by settingsDataStore.disableAnimations.collectAsState(initial = false)
+    val useHabitColorForCard by settingsDataStore.useHabitColorForCard.collectAsState(initial = true)
+    val habitColorTargets by settingsDataStore.habitColorTargets.collectAsState(initial = setOf("Habit Cards", "Statistic Screen"))
+    val theme by settingsDataStore.theme.collectAsState(initial = "system")
+
+    val useHabitColor = useHabitColorForCard && "Habit Cards" in habitColorTargets
+
 
     val areSettingsLoaded = borderContrast != null &&
             showMonthLabels != null &&
@@ -427,6 +435,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                     showScrollBlur = showScrollBlur!! && "Heatmap" in scrollBlurTargets,
                                                     borderContrast = borderContrast!!,
                                                     heatmapScrollEnabled = heatmapScrolling,
+                                                    useHabitColor = useHabitColor,
+                                                    disableAnimations = disableAnimations,
                                                     onComplete = {
                                                         if (vibrationsEnabled) {
                                                             haptic.performHapticFeedback(
@@ -561,11 +571,17 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                     initialHabitIdForStats = habit.id
                                     showStatisticScreen = true
                                 },
-                                settingsDataStore = settingsDataStore,
                                 borderContrast = borderContrast!!,
                                 showScrollBlur = showScrollBlur!! && "Heatmap" in scrollBlurTargets,
                                 showYearLabels = showYearLabels!!,
                                 showYearDivider = showYearDivider!!,
+                                vibrationsEnabled = vibrationsEnabled,
+                                showMonthLabels = showMonthLabels!!,
+                                dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight!!,
+                                heatmapVisibleDays = heatmapVisibleDays!!,
+                                disableAnimations = disableAnimations,
+                                useHabitColorForCard = useHabitColorForCard,
+                                theme = theme
                             )
                         }
                     }
@@ -625,7 +641,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 ) {
                     SettingsScreen(
                         onDismiss = { showSettingsScreen = false },
-                        db = db,
+                        db = HabitDatabase.getDatabase(context), // Fallback if db is needed here
                         settingsDataStore = settingsDataStore
                     )
                 }

@@ -38,7 +38,6 @@ import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -55,7 +54,6 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asAndroidPath
 import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
@@ -65,7 +63,6 @@ import androidx.graphics.shapes.Morph
 import androidx.graphics.shapes.toPath
 import com.example.attempt3.data.Database.Completion
 import com.example.attempt3.data.Database.Habit
-import com.example.attempt3.data.settings.SettingsDataStore
 import com.example.attempt3.ui.colors.isBright
 import com.example.attempt3.ui.components.RotatingHabitIcon
 
@@ -153,6 +150,8 @@ fun HabitItemCard(
     showYearLabels: Boolean,
     showScrollBlur: Boolean = true,
     borderContrast: Float,
+    useHabitColor: Boolean,
+    disableAnimations: Boolean,
     onComplete: () -> Unit,
     onClick: () -> Unit,
     onUnarchive: (() -> Unit)? = null,
@@ -160,14 +159,6 @@ fun HabitItemCard(
     heatmapScrollEnabled: Boolean = false,
     @SuppressLint("ModifierParameter") modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
-    val settingsDataStore = remember { SettingsDataStore(context) }
-    val disableAnimations by settingsDataStore.disableAnimations.collectAsState(initial = false)
-    val useHabitColorForCard by settingsDataStore.useHabitColorForCard.collectAsState(initial = true)
-    val habitColorTargets by settingsDataStore.habitColorTargets.collectAsState(initial = setOf("Habit Cards", "Statistic Screen"))
-
-    val useHabitColor = useHabitColorForCard && "Habit Cards" in habitColorTargets
-
     val cardBackgroundColor = if (useHabitColor) {
         lerp(Color(habit.color), MaterialTheme.colorScheme.surfaceVariant, 0.85f)
     } else {
