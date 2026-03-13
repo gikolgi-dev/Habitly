@@ -14,6 +14,12 @@ import androidx.core.app.NotificationCompat
 import com.example.attempt3.MainActivity
 import com.example.attempt3.R
 import com.example.attempt3.data.Database.Habit
+import com.example.attempt3.data.Database.HabitDatabase
+import com.example.attempt3.data.settings.SettingsDataStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import java.util.Calendar
 
 const val GENERAL_NOTIFICATION_ID = "general_notification"
@@ -48,6 +54,7 @@ class NotificationScheduler(private val context: Context) {
             set(Calendar.HOUR_OF_DAY, hour)
             set(Calendar.MINUTE, minute)
             set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
         }
         
         if (calendar.timeInMillis < System.currentTimeMillis()) {
@@ -138,10 +145,68 @@ class NotificationScheduler(private val context: Context) {
 
 class NotificationReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        val habitId = intent.getStringExtra("habitId") ?: return
+        val pendingResult = goAsync()
+        val habitId = intent.getStringExtra("habitId") ?: run {
+            pendingResult.finish()
+            return
+        }
         val notificationTime = intent.getStringExtra("notificationTime")
 
-        // Show the notification
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                var shouldShow = true
+                val isGeneralNotification = habitId == GENERAL_NOTIFICATION_ID
+
+                if (!isGeneralNotification) {
+                    val settingsDataStore = SettingsDataStore(context)
+                    val skipCompleted = settingsDataStore.skipCompletedHabitNotifications.first()
+
+                    if (skipCompleted) {
+                        val dao = HabitDatabase.getDatabase(context).habitDao()
+                        val now = Calendar.getInstance()
+                        val startOfDay = (now.clone() as Calendar).apply { 
+                            set(Calendar.HOUR_OF_DAY, 0)
+                            set(Calendar.MINUTE, 0)
+                            set(Calendar.SECOND, 0)
+                            set(Calendar.MILLISECOND, 0) 
+                        }.timeInMillis
+                        val endOfDay = (now.clone() as Calendar).apply { 
+                            set(Calendar.HOUR_OF_DAY, 23)
+                            set(Calendar.MINUTE, 59)
+                            set(Calendar.SECOND, 59)
+                            set(Calendar.MILLISECOND, 999) 
+                        }.timeInMillis
+
+                        val completionsCount = dao.countCompletionsForHabitOnDay(habitId, startOfDay, endOfDay)
+                        if (completionsCount > 0) {
+                            shouldShow = false
+                        }
+                    }
+                }
+
+                if (shouldShow) {
+                    showNotification(context, intent, habitId, isGeneralNotification)
+                }
+
+                // Reschedule for the next day/time
+                if (notificationTime != null) {
+                    if (isGeneralNotification) {
+                        val days = intent.getStringArrayExtra("notificationDays")?.toSet()
+                        if (days != null) {
+                            rescheduleGeneralAlarm(context, notificationTime, days)
+                        }
+                    } else {
+                        val habitName = intent.getStringExtra("habitName")
+                        rescheduleHabitAlarm(context, habitId, habitName, notificationTime)
+                    }
+                }
+            } finally {
+                pendingResult.finish()
+            }
+        }
+    }
+
+    private fun showNotification(context: Context, intent: Intent, habitId: String, isGeneralNotification: Boolean) {
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -152,8 +217,6 @@ class NotificationReceiver : BroadcastReceiver() {
             )
             notificationManager.createNotificationChannel(channel)
         }
-
-        val isGeneralNotification = habitId == GENERAL_NOTIFICATION_ID
 
         val title: String
         val contentText: String
@@ -186,19 +249,6 @@ class NotificationReceiver : BroadcastReceiver() {
             .build()
 
         notificationManager.notify(habitId.hashCode(), notification)
-
-        // Reschedule for the next day/time
-        if (notificationTime != null) {
-            if (isGeneralNotification) {
-                val days = intent.getStringArrayExtra("notificationDays")?.toSet()
-                if (days != null) {
-                    rescheduleGeneralAlarm(context, notificationTime, days)
-                }
-            } else {
-                 val habitName = intent.getStringExtra("habitName")
-                 rescheduleHabitAlarm(context, habitId, habitName, notificationTime)
-            }
-        }
     }
 
     private fun rescheduleHabitAlarm(context: Context, habitId: String, habitName: String?, notificationTime: String) {
@@ -227,6 +277,7 @@ class NotificationReceiver : BroadcastReceiver() {
             set(Calendar.HOUR_OF_DAY, hour)
             set(Calendar.MINUTE, minute)
             set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
             add(Calendar.DAY_OF_YEAR, 1) // Set for the next day
         }
 
@@ -300,49 +351,23 @@ fun getNextAlarmTime(hour: Int, minute: Int, days: Set<String>): Long? {
     val enabledDays = days.mapNotNull { dayMap[it] }.toSet()
 
     val now = Calendar.getInstance()
-    val today = now.get(Calendar.DAY_OF_WEEK)
-
-    var nextDay: Int? = null
-    // First, check for a day later in the current week
-    for (day in (today)..Calendar.SATURDAY) {
-        if (enabledDays.contains(day)) {
-            val calendar = Calendar.getInstance().apply {
-                set(Calendar.DAY_OF_WEEK, day)
-                set(Calendar.HOUR_OF_DAY, hour)
-                set(Calendar.MINUTE, minute)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
-            }
-            if (calendar.timeInMillis > now.timeInMillis) {
-                nextDay = day
-                break
-            }
-        }
-    }
     
-    // If no day found in the current week, check from the beginning of next week
-    if (nextDay == null) {
-        for (day in Calendar.SUNDAY..today) {
-            if (enabledDays.contains(day)) {
-                nextDay = day
-                break
-            }
-        }
-    }
-    
-    if (nextDay != null) {
+    // Check up to 7 days ahead
+    for (i in 0..7) {
         val calendar = Calendar.getInstance().apply {
-            set(Calendar.DAY_OF_WEEK, nextDay)
+            add(Calendar.DAY_OF_YEAR, i)
             set(Calendar.HOUR_OF_DAY, hour)
             set(Calendar.MINUTE, minute)
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
         }
         
-        if (calendar.timeInMillis <= now.timeInMillis) {
-            calendar.add(Calendar.WEEK_OF_YEAR, 1)
+        val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
+        if (enabledDays.contains(dayOfWeek)) {
+            if (calendar.timeInMillis > now.timeInMillis) {
+                return calendar.timeInMillis
+            }
         }
-        return calendar.timeInMillis
     }
     
     return null

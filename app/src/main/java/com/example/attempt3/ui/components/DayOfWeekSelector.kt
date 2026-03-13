@@ -46,7 +46,7 @@ fun DayOfWeekSelector(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = horizontalPadding, vertical = 8.dp),
+            .padding(horizontal = horizontalPadding, vertical = 0.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

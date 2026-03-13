@@ -13,6 +13,9 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.example.attempt3.R
 import com.example.attempt3.data.Database.HabitDatabase
+import com.example.attempt3.data.settings.SettingsDataStore
+import kotlinx.coroutines.flow.first
+import java.util.Calendar
 
 class HabitNotificationWorker(
     private val context: Context,
@@ -23,11 +26,40 @@ class HabitNotificationWorker(
         val habitName = inputData.getString(KEY_HABIT_NAME) ?: return Result.failure()
         val habitId = inputData.getString(KEY_HABIT_ID) ?: return Result.failure()
 
-        createNotificationChannel(context)
-        showNotification(context, habitName, habitId)
+        val settingsDataStore = SettingsDataStore(context)
+        val skipCompleted = settingsDataStore.skipCompletedHabitNotifications.first()
+        val dao = HabitDatabase.getDatabase(context).habitDao()
+
+        var shouldShow = true
+        if (skipCompleted) {
+            val now = Calendar.getInstance()
+            val startOfDay = (now.clone() as Calendar).apply { 
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0) 
+            }.timeInMillis
+            val endOfDay = (now.clone() as Calendar).apply { 
+                set(Calendar.HOUR_OF_DAY, 23)
+                set(Calendar.MINUTE, 59)
+                set(Calendar.SECOND, 59)
+                set(Calendar.MILLISECOND, 999) 
+            }.timeInMillis
+
+            val completionsCount = dao.countCompletionsForHabitOnDay(habitId, startOfDay, endOfDay)
+            val habit = dao.getHabit(habitId)
+            val completionsPerInterval = habit?.completionsPerInterval ?: 1
+            if (completionsCount >= completionsPerInterval) {
+                shouldShow = false
+            }
+        }
+
+        if (shouldShow) {
+            createNotificationChannel(context)
+            showNotification(context, habitName, habitId)
+        }
 
         // Reschedule the notification for the next day
-        val dao = HabitDatabase.getDatabase(context).habitDao()
         val habit = dao.getHabit(habitId)
         if (habit != null) {
             HabitNotificationScheduler.scheduleNotification(context, habit)

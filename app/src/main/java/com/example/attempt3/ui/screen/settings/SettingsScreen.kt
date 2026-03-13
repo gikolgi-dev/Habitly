@@ -4,13 +4,10 @@
 
 package com.example.attempt3.ui.screen.settings
 
-import android.Manifest
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
@@ -24,10 +21,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
@@ -51,6 +51,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -70,7 +71,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -81,6 +81,7 @@ import com.example.attempt3.notifications.NotificationScheduler
 import com.example.attempt3.ui.AppBackButton
 import com.example.attempt3.ui.components.CustomTimePickerDialog
 import com.example.attempt3.ui.components.NotificationTimeSelectors
+import com.example.attempt3.ui.components.rememberNotificationPermissionHandler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -126,44 +127,19 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
         }
     }
 
-    var hasNotificationPermission by remember {
-        mutableStateOf(
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                ContextCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.POST_NOTIFICATIONS
-                ) == PackageManager.PERMISSION_GRANTED
-            } else {
-                true
+    val notificationPermissionHandler = rememberNotificationPermissionHandler {
+        scope.launch {
+            settingsDataStore.setGlobalNotificationsEnabled(true)
+            notificationScheduler.scheduleGeneralNotification(globalNotificationTime, globalNotificationDays)
+            if (vibrationsEnabled) {
+                haptic.performHapticFeedback(HapticFeedbackType.ToggleOn)
             }
-        )
-    }
-
-    val notificationPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-        onResult = { isGranted ->
-            hasNotificationPermission = isGranted
-            if (isGranted) {
-                scope.launch {
-                    settingsDataStore.setGlobalNotificationsEnabled(true)
-                    notificationScheduler.scheduleGeneralNotification(globalNotificationTime, globalNotificationDays)
-                    if (vibrationsEnabled) {
-                        haptic.performHapticFeedback(HapticFeedbackType.ToggleOn)
-                    }
-                }
-            }
-        }
-    )
-
-    fun requestPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }
 
     fun handleNotificationToggle(enable: Boolean) {
         if (enable) {
-            if (hasNotificationPermission) {
+            if (notificationPermissionHandler.hasPermission) {
                 scope.launch {
                     settingsDataStore.setGlobalNotificationsEnabled(true)
                     notificationScheduler.scheduleGeneralNotification(globalNotificationTime, globalNotificationDays)
@@ -172,7 +148,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                     }
                 }
             } else {
-                requestPermission()
+                notificationPermissionHandler.requestPermission()
             }
         } else {
             scope.launch {
@@ -300,9 +276,14 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
     if (showNotificationSheet) {
         ModalBottomSheet(
             onDismissRequest = { showNotificationSheet = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
             dragHandle = { BottomSheetDefaults.DragHandle(Modifier.fillMaxWidth(0.15f)) }
         ) {
-            Column(modifier = blurModifier) {
+            Column(
+                modifier = blurModifier
+                    .verticalScroll(rememberScrollState())
+                    .navigationBarsPadding()
+            ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -319,7 +300,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                         modifier = Modifier.weight(1f)
                     )
                     Switch(
-                        checked = globalNotificationsEnabled && hasNotificationPermission,
+                        checked = globalNotificationsEnabled && notificationPermissionHandler.hasPermission,
                         onCheckedChange = { handleNotificationToggle(it) }
                     )
                 }
@@ -337,13 +318,11 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                Spacer(modifier = Modifier.height(16.dp))
-
-                val isEnabled = globalNotificationsEnabled && hasNotificationPermission
+                val isEnabled = globalNotificationsEnabled && notificationPermissionHandler.hasPermission
                 NotificationTimeSelectors(
                     notificationTime = globalNotificationTime,
                     selectedDays = globalNotificationDays,
-                    onTimeClick = { if (isEnabled) showTimePicker = true },
+                    onTimeClick = { if (isEnabled) showTimePicker = true else notificationPermissionHandler.requestPermission() },
                     onDaySelected = { day ->
                         scope.launch {
                             val newDays = if (globalNotificationDays.contains(day)) {
