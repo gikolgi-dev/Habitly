@@ -19,6 +19,7 @@ class SettingsDataStore(private val context: Context) {
 
     companion object {
         val THEME_KEY = stringPreferencesKey("theme")
+        val USE_MATERIAL_THEMING_KEY = booleanPreferencesKey("use_material_theming")
         val MONTH_LABELS_KEY = booleanPreferencesKey("month_labels")
         val VIBRATIONS_KEY = booleanPreferencesKey("vibrations")
         val BORDERS_KEY = floatPreferencesKey("borders_float")
@@ -51,6 +52,17 @@ class SettingsDataStore(private val context: Context) {
     suspend fun setTheme(theme: String) {
         context.dataStore.edit { settings ->
             settings[THEME_KEY] = theme
+        }
+    }
+
+    val useMaterialTheming: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[USE_MATERIAL_THEMING_KEY] ?: DefaultSettings.USE_MATERIAL_THEMING
+        }
+
+    suspend fun setUseMaterialTheming(use: Boolean) {
+        context.dataStore.edit { settings ->
+            settings[USE_MATERIAL_THEMING_KEY] = use
         }
     }
 
@@ -332,6 +344,7 @@ class SettingsDataStore(private val context: Context) {
     suspend fun resetToDefault() {
         context.dataStore.edit { settings ->
             settings[THEME_KEY] = DefaultSettings.THEME
+            settings[USE_MATERIAL_THEMING_KEY] = DefaultSettings.USE_MATERIAL_THEMING
             settings[MONTH_LABELS_KEY] = DefaultSettings.MONTH_LABELS
             settings[VIBRATIONS_KEY] = DefaultSettings.VIBRATIONS
             settings[BORDERS_KEY] = DefaultSettings.BORDERS

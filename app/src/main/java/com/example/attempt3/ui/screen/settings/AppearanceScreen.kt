@@ -31,6 +31,7 @@ fun AppearanceScreen(
 ) {
     val scope = rememberCoroutineScope()
     val currentTheme by settingsDataStore.theme.collectAsState(initial = "system")
+    val useMaterialTheming by settingsDataStore.useMaterialTheming.collectAsState(initial = true)
     val useHabitColorForCard by settingsDataStore.useHabitColorForCard.collectAsState(initial = true)
     val showMonthLabels by settingsDataStore.monthLabels.collectAsState(initial = true)
     val showYearDivider by settingsDataStore.yearDivider.collectAsState(initial = true)
@@ -52,6 +53,7 @@ fun AppearanceScreen(
         Column(modifier = Modifier.fillMaxWidth()) {
             ThemeSection(
                 currentTheme = currentTheme,
+                useMaterialTheming = useMaterialTheming,
                 useHabitColorForCard = useHabitColorForCard,
                 borderContrast = borderContrast,
                 vibrationsEnabled = vibrationsEnabled,
