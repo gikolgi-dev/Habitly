@@ -504,7 +504,6 @@ fun GroupedSettingsItem(
     iconColor: Color,
     settingsDataStore: SettingsDataStore,
     position: SettingsItemPosition = SettingsItemPosition.Alone,
-    showDivider: Boolean = false,
     onClick: () -> Unit
 ) {
     SettingsItemBox(settingsDataStore = settingsDataStore, position = position) {
@@ -537,13 +536,6 @@ fun GroupedSettingsItem(
                         )
                     }
                 }
-            }
-            if (showDivider) {
-                HorizontalDivider(
-                    modifier = Modifier.padding(start = 78.dp, end = 16.dp),
-                    thickness = 0.5.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                )
             }
         }
     }
