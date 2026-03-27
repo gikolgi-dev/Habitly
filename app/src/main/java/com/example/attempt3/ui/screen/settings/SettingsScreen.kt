@@ -42,6 +42,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -360,9 +361,10 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
             dragHandle = { BottomSheetDefaults.DragHandle(Modifier.fillMaxWidth(0.15f)) }
         ) {
+            val scrollState = rememberScrollState()
             Column(
                 modifier = blurModifier
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(scrollState, enabled = scrollState.maxValue > 0)
                     .navigationBarsPadding()
             ) {
                 Row(
@@ -455,7 +457,10 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                 settingsDataStore = settingsDataStore,
                 isRoot = true,
             ) { paddingValues ->
+                val listState = rememberLazyListState()
                 LazyColumn(
+                    state = listState,
+                    userScrollEnabled = listState.canScrollForward || listState.canScrollBackward,
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = PaddingValues(
                         top = paddingValues.calculateTopPadding() + 8.dp,
@@ -692,7 +697,7 @@ fun AnimatedVisibilityScope.SettingsScaffold(
     // Use fixed base height, content list will scroll under it.
     // Reducing maxHeight for one word title.
     val hasSpace = title.contains(" ")
-    val expandedMaxHeight = if (hasSpace) 190.dp else 125.dp
+    val expandedMaxHeight = if (hasSpace) 220.dp else 180.dp
     val maxHeight = expandedMaxHeight + statusBarPadding
     val minHeight = 72.dp + statusBarPadding
     val maxHeightPx = with(density) { maxHeight.toPx() }
@@ -771,7 +776,7 @@ fun AnimatedVisibilityScope.SettingsScaffold(
                     val expandedFontSize = remember(title) {
                         val words = title.split(" ")
                         val longestWord = words.maxByOrNull { it.length }?.length ?: 0
-                        val baseSize = 64f
+                        val baseSize = 56
                         if (longestWord > 6) {
                             (baseSize * (6.5f / longestWord)).coerceAtLeast(30f).sp
                         } else {
@@ -819,7 +824,7 @@ fun AnimatedVisibilityScope.SettingsScaffold(
                             .align(Alignment.BottomStart)
                             .padding(
                                 start = titleStartPadding,
-                                top = 12.dp * (1 - collapsedFraction),
+                                top = 3.dp + (32.dp *(1-collapsedFraction)),
                                 bottom = 0.dp,
                                 end = 16.dp
                             )

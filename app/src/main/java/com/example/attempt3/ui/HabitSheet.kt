@@ -200,7 +200,7 @@ fun HabitSheetContent(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp)
-            .verticalScroll(scrollState),
+            .verticalScroll(scrollState, enabled = scrollState.maxValue > 0),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {

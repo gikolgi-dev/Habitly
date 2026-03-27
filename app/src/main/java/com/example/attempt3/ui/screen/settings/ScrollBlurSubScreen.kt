@@ -36,11 +36,12 @@ fun ScrollBlurSubScreen(
     val scrollBlurTargets = scrollBlurTargetsState.value ?: return
     val vibrationsEnabled = vibrationsEnabledState.value ?: return
     val haptic = LocalHapticFeedback.current
+    val scrollState = rememberScrollState()
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(scrollState, enabled = scrollState.maxValue > 0)
     ) {
         Text(
             text = "Apply a blur effect to specific components while scrolling to improve focus and aesthetics.",

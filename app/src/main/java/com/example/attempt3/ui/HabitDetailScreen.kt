@@ -182,11 +182,12 @@ fun SharedTransitionScope.HabitDetailScreen(
                 cardBorderColor
             ),
         ) {
+            val scrollState = rememberScrollState()
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(10.dp)
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(scrollState, enabled = scrollState.maxValue > 0)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),

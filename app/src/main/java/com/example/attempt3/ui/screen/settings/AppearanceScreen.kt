@@ -53,11 +53,12 @@ fun AppearanceScreen(
     val disableAnimations = disableAnimationsState.value ?: return
 
     val haptic = LocalHapticFeedback.current
+    val scrollState = rememberScrollState()
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
+            .verticalScroll(scrollState, enabled = scrollState.maxValue > 0),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {

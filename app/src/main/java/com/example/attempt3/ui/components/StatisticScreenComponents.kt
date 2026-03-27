@@ -90,11 +90,12 @@ fun HabitStatisticsContent(
         MaterialTheme.colorScheme.outlineVariant.copy(alpha = borderContrast)
     }
 
+    val scrollState = rememberScrollState()
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(top = 16.dp, bottom = 48.dp)
-            .verticalScroll(rememberScrollState()),
+            .verticalScroll(scrollState, enabled = scrollState.maxValue > 0),
         verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
