@@ -5,8 +5,10 @@
 package com.example.attempt3.ui
 
 import android.annotation.SuppressLint
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColor
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -239,7 +241,8 @@ fun HabitItemCard(
 
                     val morph = circleToSquareMorph
                     val shape = remember(progress) { MorphPolygonShape(morph, progress) }
-                    val rotation by animateFloatAsState(if (isCompleted) 180f else 0f, label = "fab_icon_rotation")
+                    val rotationAnimationSpec = tween<Float>(durationMillis = 400, easing = FastOutSlowInEasing)
+                    val rotation by animateFloatAsState(if (isCompleted) 180f else 0f, label = "fab_icon_rotation", animationSpec = rotationAnimationSpec)
                     Box(
                         modifier = Modifier
                             .size(64.dp)
@@ -253,14 +256,20 @@ fun HabitItemCard(
                             .clickable { onComplete() },
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = if (isCompleted) Icons.Default.Close else Icons.Default.Check,
-                            contentDescription = if (isCompleted) "Completed" else "Complete",
-                            tint = iconTintColor,
-                            modifier = Modifier
-                                .size(32.dp)
-                                .rotate(rotation)
-                        )
+                        Crossfade(
+                            targetState = isCompleted,
+                            animationSpec = tween(durationMillis = 300),
+                            label = "IconCrossfade"
+                        ) { completed ->
+                            Icon(
+                                imageVector = if (completed) Icons.Default.Close else Icons.Default.Check,
+                                contentDescription = if (completed) "Completed" else "Complete",
+                                tint = iconTintColor,
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .rotate(rotation)
+                            )
+                        }
                     }
                 } else {
                     Row {
