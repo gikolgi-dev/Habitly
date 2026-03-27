@@ -14,7 +14,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -29,9 +28,13 @@ fun HabitColorSubScreen(
     modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
-    val useHabitColor by settingsDataStore.useHabitColorForCard.collectAsState(initial = true)
-    val habitColorTargets by settingsDataStore.habitColorTargets.collectAsState(initial = setOf("Habit Cards", "Statistic Screen"))
-    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
+    val useHabitColorState = settingsDataStore.useHabitColorForCard.collectAsState(initial = null)
+    val habitColorTargetsState = settingsDataStore.habitColorTargets.collectAsState(initial = null)
+    val vibrationsEnabledState = settingsDataStore.vibrations.collectAsState(initial = null)
+    
+    val useHabitColor = useHabitColorState.value ?: return
+    val habitColorTargets = habitColorTargetsState.value ?: return
+    val vibrationsEnabled = vibrationsEnabledState.value ?: return
     val haptic = LocalHapticFeedback.current
 
     Column(

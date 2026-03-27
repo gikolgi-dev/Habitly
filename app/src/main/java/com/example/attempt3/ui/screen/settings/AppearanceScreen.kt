@@ -15,7 +15,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,16 +30,27 @@ fun AppearanceScreen(
     onNavigateToHabitColor: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    val currentTheme by settingsDataStore.theme.collectAsState(initial = "system")
-    val useMaterialTheming by settingsDataStore.useMaterialTheming.collectAsState(initial = true)
-    val useHabitColorForCard by settingsDataStore.useHabitColorForCard.collectAsState(initial = true)
-    val showMonthLabels by settingsDataStore.monthLabels.collectAsState(initial = true)
-    val showYearDivider by settingsDataStore.yearDivider.collectAsState(initial = true)
-    val showYearLabels by settingsDataStore.yearLabels.collectAsState(initial = true)
-    val showScrollBlur by settingsDataStore.showScrollBlur.collectAsState(initial = true)
-    val borderContrast by settingsDataStore.borders.collectAsState(initial = 0f)
-    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
-    val disableAnimations by settingsDataStore.disableAnimations.collectAsState(initial = false)
+    val currentThemeState = settingsDataStore.theme.collectAsState(initial = null)
+    val useMaterialThemingState = settingsDataStore.useMaterialTheming.collectAsState(initial = null)
+    val useHabitColorForCardState = settingsDataStore.useHabitColorForCard.collectAsState(initial = null)
+    val showMonthLabelsState = settingsDataStore.monthLabels.collectAsState(initial = null)
+    val showYearDividerState = settingsDataStore.yearDivider.collectAsState(initial = null)
+    val showYearLabelsState = settingsDataStore.yearLabels.collectAsState(initial = null)
+    val showScrollBlurState = settingsDataStore.showScrollBlur.collectAsState(initial = null)
+    val borderContrastState = settingsDataStore.borders.collectAsState(initial = null)
+    val vibrationsEnabledState = settingsDataStore.vibrations.collectAsState(initial = null)
+    val disableAnimationsState = settingsDataStore.disableAnimations.collectAsState(initial = null)
+
+    val currentTheme = currentThemeState.value ?: return
+    val useMaterialTheming = useMaterialThemingState.value ?: return
+    val useHabitColorForCard = useHabitColorForCardState.value ?: return
+    val showMonthLabels = showMonthLabelsState.value ?: return
+    val showYearDivider = showYearDividerState.value ?: return
+    val showYearLabels = showYearLabelsState.value ?: return
+    val showScrollBlur = showScrollBlurState.value ?: return
+    val borderContrast = borderContrastState.value ?: return
+    val vibrationsEnabled = vibrationsEnabledState.value ?: return
+    val disableAnimations = disableAnimationsState.value ?: return
 
     val haptic = LocalHapticFeedback.current
 

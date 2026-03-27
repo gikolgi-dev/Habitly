@@ -21,7 +21,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,7 +39,9 @@ fun AboutScreen(
 ) {
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
-    val theme by settingsDataStore.theme.collectAsState(initial = "system")
+    val themeState = settingsDataStore.theme.collectAsState(initial = null)
+    val theme = themeState.value ?: return
+    
     val useDarkTheme = when (theme) {
         "light" -> false
         "dark" -> true

@@ -11,7 +11,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
+import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
@@ -33,6 +33,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
@@ -68,6 +69,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
@@ -100,10 +102,10 @@ fun AnimatedContentTransitionScope<NavBackStackEntry>.settingsPopEnterTransition
     slideInHorizontally(
         animationSpec = tween(SETTINGS_TRANSITION_DURATION, easing = FastOutSlowInEasing),
         initialOffsetX = { fullWidth -> -fullWidth / 3 } // Mimic coming from below/behind by starting like a third of the screen
-    ) + fadeIn(
-        animationSpec = tween(SETTINGS_TRANSITION_DURATION),
-        initialAlpha = 0.4f // Dimmed over the transparent NavHost background so it acts as a dim instead of transparency
-    ) 
+    ) + scaleIn(
+        initialScale = 0.95f,
+        animationSpec = tween(SETTINGS_TRANSITION_DURATION, easing = FastOutSlowInEasing)
+    )
 
 // When pressing BACK: The Appearance Settings screen exits
 fun AnimatedContentTransitionScope<NavBackStackEntry>.settingsPopExitTransition() =
@@ -111,7 +113,7 @@ fun AnimatedContentTransitionScope<NavBackStackEntry>.settingsPopExitTransition(
         animationSpec = tween(SETTINGS_TRANSITION_DURATION, easing = FastOutSlowInEasing),
         targetOffsetX = { fullWidth -> fullWidth } // Slides entirely out to the right
     ) + scaleOut(
-        targetScale = 0.9f, // Scaling down whilst having the shape of the screen
+        targetScale = 0.8f, // Scaling down whilst having the shape of the screen
         animationSpec = tween(SETTINGS_TRANSITION_DURATION, easing = FastOutSlowInEasing)
     )
 
@@ -120,6 +122,9 @@ fun AnimatedContentTransitionScope<NavBackStackEntry>.settingsEnterTransition() 
     slideInHorizontally(
         animationSpec = tween(SETTINGS_TRANSITION_DURATION, easing = FastOutSlowInEasing),
         initialOffsetX = { fullWidth -> fullWidth } // Slides in from the right
+    ) + scaleIn(
+        initialScale = 0.8f, // Scaling up whilst having the shape of the screen
+        animationSpec = tween(SETTINGS_TRANSITION_DURATION, easing = FastOutSlowInEasing)
     )
 
 // When clicking FORWARD: The Main Settings screen exits
@@ -143,15 +148,24 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
     var showTimePicker by remember { mutableStateOf(false) }
     var showNotificationSheet by remember { mutableStateOf(false) }
     val context = LocalContext.current
-    val globalNotificationsEnabled by settingsDataStore.globalNotificationsEnabled.collectAsState(initial = false)
-    val globalNotificationTime by settingsDataStore.globalNotificationTime.collectAsState(initial = "09:00")
-    val globalNotificationDays by settingsDataStore.globalNotificationDays.collectAsState(initial = setOf())
-    val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
-    val is24Hour by settingsDataStore.is24Hour.collectAsState(initial = false)
-    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
+    val globalNotificationsEnabledState = settingsDataStore.globalNotificationsEnabled.collectAsState(initial = null)
+    val globalNotificationTimeState = settingsDataStore.globalNotificationTime.collectAsState(initial = null)
+    val globalNotificationDaysState = settingsDataStore.globalNotificationDays.collectAsState(initial = null)
+    val borderContrastState = settingsDataStore.borders.collectAsState(initial = null)
+    val is24HourState = settingsDataStore.is24Hour.collectAsState(initial = null)
+    val vibrationsEnabledState = settingsDataStore.vibrations.collectAsState(initial = null)
+    val themeState = settingsDataStore.theme.collectAsState(initial = null)
+
+    val globalNotificationsEnabled = globalNotificationsEnabledState.value ?: return
+    val globalNotificationTime = globalNotificationTimeState.value ?: return
+    val globalNotificationDays = globalNotificationDaysState.value ?: return
+    val borderContrast = borderContrastState.value ?: return
+    val is24Hour = is24HourState.value ?: return
+    val vibrationsEnabled = vibrationsEnabledState.value ?: return
+    val theme = themeState.value ?: return
+
     val haptic = LocalHapticFeedback.current
     val notificationScheduler = remember { NotificationScheduler(context) }
-    val theme by settingsDataStore.theme.collectAsState(initial = "system")
     val uriHandler = LocalUriHandler.current
     val useDarkTheme = when (theme) {
         "light" -> false
@@ -644,7 +658,7 @@ fun SettingsScaffold(
     content: @Composable (PaddingValues) -> Unit
 ) {
     Scaffold(
-        modifier = modifier,
+        modifier = modifier.clip(RoundedCornerShape(32.dp)),
         topBar = {
             TopAppBar(
                 title = { 

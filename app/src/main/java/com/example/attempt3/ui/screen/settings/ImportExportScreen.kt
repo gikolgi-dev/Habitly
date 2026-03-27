@@ -183,7 +183,8 @@ fun getFileName(uri: Uri, context: Context): String? {
 fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val settingsDataStore = remember { SettingsDataStore(context) }
-    val bordersAlpha by settingsDataStore.borders.collectAsState(initial = 0.25f)
+    val bordersAlphaState = settingsDataStore.borders.collectAsState(initial = null)
+    val bordersAlpha = bordersAlphaState.value ?: return
 
     val scope = rememberCoroutineScope()
     var selectedFileUri by remember { mutableStateOf<Uri?>(null) }

@@ -15,7 +15,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,11 +30,18 @@ fun GeneralSettingsScreen(
     modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
-    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
-    val is24Hour by settingsDataStore.is24Hour.collectAsState(initial = false)
-    val heroCardVisible by settingsDataStore.heroCardVisible.collectAsState(initial = true)
-    val heatmapScrolling by settingsDataStore.heatmapScrolling.collectAsState(initial = false)
-    val skipCompleted by settingsDataStore.skipCompletedHabitNotifications.collectAsState(initial = false)
+    val vibrationsEnabledState = settingsDataStore.vibrations.collectAsState(initial = null)
+    val is24HourState = settingsDataStore.is24Hour.collectAsState(initial = null)
+    val heroCardVisibleState = settingsDataStore.heroCardVisible.collectAsState(initial = null)
+    val heatmapScrollingState = settingsDataStore.heatmapScrolling.collectAsState(initial = null)
+    val skipCompletedState = settingsDataStore.skipCompletedHabitNotifications.collectAsState(initial = null)
+
+    val vibrationsEnabled = vibrationsEnabledState.value ?: return
+    val is24Hour = is24HourState.value ?: return
+    val heroCardVisible = heroCardVisibleState.value ?: return
+    val heatmapScrolling = heatmapScrollingState.value ?: return
+    val skipCompleted = skipCompletedState.value ?: return
+    
     val haptic = LocalHapticFeedback.current
 
     Column(

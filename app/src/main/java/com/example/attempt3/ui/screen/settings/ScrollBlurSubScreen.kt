@@ -14,7 +14,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -29,9 +28,13 @@ fun ScrollBlurSubScreen(
     modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
-    val showScrollBlur by settingsDataStore.showScrollBlur.collectAsState(initial = true)
-    val scrollBlurTargets by settingsDataStore.scrollBlurTargets.collectAsState(initial = setOf("Heatmap", "Line Chart"))
-    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
+    val showScrollBlurState = settingsDataStore.showScrollBlur.collectAsState(initial = null)
+    val scrollBlurTargetsState = settingsDataStore.scrollBlurTargets.collectAsState(initial = null)
+    val vibrationsEnabledState = settingsDataStore.vibrations.collectAsState(initial = null)
+    
+    val showScrollBlur = showScrollBlurState.value ?: return
+    val scrollBlurTargets = scrollBlurTargetsState.value ?: return
+    val vibrationsEnabled = vibrationsEnabledState.value ?: return
     val haptic = LocalHapticFeedback.current
 
     Column(

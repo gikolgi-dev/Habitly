@@ -21,7 +21,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -133,7 +132,9 @@ fun HeatmapSection(
     scope: CoroutineScope,
     haptic: HapticFeedback
 ) {
-    val heatmapVisibleDays by settingsDataStore.heatmapVisibleDays.collectAsState(initial = setOf("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"))
+    val heatmapVisibleDaysState = settingsDataStore.heatmapVisibleDays.collectAsState(initial = null)
+    
+    val heatmapVisibleDays = heatmapVisibleDaysState.value ?: return
 
     SettingsGroup(title = "Heatmap", settingsDataStore = settingsDataStore) {
         SettingsSwitchItem(
