@@ -161,7 +161,10 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     val heatmapScrolling by settingsDataStore.heatmapScrolling.collectAsState(initial = false)
 
     // Additional settings for consistent Shared Element Transition colors/animations
-    val disableAnimations by settingsDataStore.disableAnimations.collectAsState(initial = false)
+    val reduceMovement by settingsDataStore.reduceMovement.collectAsState(initial = false)
+    val reduceMovementTargets by settingsDataStore.reduceMovementTargets.collectAsState(initial = emptySet())
+    val disableAnimations = reduceMovement && "Rotation" in reduceMovementTargets
+    
     val useHabitColorForCard by settingsDataStore.useHabitColorForCard.collectAsState(initial = true)
     val habitColorTargets by settingsDataStore.habitColorTargets.collectAsState(initial = setOf("Habit Cards", "Statistic Screen"))
     val theme by settingsDataStore.theme.collectAsState(initial = "system")

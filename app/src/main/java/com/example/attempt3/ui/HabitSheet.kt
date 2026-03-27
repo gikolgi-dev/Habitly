@@ -178,7 +178,8 @@ private fun HabitIconItem(
     vibrationsEnabled: Boolean,
     borderContrast: Float,
     onIconKeyChanged: (String) -> Unit,
-    onPressChanged: (Int?) -> Unit
+    onPressChanged: (Int?) -> Unit,
+    reduceGridReactions: Boolean
 ) {
     val haptic = LocalHapticFeedback.current
     val animatedBorderWidth by animateDpAsState(targetValue = if (isSelected) 2.dp else 1.dp, label = "borderWidth")
@@ -195,13 +196,13 @@ private fun HabitIconItem(
     val distance = if (pressedIconIndex != null) calculateGridDistance(index, pressedIconIndex, 8) else 100f
     
     val scale by animateFloatAsState(
-        targetValue = if (pressedIconIndex == index) 1.2f else 1f,
+        targetValue = if (pressedIconIndex == index && !reduceGridReactions) 1.2f else 1f,
         animationSpec = spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessLow)
     )
 
     val maxDist = 4.5f
     val translationX by animateFloatAsState(
-        targetValue = if (pressedIconIndex != null && pressedIconIndex != index && distance < maxDist) {
+        targetValue = if (!reduceGridReactions && pressedIconIndex != null && pressedIconIndex != index && distance < maxDist) {
             val diff = (index % 8) - (pressedIconIndex % 8)
             val strength = (maxDist - distance) / maxDist
             diff * 12f * (strength * strength)
@@ -209,7 +210,7 @@ private fun HabitIconItem(
         animationSpec = spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessLow)
     )
     val translationY by animateFloatAsState(
-        targetValue = if (pressedIconIndex != null && pressedIconIndex != index && distance < maxDist) {
+        targetValue = if (!reduceGridReactions && pressedIconIndex != null && pressedIconIndex != index && distance < maxDist) {
             val diff = (index / 8) - (pressedIconIndex / 8)
             val strength = (maxDist - distance) / maxDist
             diff * 12f * (strength * strength)
@@ -273,19 +274,20 @@ private fun HabitColorItem(
     vibrationsEnabled: Boolean,
     onColorChanged: (Color) -> Unit,
     onClearCustomColor: () -> Unit,
-    onPressChanged: (Int?) -> Unit
+    onPressChanged: (Int?) -> Unit,
+    reduceGridReactions: Boolean
 ) {
     val haptic = LocalHapticFeedback.current
     val distance = if (pressedColorIndex != null) calculateGridDistance(index, pressedColorIndex, 8) else 100f
     
     val scale by animateFloatAsState(
-        targetValue = if (pressedColorIndex == index) 1.2f else 1f,
+        targetValue = if (pressedColorIndex == index && !reduceGridReactions) 1.2f else 1f,
         animationSpec = spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessLow)
     )
 
     val maxDist = 4.5f
     val translationX by animateFloatAsState(
-        targetValue = if (pressedColorIndex != null && pressedColorIndex != index && distance < maxDist) {
+        targetValue = if (!reduceGridReactions && pressedColorIndex != null && pressedColorIndex != index && distance < maxDist) {
             val diff = (index % 8) - (pressedColorIndex % 8)
             val strength = (maxDist - distance) / maxDist
             diff * 12f * (strength * strength)
@@ -293,7 +295,7 @@ private fun HabitColorItem(
         animationSpec = spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessLow)
     )
     val translationY by animateFloatAsState(
-        targetValue = if (pressedColorIndex != null && pressedColorIndex != index && distance < maxDist) {
+        targetValue = if (!reduceGridReactions && pressedColorIndex != null && pressedColorIndex != index && distance < maxDist) {
             val diff = (index / 8) - (pressedColorIndex / 8)
             val strength = (maxDist - distance) / maxDist
             diff * 12f * (strength * strength)
@@ -377,6 +379,9 @@ fun HabitSheetContent(
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
     val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
     val is24Hour by settingsDataStore.is24Hour.collectAsState(initial = false)
+    val reduceMovement by settingsDataStore.reduceMovement.collectAsState(initial = false)
+    val reduceMovementTargets by settingsDataStore.reduceMovementTargets.collectAsState(initial = emptySet())
+    val reduceGridReactions = reduceMovement && "Grid Reactions" in reduceMovementTargets
 
     val isScrolled by remember { derivedStateOf { scrollState.value > 0 } }
     val dividerAlpha by animateFloatAsState(targetValue = if (isScrolled) 1f else 0f, label = "dividerAlpha")
@@ -518,7 +523,8 @@ fun HabitSheetContent(
                                         vibrationsEnabled = vibrationsEnabled,
                                         borderContrast = borderContrast,
                                         onIconKeyChanged = onHabitIconKeyChanged,
-                                        onPressChanged = { pressedIconIndex = it }
+                                        onPressChanged = { pressedIconIndex = it },
+                                        reduceGridReactions = reduceGridReactions
                                     )
                                 }
                             }
@@ -566,7 +572,8 @@ fun HabitSheetContent(
                                             vibrationsEnabled = vibrationsEnabled,
                                             onColorChanged = onHabitColorChanged,
                                             onClearCustomColor = onClearCustomColor,
-                                            onPressChanged = { pressedColorIndex = it }
+                                            onPressChanged = { pressedColorIndex = it },
+                                            reduceGridReactions = reduceGridReactions
                                         )
                                     } else {
                                         // Custom Color Button
@@ -576,13 +583,13 @@ fun HabitSheetContent(
 
                                         val distance = if (pressedColorIndex != null) calculateGridDistance(index, pressedColorIndex!!, 8) else 100f
                                         val scale by animateFloatAsState(
-                                            targetValue = if (pressedColorIndex == index) 1.2f else 1f,
+                                            targetValue = if (pressedColorIndex == index && !reduceGridReactions) 1.2f else 1f,
                                             animationSpec = spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessLow)
                                         )
 
                                         val maxDist = 4.5f
                                         val translationX by animateFloatAsState(
-                                            targetValue = if (pressedColorIndex != null && pressedColorIndex != index && distance < maxDist) {
+                                            targetValue = if (!reduceGridReactions && pressedColorIndex != null && pressedColorIndex != index && distance < maxDist) {
                                                 val diff = (index % 8) - (pressedColorIndex!! % 8)
                                                 val strength = (maxDist - distance) / maxDist
                                                 diff * 12f * (strength * strength)
@@ -590,7 +597,7 @@ fun HabitSheetContent(
                                             animationSpec = spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessLow)
                                         )
                                         val translationY by animateFloatAsState(
-                                            targetValue = if (pressedColorIndex != null && pressedColorIndex != index && distance < maxDist) {
+                                            targetValue = if (!reduceGridReactions && pressedColorIndex != null && pressedColorIndex != index && distance < maxDist) {
                                                 val diff = (index / 8) - (pressedColorIndex!! / 8)
                                                 val strength = (maxDist - distance) / maxDist
                                                 diff * 12f * (strength * strength)

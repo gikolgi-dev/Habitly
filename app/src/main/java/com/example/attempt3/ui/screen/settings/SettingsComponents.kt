@@ -357,7 +357,9 @@ fun RotatingCookie(
     iconSize: Dp = 30.dp,
     contentDescription: String? = null
 ) {
-    val disableAnimations by settingsDataStore.disableAnimations.collectAsState(initial = false)
+    val reduceMovement by settingsDataStore.reduceMovement.collectAsState(initial = false)
+    val reduceMovementTargets by settingsDataStore.reduceMovementTargets.collectAsState(initial = emptySet())
+    val disableAnimations = reduceMovement && "Rotation" in reduceMovementTargets
     
     val rotation = if (!disableAnimations) {
         val infiniteTransition = rememberInfiniteTransition(label = "rotation")
@@ -404,7 +406,9 @@ fun RotatingCookie(
     iconSize: Dp = 30.dp,
     contentDescription: String? = null
 ) {
-    val disableAnimations by settingsDataStore.disableAnimations.collectAsState(initial = false)
+    val reduceMovement by settingsDataStore.reduceMovement.collectAsState(initial = false)
+    val reduceMovementTargets by settingsDataStore.reduceMovementTargets.collectAsState(initial = emptySet())
+    val disableAnimations = reduceMovement && "Rotation" in reduceMovementTargets
     
     val rotation = if (!disableAnimations) {
         val infiniteTransition = rememberInfiniteTransition(label = "rotation")

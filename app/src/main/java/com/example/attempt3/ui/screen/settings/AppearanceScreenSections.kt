@@ -209,12 +209,13 @@ fun HeatmapSection(
 fun AccessibilitySection(
     borderContrast: Float,
     showScrollBlur: Boolean,
-    disableAnimations: Boolean,
+    reduceMovement: Boolean,
     vibrationsEnabled: Boolean,
     settingsDataStore: SettingsDataStore,
     scope: CoroutineScope,
     haptic: HapticFeedback,
-    onNavigateToScrollBlur: () -> Unit
+    onNavigateToScrollBlur: () -> Unit,
+    onNavigateToReduceMovement: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isDragged = interactionSource.collectIsDraggedAsState().value
@@ -308,17 +309,19 @@ fun AccessibilitySection(
             onClick = onNavigateToScrollBlur
         )
 
-        SettingsSwitchItem(
-            text = "Disable icon rotation",
-            description = "Stop habit icons from rotating slowly",
-            checked = disableAnimations,
+        SettingsSwitchNavigationItem(
+            text = "Reduce movement",
+            description = "Minimize the amount of animation and movement in the app",
+            checked = reduceMovement,
             settingsDataStore = settingsDataStore,
-            position = SettingsItemPosition.Bottom
-        ) {
-            scope.launch { settingsDataStore.setDisableAnimations(it) }
-            if (vibrationsEnabled) {
-                haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
-            }
-        }
+            position = SettingsItemPosition.Bottom,
+            onCheckedChange = {
+                scope.launch { settingsDataStore.setReduceMovement(it) }
+                if (vibrationsEnabled) {
+                    haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+                }
+            },
+            onClick = onNavigateToReduceMovement
+        )
     }
 }

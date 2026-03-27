@@ -599,7 +599,8 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                     modifier = Modifier.padding(top = paddingValues.calculateTopPadding()),
                     settingsDataStore = settingsDataStore,
                     onNavigateToScrollBlur = { navController.navigate("scroll_blur") { launchSingleTop = true } },
-                    onNavigateToHabitColor = { navController.navigate("habit_color") { launchSingleTop = true } }
+                    onNavigateToHabitColor = { navController.navigate("habit_color") { launchSingleTop = true } },
+                    onNavigateToReduceMovement = { navController.navigate("reduce_movement") { launchSingleTop = true } }
                 )
             }
         }
@@ -670,6 +671,24 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                 settingsDataStore = settingsDataStore,
             ) { paddingValues ->
                 HabitColorSubScreen(
+                    settingsDataStore = settingsDataStore,
+                    modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
+                )
+            }
+        }
+
+        composable(
+            route = "reduce_movement"
+        ) {
+            SettingsScaffold(
+                title = "Reduce Movement",
+                onBack = {
+                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+                    navController.popBackStack()
+                },
+                settingsDataStore = settingsDataStore,
+            ) { paddingValues ->
+                ReduceMovementSubScreen(
                     settingsDataStore = settingsDataStore,
                     modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
                 )

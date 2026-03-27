@@ -27,7 +27,8 @@ fun AppearanceScreen(
     modifier: Modifier = Modifier,
     settingsDataStore: SettingsDataStore,
     onNavigateToScrollBlur: () -> Unit,
-    onNavigateToHabitColor: () -> Unit
+    onNavigateToHabitColor: () -> Unit,
+    onNavigateToReduceMovement: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
     val currentThemeState = settingsDataStore.theme.collectAsState(initial = null)
@@ -39,7 +40,7 @@ fun AppearanceScreen(
     val showScrollBlurState = settingsDataStore.showScrollBlur.collectAsState(initial = null)
     val borderContrastState = settingsDataStore.borders.collectAsState(initial = null)
     val vibrationsEnabledState = settingsDataStore.vibrations.collectAsState(initial = null)
-    val disableAnimationsState = settingsDataStore.disableAnimations.collectAsState(initial = null)
+    val reduceMovementState = settingsDataStore.reduceMovement.collectAsState(initial = null)
 
     val currentTheme = currentThemeState.value ?: return
     val useMaterialTheming = useMaterialThemingState.value ?: return
@@ -50,7 +51,7 @@ fun AppearanceScreen(
     val showScrollBlur = showScrollBlurState.value ?: return
     val borderContrast = borderContrastState.value ?: return
     val vibrationsEnabled = vibrationsEnabledState.value ?: return
-    val disableAnimations = disableAnimationsState.value ?: return
+    val reduceMovement = reduceMovementState.value ?: return
 
     val haptic = LocalHapticFeedback.current
     val scrollState = rememberScrollState()
@@ -91,12 +92,13 @@ fun AppearanceScreen(
             AccessibilitySection(
                 borderContrast = borderContrast,
                 showScrollBlur = showScrollBlur,
-                disableAnimations = disableAnimations,
+                reduceMovement = reduceMovement,
                 vibrationsEnabled = vibrationsEnabled,
                 settingsDataStore = settingsDataStore,
                 scope = scope,
                 haptic = haptic,
-                onNavigateToScrollBlur = onNavigateToScrollBlur
+                onNavigateToScrollBlur = onNavigateToScrollBlur,
+                onNavigateToReduceMovement = onNavigateToReduceMovement
             )
 
             Spacer(modifier = Modifier.height(24.dp).navigationBarsPadding())

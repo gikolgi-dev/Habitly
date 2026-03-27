@@ -65,7 +65,11 @@ fun ArchiveScreen(uiState: HabitsUiState, habitDao: HabitDao, onBack: () -> Unit
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
     
     val useHabitColorForCard by settingsDataStore.useHabitColorForCard.collectAsState(initial = true)
-    val disableAnimations by settingsDataStore.disableAnimations.collectAsState(initial = false)
+    
+    val reduceMovement by settingsDataStore.reduceMovement.collectAsState(initial = false)
+    val reduceMovementTargets by settingsDataStore.reduceMovementTargets.collectAsState(initial = emptySet())
+    val disableAnimations = reduceMovement && "Rotation" in reduceMovementTargets
+    
     val habitColorTargets by settingsDataStore.habitColorTargets.collectAsState(initial = setOf("Habit Cards", "Statistic Screen"))
     val useHabitColor = useHabitColorForCard && "Habit Cards" in habitColorTargets
     

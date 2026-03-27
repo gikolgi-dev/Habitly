@@ -40,6 +40,8 @@ class SettingsDataStore(private val context: Context) {
         val SHOW_SCROLL_BLUR_KEY = booleanPreferencesKey("show_scroll_blur")
         val SCROLL_BLUR_TARGETS_KEY = stringPreferencesKey("scroll_blur_targets")
         val DISABLE_ANIMATIONS_KEY = booleanPreferencesKey("disable_animations")
+        val REDUCE_MOVEMENT_KEY = booleanPreferencesKey("reduce_movement")
+        val REDUCE_MOVEMENT_TARGETS_KEY = stringPreferencesKey("reduce_movement_targets")
         val USE_HABIT_COLOR_FOR_CARD_KEY = booleanPreferencesKey("use_habit_color_for_card")
         val HABIT_COLOR_TARGETS_KEY = stringPreferencesKey("habit_color_targets")
     }
@@ -269,14 +271,35 @@ class SettingsDataStore(private val context: Context) {
         }
     }
 
-    val disableAnimations: Flow<Boolean> = context.dataStore.data
+    val reduceMovement: Flow<Boolean> = context.dataStore.data
         .map { preferences ->
-            preferences[DISABLE_ANIMATIONS_KEY] ?: false
+            preferences[REDUCE_MOVEMENT_KEY] ?: preferences[DISABLE_ANIMATIONS_KEY] ?: DefaultSettings.REDUCE_MOVEMENT
         }
 
-    suspend fun setDisableAnimations(disable: Boolean) {
+    suspend fun setReduceMovement(reduce: Boolean) {
         context.dataStore.edit { settings ->
-            settings[DISABLE_ANIMATIONS_KEY] = disable
+            settings[REDUCE_MOVEMENT_KEY] = reduce
+        }
+    }
+
+    val reduceMovementTargets: Flow<Set<String>> = context.dataStore.data
+        .map { preferences ->
+            val saved = preferences[REDUCE_MOVEMENT_TARGETS_KEY]
+            if (saved != null) {
+                saved.split(',').filter { it.isNotEmpty() }.toSet()
+            } else {
+                val disableAnimations = preferences[DISABLE_ANIMATIONS_KEY] ?: DefaultSettings.DISABLE_ANIMATIONS
+                if (disableAnimations) {
+                    setOf("Rotation")
+                } else {
+                    DefaultSettings.REDUCE_MOVEMENT_TARGETS.split(',').filter { it.isNotEmpty() }.toSet()
+                }
+            }
+        }
+
+    suspend fun setReduceMovementTargets(targets: Set<String>) {
+        context.dataStore.edit { settings ->
+            settings[REDUCE_MOVEMENT_TARGETS_KEY] = targets.joinToString(",")
         }
     }
 
@@ -326,7 +349,8 @@ class SettingsDataStore(private val context: Context) {
             settings[HEATMAP_SCROLLING_KEY] = false
             settings[SHOW_SCROLL_BLUR_KEY] = true
             settings[SCROLL_BLUR_TARGETS_KEY] = DefaultSettings.SCROLL_BLUR_TARGETS
-            settings[DISABLE_ANIMATIONS_KEY] = false
+            settings[REDUCE_MOVEMENT_KEY] = DefaultSettings.REDUCE_MOVEMENT
+            settings[REDUCE_MOVEMENT_TARGETS_KEY] = DefaultSettings.REDUCE_MOVEMENT_TARGETS
             settings[USE_HABIT_COLOR_FOR_CARD_KEY] = false
             settings[HABIT_COLOR_TARGETS_KEY] = DefaultSettings.HABIT_COLOR_TARGETS
         }

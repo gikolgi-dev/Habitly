@@ -24,6 +24,8 @@ object DefaultSettings {
     const val SHOW_SCROLL_BLUR = true
     const val SCROLL_BLUR_TARGETS = "Line Chart"
     const val DISABLE_ANIMATIONS = false
+    const val REDUCE_MOVEMENT = false
+    const val REDUCE_MOVEMENT_TARGETS = "Rotation,Grid Reactions"
     const val USE_HABIT_COLOR_FOR_CARD = false
     const val HABIT_COLOR_TARGETS = "Habit Cards,Statistic Screen"
 }
