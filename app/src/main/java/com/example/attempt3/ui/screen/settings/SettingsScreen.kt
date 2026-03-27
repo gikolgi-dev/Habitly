@@ -689,9 +689,10 @@ fun AnimatedVisibilityScope.SettingsScaffold(
     
     val statusBarPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     
-    // Dynamic height based on whether the title has multiple words
+    // Use fixed base height, content list will scroll under it.
+    // Reducing maxHeight for one word title.
     val hasSpace = title.contains(" ")
-    val expandedMaxHeight = if (hasSpace) 210.dp else 160.dp
+    val expandedMaxHeight = if (hasSpace) 190.dp else 125.dp
     val maxHeight = expandedMaxHeight + statusBarPadding
     val minHeight = 72.dp + statusBarPadding
     val maxHeightPx = with(density) { maxHeight.toPx() }
@@ -771,8 +772,6 @@ fun AnimatedVisibilityScope.SettingsScaffold(
                         val words = title.split(" ")
                         val longestWord = words.maxByOrNull { it.length }?.length ?: 0
                         val baseSize = 64f
-                        
-                        // Aggressively scale down based on word length to ensure it fits width
                         if (longestWord > 6) {
                             (baseSize * (6.5f / longestWord)).coerceAtLeast(30f).sp
                         } else {
@@ -798,7 +797,7 @@ fun AnimatedVisibilityScope.SettingsScaffold(
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface,
                         fontSize = fontSize,
-                        lineHeight = (fontSize.value * 0.95f).sp, // Tight stacking for multi-line
+                        lineHeight = (fontSize.value * 0.95f).sp,
                         softWrap = false,
                         maxLines = 2,
                         overflow = TextOverflow.Clip,
@@ -817,13 +816,13 @@ fun AnimatedVisibilityScope.SettingsScaffold(
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .align(Alignment.BottomStart) // Anchor to bottom to avoid clipping and excessive gaps
+                            .align(Alignment.BottomStart)
                             .padding(
-                                start = titleStartPadding, 
-                                bottom = (4.dp * (1 - collapsedFraction)), // Very minimal gap above the list as requested
+                                start = titleStartPadding,
+                                top = 12.dp * (1 - collapsedFraction),
+                                bottom = 0.dp,
                                 end = 16.dp
                             )
-                            // center vertically in 72dp area when collapsed
                             .heightIn(min = 72.dp)
                             .wrapContentHeight(Alignment.CenterVertically)
                     )

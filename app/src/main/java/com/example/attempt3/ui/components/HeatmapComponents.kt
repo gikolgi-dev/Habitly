@@ -68,7 +68,7 @@ fun HeatmapWeekColumn(
             .drawBehind {
                 if (weekData.isStartOfYear && showYearDivider) {
                     val startY = if (showMonthLabels) 24.dp.toPx() else 0.dp.toPx()
-                    val xOffset = (horizontalSpacingPx / 2)-1
+                    val xOffset = if (showMonthLabels) (horizontalSpacingPx / 2)-1 else (horizontalSpacingPx / 2)-12
 
                     drawLine(
                         color = lineColor,
