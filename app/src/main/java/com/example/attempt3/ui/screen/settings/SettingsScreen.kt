@@ -9,7 +9,11 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.EnterExitState
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateDp
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
@@ -70,6 +74,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
@@ -411,7 +416,10 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
     NavHost(
         navController = navController,
         startDestination = "main",
-        modifier = blurModifier.fillMaxSize().background(Color.Transparent),
+        modifier = blurModifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .background(Color.Black.copy(alpha = 0.5f)),
         enterTransition = { settingsEnterTransition() },
         exitTransition = { settingsExitTransition() },
         popEnterTransition = { settingsPopEnterTransition() },
@@ -648,7 +656,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScaffold(
+fun AnimatedVisibilityScope.SettingsScaffold(
     title: String,
     onBack: () -> Unit,
     settingsDataStore: SettingsDataStore,
@@ -657,8 +665,37 @@ fun SettingsScaffold(
     modifier: Modifier = Modifier,
     content: @Composable (PaddingValues) -> Unit
 ) {
+    val cornerRadius by transition.animateDp(
+        transitionSpec = { 
+            if (targetState == EnterExitState.Visible) {
+                // When entering, smoothly reduce the corner radius to 0
+                tween(SETTINGS_TRANSITION_DURATION, easing = FastOutSlowInEasing)
+            } else {
+                // When exiting (going back), quickly snap to 32.dp so the card shape is visible early
+                tween(50, easing = FastOutSlowInEasing)
+            }
+        },
+        label = "settingsCornerRadius"
+    ) { state ->
+        if (state == EnterExitState.Visible) 0.dp else 32.dp
+    }
+
+    val dimAlpha by transition.animateFloat(
+        transitionSpec = { tween(SETTINGS_TRANSITION_DURATION, easing = FastOutSlowInEasing) },
+        label = "settingsDimAlpha"
+    ) { state ->
+        if (state == EnterExitState.Visible) 0f else 0.2f
+    }
+
     Scaffold(
-        modifier = modifier.clip(RoundedCornerShape(32.dp)),
+        modifier = modifier
+            .clip(RoundedCornerShape(cornerRadius))
+            .drawWithContent {
+                drawContent()
+                if (dimAlpha > 0f) {
+                    drawRect(Color.Black.copy(alpha = dimAlpha))
+                }
+            },
         topBar = {
             TopAppBar(
                 title = { 
