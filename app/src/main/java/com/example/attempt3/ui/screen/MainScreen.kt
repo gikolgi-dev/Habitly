@@ -863,8 +863,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
 
         AnimatedVisibility(
             visible = habitsUiState is HabitsUiState.Loading,
-            enter = fadeIn(animationSpec = tween(durationMillis = 500)),
-            exit = fadeOut(animationSpec = tween(durationMillis = 500))
+            enter = fadeIn(animationSpec = tween(durationMillis = 250)),
+            exit = fadeOut(animationSpec = tween(durationMillis = 250))
         ) {
             Surface(modifier = Modifier.fillMaxSize(),color = MaterialTheme.colorScheme.background) {
                 Column(
