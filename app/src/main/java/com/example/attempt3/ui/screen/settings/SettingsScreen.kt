@@ -9,12 +9,14 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -75,6 +77,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -89,6 +92,45 @@ import com.example.attempt3.ui.components.rememberNotificationPermissionHandler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+private const val SETTINGS_TRANSITION_DURATION = 300
+
+// When pressing BACK: The Main Settings screen re-enters
+fun AnimatedContentTransitionScope<NavBackStackEntry>.settingsPopEnterTransition() =
+    slideInHorizontally(
+        animationSpec = tween(SETTINGS_TRANSITION_DURATION, easing = FastOutSlowInEasing),
+        initialOffsetX = { fullWidth -> -fullWidth / 3 } // Mimic coming from below/behind by starting like a third of the screen
+    ) + fadeIn(
+        animationSpec = tween(SETTINGS_TRANSITION_DURATION),
+        initialAlpha = 0.4f // Dimmed over the transparent NavHost background so it acts as a dim instead of transparency
+    ) 
+
+// When pressing BACK: The Appearance Settings screen exits
+fun AnimatedContentTransitionScope<NavBackStackEntry>.settingsPopExitTransition() =
+    slideOutHorizontally(
+        animationSpec = tween(SETTINGS_TRANSITION_DURATION, easing = FastOutSlowInEasing),
+        targetOffsetX = { fullWidth -> fullWidth } // Slides entirely out to the right
+    ) + scaleOut(
+        targetScale = 0.9f, // Scaling down whilst having the shape of the screen
+        animationSpec = tween(SETTINGS_TRANSITION_DURATION, easing = FastOutSlowInEasing)
+    )
+
+// When clicking FORWARD: The Appearance Settings screen enters
+fun AnimatedContentTransitionScope<NavBackStackEntry>.settingsEnterTransition() =
+    slideInHorizontally(
+        animationSpec = tween(SETTINGS_TRANSITION_DURATION, easing = FastOutSlowInEasing),
+        initialOffsetX = { fullWidth -> fullWidth } // Slides in from the right
+    )
+
+// When clicking FORWARD: The Main Settings screen exits
+fun AnimatedContentTransitionScope<NavBackStackEntry>.settingsExitTransition() =
+    slideOutHorizontally(
+        animationSpec = tween(SETTINGS_TRANSITION_DURATION, easing = FastOutSlowInEasing),
+        targetOffsetX = { fullWidth -> -fullWidth / 3 } // Slides slightly to the left
+    ) + scaleOut(
+        targetScale = 0.95f,
+        animationSpec = tween(SETTINGS_TRANSITION_DURATION, easing = FastOutSlowInEasing)
+    )
 
 @SuppressLint("DefaultLocale")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -355,34 +397,11 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
     NavHost(
         navController = navController,
         startDestination = "main",
-        modifier = blurModifier.fillMaxSize(),
-        enterTransition = {
-            slideIntoContainer(
-                AnimatedContentTransitionScope.SlideDirection.Left,
-                animationSpec = tween(400)
-            )
-        },
-        exitTransition = {
-            scaleOut(
-                targetScale = 0.9f,
-                animationSpec = tween(400)
-            ) + fadeOut(animationSpec = tween(400))
-        },
-        popEnterTransition = {
-            scaleIn(
-                initialScale = 0.9f,
-                animationSpec = tween(400)
-            ) + fadeIn(animationSpec = tween(400))
-        },
-        popExitTransition = {
-            scaleOut(
-                targetScale = 0.85f,
-                animationSpec = tween(400)
-            ) + slideOutOfContainer(
-                AnimatedContentTransitionScope.SlideDirection.Right,
-                animationSpec = tween(400)
-            ) + fadeOut(animationSpec = tween(400))
-        }
+        modifier = blurModifier.fillMaxSize().background(Color.Transparent),
+        enterTransition = { settingsEnterTransition() },
+        exitTransition = { settingsExitTransition() },
+        popEnterTransition = { settingsPopEnterTransition() },
+        popExitTransition = { settingsPopExitTransition() }
     ) {
         // Main Screen
         composable(
@@ -396,11 +415,11 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                     onDismiss()
                 },
                 settingsDataStore = settingsDataStore,
-                isRoot = true
+                isRoot = true,
             ) { paddingValues ->
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(paddingValues).padding(top = 8.dp)
+                    modifier = Modifier.padding(top = paddingValues.calculateTopPadding()).padding(top = 8.dp)
                 ) {
                     item {
                         SettingsGroup(settingsDataStore = settingsDataStore) {
@@ -508,6 +527,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                             )
                         }
                     }
+                    item { Spacer(modifier = Modifier.navigationBarsPadding()) }
                 }
             }
         }
@@ -527,10 +547,10 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                     IconButton(onClick = { scope.launch { settingsDataStore.resetToDefault() } }) {
                         Icon(painter = painterResource(id = R.drawable.resetwrench), contentDescription = "Reset Settings", tint = MaterialTheme.colorScheme.onSurface)
                     }
-                }
+                },
             ) { paddingValues ->
                 AppearanceScreen(
-                    modifier = Modifier.padding(paddingValues),
+                    modifier = Modifier.padding(top = paddingValues.calculateTopPadding()),
                     settingsDataStore = settingsDataStore,
                     onNavigateToScrollBlur = { navController.navigate("scroll_blur") { launchSingleTop = true } },
                     onNavigateToHabitColor = { navController.navigate("habit_color") { launchSingleTop = true } }
@@ -547,11 +567,11 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                     if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
                     navController.popBackStack()
                 },
-                settingsDataStore = settingsDataStore
+                settingsDataStore = settingsDataStore,
             ) { paddingValues ->
                 GeneralSettingsScreen(
                     settingsDataStore = settingsDataStore,
-                    modifier = Modifier.padding(paddingValues)
+                    modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
                 )
             }
         }
@@ -565,11 +585,11 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                     if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
                     navController.popBackStack()
                 },
-                settingsDataStore = settingsDataStore
+                settingsDataStore = settingsDataStore,
             ) { paddingValues ->
                 ImportExportScreen(
                     db = db,
-                    modifier = Modifier.padding(paddingValues)
+                    modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
                 )
             }
         }
@@ -583,11 +603,11 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                     if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
                     navController.popBackStack()
                 },
-                settingsDataStore = settingsDataStore
+                settingsDataStore = settingsDataStore,
             ) { paddingValues ->
                 ScrollBlurSubScreen(
                     settingsDataStore = settingsDataStore,
-                    modifier = Modifier.padding(paddingValues)
+                    modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
                 )
             }
         }
@@ -601,11 +621,11 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                     if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
                     navController.popBackStack()
                 },
-                settingsDataStore = settingsDataStore
+                settingsDataStore = settingsDataStore,
             ) { paddingValues ->
                 HabitColorSubScreen(
                     settingsDataStore = settingsDataStore,
-                    modifier = Modifier.padding(paddingValues)
+                    modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
                 )
             }
         }
@@ -620,9 +640,11 @@ fun SettingsScaffold(
     settingsDataStore: SettingsDataStore,
     isRoot: Boolean = false,
     actions: @Composable RowScope.() -> Unit = {},
+    modifier: Modifier = Modifier,
     content: @Composable (PaddingValues) -> Unit
 ) {
     Scaffold(
+        modifier = modifier,
         topBar = {
             TopAppBar(
                 title = { 
@@ -644,6 +666,7 @@ fun SettingsScaffold(
             )
         },
         containerColor = MaterialTheme.colorScheme.surface,
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
         content = content
     )
 }
