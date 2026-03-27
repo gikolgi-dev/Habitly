@@ -6,6 +6,9 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization") version "1.9.23" // Add this line
 }
 
+// Set to true to enable Developer Mode (safe testing without affecting real data)
+val isDeveloperMode = false
+
 android {
     namespace = "com.example.attempt3"
     compileSdk {
@@ -13,13 +16,16 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.habitly.habitly"
+        applicationId = if (isDeveloperMode) "com.developer.habitly" else "com.habitly.habitly"
         minSdk = 24
         targetSdk = 36
         versionCode = 2
         versionName = "2.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        
+        // Dynamically set the app name based on the developer mode
+        resValue("string", "app_name", if (isDeveloperMode) "Habitly [D]" else "Habitly")
     }
 
     buildTypes {
