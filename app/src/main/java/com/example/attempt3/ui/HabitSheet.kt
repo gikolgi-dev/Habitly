@@ -570,7 +570,7 @@ fun HabitSheetContent(
                 val allIndices = (0 until colorItemsCount).toList()
                 
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    allIndices.chunked(8).forEachIndexed { rowIndex, rowIndices ->
+                    allIndices.chunked(8).forEachIndexed { _, rowIndices ->
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)

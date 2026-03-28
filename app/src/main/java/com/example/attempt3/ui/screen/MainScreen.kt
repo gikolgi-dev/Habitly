@@ -89,6 +89,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
+import com.example.attempt3.data.Database.Completion
 import com.example.attempt3.data.Database.Habit
 import com.example.attempt3.data.Database.HabitDao
 import com.example.attempt3.data.Database.HabitDatabase
@@ -708,77 +709,153 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                         }
                     }
 
-                    Surface(
+                    val habitsForEdit = (habitsUiState as? HabitsUiState.Success)?.habits ?: emptyList()
+                    val existingCompletionsForEdit = remember(habitToEdit, habitsForEdit) {
+                        habitsForEdit.find { it.habit.id == habitToEdit?.id }?.completions ?: emptyList()
+                    }
+                    val previewCompletions = remember(isEditMode, existingCompletionsForEdit) {
+                        if (isEditMode) {
+                            existingCompletionsForEdit
+                        } else {
+                            val list = mutableListOf<Completion>()
+                            val cal = java.util.Calendar.getInstance()
+                            cal.add(java.util.Calendar.DAY_OF_YEAR, -60)
+                            val random = java.util.Random(42) // Fixed seed for stable "random"
+                            for (_i in 0..60) {
+                                if (random.nextBoolean()) {
+                                    list.add(
+                                        Completion(
+                                            id = UUID.randomUUID().toString(),
+                                            habitId = "preview",
+                                            date = cal.timeInMillis,
+                                            timezoneOffsetInMinutes = 0,
+                                            amountOfCompletions = 1
+                                        )
+                                    )
+                                }
+                                cal.add(java.util.Calendar.DAY_OF_YEAR, 1)
+                            }
+                            list
+                        }
+                    }
+
+                    val livePreviewColor = if (showColorPicker) tempColor else customColor
+                    val dummyHabit = remember(habitName, habitDescription, habitColor, customColor, habitIconKey, completionsPerInterval, intervalUnit, notificationsEnabled, notificationTime, notificationDays, livePreviewColor) {
+                        Habit(
+                            id = "preview",
+                            name = habitName.ifBlank { "Habit Name" },
+                            description = habitDescription.ifBlank { "Description" },
+                            color = (livePreviewColor ?: habitColor).toArgb(),
+                            icon = habitIconKey,
+                            orderIndex = 0,
+                            createdAt = System.currentTimeMillis().toString(),
+                            isInverse = false,
+                            archived = false,
+                            emoji = null,
+                            completionsPerInterval = completionsPerInterval.toIntOrNull() ?: 1,
+                            intervalUnit = intervalUnit,
+                            notificationsEnabled = notificationsEnabled,
+                            notificationTime = notificationTime,
+                            notificationDays = notificationDays.joinToString(",")
+                        )
+                    }
+
+                    Column(
                         modifier = Modifier
+                            .fillMaxWidth()
                             .fillMaxHeight(0.9f)
                             .offset { IntOffset(0, sheetOffsetY.value.roundToInt()) }
-                            .nestedScroll(nestedScrollConnection),
-                        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
-                        color = MaterialTheme.colorScheme.surface
+                            .nestedScroll(nestedScrollConnection)
                     ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Box(
-                                modifier = Modifier
-                                    .padding(vertical = 10.dp)
-                                    .fillMaxWidth(0.15f)
-                                    .height(4.dp)
-                                    .background(
-                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                                        shape = CircleShape
-                                    )
-                            )
-                            HabitSheetContent(
-                                title = title,
-                                habitName = habitName,
-                                onHabitNameChanged = { habitName = it },
-                                habitDescription = habitDescription,
-                                onHabitDescriptionChanged = { habitDescription = it },
-                                completionsPerInterval = completionsPerInterval,
-                                onCompletionsPerIntervalChanged = { completionsPerInterval = it },
-                                intervalUnit = intervalUnit,
-                                onIntervalUnitChanged = { intervalUnit = it },
-                                completionsError = completionsError,
-                                habitIconKey = habitIconKey,
-                                onHabitIconKeyChanged = { habitIconKey = it },
-                                habitColor = habitColor,
-                                onHabitColorChanged = { habitColor = it },
-                                customColor = customColor,
-                                onShowColorPicker = { show, color ->
-                                    showColorPicker = show
-                                    if (show) {
-                                        tempColor = color
-                                    }
-                                },
-                                onClearCustomColor = { customColor = null },
-                                livePreviewColor = if (showColorPicker) tempColor else customColor,
-                                scrollState = scrollState,
-                                settingsDataStore = settingsDataStore,
-                                notificationsEnabled = notificationsEnabled,
-                                onNotificationsEnabledChanged = {
-                                    if (notificationPermissionHandler.hasPermission) {
-                                        notificationsEnabled = it
-                                    } else {
-                                        notificationPermissionHandler.requestPermission()
-                                    }
-                                },
-                                notificationTime = notificationTime,
-                                onTimePickerClick = {
-                                    if (notificationPermissionHandler.hasPermission) {
-                                        showTimePicker = true
-                                    } else {
-                                        notificationPermissionHandler.requestPermission()
-                                    }
-                                },
-                                notificationDays = notificationDays,
-                                onNotificationDaySelected = { day ->
-                                    notificationDays = if (notificationDays.contains(day)) {
-                                        notificationDays - day
-                                    } else {
-                                        notificationDays + day
-                                    }
-                                },
-                                hasNotificationPermission = notificationPermissionHandler.hasPermission
-                            )
+                        HabitItemCard(
+                            habit = dummyHabit,
+                            isCompleted = false,
+                            completions = previewCompletions,
+                            showCheckbox = true,
+                            showMonthLabels = showMonthLabels!!,
+                            visibleDayLabels = heatmapVisibleDays!!,
+                            dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight!!,
+                            showYearDivider = showYearDivider!!,
+                            showYearLabels = showYearLabels!!,
+                            showScrollBlur = false,
+                            borderContrast = borderContrast!!,
+                            heatmapScrollEnabled = false,
+                            useHabitColor = useHabitColor,
+                            disableAnimations = disableAnimations,
+                            onComplete = { /* Do nothing in preview */ },
+                            onClick = { /* Do nothing in preview */ },
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)
+                        )
+                        
+                        Surface(
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+                            color = MaterialTheme.colorScheme.surface
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Box(
+                                    modifier = Modifier
+                                        .padding(vertical = 10.dp)
+                                        .fillMaxWidth(0.15f)
+                                        .height(4.dp)
+                                        .background(
+                                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                                            shape = CircleShape
+                                        )
+                                )
+                                HabitSheetContent(
+                                    title = title,
+                                    habitName = habitName,
+                                    onHabitNameChanged = { habitName = it },
+                                    habitDescription = habitDescription,
+                                    onHabitDescriptionChanged = { habitDescription = it },
+                                    completionsPerInterval = completionsPerInterval,
+                                    onCompletionsPerIntervalChanged = { completionsPerInterval = it },
+                                    intervalUnit = intervalUnit,
+                                    onIntervalUnitChanged = { intervalUnit = it },
+                                    completionsError = completionsError,
+                                    habitIconKey = habitIconKey,
+                                    onHabitIconKeyChanged = { habitIconKey = it },
+                                    habitColor = habitColor,
+                                    onHabitColorChanged = { habitColor = it },
+                                    customColor = customColor,
+                                    onShowColorPicker = { show, color ->
+                                        showColorPicker = show
+                                        if (show) {
+                                            tempColor = color
+                                        }
+                                    },
+                                    onClearCustomColor = { customColor = null },
+                                    livePreviewColor = if (showColorPicker) tempColor else customColor,
+                                    scrollState = scrollState,
+                                    settingsDataStore = settingsDataStore,
+                                    notificationsEnabled = notificationsEnabled,
+                                    onNotificationsEnabledChanged = {
+                                        if (notificationPermissionHandler.hasPermission) {
+                                            notificationsEnabled = it
+                                        } else {
+                                            notificationPermissionHandler.requestPermission()
+                                        }
+                                    },
+                                    notificationTime = notificationTime,
+                                    onTimePickerClick = {
+                                        if (notificationPermissionHandler.hasPermission) {
+                                            showTimePicker = true
+                                        } else {
+                                            notificationPermissionHandler.requestPermission()
+                                        }
+                                    },
+                                    notificationDays = notificationDays,
+                                    onNotificationDaySelected = { day ->
+                                        notificationDays = if (notificationDays.contains(day)) {
+                                            notificationDays - day
+                                        } else {
+                                            notificationDays + day
+                                        }
+                                    },
+                                    hasNotificationPermission = notificationPermissionHandler.hasPermission
+                                )
+                            }
                         }
                     }
                 }

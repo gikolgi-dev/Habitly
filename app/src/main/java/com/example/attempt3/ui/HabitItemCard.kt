@@ -6,7 +6,7 @@ package com.example.attempt3.ui
 
 import android.annotation.SuppressLint
 import androidx.compose.animation.Crossfade
-import androidx.compose.animation.animateColor
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
@@ -149,6 +149,7 @@ fun HabitCompletionButton(
     isCompleted: Boolean,
     borderContrast: Float,
     disableAnimations: Boolean,
+    disablePressAnimation: Boolean = false,
     onComplete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -161,27 +162,16 @@ fun HabitCompletionButton(
     ) { state ->
         if (state) 1f else 0f
     }
-    val backgroundColor by transition.animateColor(
-        label = "BackgroundColor",
-        transitionSpec = { tween(300) }
-    ) { state ->
-        if (state) color else color.copy(alpha = 0.1f)
-    }
-    val borderColor by transition.animateColor(
-        label = "BorderColor",
-        transitionSpec = { tween(300) }
-    ) { state ->
-        if (state) color else color.copy(alpha = borderContrast)
-    }
-    val iconTintColor by transition.animateColor(
-        label = "IconTintColor",
-        transitionSpec = { tween(300) }
-    ) { state ->
-        if (state) {
-            if (color.isBright()) MaterialTheme.colorScheme.onPrimary else Color.White
-        } else {
-            color
-        }
+    
+    val animatedHabitColor by animateColorAsState(targetValue = color, animationSpec = tween(300), label = "habitColor")
+    
+    val backgroundColor = if (isCompleted) animatedHabitColor else animatedHabitColor.copy(alpha = 0.1f)
+    val borderColor = if (isCompleted) animatedHabitColor else animatedHabitColor.copy(alpha = borderContrast)
+    
+    val iconTintColor = if (isCompleted) {
+        if (animatedHabitColor.isBright()) MaterialTheme.colorScheme.onPrimary else Color.White
+    } else {
+        animatedHabitColor
     }
 
     val morph = circleToSquareMorph
@@ -193,7 +183,7 @@ fun HabitCompletionButton(
     
     var isPressed by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
-        targetValue = if (isPressed && !disableAnimations) 0.85f else 1f,
+        targetValue = if (isPressed && !disableAnimations && !disablePressAnimation) 0.85f else 1f,
         animationSpec = if (isPressed) spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessLow) else spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "button_scale"
     )
@@ -209,10 +199,12 @@ fun HabitCompletionButton(
                 borderColor,
                 shape
             )
-            .pointerInput(isCompleted) {
+            .pointerInput(isCompleted, disablePressAnimation) {
                 detectTapGestures(
                     onPress = {
-                        isPressed = true
+                        if (!disablePressAnimation) {
+                            isPressed = true
+                        }
                         try {
                             awaitRelease()
                         } finally {
@@ -264,19 +256,23 @@ fun HabitItemCard(
     onUnarchive: (() -> Unit)? = null,
     onDelete: (() -> Unit)? = null,
     heatmapScrollEnabled: Boolean = false,
+    isPreview: Boolean = false,
     @SuppressLint("ModifierParameter") modifier: Modifier = Modifier
 ) {
-    val cardBackgroundColor = if (useHabitColor) {
+    val targetCardBackgroundColor = if (useHabitColor) {
         lerp(Color(habit.color), MaterialTheme.colorScheme.surfaceVariant, 0.85f)
     } else {
         MaterialTheme.colorScheme.surfaceVariant
     }
 
-    val cardBorderColor = if (useHabitColor) {
+    val targetCardBorderColor = if (useHabitColor) {
         lerp(Color(habit.color), lerp(Color(habit.color), MaterialTheme.colorScheme.surfaceVariant, 0.85f), 1f - borderContrast)
     } else {
         MaterialTheme.colorScheme.outline.copy(alpha = borderContrast)
     }
+
+    val cardBackgroundColor by animateColorAsState(targetValue = targetCardBackgroundColor, animationSpec = tween(300), label = "cardBgColor")
+    val cardBorderColor by animateColorAsState(targetValue = targetCardBorderColor, animationSpec = tween(300), label = "cardBorderColor")
 
     Card(
         modifier = Modifier
@@ -317,6 +313,7 @@ fun HabitItemCard(
                         isCompleted = isCompleted,
                         borderContrast = borderContrast,
                         disableAnimations = disableAnimations,
+                        disablePressAnimation = isPreview,
                         onComplete = onComplete
                     )
                 } else {
