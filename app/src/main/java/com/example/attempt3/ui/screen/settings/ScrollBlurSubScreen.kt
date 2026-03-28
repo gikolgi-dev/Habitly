@@ -14,11 +14,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
+import com.example.attempt3.data.settings.DefaultSettings
 import com.example.attempt3.data.settings.SettingsDataStore
 import kotlinx.coroutines.launch
 
@@ -28,13 +30,10 @@ fun ScrollBlurSubScreen(
     modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
-    val showScrollBlurState = settingsDataStore.showScrollBlur.collectAsState(initial = null)
-    val scrollBlurTargetsState = settingsDataStore.scrollBlurTargets.collectAsState(initial = null)
-    val vibrationsEnabledState = settingsDataStore.vibrations.collectAsState(initial = null)
+    val showScrollBlur by settingsDataStore.showScrollBlur.collectAsState(initial = DefaultSettings.SHOW_SCROLL_BLUR)
+    val scrollBlurTargets by settingsDataStore.scrollBlurTargets.collectAsState(initial = DefaultSettings.SCROLL_BLUR_TARGETS.split(',').filter { it.isNotEmpty() }.toSet())
+    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
     
-    val showScrollBlur = showScrollBlurState.value ?: return
-    val scrollBlurTargets = scrollBlurTargetsState.value ?: return
-    val vibrationsEnabled = vibrationsEnabledState.value ?: return
     val haptic = LocalHapticFeedback.current
     val scrollState = rememberScrollState()
 
