@@ -48,6 +48,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -56,7 +57,6 @@ import com.example.attempt3.ui.colors.isBright
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Calendar
-import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.sqrt
 
@@ -129,7 +129,7 @@ fun MonthCalendar(
                         month.getDisplayName(
                             Calendar.MONTH,
                             Calendar.LONG,
-                            Locale.getDefault()
+                            LocalLocale.current.platformLocale
                         )
                     } ${month.get(Calendar.YEAR)}",
                     style = MaterialTheme.typography.titleMedium,
