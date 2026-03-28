@@ -8,7 +8,6 @@ import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.EnterExitState
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -83,9 +82,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
@@ -101,12 +100,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavBackStackEntry
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.attempt3.R
 import com.example.attempt3.data.Database.HabitDatabase
+import com.example.attempt3.data.settings.DefaultSettings
 import com.example.attempt3.data.settings.SettingsDataStore
 import com.example.attempt3.notifications.NotificationScheduler
 import com.example.attempt3.ui.AppBackButton
@@ -120,7 +119,7 @@ import kotlinx.coroutines.withContext
 private const val SETTINGS_TRANSITION_DURATION = 300
 
 // When pressing BACK: The Main Settings screen re-enters
-fun AnimatedContentTransitionScope<NavBackStackEntry>.settingsPopEnterTransition() =
+fun settingsPopEnterTransition() =
     slideInHorizontally(
         animationSpec = tween(SETTINGS_TRANSITION_DURATION, easing = FastOutSlowInEasing),
         initialOffsetX = { fullWidth -> -fullWidth / 3 } // Mimic coming from below/behind by starting like a third of the screen
@@ -130,7 +129,7 @@ fun AnimatedContentTransitionScope<NavBackStackEntry>.settingsPopEnterTransition
     )
 
 // When pressing BACK: The Appearance Settings screen exits
-fun AnimatedContentTransitionScope<NavBackStackEntry>.settingsPopExitTransition() =
+fun settingsPopExitTransition() =
     slideOutHorizontally(
         animationSpec = tween(SETTINGS_TRANSITION_DURATION, easing = FastOutSlowInEasing),
         targetOffsetX = { fullWidth -> fullWidth } // Slides entirely out to the right
@@ -140,7 +139,7 @@ fun AnimatedContentTransitionScope<NavBackStackEntry>.settingsPopExitTransition(
     )
 
 // When clicking FORWARD: The Appearance Settings screen enters
-fun AnimatedContentTransitionScope<NavBackStackEntry>.settingsEnterTransition() =
+fun settingsEnterTransition() =
     slideInHorizontally(
         animationSpec = tween(SETTINGS_TRANSITION_DURATION, easing = FastOutSlowInEasing),
         initialOffsetX = { fullWidth -> fullWidth } // Slides in from the right
@@ -150,7 +149,7 @@ fun AnimatedContentTransitionScope<NavBackStackEntry>.settingsEnterTransition() 
     )
 
 // When clicking FORWARD: The Main Settings screen exits
-fun AnimatedContentTransitionScope<NavBackStackEntry>.settingsExitTransition() =
+fun settingsExitTransition() =
     slideOutHorizontally(
         animationSpec = tween(SETTINGS_TRANSITION_DURATION, easing = FastOutSlowInEasing),
         targetOffsetX = { fullWidth -> -fullWidth / 3 } // Slides slightly to the left
@@ -170,21 +169,14 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
     var showTimePicker by remember { mutableStateOf(false) }
     var showNotificationSheet by remember { mutableStateOf(false) }
     val context = LocalContext.current
-    val globalNotificationsEnabledState = settingsDataStore.globalNotificationsEnabled.collectAsState(initial = null)
-    val globalNotificationTimeState = settingsDataStore.globalNotificationTime.collectAsState(initial = null)
-    val globalNotificationDaysState = settingsDataStore.globalNotificationDays.collectAsState(initial = null)
-    val borderContrastState = settingsDataStore.borders.collectAsState(initial = null)
-    val is24HourState = settingsDataStore.is24Hour.collectAsState(initial = null)
-    val vibrationsEnabledState = settingsDataStore.vibrations.collectAsState(initial = null)
-    val themeState = settingsDataStore.theme.collectAsState(initial = null)
-
-    val globalNotificationsEnabled = globalNotificationsEnabledState.value ?: return
-    val globalNotificationTime = globalNotificationTimeState.value ?: return
-    val globalNotificationDays = globalNotificationDaysState.value ?: return
-    val borderContrast = borderContrastState.value ?: return
-    val is24Hour = is24HourState.value ?: return
-    val vibrationsEnabled = vibrationsEnabledState.value ?: return
-    val theme = themeState.value ?: return
+    
+    val globalNotificationsEnabled by settingsDataStore.globalNotificationsEnabled.collectAsState(initial = DefaultSettings.GLOBAL_NOTIFICATIONS)
+    val globalNotificationTime by settingsDataStore.globalNotificationTime.collectAsState(initial = DefaultSettings.GLOBAL_NOTIFICATION_TIME)
+    val globalNotificationDays by settingsDataStore.globalNotificationDays.collectAsState(initial = DefaultSettings.GLOBAL_NOTIFICATION_DAYS.split(',').filter { it.isNotEmpty() }.toSet())
+    val borderContrast by settingsDataStore.borders.collectAsState(initial = DefaultSettings.BORDERS)
+    val is24Hour by settingsDataStore.is24Hour.collectAsState(initial = DefaultSettings.IS_24_HOUR)
+    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
+    val theme by settingsDataStore.theme.collectAsState(initial = DefaultSettings.THEME)
 
     val haptic = LocalHapticFeedback.current
     val notificationScheduler = remember { NotificationScheduler(context) }
@@ -753,7 +745,10 @@ fun AnimatedVisibilityScope.SettingsScaffold(
     Scaffold(
         modifier = modifier
             .nestedScroll(scrollBehavior.nestedScrollConnection)
-            .clip(RoundedCornerShape(cornerRadius))
+            .graphicsLayer {
+                shape = RoundedCornerShape(cornerRadius)
+                clip = true
+            }
             .drawWithContent {
                 drawContent()
                 if (dimAlpha > 0f) {
@@ -854,7 +849,7 @@ fun AnimatedVisibilityScope.SettingsScaffold(
             }
         },
         containerColor = MaterialTheme.colorScheme.surface,
-        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         content = content
     )
 }
