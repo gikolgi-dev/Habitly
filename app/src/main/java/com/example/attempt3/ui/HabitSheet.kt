@@ -100,6 +100,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -107,6 +108,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -122,6 +124,7 @@ import com.example.attempt3.data.settings.SettingsDataStore
 import com.example.attempt3.ui.colors.habitColors
 import com.example.attempt3.ui.colors.isBright
 import com.example.attempt3.ui.components.NotificationTimeSelectors
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.sqrt
 
 val habitIconMap = mapOf(
@@ -389,6 +392,17 @@ fun HabitSheetContent(
     var pressedIconIndex by remember { mutableStateOf<Int?>(null) }
     var pressedColorIndex by remember { mutableStateOf<Int?>(null) }
 
+    // Scroll to bottom when notifications are enabled to follow expansion
+    LaunchedEffect(notificationsEnabled, hasNotificationPermission) {
+        if (notificationsEnabled && hasNotificationPermission) {
+            withTimeoutOrNull(600) {
+                snapshotFlow { scrollState.maxValue }.collect { max ->
+                    scrollState.scrollTo(max)
+                }
+            }
+        }
+    }
+
     Text(title, style = MaterialTheme.typography.headlineLarge)
     HorizontalDivider(modifier =Modifier.fillMaxWidth(0.975f).padding(top = 10.dp).alpha(dividerAlpha), color = Color.Gray.copy(alpha = 0.2f))
 
@@ -448,25 +462,6 @@ fun HabitSheetContent(
             ) {
                 Text("Streak interval", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurface)
                 Spacer(modifier = Modifier.height(8.dp))
-                AnimatedVisibility(
-                    visible = intervalUnit != "day",
-                    enter = fadeIn(animationSpec = tween(300)) + expandVertically(animationSpec = tween(400, easing = EaseInOutQuint)),
-                    exit = fadeOut(animationSpec = tween(300)) + shrinkVertically(animationSpec = tween(400, easing = EaseInOutQuint))
-                ) {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        OutlinedTextField(
-                            value = completionsPerInterval,
-                            onValueChange = onCompletionsPerIntervalChanged,
-                            label = { Text("Completions per ${intervalUnit.replaceFirstChar { it.uppercase() }}") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            isError = completionsError != null,
-                            singleLine = true,
-                            supportingText = { if (completionsError != null) Text(completionsError) },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                    }
-                }
 
                 val items = listOf("Daily", "Weekly", "Monthly")
                 val intervalValues = listOf("day", "week", "month")
@@ -487,6 +482,26 @@ fun HabitSheetContent(
                         ) {
                             Text(label)
                         }
+                    }
+                }
+
+                AnimatedVisibility(
+                    visible = intervalUnit != "day",
+                    enter = fadeIn(animationSpec = tween(300)) + expandVertically(animationSpec = tween(400, easing = EaseInOutQuint)),
+                    exit = fadeOut(animationSpec = tween(300)) + shrinkVertically(animationSpec = tween(400, easing = EaseInOutQuint))
+                ) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = completionsPerInterval,
+                            onValueChange = onCompletionsPerIntervalChanged,
+                            label = { Text("Completions per ${intervalUnit.replaceFirstChar { it.uppercase() }}") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            isError = completionsError != null,
+                            singleLine = true,
+                            supportingText = { if (completionsError != null) Text(completionsError) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
                 }
             }
