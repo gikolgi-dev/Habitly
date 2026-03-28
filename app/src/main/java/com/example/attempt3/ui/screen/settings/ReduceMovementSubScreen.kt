@@ -70,10 +70,9 @@ fun ReduceMovementSubScreen(
         ) {
             val targets = listOf("Rotation", "Grid Reactions")
             targets.forEachIndexed { index, target ->
-                val position = when {
-                    targets.size == 1 -> SettingsItemPosition.Alone
-                    index == 0 -> SettingsItemPosition.Top
-                    index == targets.size - 1 -> SettingsItemPosition.Bottom
+                val position = when (index) {
+                    0 -> SettingsItemPosition.Top
+                    targets.size - 1 -> SettingsItemPosition.Bottom
                     else -> SettingsItemPosition.Middle
                 }
 

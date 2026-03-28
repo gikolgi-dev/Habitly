@@ -692,12 +692,12 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnimatedVisibilityScope.SettingsScaffold(
+    modifier: Modifier = Modifier,
     title: String,
     onBack: () -> Unit,
     settingsDataStore: SettingsDataStore,
     isRoot: Boolean = false,
     actions: @Composable RowScope.() -> Unit = {},
-    modifier: Modifier = Modifier,
     content: @Composable (PaddingValues) -> Unit
 ) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
