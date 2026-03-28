@@ -9,14 +9,17 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColor
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,11 +46,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Matrix
@@ -56,6 +61,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asAndroidPath
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
@@ -243,8 +249,19 @@ fun HabitItemCard(
                     val shape = remember(progress) { MorphPolygonShape(morph, progress) }
                     val rotationAnimationSpec = tween<Float>(durationMillis = 400, easing = FastOutSlowInEasing)
                     val rotation by animateFloatAsState(if (isCompleted) 180f else 0f, label = "fab_icon_rotation", animationSpec = rotationAnimationSpec)
+                    
+                    var isPressed by remember { mutableStateOf(false) }
+                    val scale by animateFloatAsState(
+                        targetValue = if (isPressed && !disableAnimations) 0.85f else 1f,
+                        animationSpec = if (isPressed) spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessLow) else spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+                        label = "button_scale"
+                    )
+
+                    val scope = rememberCoroutineScope()
+
                     Box(
                         modifier = Modifier
+                            .scale(scale)
                             .size(64.dp)
                             .clip(shape)
                             .background(backgroundColor, shape)
@@ -253,7 +270,21 @@ fun HabitItemCard(
                                 borderColor,
                                 shape
                             )
-                            .clickable { onComplete() },
+                            .pointerInput(isCompleted) {
+                                detectTapGestures(
+                                    onPress = {
+                                        isPressed = true
+                                        try {
+                                            awaitRelease()
+                                        } finally {
+                                            isPressed = false
+                                        }
+                                    },
+                                    onTap = {
+                                        onComplete()
+                                    }
+                                )
+                            },
                         contentAlignment = Alignment.Center
                     ) {
                         Crossfade(
