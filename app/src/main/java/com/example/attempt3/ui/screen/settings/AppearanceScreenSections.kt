@@ -21,7 +21,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -133,7 +132,9 @@ fun HeatmapSection(
     scope: CoroutineScope,
     haptic: HapticFeedback
 ) {
-    val heatmapVisibleDays by settingsDataStore.heatmapVisibleDays.collectAsState(initial = setOf("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"))
+    val heatmapVisibleDaysState = settingsDataStore.heatmapVisibleDays.collectAsState(initial = null)
+    
+    val heatmapVisibleDays = heatmapVisibleDaysState.value ?: return
 
     SettingsGroup(title = "Heatmap", settingsDataStore = settingsDataStore) {
         SettingsSwitchItem(
@@ -208,12 +209,13 @@ fun HeatmapSection(
 fun AccessibilitySection(
     borderContrast: Float,
     showScrollBlur: Boolean,
-    disableAnimations: Boolean,
+    reduceMovement: Boolean,
     vibrationsEnabled: Boolean,
     settingsDataStore: SettingsDataStore,
     scope: CoroutineScope,
     haptic: HapticFeedback,
-    onNavigateToScrollBlur: () -> Unit
+    onNavigateToScrollBlur: () -> Unit,
+    onNavigateToReduceMovement: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isDragged = interactionSource.collectIsDraggedAsState().value
@@ -307,17 +309,19 @@ fun AccessibilitySection(
             onClick = onNavigateToScrollBlur
         )
 
-        SettingsSwitchItem(
-            text = "Disable icon rotation",
-            description = "Stop habit icons from rotating slowly",
-            checked = disableAnimations,
+        SettingsSwitchNavigationItem(
+            text = "Reduce movement",
+            description = "Minimize the amount of animation and movement in the app",
+            checked = reduceMovement,
             settingsDataStore = settingsDataStore,
-            position = SettingsItemPosition.Bottom
-        ) {
-            scope.launch { settingsDataStore.setDisableAnimations(it) }
-            if (vibrationsEnabled) {
-                haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
-            }
-        }
+            position = SettingsItemPosition.Bottom,
+            onCheckedChange = {
+                scope.launch { settingsDataStore.setReduceMovement(it) }
+                if (vibrationsEnabled) {
+                    haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+                }
+            },
+            onClick = onNavigateToReduceMovement
+        )
     }
 }

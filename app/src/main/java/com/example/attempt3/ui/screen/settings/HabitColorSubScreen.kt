@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -19,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
+import com.example.attempt3.data.settings.DefaultSettings
 import com.example.attempt3.data.settings.SettingsDataStore
 import kotlinx.coroutines.launch
 
@@ -28,15 +30,17 @@ fun HabitColorSubScreen(
     modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
-    val useHabitColor by settingsDataStore.useHabitColorForCard.collectAsState(initial = true)
-    val habitColorTargets by settingsDataStore.habitColorTargets.collectAsState(initial = setOf("Habit Cards", "Statistic Screen"))
-    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
+    val useHabitColor by settingsDataStore.useHabitColorForCard.collectAsState(initial = DefaultSettings.USE_HABIT_COLOR_FOR_CARD)
+    val habitColorTargets by settingsDataStore.habitColorTargets.collectAsState(initial = DefaultSettings.HABIT_COLOR_TARGETS.split(',').filter { it.isNotEmpty() }.toSet())
+    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
+    
     val haptic = LocalHapticFeedback.current
+    val scrollState = rememberScrollState()
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(scrollState, enabled = scrollState.maxValue > 0)
     ) {
         Text(
             text = "Apply the habit's color to specific components to improve identification and aesthetics.",
@@ -66,10 +70,9 @@ fun HabitColorSubScreen(
         ) {
             val targets = listOf("Habit Cards", "Statistic Screen")
             targets.forEachIndexed { index, target ->
-                val position = when {
-                    targets.size == 1 -> SettingsItemPosition.Alone
-                    index == 0 -> SettingsItemPosition.Top
-                    index == targets.size - 1 -> SettingsItemPosition.Bottom
+                val position = when (index) {
+                    0 -> SettingsItemPosition.Top
+                    targets.size - 1 -> SettingsItemPosition.Bottom
                     else -> SettingsItemPosition.Middle
                 }
 
@@ -96,5 +99,6 @@ fun HabitColorSubScreen(
                 )
             }
         }
+        Spacer(modifier = Modifier.height(16.dp).navigationBarsPadding())
     }
 }

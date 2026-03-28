@@ -11,8 +11,11 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.EaseInOutQuint
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -27,6 +30,7 @@ import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,8 +45,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -98,17 +100,23 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -116,7 +124,8 @@ import com.example.attempt3.data.settings.SettingsDataStore
 import com.example.attempt3.ui.colors.habitColors
 import com.example.attempt3.ui.colors.isBright
 import com.example.attempt3.ui.components.NotificationTimeSelectors
-import androidx.compose.foundation.lazy.grid.items as gridItems
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.math.sqrt
 
 val habitIconMap = mapOf(
     "Book" to Icons.Default.Book,
@@ -154,6 +163,191 @@ val habitIconMap = mapOf(
 )
 
 const val defaultHabitIconKey = "SelfImprovement"
+
+private fun calculateGridDistance(index1: Int, index2: Int, columns: Int): Float {
+    val r1 = index1 / columns
+    val c1 = index1 % columns
+    val r2 = index2 / columns
+    val c2 = index2 % columns
+    return sqrt(((r1 - r2) * (r1 - r2) + (c1 - c2) * (c1 - c2)).toDouble()).toFloat()
+}
+
+@Composable
+private fun HabitIconItem(
+    iconKey: String,
+    isSelected: Boolean,
+    index: Int,
+    pressedIconIndex: Int?,
+    vibrationsEnabled: Boolean,
+    borderContrast: Float,
+    onIconKeyChanged: (String) -> Unit,
+    onPressChanged: (Int?) -> Unit,
+    reduceGridReactions: Boolean
+) {
+    val haptic = LocalHapticFeedback.current
+    val animatedBorderWidth by animateDpAsState(targetValue = if (isSelected) 2.dp else 1.dp, label = "borderWidth")
+    val animatedBorderColor by animateColorAsState(
+        targetValue = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray.copy(alpha = borderContrast),
+        label = "borderColor"
+    )
+    val animatedBackgroundColor by animateColorAsState(
+        targetValue = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+        else MaterialTheme.colorScheme.surface.copy(alpha = 0.2f),
+        label = "backgroundColor"
+    )
+
+    val distance = if (pressedIconIndex != null) calculateGridDistance(index, pressedIconIndex, 8) else 100f
+    
+    val scale by animateFloatAsState(
+        targetValue = if (pressedIconIndex == index && !reduceGridReactions) 1.2f else 1f,
+        animationSpec = spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessLow)
+    )
+
+    val maxDist = 4.5f
+    val translationX by animateFloatAsState(
+        targetValue = if (!reduceGridReactions && pressedIconIndex != null && pressedIconIndex != index && distance < maxDist) {
+            val diff = (index % 8) - (pressedIconIndex % 8)
+            val strength = (maxDist - distance) / maxDist
+            diff * 12f * (strength * strength)
+        } else 0f,
+        animationSpec = spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessLow)
+    )
+    val translationY by animateFloatAsState(
+        targetValue = if (!reduceGridReactions && pressedIconIndex != null && pressedIconIndex != index && distance < maxDist) {
+            val diff = (index / 8) - (pressedIconIndex / 8)
+            val strength = (maxDist - distance) / maxDist
+            diff * 12f * (strength * strength)
+        } else 0f,
+        animationSpec = spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessLow)
+    )
+
+    val icon = habitIconMap[iconKey] ?: Icons.Default.Refresh
+    Box(
+        modifier = Modifier
+            .aspectRatio(1f)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+                this.translationX = translationX
+                this.translationY = translationY
+            }
+            .clip(RoundedCornerShape(6.dp))
+            .background(animatedBackgroundColor)
+            .pointerInput(iconKey) {
+                detectTapGestures(
+                    onPress = {
+                        onPressChanged(index)
+                        if (vibrationsEnabled) {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        }
+                        try {
+                            awaitRelease()
+                        } finally {
+                            onPressChanged(null)
+                        }
+                    },
+                    onTap = {
+                        if (!isSelected) {
+                            onIconKeyChanged(iconKey)
+                        }
+                    }
+                )
+            }
+            .border(
+                width = animatedBorderWidth,
+                color = animatedBorderColor,
+                shape = RoundedCornerShape(6.dp)
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = iconKey,
+            tint = MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
+
+@Composable
+private fun HabitColorItem(
+    color: Color,
+    isSelected: Boolean,
+    index: Int,
+    pressedColorIndex: Int?,
+    vibrationsEnabled: Boolean,
+    onColorChanged: (Color) -> Unit,
+    onClearCustomColor: () -> Unit,
+    onPressChanged: (Int?) -> Unit,
+    reduceGridReactions: Boolean
+) {
+    val haptic = LocalHapticFeedback.current
+    val distance = if (pressedColorIndex != null) calculateGridDistance(index, pressedColorIndex, 8) else 100f
+    
+    val scale by animateFloatAsState(
+        targetValue = if (pressedColorIndex == index && !reduceGridReactions) 1.2f else 1f,
+        animationSpec = spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessLow)
+    )
+
+    val maxDist = 4.5f
+    val translationX by animateFloatAsState(
+        targetValue = if (!reduceGridReactions && pressedColorIndex != null && pressedColorIndex != index && distance < maxDist) {
+            val diff = (index % 8) - (pressedColorIndex % 8)
+            val strength = (maxDist - distance) / maxDist
+            diff * 12f * (strength * strength)
+        } else 0f,
+        animationSpec = spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessLow)
+    )
+    val translationY by animateFloatAsState(
+        targetValue = if (!reduceGridReactions && pressedColorIndex != null && pressedColorIndex != index && distance < maxDist) {
+            val diff = (index / 8) - (pressedColorIndex / 8)
+            val strength = (maxDist - distance) / maxDist
+            diff * 12f * (strength * strength)
+        } else 0f,
+        animationSpec = spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessLow)
+    )
+
+    Box(
+        modifier = Modifier
+            .aspectRatio(1f)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+                this.translationX = translationX
+                this.translationY = translationY
+            }
+            .clip(RoundedCornerShape(6.dp))
+            .background(color)
+            .pointerInput(color) {
+                detectTapGestures(
+                    onPress = {
+                        onPressChanged(index)
+                        if (vibrationsEnabled) {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        }
+                        try {
+                            awaitRelease()
+                        } finally {
+                            onPressChanged(null)
+                        }
+                    },
+                    onTap = {
+                        onColorChanged(color)
+                        onClearCustomColor()
+                    }
+                )
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .animateContentSize()
+                .fillMaxSize(if (isSelected) 0.6f else 0f)
+                .clip(RoundedCornerShape(4.dp))
+                .background(MaterialTheme.colorScheme.surface)
+        )
+    }
+}
+
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun HabitSheetContent(
@@ -185,13 +379,29 @@ fun HabitSheetContent(
     notificationDays: Set<String>,
     onNotificationDaySelected: (String) -> Unit
 ) {
-    val haptic = LocalHapticFeedback.current
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
     val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
     val is24Hour by settingsDataStore.is24Hour.collectAsState(initial = false)
+    val reduceMovement by settingsDataStore.reduceMovement.collectAsState(initial = false)
+    val reduceMovementTargets by settingsDataStore.reduceMovementTargets.collectAsState(initial = emptySet())
+    val reduceGridReactions = reduceMovement && "Grid Reactions" in reduceMovementTargets
 
     val isScrolled by remember { derivedStateOf { scrollState.value > 0 } }
     val dividerAlpha by animateFloatAsState(targetValue = if (isScrolled) 1f else 0f, label = "dividerAlpha")
+
+    var pressedIconIndex by remember { mutableStateOf<Int?>(null) }
+    var pressedColorIndex by remember { mutableStateOf<Int?>(null) }
+
+    // Scroll to bottom when notifications are enabled to follow expansion
+    LaunchedEffect(notificationsEnabled, hasNotificationPermission) {
+        if (notificationsEnabled && hasNotificationPermission) {
+            withTimeoutOrNull(600) {
+                snapshotFlow { scrollState.maxValue }.collect { max ->
+                    scrollState.scrollTo(max)
+                }
+            }
+        }
+    }
 
     Text(title, style = MaterialTheme.typography.headlineLarge)
     HorizontalDivider(modifier =Modifier.fillMaxWidth(0.975f).padding(top = 10.dp).alpha(dividerAlpha), color = Color.Gray.copy(alpha = 0.2f))
@@ -200,7 +410,7 @@ fun HabitSheetContent(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp)
-            .verticalScroll(scrollState),
+            .verticalScroll(scrollState, enabled = scrollState.maxValue > 0),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
@@ -252,25 +462,6 @@ fun HabitSheetContent(
             ) {
                 Text("Streak interval", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurface)
                 Spacer(modifier = Modifier.height(8.dp))
-                AnimatedVisibility(
-                    visible = intervalUnit != "day",
-                    enter = fadeIn(animationSpec = tween(300)) + expandVertically(animationSpec = tween(300)),
-                    exit = fadeOut(animationSpec = tween(300)) + shrinkVertically(animationSpec = tween(300))
-                ) {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        OutlinedTextField(
-                            value = completionsPerInterval,
-                            onValueChange = onCompletionsPerIntervalChanged,
-                            label = { Text("Completions per ${intervalUnit.replaceFirstChar { it.uppercase() }}") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            isError = completionsError != null,
-                            singleLine = true,
-                            supportingText = { if (completionsError != null) Text(completionsError) },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                    }
-                }
 
                 val items = listOf("Daily", "Weekly", "Monthly")
                 val intervalValues = listOf("day", "week", "month")
@@ -293,6 +484,26 @@ fun HabitSheetContent(
                         }
                     }
                 }
+
+                AnimatedVisibility(
+                    visible = intervalUnit != "day",
+                    enter = fadeIn(animationSpec = tween(300)) + expandVertically(animationSpec = tween(400, easing = EaseInOutQuint)),
+                    exit = fadeOut(animationSpec = tween(300)) + shrinkVertically(animationSpec = tween(400, easing = EaseInOutQuint))
+                ) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = completionsPerInterval,
+                            onValueChange = onCompletionsPerIntervalChanged,
+                            label = { Text("Completions per ${intervalUnit.replaceFirstChar { it.uppercase() }}") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            isError = completionsError != null,
+                            singleLine = true,
+                            supportingText = { if (completionsError != null) Text(completionsError) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
             }
         }
 
@@ -307,55 +518,34 @@ fun HabitSheetContent(
             ) {
                 Text("Choose an Icon", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurface)
                 Spacer(modifier = Modifier.height(8.dp))
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(8),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(180.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    gridItems(habitIconMap.keys.toList()) { iconKey ->
-                        val isSelected = habitIconKey == iconKey
-                        val animatedBorderWidth by animateDpAsState(targetValue = if (isSelected) 2.dp else 1.dp, label = "borderWidth")
-                        val animatedBorderColor by animateColorAsState(
-                            targetValue = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray.copy(alpha = borderContrast),
-                            label = "borderColor"
-                        )
-                        val animatedBackgroundColor by animateColorAsState(
-                            targetValue = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-                            else MaterialTheme.colorScheme.surface.copy(alpha = 0.2f),
-                            label = "backgroundColor"
-                        )
-
-                        val icon = habitIconMap[iconKey] ?: Icons.Default.Refresh // Fallback icon
-                        Box(
-                            modifier = Modifier
-                                .aspectRatio(1f)
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(
-                                    animatedBackgroundColor
-                                )
-                                .clickable {
-                                    if (!isSelected) {
-                                        if (vibrationsEnabled) {
-                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                        }
-                                        onHabitIconKeyChanged(iconKey)
-                                    }
-                                }
-                                .border(
-                                    width = animatedBorderWidth,
-                                    color = animatedBorderColor,
-                                    shape = RoundedCornerShape(6.dp)
-                                ),
-                            contentAlignment = Alignment.Center
+                
+                // Optimized Non-Lazy Grid
+                val icons = remember { habitIconMap.keys.toList() }
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    icons.chunked(8).forEachIndexed { rowIndex, rowIcons ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Icon(
-                                imageVector = icon,
-                                contentDescription = iconKey,
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
+                            rowIcons.forEachIndexed { colIndex, iconKey ->
+                                val index = rowIndex * 8 + colIndex
+                                Box(modifier = Modifier.weight(1f)) {
+                                    HabitIconItem(
+                                        iconKey = iconKey,
+                                        isSelected = habitIconKey == iconKey,
+                                        index = index,
+                                        pressedIconIndex = pressedIconIndex,
+                                        vibrationsEnabled = vibrationsEnabled,
+                                        borderContrast = borderContrast,
+                                        onIconKeyChanged = onHabitIconKeyChanged,
+                                        onPressChanged = { pressedIconIndex = it },
+                                        reduceGridReactions = reduceGridReactions
+                                    )
+                                }
+                            }
+                            repeat(8 - rowIcons.size) {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
                         }
                     }
                 }
@@ -373,91 +563,131 @@ fun HabitSheetContent(
             ) {
                 Text("Choose a Color", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurface)
                 Spacer(modifier = Modifier.height(8.dp))
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(8),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(135.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    gridItems(habitColors) { color ->
-                        val isSelected = (customColor ?: habitColor) == color
-                        Box(
-                            modifier = Modifier
-                                .aspectRatio(1f)
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(color)
-                                .clickable {
-                                    if (vibrationsEnabled) {
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    }
-                                    onHabitColorChanged(color)
-                                    onClearCustomColor()
-                                },
-
-                            contentAlignment = Alignment.Center
+                
+                // Optimized Non-Lazy Grid
+                val haptic = LocalHapticFeedback.current
+                val colorItemsCount = habitColors.size + 1
+                val allIndices = (0 until colorItemsCount).toList()
+                
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    allIndices.chunked(8).forEachIndexed { _, rowIndices ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .animateContentSize()
-                                   .fillMaxSize(if (isSelected) 0.6f else 0f)
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .background(MaterialTheme.colorScheme.surface)
-                            )
-                        }
-                    }
-                    item {
-                        val isFinalCustomColorSelected = customColor != null || (habitColor !in habitColors)
-                        val color = livePreviewColor ?: (if (isFinalCustomColorSelected) customColor ?: habitColor else Color.Transparent)
-                        val backgroundForCustomButton = if (color == Color.White) Color.Transparent else color
-
-                        val borderForCustomButton = if (isFinalCustomColorSelected || livePreviewColor != null) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = borderContrast)
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .aspectRatio(1f)
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(backgroundForCustomButton)
-                                .border(
-                                    width = 1.dp,
-                                    color = borderForCustomButton,
-                                    shape = RoundedCornerShape(6.dp)
-                                )
-                                .clickable {
-                                    if (isFinalCustomColorSelected) {
-                                        onClearCustomColor()
-                                        onHabitColorChanged(habitColors.first())
-                                        onShowColorPicker(true, habitColors.first())
+                            rowIndices.forEach { index ->
+                                Box(modifier = Modifier.weight(1f)) {
+                                    if (index < habitColors.size) {
+                                        val color = habitColors[index]
+                                        HabitColorItem(
+                                            color = color,
+                                            isSelected = (customColor ?: habitColor) == color,
+                                            index = index,
+                                            pressedColorIndex = pressedColorIndex,
+                                            vibrationsEnabled = vibrationsEnabled,
+                                            onColorChanged = onHabitColorChanged,
+                                            onClearCustomColor = onClearCustomColor,
+                                            onPressChanged = { pressedColorIndex = it },
+                                            reduceGridReactions = reduceGridReactions
+                                        )
                                     } else {
-                                        val initialColor = customColor ?: habitColor.takeIf { it !in habitColors }
-                                        onShowColorPicker(true, initialColor)
+                                        // Custom Color Button
+                                        val isFinalCustomColorSelected = customColor != null || (habitColor !in habitColors)
+                                        val color = livePreviewColor ?: (if (isFinalCustomColorSelected) customColor ?: habitColor else Color.Transparent)
+                                        val backgroundForCustomButton = if (color == Color.White) Color.Transparent else color
+
+                                        val distance = if (pressedColorIndex != null) calculateGridDistance(index, pressedColorIndex!!, 8) else 100f
+                                        val scale by animateFloatAsState(
+                                            targetValue = if (pressedColorIndex == index && !reduceGridReactions) 1.2f else 1f,
+                                            animationSpec = spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessLow)
+                                        )
+
+                                        val maxDist = 4.5f
+                                        val translationX by animateFloatAsState(
+                                            targetValue = if (!reduceGridReactions && pressedColorIndex != null && pressedColorIndex != index && distance < maxDist) {
+                                                val diff = (index % 8) - (pressedColorIndex!! % 8)
+                                                val strength = (maxDist - distance) / maxDist
+                                                diff * 12f * (strength * strength)
+                                            } else 0f,
+                                            animationSpec = spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessLow)
+                                        )
+                                        val translationY by animateFloatAsState(
+                                            targetValue = if (!reduceGridReactions && pressedColorIndex != null && pressedColorIndex != index && distance < maxDist) {
+                                                val diff = (index / 8) - (pressedColorIndex!! / 8)
+                                                val strength = (maxDist - distance) / maxDist
+                                                diff * 12f * (strength * strength)
+                                            } else 0f,
+                                            animationSpec = spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessLow)
+                                        )
+
+                                        Box(
+                                            modifier = Modifier
+                                                .aspectRatio(1f)
+                                                .graphicsLayer {
+                                                    scaleX = scale
+                                                    scaleY = scale
+                                                    this.translationX = translationX
+                                                    this.translationY = translationY
+                                                }
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(backgroundForCustomButton)
+                                                .border(
+                                                    width = 1.dp,
+                                                    color = MaterialTheme.colorScheme.primary.copy(alpha = if (borderContrast>0.1f) borderContrast else 0.1f),
+                                                    shape = RoundedCornerShape(6.dp)
+                                                )
+                                                .pointerInput(Unit) {
+                                                    detectTapGestures(
+                                                        onPress = {
+                                                            pressedColorIndex = index
+                                                            if (vibrationsEnabled) {
+                                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                            }
+                                                            try {
+                                                                awaitRelease()
+                                                            } finally {
+                                                                pressedColorIndex = null
+                                                            }
+                                                        },
+                                                        onTap = {
+                                                            if (isFinalCustomColorSelected) {
+                                                                onClearCustomColor()
+                                                                onHabitColorChanged(habitColors.first())
+                                                                onShowColorPicker(true, habitColors.first())
+                                                            } else {
+                                                                val initialColor = customColor ?: habitColor.takeIf { it !in habitColors }
+                                                                onShowColorPicker(true, initialColor)
+                                                            }
+                                                        }
+                                                    )
+                                                },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            AnimatedContent(
+                                                targetState = isFinalCustomColorSelected,
+                                                transitionSpec = {
+                                                    scaleIn(animationSpec = tween(220, delayMillis = 90)) togetherWith
+                                                            scaleOut(animationSpec = tween(90))
+                                                }
+                                            ) { targetState ->
+                                                if (targetState) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .fillMaxSize(0.6f)
+                                                            .clip(RoundedCornerShape(4.dp))
+                                                            .background(MaterialTheme.colorScheme.surface)
+                                                    )
+                                                } else {
+                                                    val iconTint = if (backgroundForCustomButton.isBright()) Color.Black else Color.White
+                                                    Icon(Icons.Default.Add, contentDescription = "Custom Color", tint = iconTint)
+                                                }
+                                            }
+                                        }
                                     }
-                                 },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            AnimatedContent(
-                                targetState = isFinalCustomColorSelected,
-                                transitionSpec = {
-                                    scaleIn(animationSpec = tween(220, delayMillis = 90)) togetherWith
-                                            scaleOut(animationSpec = tween(90))
                                 }
-                            ) { targetState ->
-                                if (targetState) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxSize(0.6f)
-                                            .clip(RoundedCornerShape(4.dp))
-                                            .background(MaterialTheme.colorScheme.surface)
-                                    )
-                                } else {
-                                    val iconTint = if (backgroundForCustomButton.isBright()) Color.Black else Color.White
-                                    Icon(Icons.Default.Add, contentDescription = "Custom Color", tint = iconTint)
-                                }
+                            }
+                            repeat(8 - rowIndices.size) {
+                                Spacer(modifier = Modifier.weight(1f))
                             }
                         }
                     }
@@ -472,13 +702,17 @@ fun HabitSheetContent(
         ) {
             Column(
                 modifier = Modifier
-                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                    .fillMaxWidth()
                     .alpha(if (hasNotificationPermission) 1f else 0.5f)
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable(onClick = { onNotificationsEnabledChanged(!notificationsEnabled) }),
+                        .clickable(
+                            enabled = hasNotificationPermission,
+                            onClick = { onNotificationsEnabledChanged(!notificationsEnabled) }
+                        )
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
@@ -489,16 +723,21 @@ fun HabitSheetContent(
                         enabled = hasNotificationPermission
                     )
                 }
-                AnimatedVisibility(visible = notificationsEnabled && hasNotificationPermission) {
-                    NotificationTimeSelectors(
-                        notificationTime = notificationTime ?: "Not Set",
-                        selectedDays = notificationDays,
-                        onTimeClick = onTimePickerClick,
-                        onDaySelected = onNotificationDaySelected,
-                        isEnabled = notificationsEnabled && hasNotificationPermission,
-                        borderAlpha = borderContrast,
-                        is24Hour = is24Hour
-                    )
+                AnimatedVisibility(visible = notificationsEnabled && hasNotificationPermission,
+                    enter = fadeIn(animationSpec = tween(300)) + expandVertically(animationSpec = tween(400, easing = EaseInOutQuint)),
+                    exit = fadeOut(animationSpec = tween(300)) + shrinkVertically(animationSpec = tween(400, easing = EaseInOutQuint))
+                ) {
+                    Box(modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 8.dp)) {
+                        NotificationTimeSelectors(
+                            notificationTime = notificationTime ?: "Not Set",
+                            selectedDays = notificationDays,
+                            onTimeClick = onTimePickerClick,
+                            onDaySelected = onNotificationDaySelected,
+                            isEnabled = notificationsEnabled && hasNotificationPermission,
+                            borderAlpha = borderContrast,
+                            is24Hour = is24Hour
+                        )
+                    }
                 }
             }
         }

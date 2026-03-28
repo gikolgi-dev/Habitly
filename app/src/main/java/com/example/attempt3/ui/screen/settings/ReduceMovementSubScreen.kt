@@ -25,13 +25,13 @@ import com.example.attempt3.data.settings.SettingsDataStore
 import kotlinx.coroutines.launch
 
 @Composable
-fun ScrollBlurSubScreen(
+fun ReduceMovementSubScreen(
     settingsDataStore: SettingsDataStore,
     modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
-    val showScrollBlur by settingsDataStore.showScrollBlur.collectAsState(initial = DefaultSettings.SHOW_SCROLL_BLUR)
-    val scrollBlurTargets by settingsDataStore.scrollBlurTargets.collectAsState(initial = DefaultSettings.SCROLL_BLUR_TARGETS.split(',').filter { it.isNotEmpty() }.toSet())
+    val reduceMovement by settingsDataStore.reduceMovement.collectAsState(initial = DefaultSettings.REDUCE_MOVEMENT)
+    val reduceMovementTargets by settingsDataStore.reduceMovementTargets.collectAsState(initial = DefaultSettings.REDUCE_MOVEMENT_TARGETS.split(',').filter { it.isNotEmpty() }.toSet())
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
     
     val haptic = LocalHapticFeedback.current
@@ -43,18 +43,18 @@ fun ScrollBlurSubScreen(
             .verticalScroll(scrollState, enabled = scrollState.maxValue > 0)
     ) {
         Text(
-            text = "Apply a blur effect to specific components while scrolling to improve focus and aesthetics.",
+            text = "Minimize the amount of animation and movement in the app. This can be helpful if you are sensitive to motion or want a more static experience.",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
         )
 
         MainSettingsToggle(
-            text = "Use scroll blur",
-            checked = showScrollBlur,
+            text = "Reduce movement",
+            checked = reduceMovement,
             onCheckedChange = { isChecked ->
                 scope.launch {
-                    settingsDataStore.setshowScrollBlur(isChecked)
+                    settingsDataStore.setReduceMovement(isChecked)
                 }
                 if (vibrationsEnabled) {
                     haptic.performHapticFeedback(if (isChecked) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
@@ -68,7 +68,7 @@ fun ScrollBlurSubScreen(
             title = "Targets",
             settingsDataStore = settingsDataStore
         ) {
-            val targets = listOf("Heatmap", "Line Chart")
+            val targets = listOf("Rotation", "Grid Reactions")
             targets.forEachIndexed { index, target ->
                 val position = when (index) {
                     0 -> SettingsItemPosition.Top
@@ -78,19 +78,19 @@ fun ScrollBlurSubScreen(
 
                 SettingsCheckboxItem(
                     text = target,
-                    checked = target in scrollBlurTargets,
-                    enabled = showScrollBlur,
+                    checked = target in reduceMovementTargets,
+                    enabled = reduceMovement,
                     settingsDataStore = settingsDataStore,
                     position = position,
                     showDivider = index < targets.size - 1,
                     onCheckedChange = { isChecked ->
                         val newTargets = if (isChecked) {
-                            scrollBlurTargets + target
+                            reduceMovementTargets + target
                         } else {
-                            scrollBlurTargets - target
+                            reduceMovementTargets - target
                         }
                         scope.launch {
-                            settingsDataStore.setScrollBlurTargets(newTargets)
+                            settingsDataStore.setReduceMovementTargets(newTargets)
                         }
                         if (vibrationsEnabled) {
                             haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)

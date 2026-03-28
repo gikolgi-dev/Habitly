@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -182,7 +183,8 @@ fun getFileName(uri: Uri, context: Context): String? {
 fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val settingsDataStore = remember { SettingsDataStore(context) }
-    val bordersAlpha by settingsDataStore.borders.collectAsState(initial = 0.25f)
+    val bordersAlphaState = settingsDataStore.borders.collectAsState(initial = null)
+    val bordersAlpha = bordersAlphaState.value ?: return
 
     val scope = rememberCoroutineScope()
     var selectedFileUri by remember { mutableStateOf<Uri?>(null) }
@@ -536,5 +538,6 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                 }
             }
         }
+        Spacer(modifier = Modifier.navigationBarsPadding())
     }
 }

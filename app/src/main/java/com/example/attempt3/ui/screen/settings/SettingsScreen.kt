@@ -1,6 +1,6 @@
 /* Habitly - Licensed under GNU GPL v3.0 or later. See <https://www.gnu.org/licenses/gpl-3.0.html> */
 
-@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalTextApi::class)
 
 package com.example.attempt3.ui.screen.settings
 
@@ -8,29 +8,43 @@ import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.EnterExitState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateDp
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
@@ -51,12 +65,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -66,13 +82,22 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.ExperimentalTextApi
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.compose.NavHost
@@ -80,6 +105,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.attempt3.R
 import com.example.attempt3.data.Database.HabitDatabase
+import com.example.attempt3.data.settings.DefaultSettings
 import com.example.attempt3.data.settings.SettingsDataStore
 import com.example.attempt3.notifications.NotificationScheduler
 import com.example.attempt3.ui.AppBackButton
@@ -89,6 +115,48 @@ import com.example.attempt3.ui.components.rememberNotificationPermissionHandler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+private const val SETTINGS_TRANSITION_DURATION = 300
+
+// When pressing BACK: The Main Settings screen re-enters
+fun settingsPopEnterTransition() =
+    slideInHorizontally(
+        animationSpec = tween(SETTINGS_TRANSITION_DURATION, easing = FastOutSlowInEasing),
+        initialOffsetX = { fullWidth -> -fullWidth / 3 } // Mimic coming from below/behind by starting like a third of the screen
+    ) + scaleIn(
+        initialScale = 0.95f,
+        animationSpec = tween(SETTINGS_TRANSITION_DURATION, easing = FastOutSlowInEasing)
+    )
+
+// When pressing BACK: The Appearance Settings screen exits
+fun settingsPopExitTransition() =
+    slideOutHorizontally(
+        animationSpec = tween(SETTINGS_TRANSITION_DURATION, easing = FastOutSlowInEasing),
+        targetOffsetX = { fullWidth -> fullWidth } // Slides entirely out to the right
+    ) + scaleOut(
+        targetScale = 0.8f, // Scaling down whilst having the shape of the screen
+        animationSpec = tween(SETTINGS_TRANSITION_DURATION, easing = FastOutSlowInEasing)
+    )
+
+// When clicking FORWARD: The Appearance Settings screen enters
+fun settingsEnterTransition() =
+    slideInHorizontally(
+        animationSpec = tween(SETTINGS_TRANSITION_DURATION, easing = FastOutSlowInEasing),
+        initialOffsetX = { fullWidth -> fullWidth } // Slides in from the right
+    ) + scaleIn(
+        initialScale = 0.8f, // Scaling up whilst having the shape of the screen
+        animationSpec = tween(SETTINGS_TRANSITION_DURATION, easing = FastOutSlowInEasing)
+    )
+
+// When clicking FORWARD: The Main Settings screen exits
+fun settingsExitTransition() =
+    slideOutHorizontally(
+        animationSpec = tween(SETTINGS_TRANSITION_DURATION, easing = FastOutSlowInEasing),
+        targetOffsetX = { fullWidth -> -fullWidth / 3 } // Slides slightly to the left
+    ) + scaleOut(
+        targetScale = 0.95f,
+        animationSpec = tween(SETTINGS_TRANSITION_DURATION, easing = FastOutSlowInEasing)
+    )
 
 @SuppressLint("DefaultLocale")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -101,15 +169,17 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
     var showTimePicker by remember { mutableStateOf(false) }
     var showNotificationSheet by remember { mutableStateOf(false) }
     val context = LocalContext.current
-    val globalNotificationsEnabled by settingsDataStore.globalNotificationsEnabled.collectAsState(initial = false)
-    val globalNotificationTime by settingsDataStore.globalNotificationTime.collectAsState(initial = "09:00")
-    val globalNotificationDays by settingsDataStore.globalNotificationDays.collectAsState(initial = setOf())
-    val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
-    val is24Hour by settingsDataStore.is24Hour.collectAsState(initial = false)
-    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
+    
+    val globalNotificationsEnabled by settingsDataStore.globalNotificationsEnabled.collectAsState(initial = DefaultSettings.GLOBAL_NOTIFICATIONS)
+    val globalNotificationTime by settingsDataStore.globalNotificationTime.collectAsState(initial = DefaultSettings.GLOBAL_NOTIFICATION_TIME)
+    val globalNotificationDays by settingsDataStore.globalNotificationDays.collectAsState(initial = DefaultSettings.GLOBAL_NOTIFICATION_DAYS.split(',').filter { it.isNotEmpty() }.toSet())
+    val borderContrast by settingsDataStore.borders.collectAsState(initial = DefaultSettings.BORDERS)
+    val is24Hour by settingsDataStore.is24Hour.collectAsState(initial = DefaultSettings.IS_24_HOUR)
+    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
+    val theme by settingsDataStore.theme.collectAsState(initial = DefaultSettings.THEME)
+
     val haptic = LocalHapticFeedback.current
     val notificationScheduler = remember { NotificationScheduler(context) }
-    val theme by settingsDataStore.theme.collectAsState(initial = "system")
     val uriHandler = LocalUriHandler.current
     val useDarkTheme = when (theme) {
         "light" -> false
@@ -283,9 +353,10 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
             dragHandle = { BottomSheetDefaults.DragHandle(Modifier.fillMaxWidth(0.15f)) }
         ) {
+            val scrollState = rememberScrollState()
             Column(
                 modifier = blurModifier
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(scrollState, enabled = scrollState.maxValue > 0)
                     .navigationBarsPadding()
             ) {
                 Row(
@@ -355,34 +426,14 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
     NavHost(
         navController = navController,
         startDestination = "main",
-        modifier = blurModifier.fillMaxSize(),
-        enterTransition = {
-            slideIntoContainer(
-                AnimatedContentTransitionScope.SlideDirection.Left,
-                animationSpec = tween(400)
-            )
-        },
-        exitTransition = {
-            scaleOut(
-                targetScale = 0.9f,
-                animationSpec = tween(400)
-            ) + fadeOut(animationSpec = tween(400))
-        },
-        popEnterTransition = {
-            scaleIn(
-                initialScale = 0.9f,
-                animationSpec = tween(400)
-            ) + fadeIn(animationSpec = tween(400))
-        },
-        popExitTransition = {
-            scaleOut(
-                targetScale = 0.85f,
-                animationSpec = tween(400)
-            ) + slideOutOfContainer(
-                AnimatedContentTransitionScope.SlideDirection.Right,
-                animationSpec = tween(400)
-            ) + fadeOut(animationSpec = tween(400))
-        }
+        modifier = blurModifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .background(Color.Black.copy(alpha = 0.5f)),
+        enterTransition = { settingsEnterTransition() },
+        exitTransition = { settingsExitTransition() },
+        popEnterTransition = { settingsPopEnterTransition() },
+        popExitTransition = { settingsPopExitTransition() }
     ) {
         // Main Screen
         composable(
@@ -396,11 +447,18 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                     onDismiss()
                 },
                 settingsDataStore = settingsDataStore,
-                isRoot = true
+                isRoot = true,
             ) { paddingValues ->
+                val listState = rememberLazyListState()
                 LazyColumn(
+                    state = listState,
+                    userScrollEnabled = listState.canScrollForward || listState.canScrollBackward,
                     verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(paddingValues).padding(top = 8.dp)
+                    contentPadding = PaddingValues(
+                        top = paddingValues.calculateTopPadding() + 8.dp,
+                        bottom = paddingValues.calculateBottomPadding()
+                    ),
+                    modifier = Modifier.fillMaxSize()
                 ) {
                     item {
                         SettingsGroup(settingsDataStore = settingsDataStore) {
@@ -472,8 +530,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                                 iconBackgroundColor = Color.Gray.copy(alpha = if (useDarkTheme) 0.5f else 0.15f),
                                 iconColor = MaterialTheme.colorScheme.onSurface,
                                 settingsDataStore = settingsDataStore,
-                                position = SettingsItemPosition.Top,
-                                showDivider = true
+                                position = SettingsItemPosition.Top
                             ) { uriHandler.openUri("https://github.com/gikolgi-dev/Habitly") }
                             GroupedSettingsItem(
                                 title = "License",
@@ -508,6 +565,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                             )
                         }
                     }
+                    item { Spacer(modifier = Modifier.navigationBarsPadding()) }
                 }
             }
         }
@@ -527,13 +585,14 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                     IconButton(onClick = { scope.launch { settingsDataStore.resetToDefault() } }) {
                         Icon(painter = painterResource(id = R.drawable.resetwrench), contentDescription = "Reset Settings", tint = MaterialTheme.colorScheme.onSurface)
                     }
-                }
+                },
             ) { paddingValues ->
                 AppearanceScreen(
-                    modifier = Modifier.padding(paddingValues),
+                    modifier = Modifier.padding(top = paddingValues.calculateTopPadding()),
                     settingsDataStore = settingsDataStore,
                     onNavigateToScrollBlur = { navController.navigate("scroll_blur") { launchSingleTop = true } },
-                    onNavigateToHabitColor = { navController.navigate("habit_color") { launchSingleTop = true } }
+                    onNavigateToHabitColor = { navController.navigate("habit_color") { launchSingleTop = true } },
+                    onNavigateToReduceMovement = { navController.navigate("reduce_movement") { launchSingleTop = true } }
                 )
             }
         }
@@ -547,11 +606,11 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                     if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
                     navController.popBackStack()
                 },
-                settingsDataStore = settingsDataStore
+                settingsDataStore = settingsDataStore,
             ) { paddingValues ->
                 GeneralSettingsScreen(
                     settingsDataStore = settingsDataStore,
-                    modifier = Modifier.padding(paddingValues)
+                    modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
                 )
             }
         }
@@ -565,11 +624,11 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                     if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
                     navController.popBackStack()
                 },
-                settingsDataStore = settingsDataStore
+                settingsDataStore = settingsDataStore,
             ) { paddingValues ->
                 ImportExportScreen(
                     db = db,
-                    modifier = Modifier.padding(paddingValues)
+                    modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
                 )
             }
         }
@@ -583,11 +642,11 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                     if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
                     navController.popBackStack()
                 },
-                settingsDataStore = settingsDataStore
+                settingsDataStore = settingsDataStore,
             ) { paddingValues ->
                 ScrollBlurSubScreen(
                     settingsDataStore = settingsDataStore,
-                    modifier = Modifier.padding(paddingValues)
+                    modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
                 )
             }
         }
@@ -601,11 +660,29 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                     if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
                     navController.popBackStack()
                 },
-                settingsDataStore = settingsDataStore
+                settingsDataStore = settingsDataStore,
             ) { paddingValues ->
                 HabitColorSubScreen(
                     settingsDataStore = settingsDataStore,
-                    modifier = Modifier.padding(paddingValues)
+                    modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
+                )
+            }
+        }
+
+        composable(
+            route = "reduce_movement"
+        ) {
+            SettingsScaffold(
+                title = "Reduce Movement",
+                onBack = {
+                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+                    navController.popBackStack()
+                },
+                settingsDataStore = settingsDataStore,
+            ) { paddingValues ->
+                ReduceMovementSubScreen(
+                    settingsDataStore = settingsDataStore,
+                    modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
                 )
             }
         }
@@ -614,7 +691,8 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScaffold(
+fun AnimatedVisibilityScope.SettingsScaffold(
+    modifier: Modifier = Modifier,
     title: String,
     onBack: () -> Unit,
     settingsDataStore: SettingsDataStore,
@@ -622,28 +700,156 @@ fun SettingsScaffold(
     actions: @Composable RowScope.() -> Unit = {},
     content: @Composable (PaddingValues) -> Unit
 ) {
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+    val density = LocalDensity.current
+    
+    val statusBarPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    
+    // Use fixed base height, content list will scroll under it.
+    // Reducing maxHeight for one word title.
+    val hasSpace = title.contains(" ")
+    val expandedMaxHeight = if (hasSpace) 220.dp else 180.dp
+    val maxHeight = expandedMaxHeight + statusBarPadding
+    val minHeight = 72.dp + statusBarPadding
+    val maxHeightPx = with(density) { maxHeight.toPx() }
+    val minHeightPx = with(density) { minHeight.toPx() }
+    
+    SideEffect {
+        if (scrollBehavior.state.heightOffsetLimit != minHeightPx - maxHeightPx) {
+            scrollBehavior.state.heightOffsetLimit = minHeightPx - maxHeightPx
+        }
+    }
+
+    val collapsedFraction = scrollBehavior.state.collapsedFraction
+
+    val cornerRadius by transition.animateDp(
+        transitionSpec = { 
+            if (targetState == EnterExitState.Visible) {
+                tween(SETTINGS_TRANSITION_DURATION, easing = FastOutSlowInEasing)
+            } else {
+                tween(50, easing = FastOutSlowInEasing)
+            }
+        },
+        label = "settingsCornerRadius"
+    ) { state ->
+        if (state == EnterExitState.Visible) 0.dp else 32.dp
+    }
+
+    val dimAlpha by transition.animateFloat(
+        transitionSpec = { tween(SETTINGS_TRANSITION_DURATION, easing = FastOutSlowInEasing) },
+        label = "settingsDimAlpha"
+    ) { state ->
+        if (state == EnterExitState.Visible) 0f else 0.2f
+    }
+
     Scaffold(
+        modifier = modifier
+            .nestedScroll(scrollBehavior.nestedScrollConnection)
+            .graphicsLayer {
+                shape = RoundedCornerShape(cornerRadius)
+                clip = true
+            }
+            .drawWithContent {
+                drawContent()
+                if (dimAlpha > 0f) {
+                    drawRect(Color.Black.copy(alpha = dimAlpha))
+                }
+            },
         topBar = {
-            TopAppBar(
-                title = { 
+            val currentHeight = maxHeight + with(density) { scrollBehavior.state.heightOffset.toDp() }
+            
+            Surface(
+                color = if (collapsedFraction > 0.9f) MaterialTheme.colorScheme.background else Color.Transparent,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(currentHeight)
+            ) {
+                Box(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
+                    // Back button stays at the top
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .height(72.dp)
+                            .padding(start = 4.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        AppBackButton(onBack = onBack, settingsDataStore = settingsDataStore, isRoot = isRoot)
+                    }
+
+                    // Actions stay at the top
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .height(72.dp)
+                            .padding(end = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        content = actions
+                    )
+
+                    // Morphing Title
+                    val expandedFontSize = remember(title) {
+                        val words = title.split(" ")
+                        val longestWord = words.maxByOrNull { it.length }?.length ?: 0
+                        val baseSize = 56
+                        if (longestWord > 6) {
+                            (baseSize * (6.5f / longestWord)).coerceAtLeast(30f).sp
+                        } else {
+                            baseSize.sp
+                        }
+                    }
+                    val collapsedFontSize = 22.sp
+                    val fontSize = (expandedFontSize.value - (expandedFontSize.value - collapsedFontSize.value) * collapsedFraction).sp
+                    
+                    val titleStartPadding = (20 + (72 - 20) * collapsedFraction).dp
+                    
+                    // Use newlines to force stacking for multi-word titles when expanded
+                    val displayTitle = remember(title, collapsedFraction) {
+                        if (collapsedFraction < 0.5f && title.contains(" ")) {
+                            title.replace(" ", "\n")
+                        } else {
+                            title
+                        }
+                    }
+                    
                     Text(
-                        text = title, 
-                        fontWeight = FontWeight.SemiBold, 
+                        text = displayTitle,
+                        fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(start = 12.dp)
-                    ) 
-                },
-                navigationIcon = {
-                    AppBackButton(onBack = onBack, settingsDataStore = settingsDataStore, isRoot = isRoot)
-                },
-                actions = actions,
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                    scrolledContainerColor = MaterialTheme.colorScheme.background
-                )
-            )
+                        fontSize = fontSize,
+                        lineHeight = (fontSize.value * 0.95f).sp,
+                        softWrap = false,
+                        maxLines = 2,
+                        overflow = TextOverflow.Clip,
+                        fontFamily = FontFamily(
+                            Font(
+                                resId = R.font.gflex_variable,
+                                variationSettings = FontVariation.Settings(
+                                    FontVariation.weight((636 - 36 * collapsedFraction).toInt()),
+                                    FontVariation.width(152f - 22f * collapsedFraction),
+                                    FontVariation.Setting("ROND", 50f),
+                                    FontVariation.Setting("XTRA", 520f - 70f * collapsedFraction),
+                                    FontVariation.Setting("YOPQ", 90f),
+                                    FontVariation.Setting("YTLC", 505f)
+                                )
+                            )
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .align(Alignment.BottomStart)
+                            .padding(
+                                start = titleStartPadding,
+                                top = 3.dp + (32.dp *(1-collapsedFraction)),
+                                bottom = 0.dp,
+                                end = 16.dp
+                            )
+                            .heightIn(min = 72.dp)
+                            .wrapContentHeight(Alignment.CenterVertically)
+                    )
+                }
+            }
         },
         containerColor = MaterialTheme.colorScheme.surface,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         content = content
     )
 }

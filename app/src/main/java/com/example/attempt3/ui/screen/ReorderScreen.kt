@@ -65,7 +65,11 @@ fun ReorderScreen(habitViewModel: HabitViewModel, onBack: () -> Unit, settingsDa
     val habitsUiState by habitViewModel.habitsUiState.collectAsState()
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
     val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
-    val disableAnimations by settingsDataStore.disableAnimations.collectAsState(initial = false)
+    
+    val reduceMovement by settingsDataStore.reduceMovement.collectAsState(initial = false)
+    val reduceMovementTargets by settingsDataStore.reduceMovementTargets.collectAsState(initial = emptySet())
+    val disableAnimations = reduceMovement && "Rotation" in reduceMovementTargets
+
     val useHabitColorForCard by settingsDataStore.useHabitColorForCard.collectAsState(initial = true)
     val haptic = LocalHapticFeedback.current
 

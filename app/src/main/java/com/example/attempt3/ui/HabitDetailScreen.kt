@@ -8,11 +8,15 @@ import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -55,9 +59,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import com.example.attempt3.data.Database.Completion
@@ -182,11 +188,12 @@ fun SharedTransitionScope.HabitDetailScreen(
                 cardBorderColor
             ),
         ) {
+            val scrollState = rememberScrollState()
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(10.dp)
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(scrollState, enabled = scrollState.maxValue > 0)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -205,8 +212,15 @@ fun SharedTransitionScope.HabitDetailScreen(
 
                     )
                     {
+                        var isClosePressed by remember { mutableStateOf(false) }
+                        val closeScale by animateFloatAsState(
+                            targetValue = if (isClosePressed && !disableAnimations) 0.85f else 1f,
+                            animationSpec = if (isClosePressed) spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessLow) else spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+                            label = "button_scale"
+                        )
                         Box(
                         modifier = Modifier
+                            .scale(closeScale)
                             .size(48.dp)
                             .clip(RoundedCornerShape(8.dp))
                             .background(MaterialTheme.colorScheme.secondaryContainer.copy(secondaryContainerAlpha))
@@ -215,14 +229,26 @@ fun SharedTransitionScope.HabitDetailScreen(
                                 cardBorderColor,
                                 RoundedCornerShape(8.dp)
                             )
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null
-                            ) {
-                                if (vibrationsEnabled) {
-                                    haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
-                                }
-                                onDismiss()
+                            .pointerInput(Unit) {
+                                detectTapGestures(
+                                    onPress = {
+                                        isClosePressed = true
+                                        if (vibrationsEnabled) {
+                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        }
+                                        try {
+                                            awaitRelease()
+                                        } finally {
+                                            isClosePressed = false
+                                        }
+                                    },
+                                    onTap = {
+                                        if (vibrationsEnabled) {
+                                            haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+                                        }
+                                        onDismiss()
+                                    }
+                                )
                             },
                         contentAlignment = Alignment.Center
                     ) {
@@ -406,6 +432,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                     completions = completions,
                     habitColor = animatedColor,
                     vibrationsEnabled = vibrationsEnabled,
+                    reduceGridReactions = disableAnimations,
                     onDateClick = { date, isCompleted ->
                         // Haptic moved to MonthCalendar to ensure it happens on press
                         viewModel.toggleCompletion(habit, date, isCompleted)

@@ -5,7 +5,9 @@
 package com.example.attempt3.ui.screen
 
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ShowChart
@@ -92,7 +94,8 @@ fun FabMenu(
                     }
 
                 ) {
-                    val rotation by animateFloatAsState(if (expanded) 180f else 0f, label = "fab_icon_rotation")
+                    val rotationAnimationSpec = tween<Float>(durationMillis = 400, easing = FastOutSlowInEasing)
+                    val rotation by animateFloatAsState(if (expanded) 180f else 0f, label = "fab_icon_rotation", animationSpec = rotationAnimationSpec)
                     Crossfade(targetState = expanded, label = "fab_icon_crossfade") { isExpanded ->
                         Icon(
                             imageVector = if (isExpanded) Icons.Default.Close else Icons.Default.Menu,

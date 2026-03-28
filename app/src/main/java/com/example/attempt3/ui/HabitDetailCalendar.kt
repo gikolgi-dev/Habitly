@@ -4,6 +4,9 @@ package com.example.attempt3.ui
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -12,8 +15,8 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,9 +44,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -52,8 +57,16 @@ import com.example.attempt3.ui.colors.isBright
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Calendar
-import java.util.Locale
 import kotlin.math.abs
+import kotlin.math.sqrt
+
+private fun calculateGridDistance(index1: Int, index2: Int, columns: Int): Float {
+    val r1 = index1 / columns
+    val c1 = index1 % columns
+    val r2 = index2 / columns
+    val c2 = index2 % columns
+    return sqrt(((r1 - r2) * (r1 - r2) + (c1 - c2) * (c1 - c2)).toDouble()).toFloat()
+}
 
 @Composable
 fun MonthCalendar(
@@ -61,10 +74,12 @@ fun MonthCalendar(
     completions: List<Completion>,
     habitColor: Color,
     vibrationsEnabled: Boolean = true,
+    reduceGridReactions: Boolean = false,
     onDateClick: (Calendar, Boolean) -> Unit
 ) {
     var displayedMonth by remember { mutableStateOf(Calendar.getInstance()) }
     var dragAmount by remember { mutableFloatStateOf(0f) }
+    var pressedCellIndex by remember { mutableStateOf<Int?>(null) }
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
 
@@ -114,7 +129,7 @@ fun MonthCalendar(
                         month.getDisplayName(
                             Calendar.MONTH,
                             Calendar.LONG,
-                            Locale.getDefault()
+                            LocalLocale.current.platformLocale
                         )
                     } ${month.get(Calendar.YEAR)}",
                     style = MaterialTheme.typography.titleMedium,
@@ -233,7 +248,8 @@ fun MonthCalendar(
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         for (dayOfWeek in 0..6) {
-                            val dayOfMonth = week * 7 + dayOfWeek - firstDayOfMonthOffset + 1
+                            val index = week * 7 + dayOfWeek
+                            val dayOfMonth = index - firstDayOfMonthOffset + 1
                             val day = Calendar.getInstance().apply {
                                 clear()
                                 set(Calendar.YEAR, currentYear)
@@ -264,10 +280,44 @@ fun MonthCalendar(
                                 else -> MaterialTheme.colorScheme.onSurface
                             }
 
+                            val distance = if (pressedCellIndex != null) calculateGridDistance(index, pressedCellIndex!!, 7) else 100f
+
+                            val scale by animateFloatAsState(
+                                targetValue = if (pressedCellIndex == index && !reduceGridReactions) 1.2f else 1f,
+                                animationSpec = spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessLow),
+                                label = "scale"
+                            )
+
+                            val maxDist = 4.5f
+                            val translationX by animateFloatAsState(
+                                targetValue = if (!reduceGridReactions && pressedCellIndex != null && pressedCellIndex != index && distance < maxDist) {
+                                    val diff = (index % 7) - (pressedCellIndex!! % 7)
+                                    val strength = (maxDist - distance) / maxDist
+                                    diff * 12f * (strength * strength)
+                                } else 0f,
+                                animationSpec = spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessLow),
+                                label = "translationX"
+                            )
+                            val translationY by animateFloatAsState(
+                                targetValue = if (!reduceGridReactions && pressedCellIndex != null && pressedCellIndex != index && distance < maxDist) {
+                                    val diff = (index / 7) - (pressedCellIndex!! / 7)
+                                    val strength = (maxDist - distance) / maxDist
+                                    diff * 12f * (strength * strength)
+                                } else 0f,
+                                animationSpec = spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessLow),
+                                label = "translationY"
+                            )
+
                             Box(
                                 modifier = Modifier
                                     .aspectRatio(1f)
                                     .weight(1f)
+                                    .graphicsLayer {
+                                        scaleX = scale
+                                        scaleY = scale
+                                        this.translationX = translationX
+                                        this.translationY = translationY
+                                    }
                                     .clip(RoundedCornerShape(8.dp))
                                     .background(cellColor)
                                     .border(
@@ -275,19 +325,35 @@ fun MonthCalendar(
                                         color = if (isToday && !isCompleted) MaterialTheme.colorScheme.onSurface else Color.Transparent,
                                         shape = RoundedCornerShape(8.dp)
                                     )
-                                    .clickable(enabled = !isAfterToday) {
-                                        if (vibrationsEnabled) {
-                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                        }
-                                        if (isInCurrentMonth) {
-                                            onDateClick(day, isCompleted)
-                                        } else {
-                                            displayedMonth = day
-                                            scope.launch {
-                                                delay(400) // Wait for transition to roughly complete
-                                                onDateClick(day, isCompleted)
+                                    .pointerInput(dayStartMillis, isCompleted, isInCurrentMonth) {
+                                        detectTapGestures(
+                                            onPress = {
+                                                if (!isAfterToday) {
+                                                    pressedCellIndex = index
+                                                    if (vibrationsEnabled) {
+                                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                    }
+                                                    try {
+                                                        awaitRelease()
+                                                    } finally {
+                                                        pressedCellIndex = null
+                                                    }
+                                                }
+                                            },
+                                            onTap = {
+                                                if (!isAfterToday) {
+                                                    if (isInCurrentMonth) {
+                                                        onDateClick(day, isCompleted)
+                                                    } else {
+                                                        displayedMonth = day
+                                                        scope.launch {
+                                                            delay(400) // Wait for transition to roughly complete
+                                                            onDateClick(day, isCompleted)
+                                                        }
+                                                    }
+                                                }
                                             }
-                                        }
+                                        )
                                     },
                                 contentAlignment = Alignment.Center
                             ) {

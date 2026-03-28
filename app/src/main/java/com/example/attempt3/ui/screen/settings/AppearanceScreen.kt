@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -20,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
+import com.example.attempt3.data.settings.DefaultSettings
 import com.example.attempt3.data.settings.SettingsDataStore
 
 @Composable
@@ -27,26 +29,28 @@ fun AppearanceScreen(
     modifier: Modifier = Modifier,
     settingsDataStore: SettingsDataStore,
     onNavigateToScrollBlur: () -> Unit,
-    onNavigateToHabitColor: () -> Unit
+    onNavigateToHabitColor: () -> Unit,
+    onNavigateToReduceMovement: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    val currentTheme by settingsDataStore.theme.collectAsState(initial = "system")
-    val useMaterialTheming by settingsDataStore.useMaterialTheming.collectAsState(initial = true)
-    val useHabitColorForCard by settingsDataStore.useHabitColorForCard.collectAsState(initial = true)
-    val showMonthLabels by settingsDataStore.monthLabels.collectAsState(initial = true)
-    val showYearDivider by settingsDataStore.yearDivider.collectAsState(initial = true)
-    val showYearLabels by settingsDataStore.yearLabels.collectAsState(initial = true)
-    val showScrollBlur by settingsDataStore.showScrollBlur.collectAsState(initial = true)
-    val borderContrast by settingsDataStore.borders.collectAsState(initial = 0f)
-    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
-    val disableAnimations by settingsDataStore.disableAnimations.collectAsState(initial = false)
+    val currentTheme by settingsDataStore.theme.collectAsState(initial = DefaultSettings.THEME)
+    val useMaterialTheming by settingsDataStore.useMaterialTheming.collectAsState(initial = DefaultSettings.USE_MATERIAL_THEMING)
+    val useHabitColorForCard by settingsDataStore.useHabitColorForCard.collectAsState(initial = DefaultSettings.USE_HABIT_COLOR_FOR_CARD)
+    val showMonthLabels by settingsDataStore.monthLabels.collectAsState(initial = DefaultSettings.MONTH_LABELS)
+    val showYearDivider by settingsDataStore.yearDivider.collectAsState(initial = DefaultSettings.YEAR_DIVIDER)
+    val showYearLabels by settingsDataStore.yearLabels.collectAsState(initial = DefaultSettings.YEAR_LABELS)
+    val showScrollBlur by settingsDataStore.showScrollBlur.collectAsState(initial = DefaultSettings.SHOW_SCROLL_BLUR)
+    val borderContrast by settingsDataStore.borders.collectAsState(initial = DefaultSettings.BORDERS)
+    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
+    val reduceMovement by settingsDataStore.reduceMovement.collectAsState(initial = DefaultSettings.REDUCE_MOVEMENT)
 
     val haptic = LocalHapticFeedback.current
+    val scrollState = rememberScrollState()
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
+            .verticalScroll(scrollState, enabled = scrollState.maxValue > 0),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -79,15 +83,16 @@ fun AppearanceScreen(
             AccessibilitySection(
                 borderContrast = borderContrast,
                 showScrollBlur = showScrollBlur,
-                disableAnimations = disableAnimations,
+                reduceMovement = reduceMovement,
                 vibrationsEnabled = vibrationsEnabled,
                 settingsDataStore = settingsDataStore,
                 scope = scope,
                 haptic = haptic,
-                onNavigateToScrollBlur = onNavigateToScrollBlur
+                onNavigateToScrollBlur = onNavigateToScrollBlur,
+                onNavigateToReduceMovement = onNavigateToReduceMovement
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp).navigationBarsPadding())
         }
     }
 }

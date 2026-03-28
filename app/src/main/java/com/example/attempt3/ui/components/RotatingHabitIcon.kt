@@ -4,11 +4,16 @@
 
 package com.example.attempt3.ui.components
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -22,11 +27,16 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.attempt3.data.Database.Habit
@@ -56,9 +66,23 @@ fun RotatingHabitIcon(
     }
 
     val icon = habitIconMap[habit.icon] ?: Icons.Default.Refresh
+    val animatedColor by animateColorAsState(targetValue = Color(habit.color), label = "habitColor")
+    
+    // Springy pop when icon changes
+    var oldIcon by remember { mutableStateOf(habit.icon) }
+    val scale = remember { Animatable(1f) }
+    LaunchedEffect(habit.icon) {
+        if (oldIcon != habit.icon) {
+            scale.animateTo(1.1f, spring(dampingRatio = 0.55f, stiffness = Spring.StiffnessMedium))
+            scale.animateTo(1f, spring(dampingRatio = 0.55f, stiffness = Spring.StiffnessLow))
+            oldIcon = habit.icon
+        }
+    }
 
     Box(
-        modifier = modifier.size(64.dp),
+        modifier = modifier
+            .size(64.dp)
+            .scale(scale.value),
         contentAlignment = Alignment.Center
     ) {
         Box(
@@ -66,18 +90,20 @@ fun RotatingHabitIcon(
                 .fillMaxSize()
                 .rotate(rotation)
                 .clip(MaterialShapes.Cookie12Sided.toShape())
-                .background(Color(habit.color).copy(alpha = 0.1f))
+                .background(animatedColor.copy(alpha = 0.1f))
                 .border(
                     1.dp,
-                    Color(habit.color).copy(alpha = borderContrast),
+                    animatedColor.copy(alpha = borderContrast),
                     MaterialShapes.Cookie12Sided.toShape()
                 )
         )
-        Icon(
-            imageVector = icon,
-            contentDescription = habit.icon,
-            modifier = Modifier.size(40.dp),
-            tint = Color(habit.color).copy(alpha = 0.85f)
-        )
+        Crossfade(targetState = icon, animationSpec = tween(300), label = "iconCrossfade") { currentIcon ->
+            Icon(
+                imageVector = currentIcon,
+                contentDescription = habit.icon,
+                modifier = Modifier.size(40.dp),
+                tint = animatedColor.copy(alpha = 0.85f)
+            )
+        }
     }
 }

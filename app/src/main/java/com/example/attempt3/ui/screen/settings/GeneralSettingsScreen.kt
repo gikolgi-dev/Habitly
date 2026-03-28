@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -21,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
+import com.example.attempt3.data.settings.DefaultSettings
 import com.example.attempt3.data.settings.SettingsDataStore
 import kotlinx.coroutines.launch
 
@@ -30,17 +32,19 @@ fun GeneralSettingsScreen(
     modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
-    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
-    val is24Hour by settingsDataStore.is24Hour.collectAsState(initial = false)
-    val heroCardVisible by settingsDataStore.heroCardVisible.collectAsState(initial = true)
-    val heatmapScrolling by settingsDataStore.heatmapScrolling.collectAsState(initial = false)
-    val skipCompleted by settingsDataStore.skipCompletedHabitNotifications.collectAsState(initial = false)
+    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
+    val is24Hour by settingsDataStore.is24Hour.collectAsState(initial = DefaultSettings.IS_24_HOUR)
+    val heroCardVisible by settingsDataStore.heroCardVisible.collectAsState(initial = DefaultSettings.HERO_CARD_VISIBLE)
+    val heatmapScrolling by settingsDataStore.heatmapScrolling.collectAsState(initial = DefaultSettings.HEATMAP_SCROLLING)
+    val skipCompleted by settingsDataStore.skipCompletedHabitNotifications.collectAsState(initial = DefaultSettings.SKIP_COMPLETED_HABIT_NOTIFICATIONS)
+
     val haptic = LocalHapticFeedback.current
+    val scrollState = rememberScrollState()
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
+            .verticalScroll(scrollState, enabled = scrollState.maxValue > 0),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         SettingsGroup(
@@ -57,7 +61,7 @@ fun GeneralSettingsScreen(
                 scope.launch {
                     settingsDataStore.setVibrations(it)
                 }
-                haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+                if (vibrationsEnabled) haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
             }
             SettingsSwitchItem(
                 text = "Welcome card",
@@ -69,7 +73,7 @@ fun GeneralSettingsScreen(
                 scope.launch {
                     settingsDataStore.setHeroCardVisible(it)
                 }
-                haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+                if (vibrationsEnabled) haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
             }
             SettingsSwitchItem(
                 text = "Heatmap scrolling",
@@ -81,7 +85,7 @@ fun GeneralSettingsScreen(
                 scope.launch {
                     settingsDataStore.setHeatmapScrolling(it)
                 }
-                haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+                if (vibrationsEnabled) haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
             }
             SettingsSwitchItem(
                 text = "Skip completed habit notifications",
@@ -93,7 +97,7 @@ fun GeneralSettingsScreen(
                 scope.launch {
                     settingsDataStore.setSkipCompletedHabitNotifications(it)
                 }
-                haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+                if (vibrationsEnabled) haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
             }
             SettingsItemBox(settingsDataStore = settingsDataStore, position = SettingsItemPosition.Bottom) {
                 Column(
@@ -116,13 +120,13 @@ fun GeneralSettingsScreen(
                                 scope.launch {
                                     settingsDataStore.setIs24Hour(newValue)
                                 }
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             }
                         }
                     )
                 }
             }
         }
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(16.dp).navigationBarsPadding())
     }
 }
