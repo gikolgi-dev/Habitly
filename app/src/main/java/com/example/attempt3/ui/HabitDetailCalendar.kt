@@ -15,7 +15,6 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,6 +24,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
@@ -35,7 +36,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -57,7 +57,6 @@ import com.example.attempt3.ui.colors.isBright
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Calendar
-import kotlin.math.abs
 import kotlin.math.sqrt
 
 private fun calculateGridDistance(index1: Int, index2: Int, columns: Int): Float {
@@ -77,8 +76,21 @@ fun MonthCalendar(
     reduceGridReactions: Boolean = false,
     onDateClick: (Calendar, Boolean) -> Unit
 ) {
-    var displayedMonth by remember { mutableStateOf(Calendar.getInstance()) }
-    var dragAmount by remember { mutableFloatStateOf(0f) }
+    val initialPage = 1200
+    val pagerState = rememberPagerState(
+        initialPage = initialPage,
+        pageCount = { initialPage + 1 }
+    )
+    val today = remember { Calendar.getInstance().apply {
+        set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+    }}
+
+    val displayedMonth = remember(pagerState.currentPage) {
+        val cal = today.clone() as Calendar
+        cal.add(Calendar.MONTH, pagerState.currentPage - initialPage)
+        cal
+    }
+
     var pressedCellIndex by remember { mutableStateOf<Int?>(null) }
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
@@ -102,8 +114,10 @@ fun MonthCalendar(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = {
-                displayedMonth = (displayedMonth.clone() as Calendar).apply {
-                    add(Calendar.MONTH, -1)
+                scope.launch {
+                    if (pagerState.currentPage > 0) {
+                        pagerState.animateScrollToPage(pagerState.currentPage - 1)
+                    }
                 }
             }) {
                 Icon(Icons.Default.ArrowBackIosNew, contentDescription = "Previous Month")
@@ -139,18 +153,13 @@ fun MonthCalendar(
             }
 
 
-            val isFutureMonth = remember(displayedMonth) {
-                val todayCal = Calendar.getInstance()
-                displayedMonth.get(Calendar.YEAR) > todayCal.get(Calendar.YEAR) ||
-                        (displayedMonth.get(Calendar.YEAR) == todayCal.get(Calendar.YEAR) &&
-                                displayedMonth.get(Calendar.MONTH) >= todayCal.get(Calendar.MONTH))
-            }
+            val isFutureMonth = pagerState.currentPage >= initialPage
 
             IconButton(
                 onClick = {
                     if (!isFutureMonth) {
-                        displayedMonth = (displayedMonth.clone() as Calendar).apply {
-                            add(Calendar.MONTH, 1)
+                        scope.launch {
+                            pagerState.animateScrollToPage(pagerState.currentPage + 1)
                         }
                     }
                 },
@@ -186,48 +195,21 @@ fun MonthCalendar(
         Spacer(modifier = Modifier.height(8.dp))
 
         // Calendar grid
-        AnimatedContent(
-            targetState = displayedMonth,
-            modifier = Modifier.pointerInput(Unit) {
-                detectDragGestures(
-                    onDrag = { _, drag ->
-                        dragAmount += drag.x
-                    },
-                    onDragEnd = {
-                        if (abs(dragAmount) > 50) { // Swipe threshold
-                            if (dragAmount > 0) {
-                                displayedMonth = (displayedMonth.clone() as Calendar).apply { add(Calendar.MONTH, -1) }
-                            } else {
-                                val todayCal = Calendar.getInstance()
-                                val isFuture = displayedMonth.get(Calendar.YEAR) > todayCal.get(Calendar.YEAR) ||
-                                        (displayedMonth.get(Calendar.YEAR) == todayCal.get(Calendar.YEAR) &&
-                                                displayedMonth.get(Calendar.MONTH) >= todayCal.get(Calendar.MONTH))
-                                if (!isFuture) {
-                                    displayedMonth = (displayedMonth.clone() as Calendar).apply { add(Calendar.MONTH, 1) }
-                                }
-                            }
-                        }
-                        dragAmount = 0f
-                    }
-                )
-            },
-            transitionSpec = {
-                if (targetState.after(initialState)) {
-                    slideInHorizontally(initialOffsetX = { it }) + fadeIn() togetherWith
-                            slideOutHorizontally(targetOffsetX = { -it }) + fadeOut()
-                } else {
-                    slideInHorizontally(initialOffsetX = { -it }) + fadeIn() togetherWith
-                            slideOutHorizontally(targetOffsetX = { it }) + fadeOut()
-                }
-            }, label = "Calendar"
-        ) { month ->
-
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxWidth(),
+            pageSpacing = 16.dp,
+            verticalAlignment = Alignment.Top
+        ) { page ->
             Column(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                val today = Calendar.getInstance().apply {
-                    set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+                val month = remember(page) {
+                    val cal = today.clone() as Calendar
+                    cal.add(Calendar.MONTH, page - initialPage)
+                    cal
                 }
+
                 val currentMonth = month.get(Calendar.MONTH)
                 val currentYear = month.get(Calendar.YEAR)
 
@@ -345,8 +327,9 @@ fun MonthCalendar(
                                                     if (isInCurrentMonth) {
                                                         onDateClick(day, isCompleted)
                                                     } else {
-                                                        displayedMonth = day
+                                                        val targetPage = initialPage + ((day.get(Calendar.YEAR) - today.get(Calendar.YEAR)) * 12 + day.get(Calendar.MONTH) - today.get(Calendar.MONTH))
                                                         scope.launch {
+                                                            pagerState.animateScrollToPage(targetPage)
                                                             delay(400) // Wait for transition to roughly complete
                                                             onDateClick(day, isCompleted)
                                                         }
