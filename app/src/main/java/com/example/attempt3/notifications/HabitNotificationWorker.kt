@@ -47,9 +47,7 @@ class HabitNotificationWorker(
             }.timeInMillis
 
             val completionsCount = dao.countCompletionsForHabitOnDay(habitId, startOfDay, endOfDay)
-            val habit = dao.getHabit(habitId)
-            val completionsPerInterval = habit?.completionsPerInterval ?: 1
-            if (completionsCount >= completionsPerInterval) {
+            if (completionsCount > 0) {
                 shouldShow = false
             }
         }

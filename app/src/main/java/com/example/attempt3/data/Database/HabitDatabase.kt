@@ -100,13 +100,13 @@ interface HabitDao {
 
 
 
-    @Query("SELECT COUNT(*) FROM completion WHERE habitId = :habitId AND date >= :startOfDay AND date < :endOfDay")
+    @Query("SELECT COALESCE(SUM(amountOfCompletions), 0) FROM completion WHERE habitId = :habitId AND date >= :startOfDay AND date <= :endOfDay")
     suspend fun countCompletionsForHabitOnDay(habitId: String, startOfDay: Long, endOfDay: Long): Int
 
-    @Query("SELECT * FROM completion WHERE date >= :startOfDay AND date < :endOfDay")
+    @Query("SELECT * FROM completion WHERE date >= :startOfDay AND date <= :endOfDay")
     fun getCompletionsForDay(startOfDay: Long, endOfDay: Long): Flow<List<Completion>>
 
-    @Query("DELETE FROM completion WHERE habitId = :habitId AND date >= :startOfDay AND date < :endOfDay")
+    @Query("DELETE FROM completion WHERE habitId = :habitId AND date >= :startOfDay AND date <= :endOfDay")
     suspend fun deleteCompletionsForHabitOnDay(habitId: String, startOfDay: Long, endOfDay: Long)
     
     @Query("SELECT * FROM habit WHERE id = :habitId")
