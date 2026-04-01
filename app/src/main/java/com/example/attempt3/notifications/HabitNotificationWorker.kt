@@ -78,6 +78,16 @@ class HabitNotificationWorker(
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
+        val actionIntent = android.content.Intent(context, NotificationReceiver::class.java).apply {
+            action = "ACTION_COMPLETE_HABIT"
+            putExtra("habitId", habitId)
+        }
+        val actionPendingIntent = PendingIntent.getBroadcast(
+            context,
+            habitId.hashCode() + 1,
+            actionIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
 
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification) // A default launcher icon
@@ -86,6 +96,11 @@ class HabitNotificationWorker(
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
+            .addAction(
+                0,
+                "Complete",
+                actionPendingIntent
+            )
 
         notificationManager.notify(habitId.hashCode(), builder.build())
     }

@@ -52,7 +52,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -66,6 +68,9 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.attempt3.data.Database.Completion
 import com.example.attempt3.data.Database.Habit
 import com.example.attempt3.data.Database.HabitViewModel
@@ -102,7 +107,23 @@ fun SharedTransitionScope.HabitDetailScreen(
     val habit = habitWithCompletions.habit
     val completions = habitWithCompletions.completions
     val animatedColor by animateColorAsState(targetValue = Color(habit.color), animationSpec = tween(durationMillis = 500))
-    val streak = remember(habit, completions) { calculateStreak(habit, completions) }
+    
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var currentDateMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                currentDateMillis = System.currentTimeMillis()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    val streak = remember(habit, completions, currentDateMillis) { calculateStreak(habit, completions, currentDateMillis) }
 
     val useDarkTheme = when (theme) {
         "light" -> false
@@ -443,12 +464,13 @@ fun SharedTransitionScope.HabitDetailScreen(
     }
 }
 
-private fun calculateStreak(habit: Habit, completions: List<Completion>): Int {
+private fun calculateStreak(habit: Habit, completions: List<Completion>, currentDateMillis: Long): Int {
     if (completions.isEmpty()) return 0
 
     val sortedDates = completions.map { it.date }.sortedDescending()
     
     val today = Calendar.getInstance()
+    today.timeInMillis = currentDateMillis
     today.set(Calendar.HOUR_OF_DAY, 0)
     today.set(Calendar.MINUTE, 0)
     today.set(Calendar.SECOND, 0)
@@ -495,6 +517,7 @@ private fun calculateStreak(habit: Habit, completions: List<Completion>): Int {
         }
         "week" -> {
             val c = Calendar.getInstance()
+            c.timeInMillis = currentDateMillis
             c.set(Calendar.HOUR_OF_DAY, 0)
             c.set(Calendar.MINUTE, 0)
             c.set(Calendar.SECOND, 0)
@@ -563,6 +586,7 @@ private fun calculateStreak(habit: Habit, completions: List<Completion>): Int {
         }
         "month" -> {
             val c = Calendar.getInstance()
+            c.timeInMillis = currentDateMillis
             c.set(Calendar.HOUR_OF_DAY, 0)
             c.set(Calendar.MINUTE, 0)
             c.set(Calendar.SECOND, 0)

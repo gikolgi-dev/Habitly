@@ -20,8 +20,12 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -32,6 +36,9 @@ import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.attempt3.data.Database.Completion
 import com.example.attempt3.ui.components.HeatmapWeekColumn
 import com.example.attempt3.ui.components.HeatmapWeekData
@@ -69,9 +76,25 @@ fun Heatmap(
     showScrollBlur: Boolean,
     minWeeks: Int = 0
 ) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var currentDateMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                currentDateMillis = System.currentTimeMillis()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
     val density = LocalDensity.current
-    val todayStartMillis = remember {
+    val todayStartMillis = remember(currentDateMillis) {
         Calendar.getInstance().apply {
+            timeInMillis = currentDateMillis
             set(Calendar.HOUR_OF_DAY, 0)
             set(Calendar.MINUTE, 0)
             set(Calendar.SECOND, 0)
@@ -128,7 +151,7 @@ fun Heatmap(
                 with(density) { (remainingSpacePx.toFloat() / (numWeeksOnScreen - 1)).toDp() }
             } else minHorizontalSpacing
 
-            val totalWeeks = remember(completions, numWeeksOnScreen, isScrollable, minWeeks) {
+            val totalWeeks = remember(completions, numWeeksOnScreen, isScrollable, minWeeks, currentDateMillis) {
                 val oldestCompletion = if (completions.isNotEmpty()) completions.minOf { it.date } else null
                 val weeksDiff = if (oldestCompletion == null) 0 else {
                     val cal = Calendar.getInstance().apply { firstDayOfWeek = Calendar.MONDAY }
@@ -141,9 +164,9 @@ fun Heatmap(
                     cal.set(Calendar.MILLISECOND, 0)
                     val oldestMon = cal.timeInMillis
 
-                    cal.timeInMillis = System.currentTimeMillis()
+                    cal.timeInMillis = currentDateMillis
                     cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
-                    if (cal.timeInMillis > System.currentTimeMillis()) cal.add(Calendar.WEEK_OF_YEAR, -1)
+                    if (cal.timeInMillis > currentDateMillis) cal.add(Calendar.WEEK_OF_YEAR, -1)
                     cal.set(Calendar.HOUR_OF_DAY, 0)
                     cal.set(Calendar.MINUTE, 0)
                     cal.set(Calendar.SECOND, 0)
@@ -155,16 +178,17 @@ fun Heatmap(
                 if (isScrollable) maxOf(weeksDiff, numWeeksOnScreen, minWeeks) else numWeeksOnScreen
             }
 
-            val weeksData = remember(totalWeeks, showMonthLabels, completionDates, todayStartMillis) {
+            val weeksData = remember(totalWeeks, showMonthLabels, completionDates, todayStartMillis, currentDateMillis) {
                 val monthFormat = SimpleDateFormat("MMM", Locale.getDefault())
                 val cal = Calendar.getInstance().apply {
                     firstDayOfWeek = Calendar.MONDAY
+                    timeInMillis = currentDateMillis
                     set(Calendar.HOUR_OF_DAY, 0)
                     set(Calendar.MINUTE, 0)
                     set(Calendar.SECOND, 0)
                     set(Calendar.MILLISECOND, 0)
                     set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
-                    if (timeInMillis > System.currentTimeMillis()) add(Calendar.WEEK_OF_YEAR, -1)
+                    if (timeInMillis > currentDateMillis) add(Calendar.WEEK_OF_YEAR, -1)
                 }
                 val currentMonday = cal.timeInMillis
                 val dayCal = cal.clone() as Calendar

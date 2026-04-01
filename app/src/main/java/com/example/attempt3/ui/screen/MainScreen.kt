@@ -62,10 +62,12 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -89,6 +91,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.attempt3.data.Database.Completion
 import com.example.attempt3.data.Database.Habit
 import com.example.attempt3.data.Database.HabitDao
@@ -133,20 +138,44 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     val habitsUiState by viewModel.habitsUiState.collectAsState()
     val archivedHabitsUiState by viewModel.archivedHabitsUiState.collectAsState()
 
-    val now = Calendar.getInstance()
-    val startOfDay = (now.clone() as Calendar).apply {
-        set(Calendar.HOUR_OF_DAY, 0)
-        set(Calendar.MINUTE, 0)
-        set(Calendar.SECOND, 0)
-        set(Calendar.MILLISECOND, 0)
-    }.timeInMillis
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var currentDateMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
 
-    val endOfDay = (now.clone() as Calendar).apply {
-        set(Calendar.HOUR_OF_DAY, 23)
-        set(Calendar.MINUTE, 59)
-        set(Calendar.SECOND, 59)
-        set(Calendar.MILLISECOND, 999)
-    }.timeInMillis
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                currentDateMillis = System.currentTimeMillis()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+    
+    val startOfDay by remember {
+        derivedStateOf {
+            Calendar.getInstance().apply {
+                timeInMillis = currentDateMillis
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }.timeInMillis
+        }
+    }
+
+    val endOfDay by remember {
+        derivedStateOf {
+            Calendar.getInstance().apply {
+                timeInMillis = currentDateMillis
+                set(Calendar.HOUR_OF_DAY, 23)
+                set(Calendar.MINUTE, 59)
+                set(Calendar.SECOND, 59)
+                set(Calendar.MILLISECOND, 999)
+            }.timeInMillis
+        }
+    }
 
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
     val borderContrast by settingsDataStore.borders.collectAsState(initial = null)
@@ -180,13 +209,16 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
             heatmapVisibleDays != null &&
             dayOfWeekLabelsOnRight != null
 
-    val greeting = remember {
-        when (now.get(Calendar.HOUR_OF_DAY)) {
-            in 1 .. 5 -> "It's a beautiful night!"
-            in 6..14 -> "Good morning"
-            in 15..19 -> "Good afternoon"
-            in 20..24 -> "Good evening"
-            else -> "Welcome back"
+    val greeting by remember {
+        derivedStateOf {
+            val hour = Calendar.getInstance().apply { timeInMillis = currentDateMillis }.get(Calendar.HOUR_OF_DAY)
+            when (hour) {
+                in 1 .. 5 -> "It's a beautiful night!"
+                in 6..14 -> "Good morning"
+                in 15..19 -> "Good afternoon"
+                in 20..24, 0 -> "Good evening"
+                else -> "Welcome back"
+            }
         }
     }
 
@@ -449,7 +481,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                         }
                                                         viewModel.toggleCompletion(
                                                             habitWithCompletions.habit,
-                                                            Calendar.getInstance(),
+                                                            Calendar.getInstance().apply { timeInMillis = currentDateMillis },
                                                             isCompleted
                                                         )
                                                     },

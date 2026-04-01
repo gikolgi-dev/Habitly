@@ -35,7 +35,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -52,6 +54,9 @@ import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.attempt3.data.Database.Completion
 import com.example.attempt3.ui.colors.isBright
 import kotlinx.coroutines.delay
@@ -81,11 +86,28 @@ fun MonthCalendar(
         initialPage = initialPage,
         pageCount = { initialPage + 1 }
     )
-    val today = remember { Calendar.getInstance().apply {
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var currentDateMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                currentDateMillis = System.currentTimeMillis()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    val today = remember(currentDateMillis) { Calendar.getInstance().apply {
+        timeInMillis = currentDateMillis
         set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
     }}
 
-    val displayedMonth = remember(pagerState.currentPage) {
+    val displayedMonth = remember(pagerState.currentPage, today) {
         val cal = today.clone() as Calendar
         cal.add(Calendar.MONTH, pagerState.currentPage - initialPage)
         cal
@@ -204,7 +226,7 @@ fun MonthCalendar(
             Column(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                val month = remember(page) {
+                val month = remember(page, today) {
                     val cal = today.clone() as Calendar
                     cal.add(Calendar.MONTH, page - initialPage)
                     cal
