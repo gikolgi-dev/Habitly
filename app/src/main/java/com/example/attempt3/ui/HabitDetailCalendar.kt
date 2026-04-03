@@ -4,6 +4,7 @@ package com.example.attempt3.ui
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -94,8 +95,24 @@ fun MonthCalendar(
 
     val displayedMonth = remember(pagerState.currentPage, today) {
         val cal = today.clone() as Calendar
+        cal.set(Calendar.DAY_OF_MONTH, 1) // Set to 1st to avoid rollover when adding months
         cal.add(Calendar.MONTH, pagerState.currentPage - initialPage)
         cal
+    }
+
+    // Calculate number of rows for the current displayed month to handle dynamic height
+    val displayedMonthNumRows = remember(displayedMonth) {
+        val currentMonth = displayedMonth.get(Calendar.MONTH)
+        val currentYear = displayedMonth.get(Calendar.YEAR)
+        
+        val firstDayOfMonthOffset = (Calendar.getInstance().apply {
+            set(Calendar.DAY_OF_MONTH, 1)
+            set(Calendar.YEAR, currentYear)
+            set(Calendar.MONTH, currentMonth)
+        }.get(Calendar.DAY_OF_WEEK) - Calendar.MONDAY + 7) % 7
+        
+        val daysInMonth = displayedMonth.getActualMaximum(Calendar.DAY_OF_MONTH)
+        (firstDayOfMonthOffset + daysInMonth + 6) / 7
     }
 
     var pressedCellIndex by remember { mutableStateOf<Int?>(null) }
@@ -114,7 +131,7 @@ fun MonthCalendar(
         }.toSet()
     }
 
-    Column(modifier = modifier) {
+    Column(modifier = modifier.animateContentSize()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -208,14 +225,26 @@ fun MonthCalendar(
                 .fillMaxWidth()
                 .layout { measurable, constraints ->
                     val padPx = 16.dp.roundToPx()
+                    val spacingPx = 4.dp.roundToPx()
+                    
                     // Inflate width constraint by padding on both sides to widen the pager's clipping bounds
                     val placeable = measurable.measure(
                         constraints.copy(
                             maxWidth = constraints.maxWidth + padPx * 2
                         )
                     )
-                    // Report original dimensions to parent, but offset placement so the padded container aligns perfectly
-                    layout(constraints.maxWidth, placeable.height - padPx * 2) {
+                    
+                    // Calculate expected height based on the number of rows of the currently displayed month.
+                    // The content width is actually equal to constraints.maxWidth because:
+                    // Pager width = maxWidth + 32px, and contentPadding = 16px on each side.
+                    // So content width = (maxWidth + 32) - 32 = maxWidth.
+                    val availableWidth = constraints.maxWidth
+                    val cellWidth = (availableWidth - 6 * spacingPx) / 7f
+                    
+                    val gridHeight = (displayedMonthNumRows * cellWidth + (displayedMonthNumRows - 1) * spacingPx).toInt()
+                    
+                    layout(constraints.maxWidth, gridHeight) {
+                        // Place at -padPx to align the grid correctly while allowing bleed into the 16dp padding
                         placeable.place(-padPx, -padPx)
                     }
                 },
@@ -223,31 +252,36 @@ fun MonthCalendar(
             pageSpacing = 16.dp,
             verticalAlignment = Alignment.Top
         ) { page ->
+            val month = remember(page, today) {
+                val cal = today.clone() as Calendar
+                cal.set(Calendar.DAY_OF_MONTH, 1)
+                cal.add(Calendar.MONTH, page - initialPage)
+                cal
+            }
+
+            val currentMonth = month.get(Calendar.MONTH)
+            val currentYear = month.get(Calendar.YEAR)
+
+            val firstDayOfMonthOffset = remember(month) {
+                (Calendar.getInstance().apply {
+                    set(Calendar.DAY_OF_MONTH, 1)
+                    set(Calendar.YEAR, currentYear)
+                    set(Calendar.MONTH, currentMonth)
+                }.get(Calendar.DAY_OF_WEEK) - Calendar.MONDAY + 7) % 7
+            }
+
+            val daysInMonth = remember(month) {
+                month.getActualMaximum(Calendar.DAY_OF_MONTH)
+            }
+
+            val totalCells = firstDayOfMonthOffset + daysInMonth
+            val numRows = (totalCells + 6) / 7
+
             Column(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
                 // Inflate vertical bounds to prevent clipping at top/bottom without shifting visible content!
                 modifier = Modifier.padding(vertical = 16.dp)
             ) {
-                val month = remember(page, today) {
-                    val cal = today.clone() as Calendar
-                    cal.add(Calendar.MONTH, page - initialPage)
-                    cal
-                }
-
-                val currentMonth = month.get(Calendar.MONTH)
-                val currentYear = month.get(Calendar.YEAR)
-
-                val firstDayOfMonthOffset = (Calendar.getInstance().apply {
-                    set(Calendar.YEAR, currentYear); set(Calendar.MONTH, currentMonth); set(Calendar.DAY_OF_MONTH, 1)
-                }.get(Calendar.DAY_OF_WEEK) - Calendar.MONDAY + 7) % 7
-
-                val daysInMonth = Calendar.getInstance()
-                    .apply { set(Calendar.YEAR, currentYear); set(Calendar.MONTH, currentMonth) }
-                    .getActualMaximum(Calendar.DAY_OF_MONTH)
-
-                val totalCells = firstDayOfMonthOffset + daysInMonth
-                val numRows = (totalCells + 6) / 7
-
                 for (week in 0 until numRows) {
                     val rowDistance = if (pressedCellIndex != null) kotlin.math.abs(week - (pressedCellIndex!! / 7)).toFloat() else 100f
                     val rowZIndex by animateFloatAsState(

@@ -8,6 +8,7 @@ import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -167,11 +168,18 @@ fun SharedTransitionScope.HabitDetailScreen(
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null
-            ) { onDismiss() },
-        contentAlignment = Alignment.Center
+            ) { onDismiss() }
+            .padding(top = 160.dp, bottom = 16.dp),
+        contentAlignment = Alignment.TopCenter
     ) {
         Card(
             modifier = Modifier
+                .animateContentSize(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioLowBouncy,
+                        stiffness = Spring.StiffnessLow
+                    )
+                )
                 .sharedElement(
                     rememberSharedContentState(key = "card-${habit.id}"),
                     animatedVisibilityScope = animatedVisibilityScope
