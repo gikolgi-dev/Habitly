@@ -52,9 +52,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -68,9 +66,6 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.attempt3.data.Database.Completion
 import com.example.attempt3.data.Database.Habit
 import com.example.attempt3.data.Database.HabitViewModel
@@ -100,7 +95,8 @@ fun SharedTransitionScope.HabitDetailScreen(
     heatmapVisibleDays: Set<String>,
     disableAnimations: Boolean,
     useHabitColorForCard: Boolean,
-    theme: String
+    theme: String,
+    currentDateMillis: Long = System.currentTimeMillis()
 ) {
     val haptic = LocalHapticFeedback.current
     var showDeleteConfirmation by remember { mutableStateOf(false) } // State for delete confirmation dialog
@@ -108,21 +104,6 @@ fun SharedTransitionScope.HabitDetailScreen(
     val completions = habitWithCompletions.completions
     val animatedColor by animateColorAsState(targetValue = Color(habit.color), animationSpec = tween(durationMillis = 500))
     
-    val lifecycleOwner = LocalLifecycleOwner.current
-    var currentDateMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
-
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                currentDateMillis = System.currentTimeMillis()
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
-    }
-
     val streak = remember(habit, completions, currentDateMillis) { calculateStreak(habit, completions, currentDateMillis) }
 
     val useDarkTheme = when (theme) {
@@ -293,7 +274,8 @@ fun SharedTransitionScope.HabitDetailScreen(
                     showYearDivider = showYearDivider,
                     showYearLabels = showYearLabels,
                     showScrollBlur = showScrollBlur,
-                    minWeeks = 30 // Display a bit more heatmap columns even if they are empty
+                    minWeeks = 30, // Display a bit more heatmap columns even if they are empty
+                    currentDateMillis = currentDateMillis
                 )
 
                 //Spacer(modifier = Modifier.height(4.dp))
@@ -454,6 +436,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                     habitColor = animatedColor,
                     vibrationsEnabled = vibrationsEnabled,
                     reduceGridReactions = disableAnimations,
+                    currentDateMillis = currentDateMillis,
                     onDateClick = { date, isCompleted ->
                         // Haptic moved to MonthCalendar to ensure it happens on press
                         viewModel.toggleCompletion(habit, date, isCompleted)

@@ -46,7 +46,8 @@ fun StatisticScreen(
     viewModel: HabitViewModel,
     onBack: () -> Unit,
     initialHabitId: String? = null,
-    settingsDataStore: SettingsDataStore
+    settingsDataStore: SettingsDataStore,
+    currentDateMillis: Long = System.currentTimeMillis()
 ) {
     val habitsUiState by viewModel.habitsUiState.collectAsState()
     val habits = (habitsUiState as? HabitsUiState.Success)?.habits ?: emptyList()

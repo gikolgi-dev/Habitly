@@ -473,6 +473,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                     heatmapScrollEnabled = heatmapScrolling,
                                                     useHabitColor = useHabitColor,
                                                     disableAnimations = disableAnimations,
+                                                    currentDateMillis = currentDateMillis,
                                                     onComplete = {
                                                         if (vibrationsEnabled) {
                                                             haptic.performHapticFeedback(
@@ -539,7 +540,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                         uiState = archivedHabitsUiState,
                         habitDao = habitDao,
                         onBack = { showArchiveSheet = false },
-                        settingsDataStore = settingsDataStore
+                        settingsDataStore = settingsDataStore,
+                        currentDateMillis = currentDateMillis
                     )
                 }
 
@@ -617,7 +619,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                 heatmapVisibleDays = heatmapVisibleDays!!,
                                 disableAnimations = disableAnimations,
                                 useHabitColorForCard = useHabitColorForCard,
-                                theme = theme
+                                theme = theme,
+                                currentDateMillis = currentDateMillis
                             )
                         }
                     }
@@ -652,7 +655,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                             initialHabitIdForStats = null
                         },
                         initialHabitId = initialHabitIdForStats,
-                        settingsDataStore = settingsDataStore
+                        settingsDataStore = settingsDataStore,
+                        currentDateMillis = currentDateMillis
                     )
                 }
 
@@ -816,7 +820,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                             disableAnimations = disableAnimations,
                             onComplete = { /* Do nothing in preview */ },
                             onClick = { /* Do nothing in preview */ },
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+                            currentDateMillis = currentDateMillis
                         )
                         
                         Surface(

@@ -35,9 +35,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -54,9 +52,6 @@ import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.attempt3.data.Database.Completion
 import com.example.attempt3.ui.colors.isBright
 import kotlinx.coroutines.delay
@@ -79,6 +74,7 @@ fun MonthCalendar(
     habitColor: Color,
     vibrationsEnabled: Boolean = true,
     reduceGridReactions: Boolean = false,
+    currentDateMillis: Long = System.currentTimeMillis(),
     onDateClick: (Calendar, Boolean) -> Unit
 ) {
     val initialPage = 1200
@@ -86,21 +82,6 @@ fun MonthCalendar(
         initialPage = initialPage,
         pageCount = { initialPage + 1 }
     )
-
-    val lifecycleOwner = LocalLifecycleOwner.current
-    var currentDateMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
-
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                currentDateMillis = System.currentTimeMillis()
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
-    }
 
     val today = remember(currentDateMillis) { Calendar.getInstance().apply {
         timeInMillis = currentDateMillis

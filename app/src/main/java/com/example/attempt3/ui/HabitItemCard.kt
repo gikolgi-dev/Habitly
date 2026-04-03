@@ -257,6 +257,7 @@ fun HabitItemCard(
     onDelete: (() -> Unit)? = null,
     heatmapScrollEnabled: Boolean = false,
     isPreview: Boolean = false,
+    currentDateMillis: Long = System.currentTimeMillis(),
     @SuppressLint("ModifierParameter") modifier: Modifier = Modifier
 ) {
     val targetCardBackgroundColor = if (useHabitColor) {
@@ -343,7 +344,8 @@ fun HabitItemCard(
                     dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight,
                     showYearDivider = showYearDivider,
                     showYearLabels = showYearLabels,
-                    showScrollBlur = showScrollBlur
+                    showScrollBlur = showScrollBlur,
+                    currentDateMillis = currentDateMillis
                 )
             }
         }

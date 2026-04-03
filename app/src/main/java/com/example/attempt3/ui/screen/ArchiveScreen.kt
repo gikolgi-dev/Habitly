@@ -53,7 +53,13 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ArchiveScreen(uiState: HabitsUiState, habitDao: HabitDao, onBack: () -> Unit, settingsDataStore: SettingsDataStore) {
+fun ArchiveScreen(
+    uiState: HabitsUiState,
+    habitDao: HabitDao,
+    onBack: () -> Unit,
+    settingsDataStore: SettingsDataStore,
+    currentDateMillis: Long = System.currentTimeMillis()
+) {
     val scope = rememberCoroutineScope()
     var habitToDelete by remember { mutableStateOf<Habit?>(null) }
     val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
@@ -187,6 +193,7 @@ fun ArchiveScreen(uiState: HabitsUiState, habitDao: HabitDao, onBack: () -> Unit
                                     borderContrast = borderContrast,
                                     useHabitColor = useHabitColor,
                                     disableAnimations = disableAnimations,
+                                    currentDateMillis = currentDateMillis,
                                     onComplete = { },
                                     onClick = { },
                                     onUnarchive = {
