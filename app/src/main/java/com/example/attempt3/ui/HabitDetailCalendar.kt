@@ -19,11 +19,13 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -47,11 +49,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import com.example.attempt3.data.Database.Completion
 import com.example.attempt3.ui.colors.isBright
 import kotlinx.coroutines.delay
@@ -200,12 +204,29 @@ fun MonthCalendar(
         // Calendar grid
         HorizontalPager(
             state = pagerState,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .layout { measurable, constraints ->
+                    val padPx = 16.dp.roundToPx()
+                    // Inflate width constraint by padding on both sides to widen the pager's clipping bounds
+                    val placeable = measurable.measure(
+                        constraints.copy(
+                            maxWidth = constraints.maxWidth + padPx * 2
+                        )
+                    )
+                    // Report original dimensions to parent, but offset placement so the padded container aligns perfectly
+                    layout(constraints.maxWidth, placeable.height - padPx * 2) {
+                        placeable.place(-padPx, -padPx)
+                    }
+                },
+            contentPadding = PaddingValues(horizontal = 16.dp),
             pageSpacing = 16.dp,
             verticalAlignment = Alignment.Top
         ) { page ->
             Column(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
+                // Inflate vertical bounds to prevent clipping at top/bottom without shifting visible content!
+                modifier = Modifier.padding(vertical = 16.dp)
             ) {
                 val month = remember(page, today) {
                     val cal = today.clone() as Calendar
@@ -228,8 +249,17 @@ fun MonthCalendar(
                 val numRows = (totalCells + 6) / 7
 
                 for (week in 0 until numRows) {
+                    val rowDistance = if (pressedCellIndex != null) kotlin.math.abs(week - (pressedCellIndex!! / 7)).toFloat() else 100f
+                    val rowZIndex by animateFloatAsState(
+                        targetValue = if (!reduceGridReactions && pressedCellIndex != null) (100f - rowDistance).coerceAtLeast(0f) else 0f,
+                        animationSpec = spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessLow),
+                        label = "rowZIndex"
+                    )
+
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .zIndex(rowZIndex),
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         for (dayOfWeek in 0..6) {
@@ -272,6 +302,12 @@ fun MonthCalendar(
                                 animationSpec = spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessLow),
                                 label = "scale"
                             )
+                            
+                            val boxZIndex by animateFloatAsState(
+                                targetValue = if (!reduceGridReactions && pressedCellIndex != null) (100f - distance).coerceAtLeast(0f) else 0f,
+                                animationSpec = spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessLow),
+                                label = "boxZIndex"
+                            )
 
                             val maxDist = 4.5f
                             val translationX by animateFloatAsState(
@@ -295,6 +331,7 @@ fun MonthCalendar(
 
                             Box(
                                 modifier = Modifier
+                                    .zIndex(boxZIndex)
                                     .aspectRatio(1f)
                                     .weight(1f)
                                     .graphicsLayer {
