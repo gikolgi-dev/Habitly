@@ -377,7 +377,8 @@ fun HabitSheetContent(
     onTimePickerClick: () -> Unit,
     hasNotificationPermission: Boolean,
     notificationDays: Set<String>,
-    onNotificationDaySelected: (String) -> Unit
+    onNotificationDaySelected: (String) -> Unit,
+    headerModifier: Modifier = Modifier
 ) {
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
     val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
@@ -409,8 +410,13 @@ fun HabitSheetContent(
         }
     }
 
-    Text(title, style = MaterialTheme.typography.headlineLarge)
-    HorizontalDivider(modifier =Modifier.fillMaxWidth(0.975f).padding(top = 10.dp).alpha(dividerAlpha), color = Color.Gray.copy(alpha = 0.2f))
+    Column(
+        modifier = headerModifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(title, style = MaterialTheme.typography.headlineLarge)
+        HorizontalDivider(modifier =Modifier.fillMaxWidth(0.975f).padding(top = 10.dp).alpha(dividerAlpha), color = Color.Gray.copy(alpha = 0.2f))
+    }
 
     Column(
         modifier = Modifier

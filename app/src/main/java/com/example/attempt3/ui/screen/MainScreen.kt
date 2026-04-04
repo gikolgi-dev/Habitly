@@ -23,6 +23,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -84,6 +85,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -864,9 +866,28 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                             shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
                             color = MaterialTheme.colorScheme.surface
                         ) {
+                            val headerModifier = Modifier.pointerInput(Unit) {
+                                detectVerticalDragGestures(
+                                    onVerticalDrag = { _, dragAmount ->
+                                        if (dragAmount > 0 || sheetOffsetY.value > 0) {
+                                            scope.launch { sheetOffsetY.snapTo((sheetOffsetY.value + dragAmount).coerceAtLeast(0f)) }
+                                        }
+                                    },
+                                    onDragEnd = {
+                                        scope.launch {
+                                            if (sheetOffsetY.value > dismissThresholdPx) {
+                                                showHabitSheet = false
+                                                habitToEdit = null
+                                            } else {
+                                                sheetOffsetY.animateTo(0f, spring())
+                                            }
+                                        }
+                                    }
+                                )
+                            }
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Box(
-                                    modifier = Modifier
+                                    modifier = headerModifier
                                         .padding(vertical = 10.dp)
                                         .fillMaxWidth(0.15f)
                                         .height(4.dp)
@@ -925,7 +946,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                             notificationDays + day
                                         }
                                     },
-                                    hasNotificationPermission = notificationPermissionHandler.hasPermission
+                                    hasNotificationPermission = notificationPermissionHandler.hasPermission,
+                                    headerModifier = headerModifier
                                 )
                             }
                         }
