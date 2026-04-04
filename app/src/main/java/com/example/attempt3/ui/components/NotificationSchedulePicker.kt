@@ -55,6 +55,7 @@ fun NotificationTimeSelectors(
     isEnabled: Boolean,
     borderAlpha: Float,
     is24Hour: Boolean,
+    vibrationsEnabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val alpha by animateFloatAsState(targetValue = if (isEnabled) 1f else 0.5f, label = "")
@@ -131,6 +132,7 @@ fun NotificationTimeSelectors(
         DayOfWeekSelector(
             selectedDays = selectedDays,
             enabled = isEnabled,
+            vibrationsEnabled = vibrationsEnabled,
             onDaySelected = onDaySelected,
             borderAlpha = borderAlpha,
             horizontalPadding = 0.dp

@@ -271,7 +271,9 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     var completionsError by remember { mutableStateOf<String?>(null) }
     var notificationsEnabled by remember { mutableStateOf(false) }
     var notificationTime by remember { mutableStateOf<String?>("09:00") }
-    var notificationDays by remember { mutableStateOf<Set<String>>(emptySet()) }
+    
+    val allDays = remember { setOf("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN") }
+    var notificationDays by remember { mutableStateOf<Set<String>>(allDays) }
 
     fun validate(completionsText: String) {
         if (intervalUnit == "day") {
@@ -623,7 +625,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                 intervalUnit = it.intervalUnit
                                 notificationsEnabled = it.notificationsEnabled
                                 notificationTime = it.notificationTime ?: "09:00"
-                                notificationDays = it.notificationDays?.split(',')?.toSet() ?: emptySet()
+                                notificationDays = it.notificationDays?.split(',')?.toSet() ?: allDays
                                 customColor = null
                                 
                                 habitToEdit = it
@@ -1076,7 +1078,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                     intervalUnit = "day"
                     notificationsEnabled = false
                     notificationTime = "09:00"
-                    notificationDays = emptySet()
+                    notificationDays = allDays
                     customColor = null
                     
                     habitToEdit = null

@@ -881,7 +881,8 @@ fun HabitSheetContent(
                                 onDaySelected = onNotificationDaySelected,
                                 isEnabled = notificationsEnabled && hasNotificationPermission,
                                 borderAlpha = borderContrast,
-                                is24Hour = is24Hour
+                                is24Hour = is24Hour,
+                                vibrationsEnabled = vibrationsEnabled
                             )
                         }
                     }

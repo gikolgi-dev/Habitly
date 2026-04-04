@@ -25,6 +25,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -35,9 +37,11 @@ fun DayOfWeekSelector(
     selectedDays: Set<String>,
     onDaySelected: (String) -> Unit,
     enabled: Boolean = true,
+    vibrationsEnabled: Boolean = true,
     borderAlpha: Float = 0.1f,
     horizontalPadding: Dp = 0.dp
 ) {
+    val haptic = LocalHapticFeedback.current
     val days = listOf("M", "T", "W", "T", "F", "S", "S")
     val dayValues = listOf("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")
     val effectiveBorderAlpha = if (borderAlpha > 0.1f) borderAlpha else 0.1f
@@ -69,7 +73,12 @@ fun DayOfWeekSelector(
                     .background(
                         animatedColorState.value
                     )
-                    .clickable(enabled = enabled) { onDaySelected(day) },
+                    .clickable(enabled = enabled) {
+                        if (vibrationsEnabled) {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        }
+                        onDaySelected(day)
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
