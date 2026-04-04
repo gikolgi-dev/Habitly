@@ -206,10 +206,12 @@ fun HabitCompletionButton(
                 detectTapGestures(
                     onPress = {
                         if (!disablePressAnimation) {
+                            isPressed = true
                         }
                         try {
                             awaitRelease()
                         } finally {
+                            isPressed = false
                         }
                     },
                     onTap = {
