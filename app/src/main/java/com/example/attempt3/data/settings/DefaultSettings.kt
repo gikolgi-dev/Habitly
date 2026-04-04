@@ -2,17 +2,14 @@
 
 package com.example.attempt3.data.settings
 
+// Make the reset to default button only affect and be visible in the appearence settings
 object DefaultSettings {
     const val THEME = "system"
     const val USE_MATERIAL_THEMING = true
     const val MONTH_LABELS = false
     const val VIBRATIONS = true
     const val BORDERS = 0.0f
-    const val DAY_OF_WEEK_LABELS_VISIBLE = false
-    const val DAY_OF_WEEK_LABELS_ON_RIGHT = false
-    const val SHOW_ALL_DAY_OF_WEEK_LABELS = true
     const val HEATMAP_VISIBLE_DAYS = ""
-    const val GLOBAL_NOTIFICATIONS = false
     const val GLOBAL_NOTIFICATION_TIME = "09:00"
     const val GLOBAL_NOTIFICATION_DAYS = "MON,TUE,WED,THU,FRI,SAT,SUN"
     const val SKIP_COMPLETED_HABIT_NOTIFICATIONS = false
@@ -28,4 +25,6 @@ object DefaultSettings {
     const val REDUCE_MOVEMENT_TARGETS = "Rotation,Grid Reactions"
     const val USE_HABIT_COLOR_FOR_CARD = false
     const val HABIT_COLOR_TARGETS = "Habit Cards,Statistic Screen"
+    const val HEATMAP_WEEKS = 20
+    const val HEATMAP_INFINITE = false
 }

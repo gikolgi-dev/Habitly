@@ -35,7 +35,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.attempt3.data.Database.HabitViewModel
 import com.example.attempt3.data.Database.HabitsUiState
-import com.example.attempt3.data.settings.SettingsDataStore
 import com.example.attempt3.ui.AppBackButton
 import com.example.attempt3.ui.components.HabitStatisticsContent
 import com.example.attempt3.ui.components.PageIndicator
@@ -46,19 +45,16 @@ fun StatisticScreen(
     viewModel: HabitViewModel,
     onBack: () -> Unit,
     initialHabitId: String? = null,
-    settingsDataStore: SettingsDataStore
+    borderContrast: Float,
+    vibrationsEnabled: Boolean,
+    showScrollBlur: Boolean,
+    scrollBlurTargets: Set<String>,
+    useHabitColor: Boolean,
+    currentDateMillis: Long = System.currentTimeMillis()
 ) {
     val habitsUiState by viewModel.habitsUiState.collectAsState()
     val habits = (habitsUiState as? HabitsUiState.Success)?.habits ?: emptyList()
-    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
-    val showScrollBlur by settingsDataStore.showScrollBlur.collectAsState(initial = true)
-    val scrollBlurTargets by settingsDataStore.scrollBlurTargets.collectAsState(initial = setOf("Heatmap", "Line Chart"))
-    val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
-    val useHabitColorForCard by settingsDataStore.useHabitColorForCard.collectAsState(initial = true)
-    val habitColorTargets by settingsDataStore.habitColorTargets.collectAsState(initial = setOf("Habit Cards", "Statistic Screen"))
     val haptic = LocalHapticFeedback.current
-
-    val useHabitColorInStatistics = useHabitColorForCard && "Statistic Screen" in habitColorTargets
 
     val actualCount = habits.size
     val pageCount = if (actualCount > 1) Int.MAX_VALUE else actualCount
@@ -106,7 +102,7 @@ fun StatisticScreen(
     }
 
     val animatedBackgroundColor by animateColorAsState(
-        targetValue = if (useHabitColorInStatistics && habits.isNotEmpty()) {
+        targetValue = if (useHabitColor && habits.isNotEmpty()) {
             lerp(currentHabitColor, MaterialTheme.colorScheme.surface, 0.95f)
         } else {
             MaterialTheme.colorScheme.surface
@@ -115,7 +111,7 @@ fun StatisticScreen(
         label = "backgroundColor"
     )
 
-    val backButtonBackgroundColor = if (useHabitColorInStatistics && habits.isNotEmpty()) {
+    val backButtonBackgroundColor = if (useHabitColor && habits.isNotEmpty()) {
         lerp(currentHabitColor, MaterialTheme.colorScheme.surfaceVariant, 0.85f)
     } else {
         MaterialTheme.colorScheme.surfaceVariant
@@ -142,7 +138,7 @@ fun StatisticScreen(
                             }
                             onBack()
                         },
-                        settingsDataStore = settingsDataStore,
+                        borderContrast = borderContrast,
                         icon = Icons.Default.Close,
                         tint = currentHabitColor,
                         backgroundColor = backButtonBackgroundColor
@@ -185,7 +181,7 @@ fun StatisticScreen(
                                 vibrationsEnabled = vibrationsEnabled,
                                 showScrollBlur = showScrollBlur && "Line Chart" in scrollBlurTargets,
                                 borderContrast = borderContrast,
-                                useHabitColorForCard = useHabitColorInStatistics
+                                useHabitColorForCard = useHabitColor
                             )
                         }
                     }
@@ -195,7 +191,7 @@ fun StatisticScreen(
                             habits = habits,
                             currentPage = pagerState.currentPage % actualCount,
                             borderContrast = borderContrast,
-                            useHabitColorForCard = useHabitColorInStatistics,
+                            useHabitColorForCard = useHabitColor,
                             currentHabitColor = currentHabitColor,
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)

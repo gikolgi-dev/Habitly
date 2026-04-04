@@ -150,6 +150,33 @@ class NotificationReceiver : BroadcastReceiver() {
             pendingResult.finish()
             return
         }
+
+        if (intent.action == "ACTION_COMPLETE_HABIT") {
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val dao = HabitDatabase.getDatabase(context).habitDao()
+                    val now = Calendar.getInstance()
+                    val timezoneOffsetInMinutes = java.util.concurrent.TimeUnit.MILLISECONDS.toMinutes(now.timeZone.rawOffset.toLong()).toInt()
+
+                    dao.insertCompletion(
+                        com.example.attempt3.data.Database.Completion(
+                            id = java.util.UUID.randomUUID().toString(),
+                            habitId = habitId,
+                            date = now.timeInMillis,
+                            timezoneOffsetInMinutes = timezoneOffsetInMinutes,
+                            amountOfCompletions = 1
+                        )
+                    )
+
+                    val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                    notificationManager.cancel(habitId.hashCode())
+                } finally {
+                    pendingResult.finish()
+                }
+            }
+            return
+        }
+
         val notificationTime = intent.getStringExtra("notificationTime")
 
         CoroutineScope(Dispatchers.IO).launch {
@@ -240,15 +267,32 @@ class NotificationReceiver : BroadcastReceiver() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val notification = NotificationCompat.Builder(context, "habit_reminders")
+        val builder = NotificationCompat.Builder(context, "habit_reminders")
             .setContentTitle(title)
             .setContentText(contentText)
             .setSmallIcon(R.drawable.ic_stat_name) // Replace with your app icon
             .setContentIntent(activityPendingIntent)
             .setAutoCancel(true)
-            .build()
 
-        notificationManager.notify(habitId.hashCode(), notification)
+        if (!isGeneralNotification) {
+            val actionIntent = Intent(context, NotificationReceiver::class.java).apply {
+                action = "ACTION_COMPLETE_HABIT"
+                putExtra("habitId", habitId)
+            }
+            val actionPendingIntent = PendingIntent.getBroadcast(
+                context,
+                habitId.hashCode() + 1,
+                actionIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            builder.addAction(
+                0,
+                "Complete",
+                actionPendingIntent
+            )
+        }
+
+        notificationManager.notify(habitId.hashCode(), builder.build())
     }
 
     private fun rescheduleHabitAlarm(context: Context, habitId: String, habitName: String?, notificationTime: String) {

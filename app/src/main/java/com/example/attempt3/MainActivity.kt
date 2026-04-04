@@ -34,7 +34,7 @@ class MainActivity : ComponentActivity() {
 
         createNotificationChannel()
 
-        val db = HabitDatabase.Companion.getDatabase(applicationContext)
+        val db = HabitDatabase.getDatabase(applicationContext)
         val habitDao = db.habitDao()
         val settingsDataStore = SettingsDataStore(applicationContext)
         val viewModel: HabitViewModel by viewModels {

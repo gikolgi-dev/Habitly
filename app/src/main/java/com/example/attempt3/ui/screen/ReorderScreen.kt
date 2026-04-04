@@ -55,22 +55,20 @@ import androidx.compose.ui.unit.dp
 import com.example.attempt3.data.Database.Habit
 import com.example.attempt3.data.Database.HabitViewModel
 import com.example.attempt3.data.Database.HabitsUiState
-import com.example.attempt3.data.settings.SettingsDataStore
 import com.example.attempt3.ui.AppBackButton
 import com.example.attempt3.ui.components.RotatingHabitIcon
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ReorderScreen(habitViewModel: HabitViewModel, onBack: () -> Unit, settingsDataStore: SettingsDataStore) {
+fun ReorderScreen(
+    habitViewModel: HabitViewModel,
+    onBack: () -> Unit,
+    borderContrast: Float,
+    vibrationsEnabled: Boolean,
+    useHabitColor: Boolean,
+    disableAnimations: Boolean
+) {
     val habitsUiState by habitViewModel.habitsUiState.collectAsState()
-    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
-    val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
-    
-    val reduceMovement by settingsDataStore.reduceMovement.collectAsState(initial = false)
-    val reduceMovementTargets by settingsDataStore.reduceMovementTargets.collectAsState(initial = emptySet())
-    val disableAnimations = reduceMovement && "Rotation" in reduceMovementTargets
-
-    val useHabitColorForCard by settingsDataStore.useHabitColorForCard.collectAsState(initial = true)
     val haptic = LocalHapticFeedback.current
 
     Scaffold(
@@ -87,7 +85,7 @@ fun ReorderScreen(habitViewModel: HabitViewModel, onBack: () -> Unit, settingsDa
                             }
                             onBack()
                         },
-                        settingsDataStore = settingsDataStore,
+                        borderContrast = borderContrast,
                         icon = Icons.AutoMirrored.Filled.ArrowForward
                     )
                 },
@@ -134,7 +132,7 @@ fun ReorderScreen(habitViewModel: HabitViewModel, onBack: () -> Unit, settingsDa
                                         habit = habit,
                                         borderContrast = borderContrast,
                                         disableAnimations = disableAnimations,
-                                        useHabitColorForCard = useHabitColorForCard,
+                                        useHabitColor = useHabitColor,
                                         modifier = Modifier
                                             .graphicsLayer {
                                                 translationY = displacement
@@ -218,16 +216,16 @@ fun ReorderHabitItem(
     habit: Habit, 
     borderContrast: Float, 
     disableAnimations: Boolean, 
-    useHabitColorForCard: Boolean,
+    useHabitColor: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val cardBackgroundColor = if (useHabitColorForCard) {
+    val cardBackgroundColor = if (useHabitColor) {
         lerp(Color(habit.color), MaterialTheme.colorScheme.surface, 0.85f)
     } else {
         MaterialTheme.colorScheme.surfaceVariant
     }
 
-    val cardBorderColor = if (useHabitColorForCard) {
+    val cardBorderColor = if (useHabitColor) {
         lerp(Color(habit.color), MaterialTheme.colorScheme.surface, 1f - borderContrast)
     } else {
         MaterialTheme.colorScheme.outline.copy(alpha = borderContrast)

@@ -29,7 +29,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,32 +45,31 @@ import androidx.compose.ui.unit.dp
 import com.example.attempt3.data.Database.Habit
 import com.example.attempt3.data.Database.HabitDao
 import com.example.attempt3.data.Database.HabitsUiState
-import com.example.attempt3.data.settings.SettingsDataStore
 import com.example.attempt3.ui.AppBackButton
 import com.example.attempt3.ui.HabitItemCard
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ArchiveScreen(uiState: HabitsUiState, habitDao: HabitDao, onBack: () -> Unit, settingsDataStore: SettingsDataStore) {
+fun ArchiveScreen(
+    uiState: HabitsUiState,
+    habitDao: HabitDao,
+    onBack: () -> Unit,
+    borderContrast: Float,
+    showMonthLabels: Boolean,
+    showYearDivider: Boolean,
+    showYearLabels: Boolean,
+    heatmapVisibleDays: Set<String>,
+    dayOfWeekLabelsOnRight: Boolean,
+    vibrationsEnabled: Boolean,
+    useHabitColor: Boolean,
+    disableAnimations: Boolean,
+    heatmapWeeks: Int = 0,
+    heatmapInfinite: Boolean = false,
+    currentDateMillis: Long = System.currentTimeMillis()
+) {
     val scope = rememberCoroutineScope()
     var habitToDelete by remember { mutableStateOf<Habit?>(null) }
-    val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
-    val showMonthLabels by settingsDataStore.monthLabels.collectAsState(initial = false)
-    val showYearDivider by settingsDataStore.yearDivider.collectAsState(initial = true)
-    val showYearLabels by settingsDataStore.yearLabels.collectAsState(initial = true)
-    val heatmapVisibleDays by settingsDataStore.heatmapVisibleDays.collectAsState(initial = emptySet())
-    val dayOfWeekLabelsOnRight by settingsDataStore.dayOfWeekLabelsOnRight.collectAsState(initial = false)
-    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
-    
-    val useHabitColorForCard by settingsDataStore.useHabitColorForCard.collectAsState(initial = true)
-    
-    val reduceMovement by settingsDataStore.reduceMovement.collectAsState(initial = false)
-    val reduceMovementTargets by settingsDataStore.reduceMovementTargets.collectAsState(initial = emptySet())
-    val disableAnimations = reduceMovement && "Rotation" in reduceMovementTargets
-    
-    val habitColorTargets by settingsDataStore.habitColorTargets.collectAsState(initial = setOf("Habit Cards", "Statistic Screen"))
-    val useHabitColor = useHabitColorForCard && "Habit Cards" in habitColorTargets
     
     val haptic = LocalHapticFeedback.current
 
@@ -130,7 +128,7 @@ fun ArchiveScreen(uiState: HabitsUiState, habitDao: HabitDao, onBack: () -> Unit
                             }
                             onBack()
                         },
-                        settingsDataStore = settingsDataStore,
+                        borderContrast = borderContrast,
                         icon = Icons.AutoMirrored.Filled.ArrowForward
                     )
                 },
@@ -187,6 +185,9 @@ fun ArchiveScreen(uiState: HabitsUiState, habitDao: HabitDao, onBack: () -> Unit
                                     borderContrast = borderContrast,
                                     useHabitColor = useHabitColor,
                                     disableAnimations = disableAnimations,
+                                    heatmapWeeks = heatmapWeeks,
+                                    heatmapInfinite = heatmapInfinite,
+                                    currentDateMillis = currentDateMillis,
                                     onComplete = { },
                                     onClick = { },
                                     onUnarchive = {

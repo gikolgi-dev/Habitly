@@ -13,27 +13,22 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import com.example.attempt3.data.settings.SettingsDataStore
 
 @Composable
 fun AppBackButton(
+    modifier: Modifier = Modifier,
     onBack: () -> Unit,
-    settingsDataStore: SettingsDataStore,
+    borderContrast: Float,
     isRoot: Boolean = false,
     icon: ImageVector = Icons.AutoMirrored.Filled.ArrowBack,
     tint: Color = MaterialTheme.colorScheme.onSurface,
-    backgroundColor: Color = MaterialTheme.colorScheme.surfaceVariant,
-    modifier: Modifier = Modifier
+    backgroundColor: Color = MaterialTheme.colorScheme.surfaceVariant
 ) {
-    val borderContrast by settingsDataStore.borders.collectAsState(initial = 0f)
-    
     Surface(
         onClick = onBack,
         shape = CircleShape,

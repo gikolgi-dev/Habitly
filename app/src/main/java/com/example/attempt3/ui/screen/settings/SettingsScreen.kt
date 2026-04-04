@@ -105,7 +105,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.attempt3.R
 import com.example.attempt3.data.Database.HabitDatabase
-import com.example.attempt3.data.settings.DefaultSettings
 import com.example.attempt3.data.settings.SettingsDataStore
 import com.example.attempt3.notifications.NotificationScheduler
 import com.example.attempt3.ui.AppBackButton
@@ -161,7 +160,15 @@ fun settingsExitTransition() =
 @SuppressLint("DefaultLocale")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: SettingsDataStore) {
+fun SettingsScreen(
+    onDismiss: () -> Unit,
+    db: HabitDatabase,
+    settingsDataStore: SettingsDataStore,
+    vibrationsEnabled: Boolean,
+    borderContrast: Float,
+    is24Hour: Boolean,
+    theme: String
+) {
     val navController = rememberNavController()
     val scope = rememberCoroutineScope()
     val showConfirmationDialog = remember { mutableStateOf(false) }
@@ -170,13 +177,9 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
     var showNotificationSheet by remember { mutableStateOf(false) }
     val context = LocalContext.current
     
-    val globalNotificationsEnabled by settingsDataStore.globalNotificationsEnabled.collectAsState(initial = DefaultSettings.GLOBAL_NOTIFICATIONS)
-    val globalNotificationTime by settingsDataStore.globalNotificationTime.collectAsState(initial = DefaultSettings.GLOBAL_NOTIFICATION_TIME)
-    val globalNotificationDays by settingsDataStore.globalNotificationDays.collectAsState(initial = DefaultSettings.GLOBAL_NOTIFICATION_DAYS.split(',').filter { it.isNotEmpty() }.toSet())
-    val borderContrast by settingsDataStore.borders.collectAsState(initial = DefaultSettings.BORDERS)
-    val is24Hour by settingsDataStore.is24Hour.collectAsState(initial = DefaultSettings.IS_24_HOUR)
-    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
-    val theme by settingsDataStore.theme.collectAsState(initial = DefaultSettings.THEME)
+    val globalNotificationsEnabled by settingsDataStore.globalNotificationsEnabled.collectAsState(initial = false)
+    val globalNotificationTime by settingsDataStore.globalNotificationTime.collectAsState(initial = "09:00")
+    val globalNotificationDays by settingsDataStore.globalNotificationDays.collectAsState(initial = emptySet())
 
     val haptic = LocalHapticFeedback.current
     val notificationScheduler = remember { NotificationScheduler(context) }
@@ -349,7 +352,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
 
     if (showNotificationSheet) {
         ModalBottomSheet(
-            onDismissRequest = { showNotificationSheet = false },
+            onDismissRequest = { },
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
             dragHandle = { BottomSheetDefaults.DragHandle(Modifier.fillMaxWidth(0.15f)) }
         ) {
@@ -397,7 +400,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                 NotificationTimeSelectors(
                     notificationTime = globalNotificationTime,
                     selectedDays = globalNotificationDays,
-                    onTimeClick = { if (isEnabled) showTimePicker = true else notificationPermissionHandler.requestPermission() },
+                    onTimeClick = { if (isEnabled) else notificationPermissionHandler.requestPermission() },
                     onDaySelected = { day ->
                         scope.launch {
                             val newDays = if (globalNotificationDays.contains(day)) {
@@ -446,7 +449,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                     if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
                     onDismiss()
                 },
-                settingsDataStore = settingsDataStore,
+                borderContrast = borderContrast,
                 isRoot = true,
             ) { paddingValues ->
                 val listState = rememberLazyListState()
@@ -491,7 +494,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                             iconColor = MaterialTheme.colorScheme.onTertiary,
                             settingsDataStore = settingsDataStore,
                             position = SettingsItemPosition.Alone
-                        ) { showNotificationSheet = true }
+                        ) { }
                     }
                     item {
                         SettingsGroup(settingsDataStore = settingsDataStore) {
@@ -580,7 +583,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                     if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
                     navController.popBackStack()
                 },
-                settingsDataStore = settingsDataStore,
+                borderContrast = borderContrast,
                 actions = {
                     IconButton(onClick = { scope.launch { settingsDataStore.resetToDefault() } }) {
                         Icon(painter = painterResource(id = R.drawable.resetwrench), contentDescription = "Reset Settings", tint = MaterialTheme.colorScheme.onSurface)
@@ -606,9 +609,28 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                     if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
                     navController.popBackStack()
                 },
-                settingsDataStore = settingsDataStore,
+                borderContrast = borderContrast,
             ) { paddingValues ->
                 GeneralSettingsScreen(
+                    settingsDataStore = settingsDataStore,
+                    onNavigateToHeatmapWeeks = { navController.navigate("heatmap_weeks") { launchSingleTop = true } },
+                    modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
+                )
+            }
+        }
+
+        composable(
+            route = "heatmap_weeks"
+        ) {
+            SettingsScaffold(
+                title = "Week limit",
+                onBack = {
+                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+                    navController.popBackStack()
+                },
+                borderContrast = borderContrast,
+            ) { paddingValues ->
+                HeatmapWeeksSubScreen(
                     settingsDataStore = settingsDataStore,
                     modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
                 )
@@ -624,7 +646,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                     if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
                     navController.popBackStack()
                 },
-                settingsDataStore = settingsDataStore,
+                borderContrast = borderContrast,
             ) { paddingValues ->
                 ImportExportScreen(
                     db = db,
@@ -642,7 +664,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                     if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
                     navController.popBackStack()
                 },
-                settingsDataStore = settingsDataStore,
+                borderContrast = borderContrast,
             ) { paddingValues ->
                 ScrollBlurSubScreen(
                     settingsDataStore = settingsDataStore,
@@ -660,7 +682,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                     if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
                     navController.popBackStack()
                 },
-                settingsDataStore = settingsDataStore,
+                borderContrast = borderContrast,
             ) { paddingValues ->
                 HabitColorSubScreen(
                     settingsDataStore = settingsDataStore,
@@ -678,7 +700,7 @@ fun SettingsScreen(onDismiss: () -> Unit, db: HabitDatabase, settingsDataStore: 
                     if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
                     navController.popBackStack()
                 },
-                settingsDataStore = settingsDataStore,
+                borderContrast = borderContrast,
             ) { paddingValues ->
                 ReduceMovementSubScreen(
                     settingsDataStore = settingsDataStore,
@@ -695,7 +717,7 @@ fun AnimatedVisibilityScope.SettingsScaffold(
     modifier: Modifier = Modifier,
     title: String,
     onBack: () -> Unit,
-    settingsDataStore: SettingsDataStore,
+    borderContrast: Float,
     isRoot: Boolean = false,
     actions: @Composable RowScope.() -> Unit = {},
     content: @Composable (PaddingValues) -> Unit
@@ -773,7 +795,7 @@ fun AnimatedVisibilityScope.SettingsScaffold(
                             .padding(start = 4.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        AppBackButton(onBack = onBack, settingsDataStore = settingsDataStore, isRoot = isRoot)
+                        AppBackButton(onBack = onBack, borderContrast = borderContrast, isRoot = isRoot)
                     }
 
                     // Actions stay at the top

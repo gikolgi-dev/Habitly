@@ -253,12 +253,12 @@ fun StatCard(
 
 @Composable
 fun PageIndicator(
+    modifier: Modifier = Modifier,
     habits: List<HabitWithCompletions>,
     currentPage: Int,
     borderContrast: Float,
     useHabitColorForCard: Boolean = false,
-    currentHabitColor: Color = Color.Transparent,
-    modifier: Modifier = Modifier
+    currentHabitColor: Color = Color.Transparent
 ) {
     val containerColor = if (useHabitColorForCard) {
         lerp(currentHabitColor, MaterialTheme.colorScheme.surfaceVariant, 0.85f).copy(alpha = 0.95f)

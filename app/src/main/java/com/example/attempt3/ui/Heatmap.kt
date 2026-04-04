@@ -38,6 +38,7 @@ import com.example.attempt3.ui.components.HeatmapWeekData
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+import java.util.TimeZone
 import kotlin.math.floor
 
 @Composable
@@ -67,28 +68,24 @@ fun Heatmap(
     showYearDivider: Boolean = true,
     showYearLabels: Boolean = true,
     showScrollBlur: Boolean,
-    minWeeks: Int = 0
+    minWeeks: Int = 0,
+    isInfinite: Boolean = false,
+    currentDateMillis: Long = System.currentTimeMillis()
 ) {
     val density = LocalDensity.current
-    val todayStartMillis = remember {
-        Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }.timeInMillis
+    
+    val tz = remember { TimeZone.getDefault() }
+    
+    val todayDayIndex = remember(currentDateMillis, tz) {
+        val offset = tz.getOffset(currentDateMillis)
+        (currentDateMillis + offset) / 86400000L
     }
 
-    // Normalized completed dates for fast O(1) lookup
-    val completionDates = remember(completions) {
-        val cal = Calendar.getInstance()
+    // Normalized completed dates for fast O(1) lookup using pure math
+    val completionDates = remember(completions, tz) {
         completions.map {
-            cal.timeInMillis = it.date
-            cal.set(Calendar.HOUR_OF_DAY, 0)
-            cal.set(Calendar.MINUTE, 0)
-            cal.set(Calendar.SECOND, 0)
-            cal.set(Calendar.MILLISECOND, 0)
-            cal.timeInMillis
+            val offset = tz.getOffset(it.date)
+            (it.date + offset) / 86400000L
         }.toSet()
     }
 
@@ -128,7 +125,7 @@ fun Heatmap(
                 with(density) { (remainingSpacePx.toFloat() / (numWeeksOnScreen - 1)).toDp() }
             } else minHorizontalSpacing
 
-            val totalWeeks = remember(completions, numWeeksOnScreen, isScrollable, minWeeks) {
+            val totalWeeks = remember(completions, numWeeksOnScreen, isScrollable, minWeeks, isInfinite, currentDateMillis) {
                 val oldestCompletion = if (completions.isNotEmpty()) completions.minOf { it.date } else null
                 val weeksDiff = if (oldestCompletion == null) 0 else {
                     val cal = Calendar.getInstance().apply { firstDayOfWeek = Calendar.MONDAY }
@@ -141,9 +138,9 @@ fun Heatmap(
                     cal.set(Calendar.MILLISECOND, 0)
                     val oldestMon = cal.timeInMillis
 
-                    cal.timeInMillis = System.currentTimeMillis()
+                    cal.timeInMillis = currentDateMillis
                     cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
-                    if (cal.timeInMillis > System.currentTimeMillis()) cal.add(Calendar.WEEK_OF_YEAR, -1)
+                    if (cal.timeInMillis > currentDateMillis) cal.add(Calendar.WEEK_OF_YEAR, -1)
                     cal.set(Calendar.HOUR_OF_DAY, 0)
                     cal.set(Calendar.MINUTE, 0)
                     cal.set(Calendar.SECOND, 0)
@@ -152,51 +149,59 @@ fun Heatmap(
 
                     ((currentMon - oldestMon) / (1000L * 60 * 60 * 24 * 7)).toInt() + 1
                 }
-                if (isScrollable) maxOf(weeksDiff, numWeeksOnScreen, minWeeks) else numWeeksOnScreen
+                if (isScrollable) {
+                    if (isInfinite) {
+                        maxOf(weeksDiff + 2, numWeeksOnScreen, minWeeks)
+                    } else {
+                        maxOf(numWeeksOnScreen, minWeeks)
+                    }
+                } else {
+                    numWeeksOnScreen
+                }
             }
 
-            val weeksData = remember(totalWeeks, showMonthLabels, completionDates, todayStartMillis) {
+            val weeksData = remember(totalWeeks, showMonthLabels, completionDates, todayDayIndex, currentDateMillis, tz) {
                 val monthFormat = SimpleDateFormat("MMM", Locale.getDefault())
                 val cal = Calendar.getInstance().apply {
                     firstDayOfWeek = Calendar.MONDAY
+                    timeInMillis = currentDateMillis
                     set(Calendar.HOUR_OF_DAY, 0)
                     set(Calendar.MINUTE, 0)
                     set(Calendar.SECOND, 0)
                     set(Calendar.MILLISECOND, 0)
                     set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
-                    if (timeInMillis > System.currentTimeMillis()) add(Calendar.WEEK_OF_YEAR, -1)
+                    if (timeInMillis > currentDateMillis) add(Calendar.WEEK_OF_YEAR, -1)
                 }
                 val currentMonday = cal.timeInMillis
-                val dayCal = cal.clone() as Calendar
-
+                
                 val rawWeeks = List(totalWeeks) { weekIndex ->
                     cal.timeInMillis = currentMonday
                     cal.add(Calendar.WEEK_OF_YEAR, -weekIndex)
-                    val weekStart = cal.timeInMillis
+                    val weekStartMillis = cal.timeInMillis
+                    
+                    val offset = tz.getOffset(weekStartMillis)
+                    val weekStartDayIndex = (weekStartMillis + offset) / 86400000L
 
                     val completed = BooleanArray(7)
                     val future = BooleanArray(7)
                     var todayIdx = -1
                     
-                    dayCal.timeInMillis = weekStart
                     for (i in 0..6) {
-                        val d = dayCal.timeInMillis
-                        completed[i] = completionDates.contains(d)
-                        future[i] = d > todayStartMillis
-                        if (d == todayStartMillis) todayIdx = i
-                        dayCal.add(Calendar.DAY_OF_YEAR, 1)
+                        val dayIndex = weekStartDayIndex + i
+                        completed[i] = completionDates.contains(dayIndex)
+                        future[i] = dayIndex > todayDayIndex
+                        if (dayIndex == todayDayIndex) todayIdx = i
                     }
 
-                    // Year transition check
-                    dayCal.timeInMillis = weekStart
-                    dayCal.add(Calendar.DAY_OF_YEAR, 6)
-                    val yearEnd = dayCal.get(Calendar.YEAR)
-                    dayCal.add(Calendar.WEEK_OF_YEAR, -1)
-                    val yearPrev = dayCal.get(Calendar.YEAR)
+                    // Year transition check using minimal calendar operations
+                    cal.add(Calendar.DAY_OF_YEAR, 6)
+                    val yearEnd = cal.get(Calendar.YEAR)
+                    cal.add(Calendar.WEEK_OF_YEAR, -1)
+                    val yearPrev = cal.get(Calendar.YEAR)
                     val isStartOfYear = yearEnd != yearPrev
                     val yearDigits = if (isStartOfYear) yearEnd.toString() else null
 
-                    Triple(weekStart, Triple(completed.toList(), future.toList(), todayIdx), Pair(isStartOfYear, yearDigits))
+                    Triple(weekStartMillis, Triple(completed.toList(), future.toList(), todayIdx), Pair(isStartOfYear, yearDigits))
                 }
 
                 val monthLabels = MutableList<String?>(totalWeeks) { null }
@@ -223,8 +228,8 @@ fun Heatmap(
                     }
                 }
 
-                rawWeeks.mapIndexed { index, (start, status, year) ->
-                    HeatmapWeekData(start, status.first, status.second, status.third, monthLabels[index], year.first, year.second)
+                rawWeeks.mapIndexed { index, (startMillis, status, year) ->
+                    HeatmapWeekData(startMillis, status.first, status.second, status.third, monthLabels[index], year.first, year.second)
                 }
             }
 
@@ -271,10 +276,11 @@ private fun DayOfWeekLabels(
             labels.forEachIndexed { index, label ->
                 val isVisible = dayValues[index] in visibleDayLabels
                 Box(Modifier.height(cellSize), contentAlignment = Alignment.Center) {
+                    val alpha = if (isVisible) 0.6f else 0f
                     Text(
                         text = label,
                         fontSize = 8.sp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (isVisible) 0.6f else 0f),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha),
                         style = LocalTextStyle.current.copy(
                             platformStyle = PlatformTextStyle(includeFontPadding = false),
                             lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.Both)

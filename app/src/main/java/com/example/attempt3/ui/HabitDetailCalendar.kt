@@ -19,11 +19,13 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -47,11 +49,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import com.example.attempt3.data.Database.Completion
 import com.example.attempt3.ui.colors.isBright
 import kotlinx.coroutines.delay
@@ -74,6 +78,7 @@ fun MonthCalendar(
     habitColor: Color,
     vibrationsEnabled: Boolean = true,
     reduceGridReactions: Boolean = false,
+    currentDateMillis: Long = System.currentTimeMillis(),
     onDateClick: (Calendar, Boolean) -> Unit
 ) {
     val initialPage = 1200
@@ -81,15 +86,42 @@ fun MonthCalendar(
         initialPage = initialPage,
         pageCount = { initialPage + 1 }
     )
-    val today = remember { Calendar.getInstance().apply {
+
+    val today = remember(currentDateMillis) { Calendar.getInstance().apply {
+        timeInMillis = currentDateMillis
         set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
     }}
 
-    val displayedMonth = remember(pagerState.currentPage) {
+    val displayedMonth = remember(pagerState.currentPage, today) {
         val cal = today.clone() as Calendar
+        cal.set(Calendar.DAY_OF_MONTH, 1) // Set to 1st to avoid rollover when adding months
         cal.add(Calendar.MONTH, pagerState.currentPage - initialPage)
         cal
     }
+
+    // Calculate number of rows for the current displayed month to handle dynamic height
+    val displayedMonthNumRows = remember(displayedMonth) {
+        val currentMonth = displayedMonth.get(Calendar.MONTH)
+        val currentYear = displayedMonth.get(Calendar.YEAR)
+        
+        val firstDayOfMonthOffset = (Calendar.getInstance().apply {
+            set(Calendar.DAY_OF_MONTH, 1)
+            set(Calendar.YEAR, currentYear)
+            set(Calendar.MONTH, currentMonth)
+        }.get(Calendar.DAY_OF_WEEK) - Calendar.MONDAY + 7) % 7
+        
+        val daysInMonth = displayedMonth.getActualMaximum(Calendar.DAY_OF_MONTH)
+        (firstDayOfMonthOffset + daysInMonth + 6) / 7
+    }
+
+    val animatedNumRows by animateFloatAsState(
+        targetValue = displayedMonthNumRows.toFloat(),
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioLowBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "animatedNumRows"
+    )
 
     var pressedCellIndex by remember { mutableStateOf<Int?>(null) }
     val scope = rememberCoroutineScope()
@@ -143,7 +175,7 @@ fun MonthCalendar(
                         month.getDisplayName(
                             Calendar.MONTH,
                             Calendar.LONG,
-                            LocalLocale.current.platformLocale
+                            LocalConfiguration.current.locales[0]
                         )
                     } ${month.get(Calendar.YEAR)}",
                     style = MaterialTheme.typography.titleMedium,
@@ -197,36 +229,79 @@ fun MonthCalendar(
         // Calendar grid
         HorizontalPager(
             state = pagerState,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .layout { measurable, constraints ->
+                    val padPx = 16.dp.roundToPx()
+                    val spacingPx = 4.dp.roundToPx()
+
+                    // Inflate width constraint by padding on both sides to widen the pager's clipping bounds
+                    val placeable = measurable.measure(
+                        constraints.copy(
+                            maxWidth = constraints.maxWidth + padPx * 2
+                        )
+                    )
+
+                    // Calculate expected height based on the number of rows of the currently displayed month.
+                    // The content width is actually equal to constraints.maxWidth because:
+                    // Pager width = maxWidth + 32px, and contentPadding = 16px on each side.
+                    // So content width = (maxWidth + 32) - 32 = maxWidth.
+                    val availableWidth = constraints.maxWidth
+                    val cellWidth = (availableWidth - 6 * spacingPx) / 7f
+
+                    val gridHeight = (animatedNumRows * cellWidth + (animatedNumRows - 1) * spacingPx).toInt()
+
+                    layout(constraints.maxWidth, gridHeight) {
+                        // Place at -padPx to align the grid correctly while allowing bleed into the 16dp padding
+                        placeable.place(-padPx, -padPx)
+                    }
+                },
+            contentPadding = PaddingValues(horizontal = 16.dp),
             pageSpacing = 16.dp,
             verticalAlignment = Alignment.Top
         ) { page ->
+            val month = remember(page, today) {
+                val cal = today.clone() as Calendar
+                cal.set(Calendar.DAY_OF_MONTH, 1)
+                cal.add(Calendar.MONTH, page - initialPage)
+                cal
+            }
+
+            val currentMonth = month.get(Calendar.MONTH)
+            val currentYear = month.get(Calendar.YEAR)
+
+            val firstDayOfMonthOffset = remember(month) {
+                (Calendar.getInstance().apply {
+                    set(Calendar.DAY_OF_MONTH, 1)
+                    set(Calendar.YEAR, currentYear)
+                    set(Calendar.MONTH, currentMonth)
+                }.get(Calendar.DAY_OF_WEEK) - Calendar.MONDAY + 7) % 7
+            }
+
+            val daysInMonth = remember(month) {
+                month.getActualMaximum(Calendar.DAY_OF_MONTH)
+            }
+
+            val totalCells = firstDayOfMonthOffset + daysInMonth
+            val numRows = (totalCells + 6) / 7
+
             Column(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
+                // Inflate vertical bounds to prevent clipping at top/bottom without shifting visible content!
+                modifier = Modifier.padding(vertical = 16.dp)
             ) {
-                val month = remember(page) {
-                    val cal = today.clone() as Calendar
-                    cal.add(Calendar.MONTH, page - initialPage)
-                    cal
-                }
-
-                val currentMonth = month.get(Calendar.MONTH)
-                val currentYear = month.get(Calendar.YEAR)
-
-                val firstDayOfMonthOffset = (Calendar.getInstance().apply {
-                    set(Calendar.YEAR, currentYear); set(Calendar.MONTH, currentMonth); set(Calendar.DAY_OF_MONTH, 1)
-                }.get(Calendar.DAY_OF_WEEK) - Calendar.MONDAY + 7) % 7
-
-                val daysInMonth = Calendar.getInstance()
-                    .apply { set(Calendar.YEAR, currentYear); set(Calendar.MONTH, currentMonth) }
-                    .getActualMaximum(Calendar.DAY_OF_MONTH)
-
-                val totalCells = firstDayOfMonthOffset + daysInMonth
-                val numRows = (totalCells + 6) / 7
-
                 for (week in 0 until numRows) {
+                    val rowDistance = if (pressedCellIndex != null) kotlin.math.abs(week - (pressedCellIndex!! / 7)).toFloat() else 100f
+                    val rowZIndex by animateFloatAsState(
+                        targetValue = if (!reduceGridReactions && pressedCellIndex != null) (100f - rowDistance).coerceAtLeast(0f) else 0f,
+                        animationSpec = spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessLow),
+                        label = "rowZIndex"
+                    )
+
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .zIndex(rowZIndex),
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         for (dayOfWeek in 0..6) {
@@ -269,6 +344,12 @@ fun MonthCalendar(
                                 animationSpec = spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessLow),
                                 label = "scale"
                             )
+                            
+                            val boxZIndex by animateFloatAsState(
+                                targetValue = if (!reduceGridReactions && pressedCellIndex != null) (100f - distance).coerceAtLeast(0f) else 0f,
+                                animationSpec = spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessLow),
+                                label = "boxZIndex"
+                            )
 
                             val maxDist = 4.5f
                             val translationX by animateFloatAsState(
@@ -292,6 +373,7 @@ fun MonthCalendar(
 
                             Box(
                                 modifier = Modifier
+                                    .zIndex(boxZIndex)
                                     .aspectRatio(1f)
                                     .weight(1f)
                                     .graphicsLayer {

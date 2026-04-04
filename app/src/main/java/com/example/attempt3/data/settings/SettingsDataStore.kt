@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
@@ -44,6 +45,8 @@ class SettingsDataStore(private val context: Context) {
         val REDUCE_MOVEMENT_TARGETS_KEY = stringPreferencesKey("reduce_movement_targets")
         val USE_HABIT_COLOR_FOR_CARD_KEY = booleanPreferencesKey("use_habit_color_for_card")
         val HABIT_COLOR_TARGETS_KEY = stringPreferencesKey("habit_color_targets")
+        val HEATMAP_WEEKS_KEY = intPreferencesKey("heatmap_weeks")
+        val HEATMAP_INFINITE_KEY = booleanPreferencesKey("heatmap_infinite")
     }
 
     val theme: Flow<String> = context.dataStore.data
@@ -327,26 +330,42 @@ class SettingsDataStore(private val context: Context) {
         }
     }
 
+    val heatmapWeeks: Flow<Int> = context.dataStore.data
+        .map { preferences ->
+            preferences[HEATMAP_WEEKS_KEY] ?: DefaultSettings.HEATMAP_WEEKS
+        }
+
+    suspend fun setHeatmapWeeks(weeks: Int) {
+        context.dataStore.edit { settings ->
+            settings[HEATMAP_WEEKS_KEY] = weeks
+        }
+    }
+
+    val heatmapInfinite: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[HEATMAP_INFINITE_KEY] ?: DefaultSettings.HEATMAP_INFINITE
+        }
+
+    suspend fun setHeatmapInfinite(infinite: Boolean) {
+        context.dataStore.edit { settings ->
+            settings[HEATMAP_INFINITE_KEY] = infinite
+        }
+    }
+
+    // Make the reset to default button only affect and be visible in the appearence settings
     suspend fun resetToDefault() {
         context.dataStore.edit { settings ->
+            // Appearance settings
             settings[THEME_KEY] = DefaultSettings.THEME
             settings[USE_MATERIAL_THEMING_KEY] = true
             settings[MONTH_LABELS_KEY] = false
-            settings[VIBRATIONS_KEY] = true
             settings[BORDERS_KEY] = DefaultSettings.BORDERS
             settings[DAY_OF_WEEK_LABELS_VISIBLE_KEY] = false
             settings[DAY_OF_WEEK_LABELS_ON_RIGHT_KEY] = false
             settings[SHOW_ALL_DAY_OF_WEEK_LABELS_KEY] = true
             settings[HEATMAP_VISIBLE_DAYS_KEY] = DefaultSettings.HEATMAP_VISIBLE_DAYS
-            settings[GLOBAL_NOTIFICATIONS_KEY] = false
-            settings[GLOBAL_NOTIFICATION_TIME_KEY] = DefaultSettings.GLOBAL_NOTIFICATION_TIME
-            settings[GLOBAL_NOTIFICATION_DAYS_KEY] = DefaultSettings.GLOBAL_NOTIFICATION_DAYS
-            settings[SKIP_COMPLETED_HABIT_NOTIFICATIONS_KEY] = false
-            settings[IS_24_HOUR_KEY] = false
-            settings[HERO_CARD_VISIBLE_KEY] = true
             settings[YEAR_DIVIDER_KEY] = false
             settings[YEAR_LABELS_KEY] = false
-            settings[HEATMAP_SCROLLING_KEY] = false
             settings[SHOW_SCROLL_BLUR_KEY] = true
             settings[SCROLL_BLUR_TARGETS_KEY] = DefaultSettings.SCROLL_BLUR_TARGETS
             settings[REDUCE_MOVEMENT_KEY] = DefaultSettings.REDUCE_MOVEMENT

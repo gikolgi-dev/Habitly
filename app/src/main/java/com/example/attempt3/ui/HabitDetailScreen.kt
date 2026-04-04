@@ -8,7 +8,10 @@ import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -27,6 +30,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -59,12 +63,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.example.attempt3.data.Database.Completion
 import com.example.attempt3.data.Database.Habit
@@ -75,7 +80,7 @@ import java.util.Calendar
 import java.util.concurrent.TimeUnit
 
 
-@OptIn(ExperimentalSharedTransitionApi::class)
+@OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SharedTransitionScope.HabitDetailScreen(
     habitWithCompletions: HabitWithCompletions,
@@ -94,15 +99,21 @@ fun SharedTransitionScope.HabitDetailScreen(
     dayOfWeekLabelsOnRight: Boolean,
     heatmapVisibleDays: Set<String>,
     disableAnimations: Boolean,
-    useHabitColorForCard: Boolean,
-    theme: String
+    useHabitColor: Boolean,
+    theme: String,
+    heatmapWeeks: Int = 0,
+    heatmapInfinite: Boolean = false,
+    currentDateMillis: Long = System.currentTimeMillis(),
+    isEditSheetOpen: Boolean = false
 ) {
     val haptic = LocalHapticFeedback.current
     var showDeleteConfirmation by remember { mutableStateOf(false) } // State for delete confirmation dialog
     val habit = habitWithCompletions.habit
     val completions = habitWithCompletions.completions
-    val animatedColor by animateColorAsState(targetValue = Color(habit.color), animationSpec = tween(durationMillis = 500))
-    val streak = remember(habit, completions) { calculateStreak(habit, completions) }
+    
+    val animatedColorState = animateColorAsState(targetValue = Color(habit.color), animationSpec = tween(durationMillis = 500))
+    
+    val streak = remember(habit, completions, currentDateMillis) { calculateStreak(habit, completions, currentDateMillis) }
 
     val useDarkTheme = when (theme) {
         "light" -> false
@@ -111,13 +122,13 @@ fun SharedTransitionScope.HabitDetailScreen(
     }
     val secondaryContainerAlpha = if (useDarkTheme) 0.25f else 1f
 
-    val cardBackgroundColor = if (useHabitColorForCard) {
+    val cardBackgroundColor = if (useHabitColor) {
         lerp(Color(habit.color), MaterialTheme.colorScheme.surfaceVariant, 0.85f)
     } else {
         MaterialTheme.colorScheme.surfaceVariant
     }
 
-    val cardBorderColor = if (useHabitColorForCard) {
+    val cardBorderColor = if (useHabitColor) {
         lerp(Color(habit.color), lerp(Color(habit.color), MaterialTheme.colorScheme.surfaceVariant, 0.85f), 1f - borderContrast)
     } else {
         MaterialTheme.colorScheme.outline.copy(alpha = borderContrast)
@@ -159,20 +170,45 @@ fun SharedTransitionScope.HabitDetailScreen(
         )
     }
 
+    val animatedPaddingTopState = animateDpAsState(
+        targetValue = if (isEditSheetOpen) 60.dp else 160.dp,
+        animationSpec = if (isEditSheetOpen) {
+            tween(durationMillis = 300, easing = FastOutSlowInEasing)
+        } else {
+            tween(durationMillis = 250, easing = FastOutSlowInEasing)
+        },
+        label = "paddingTop"
+    )
+    val animatedScaleState = animateFloatAsState(
+        targetValue = if (isEditSheetOpen) 0.9f else 1f,
+        animationSpec = if (isEditSheetOpen) {
+            tween(durationMillis = 300, easing = FastOutSlowInEasing)
+        } else {
+            tween(durationMillis = 300, delayMillis = 200, easing = LinearOutSlowInEasing)
+        },
+        label = "scale"
+    )
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null
-            ) { onDismiss() },
-        contentAlignment = Alignment.Center
+            ) { if (!isEditSheetOpen) onDismiss() }
+            .offset { IntOffset(0, animatedPaddingTopState.value.roundToPx()) }
+            .padding(bottom = 16.dp),
+        contentAlignment = Alignment.TopCenter
     ) {
         Card(
             modifier = Modifier
-                .sharedElement(
+                .graphicsLayer {
+                    scaleX = animatedScaleState.value
+                    scaleY = animatedScaleState.value
+                }
+                .sharedElementWithCallerManagedVisibility(
                     rememberSharedContentState(key = "card-${habit.id}"),
-                    animatedVisibilityScope = animatedVisibilityScope
+                    visible = !isEditSheetOpen
                 )
                 .fillMaxWidth(0.9f)
                 .clickable(
@@ -192,8 +228,8 @@ fun SharedTransitionScope.HabitDetailScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(10.dp)
                     .verticalScroll(scrollState, enabled = scrollState.maxValue > 0)
+                    .padding(10.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -220,10 +256,13 @@ fun SharedTransitionScope.HabitDetailScreen(
                         )
                         Box(
                         modifier = Modifier
-                            .scale(closeScale)
+                            .graphicsLayer {
+                                scaleX = closeScale
+                                scaleY = closeScale
+                            }
                             .size(48.dp)
                             .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.secondaryContainer.copy(secondaryContainerAlpha))
+                            .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = secondaryContainerAlpha))
                             .border(
                                 1.dp,
                                 cardBorderColor,
@@ -264,7 +303,7 @@ fun SharedTransitionScope.HabitDetailScreen(
 
                 Heatmap(
                     completions = completions,
-                    habitColor = animatedColor,
+                    habitColor = animatedColorState.value,
                     modifier = Modifier.fillMaxWidth().padding(top = if (showMonthLabels) 0.dp else 8.dp),
                     showMonthLabels = showMonthLabels,
                     visibleDayLabels = heatmapVisibleDays,
@@ -272,7 +311,9 @@ fun SharedTransitionScope.HabitDetailScreen(
                     showYearDivider = showYearDivider,
                     showYearLabels = showYearLabels,
                     showScrollBlur = showScrollBlur,
-                    minWeeks = 30 // Display a bit more heatmap columns even if they are empty
+                    minWeeks = maxOf(30, heatmapWeeks), // Display a bit more heatmap columns even if they are empty
+                    isInfinite = heatmapInfinite,
+                    currentDateMillis = currentDateMillis
                 )
 
                 //Spacer(modifier = Modifier.height(4.dp))
@@ -289,7 +330,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                             modifier = Modifier
                                 .size(35.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.secondaryContainer.copy(secondaryContainerAlpha))
+                                .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = secondaryContainerAlpha))
                                 .border(
                                     1.dp,
                                     cardBorderColor,
@@ -317,7 +358,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                             modifier = Modifier
                                 .size(35.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.secondaryContainer.copy(secondaryContainerAlpha))
+                                .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = secondaryContainerAlpha))
                                 .border(
                                     1.dp,
                                     cardBorderColor,
@@ -348,7 +389,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                             modifier = Modifier
                                 .size(35.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.secondaryContainer.copy(secondaryContainerAlpha))
+                                .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = secondaryContainerAlpha))
                                 .border(
                                     1.dp,
                                     cardBorderColor,
@@ -381,7 +422,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                             modifier = Modifier
                                 .height(35.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.secondaryContainer.copy(secondaryContainerAlpha))
+                                .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = secondaryContainerAlpha))
                                 .border(
                                     1.dp,
                                     cardBorderColor,
@@ -430,9 +471,10 @@ fun SharedTransitionScope.HabitDetailScreen(
                 MonthCalendar(
                     //modifier = Modifier.padding(horizontal = 8.dp),
                     completions = completions,
-                    habitColor = animatedColor,
+                    habitColor = animatedColorState.value,
                     vibrationsEnabled = vibrationsEnabled,
                     reduceGridReactions = disableAnimations,
+                    currentDateMillis = currentDateMillis,
                     onDateClick = { date, isCompleted ->
                         // Haptic moved to MonthCalendar to ensure it happens on press
                         viewModel.toggleCompletion(habit, date, isCompleted)
@@ -443,12 +485,13 @@ fun SharedTransitionScope.HabitDetailScreen(
     }
 }
 
-private fun calculateStreak(habit: Habit, completions: List<Completion>): Int {
+private fun calculateStreak(habit: Habit, completions: List<Completion>, currentDateMillis: Long): Int {
     if (completions.isEmpty()) return 0
 
     val sortedDates = completions.map { it.date }.sortedDescending()
     
     val today = Calendar.getInstance()
+    today.timeInMillis = currentDateMillis
     today.set(Calendar.HOUR_OF_DAY, 0)
     today.set(Calendar.MINUTE, 0)
     today.set(Calendar.SECOND, 0)
@@ -495,6 +538,7 @@ private fun calculateStreak(habit: Habit, completions: List<Completion>): Int {
         }
         "week" -> {
             val c = Calendar.getInstance()
+            c.timeInMillis = currentDateMillis
             c.set(Calendar.HOUR_OF_DAY, 0)
             c.set(Calendar.MINUTE, 0)
             c.set(Calendar.SECOND, 0)
@@ -563,6 +607,7 @@ private fun calculateStreak(habit: Habit, completions: List<Completion>): Int {
         }
         "month" -> {
             val c = Calendar.getInstance()
+            c.timeInMillis = currentDateMillis
             c.set(Calendar.HOUR_OF_DAY, 0)
             c.set(Calendar.MINUTE, 0)
             c.set(Calendar.SECOND, 0)
