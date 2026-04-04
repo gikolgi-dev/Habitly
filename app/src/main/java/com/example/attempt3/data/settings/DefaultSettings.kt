@@ -9,11 +9,7 @@ object DefaultSettings {
     const val MONTH_LABELS = false
     const val VIBRATIONS = true
     const val BORDERS = 0.0f
-    const val DAY_OF_WEEK_LABELS_VISIBLE = false
-    const val DAY_OF_WEEK_LABELS_ON_RIGHT = false
-    const val SHOW_ALL_DAY_OF_WEEK_LABELS = true
     const val HEATMAP_VISIBLE_DAYS = ""
-    const val GLOBAL_NOTIFICATIONS = false
     const val GLOBAL_NOTIFICATION_TIME = "09:00"
     const val GLOBAL_NOTIFICATION_DAYS = "MON,TUE,WED,THU,FRI,SAT,SUN"
     const val SKIP_COMPLETED_HABIT_NOTIFICATIONS = false

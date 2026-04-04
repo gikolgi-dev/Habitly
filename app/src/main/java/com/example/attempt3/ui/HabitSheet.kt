@@ -500,14 +500,12 @@ private fun CloseButton(
             .pointerInput(Unit) {
                 detectTapGestures(
                     onPress = {
-                        isClosePressed = true
                         if (vibrationsEnabled) {
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         }
                         try {
                             awaitRelease()
                         } finally {
-                            isClosePressed = false
                         }
                     },
                     onTap = {
@@ -582,7 +580,6 @@ fun HabitSheetContent(
     // Scroll to bottom when notifications are enabled to follow expansion
     LaunchedEffect(notificationsEnabled, hasNotificationPermission) {
         if (isInitial) {
-            isInitial = false
             return@LaunchedEffect
         }
         if (notificationsEnabled && hasNotificationPermission) {

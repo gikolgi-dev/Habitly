@@ -48,6 +48,7 @@ import java.util.Calendar
 
 @Composable
 fun NotificationTimeSelectors(
+    modifier: Modifier = Modifier,
     notificationTime: String,
     selectedDays: Set<String>,
     onTimeClick: () -> Unit,
@@ -55,8 +56,7 @@ fun NotificationTimeSelectors(
     isEnabled: Boolean,
     borderAlpha: Float,
     is24Hour: Boolean,
-    vibrationsEnabled: Boolean = true,
-    modifier: Modifier = Modifier
+    vibrationsEnabled: Boolean = true
 ) {
     val alpha by animateFloatAsState(targetValue = if (isEnabled) 1f else 0.5f, label = "")
 

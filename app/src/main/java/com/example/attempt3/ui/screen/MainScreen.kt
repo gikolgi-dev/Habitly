@@ -252,16 +252,9 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     var initialHabitIdForStats by remember { mutableStateOf<String?>(null) }
     var isFabMenuExpanded by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
-
-    var cachedHabitToView by remember { mutableStateOf<HabitWithCompletions?>(null) }
-    if (habitToView != null) {
-        cachedHabitToView = habitToView
-    }
-
     val isEditMode = habitToEdit != null
     val title = if (isEditMode) "Edit Habit" else "Add New Habit"
     val buttonText = if (isEditMode) "Save Changes" else "Save"
-
     var habitName by remember { mutableStateOf("") }
     var habitDescription by remember { mutableStateOf("") }
     var habitColor by remember { mutableStateOf(habitColors.first()) }
@@ -273,7 +266,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     var notificationTime by remember { mutableStateOf<String?>("09:00") }
     
     val allDays = remember { setOf("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN") }
-    var notificationDays by remember { mutableStateOf<Set<String>>(allDays) }
+    var notificationDays by remember { mutableStateOf(allDays) }
 
     fun validate(completionsText: String) {
         if (intervalUnit == "day") {
@@ -794,8 +787,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                             existingCompletionsForEdit
                         } else {
                             val list = mutableListOf<Completion>()
-                            val cal = java.util.Calendar.getInstance()
-                            cal.add(java.util.Calendar.DAY_OF_YEAR, -60)
+                            val cal = Calendar.getInstance()
+                            cal.add(Calendar.DAY_OF_YEAR, -60)
                             val random = java.util.Random(42) // Fixed seed for stable "random"
                             for (_i in 0..60) {
                                 if (random.nextBoolean()) {
@@ -809,7 +802,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                         )
                                     )
                                 }
-                                cal.add(java.util.Calendar.DAY_OF_YEAR, 1)
+                                cal.add(Calendar.DAY_OF_YEAR, 1)
                             }
                             list
                         }

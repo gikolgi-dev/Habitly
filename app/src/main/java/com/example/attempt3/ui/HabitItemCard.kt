@@ -145,13 +145,13 @@ fun HabitTitleAndDescription(
 
 @Composable
 fun HabitCompletionButton(
+    modifier: Modifier = Modifier,
     habit: Habit,
     isCompleted: Boolean,
     borderContrast: Float,
     disableAnimations: Boolean,
     disablePressAnimation: Boolean = false,
-    onComplete: () -> Unit,
-    modifier: Modifier = Modifier
+    onComplete: () -> Unit
 ) {
     val color = Color(habit.color)
     val transition = updateTransition(targetState = isCompleted, label = "CompletionTransition")
@@ -206,12 +206,10 @@ fun HabitCompletionButton(
                 detectTapGestures(
                     onPress = {
                         if (!disablePressAnimation) {
-                            isPressed = true
                         }
                         try {
                             awaitRelease()
                         } finally {
-                            isPressed = false
                         }
                     },
                     onTap = {

@@ -21,13 +21,13 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun AppBackButton(
+    modifier: Modifier = Modifier,
     onBack: () -> Unit,
     borderContrast: Float,
     isRoot: Boolean = false,
     icon: ImageVector = Icons.AutoMirrored.Filled.ArrowBack,
     tint: Color = MaterialTheme.colorScheme.onSurface,
-    backgroundColor: Color = MaterialTheme.colorScheme.surfaceVariant,
-    modifier: Modifier = Modifier
+    backgroundColor: Color = MaterialTheme.colorScheme.surfaceVariant
 ) {
     Surface(
         onClick = onBack,

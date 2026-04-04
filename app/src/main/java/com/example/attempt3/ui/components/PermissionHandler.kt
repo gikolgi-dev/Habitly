@@ -104,7 +104,6 @@ fun rememberNotificationPermissionHandler(
                     val currentStatus = ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
                     
                     if (currentStatus == PackageManager.PERMISSION_GRANTED) {
-                        hasPermission = true
                         onPermissionGranted()
                     } else {
                         // If we've already shown rationale and it's still denied, 
@@ -120,13 +119,11 @@ fun rememberNotificationPermissionHandler(
                         if (!shouldShowRationale && hasPermission == false) {
                             // This state often means "Don't ask again" was selected previously.
                             // We'll show the settings dialog.
-                            showSettingsDialog = true
                         } else {
                             launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
                         }
                     }
                 } else {
-                    hasPermission = true
                     onPermissionGranted()
                 }
             }

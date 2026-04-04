@@ -352,7 +352,7 @@ fun SettingsScreen(
 
     if (showNotificationSheet) {
         ModalBottomSheet(
-            onDismissRequest = { showNotificationSheet = false },
+            onDismissRequest = { },
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
             dragHandle = { BottomSheetDefaults.DragHandle(Modifier.fillMaxWidth(0.15f)) }
         ) {
@@ -400,7 +400,7 @@ fun SettingsScreen(
                 NotificationTimeSelectors(
                     notificationTime = globalNotificationTime,
                     selectedDays = globalNotificationDays,
-                    onTimeClick = { if (isEnabled) showTimePicker = true else notificationPermissionHandler.requestPermission() },
+                    onTimeClick = { if (isEnabled) else notificationPermissionHandler.requestPermission() },
                     onDaySelected = { day ->
                         scope.launch {
                             val newDays = if (globalNotificationDays.contains(day)) {
@@ -494,7 +494,7 @@ fun SettingsScreen(
                             iconColor = MaterialTheme.colorScheme.onTertiary,
                             settingsDataStore = settingsDataStore,
                             position = SettingsItemPosition.Alone
-                        ) { showNotificationSheet = true }
+                        ) { }
                     }
                     item {
                         SettingsGroup(settingsDataStore = settingsDataStore) {

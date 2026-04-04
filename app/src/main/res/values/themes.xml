@@ -1,8 +1,9 @@
 <resources>
     <!-- Base application theme. -->
     <style name="Theme.Attempt3" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="android:navigationBarColor">@android:color/transparent</item>
-        <item name="android:windowLightNavigationBar">true</item>
+        <!-- Fallback for API < 27 where dark icons are not supported. 
+             Using a semi-transparent background ensures white icons are visible. -->
+        <item name="android:navigationBarColor">#80000000</item>
     </style>
 
     <!-- Splash Screen Theme. -->
