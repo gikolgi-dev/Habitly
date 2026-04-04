@@ -4,7 +4,6 @@ package com.example.attempt3.ui
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -115,6 +114,15 @@ fun MonthCalendar(
         (firstDayOfMonthOffset + daysInMonth + 6) / 7
     }
 
+    val animatedNumRows by animateFloatAsState(
+        targetValue = displayedMonthNumRows.toFloat(),
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioLowBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "animatedNumRows"
+    )
+
     var pressedCellIndex by remember { mutableStateOf<Int?>(null) }
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
@@ -131,7 +139,7 @@ fun MonthCalendar(
         }.toSet()
     }
 
-    Column(modifier = modifier.animateContentSize()) {
+    Column(modifier = modifier) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -241,7 +249,7 @@ fun MonthCalendar(
                     val availableWidth = constraints.maxWidth
                     val cellWidth = (availableWidth - 6 * spacingPx) / 7f
                     
-                    val gridHeight = (displayedMonthNumRows * cellWidth + (displayedMonthNumRows - 1) * spacingPx).toInt()
+                    val gridHeight = (animatedNumRows * cellWidth + (animatedNumRows - 1) * spacingPx).toInt()
                     
                     layout(constraints.maxWidth, gridHeight) {
                         // Place at -padPx to align the grid correctly while allowing bleed into the 16dp padding
