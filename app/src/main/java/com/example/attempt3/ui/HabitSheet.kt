@@ -392,8 +392,14 @@ fun HabitSheetContent(
     var pressedIconIndex by remember { mutableStateOf<Int?>(null) }
     var pressedColorIndex by remember { mutableStateOf<Int?>(null) }
 
+    var isInitial by remember { mutableStateOf(true) }
+
     // Scroll to bottom when notifications are enabled to follow expansion
     LaunchedEffect(notificationsEnabled, hasNotificationPermission) {
+        if (isInitial) {
+            isInitial = false
+            return@LaunchedEffect
+        }
         if (notificationsEnabled && hasNotificationPermission) {
             withTimeoutOrNull(600) {
                 snapshotFlow { scrollState.maxValue }.collect { max ->
