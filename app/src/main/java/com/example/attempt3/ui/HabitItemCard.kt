@@ -16,8 +16,6 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -49,9 +47,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Matrix
@@ -59,6 +55,9 @@ import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asAndroidPath
+import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
@@ -66,6 +65,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.lerp
 import androidx.graphics.shapes.Morph
 import androidx.graphics.shapes.toPath
 import com.example.attempt3.data.Database.Completion
@@ -156,33 +156,24 @@ fun HabitCompletionButton(
     val color = Color(habit.color)
     val transition = updateTransition(targetState = isCompleted, label = "CompletionTransition")
 
-    val progress by transition.animateFloat(
+    val progressState = transition.animateFloat(
         label = "MorphProgress",
         transitionSpec = { tween(300) }
     ) { state ->
         if (state) 1f else 0f
     }
     
-    val animatedHabitColor by animateColorAsState(targetValue = color, animationSpec = tween(300), label = "habitColor")
+    val animatedHabitColorState = animateColorAsState(targetValue = color, animationSpec = tween(300), label = "habitColor")
     
-    val backgroundColor = if (isCompleted) animatedHabitColor else animatedHabitColor.copy(alpha = 0.1f)
-    val borderColor = if (isCompleted) animatedHabitColor else animatedHabitColor.copy(alpha = borderContrast)
-    
-    val iconTintColor = if (isCompleted) {
-        if (animatedHabitColor.isBright()) MaterialTheme.colorScheme.onPrimary else Color.White
-    } else {
-        animatedHabitColor
-    }
-
     val morph = circleToSquareMorph
     val path = remember { Path() }
     val matrix = remember { Matrix() }
-    val shape = remember(progress) { MorphPolygonShape(morph, progress, path, matrix) }
+    
     val rotationAnimationSpec = tween<Float>(durationMillis = 400, easing = FastOutSlowInEasing)
-    val rotation by animateFloatAsState(if (isCompleted) 180f else 0f, label = "fab_icon_rotation", animationSpec = rotationAnimationSpec)
+    val rotationState = animateFloatAsState(if (isCompleted) 180f else 0f, label = "fab_icon_rotation", animationSpec = rotationAnimationSpec)
     
     var isPressed by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(
+    val scaleState = animateFloatAsState(
         targetValue = if (isPressed && !disableAnimations && !disablePressAnimation) 0.85f else 1f,
         animationSpec = if (isPressed) spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessLow) else spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "button_scale"
@@ -190,15 +181,27 @@ fun HabitCompletionButton(
 
     Box(
         modifier = modifier
-            .scale(scale)
             .size(64.dp)
-            .clip(shape)
-            .background(backgroundColor, shape)
-            .border(
-                1.dp,
-                borderColor,
-                shape
-            )
+            .graphicsLayer {
+                scaleX = scaleState.value
+                scaleY = scaleState.value
+                shape = MorphPolygonShape(morph, progressState.value, path, matrix)
+                clip = true
+            }
+            .drawBehind {
+                val currentColor = animatedHabitColorState.value
+                val p = progressState.value
+                val bgAlpha = lerp(0.1f, 1f, p)
+                val strokeAlpha = lerp(if(borderContrast>0.1f) borderContrast else 0.1f, 1f, p)
+                
+                val bgColor = currentColor.copy(alpha = bgAlpha)
+                val strokeColor = currentColor.copy(alpha = strokeAlpha)
+                
+                drawRect(color = bgColor)
+                
+                val outline = MorphPolygonShape(morph, p, path, matrix).createOutline(size, layoutDirection, this)
+                drawOutline(outline, color = strokeColor, style = Stroke(width = 1.dp.toPx()))
+            }
             .pointerInput(isCompleted, disablePressAnimation) {
                 detectTapGestures(
                     onPress = {
@@ -218,6 +221,13 @@ fun HabitCompletionButton(
             },
         contentAlignment = Alignment.Center
     ) {
+        val animatedHabitColor = animatedHabitColorState.value
+        val iconTintColor = if (isCompleted) {
+            if (animatedHabitColor.isBright()) MaterialTheme.colorScheme.onPrimary else Color.White
+        } else {
+            animatedHabitColor
+        }
+
         Crossfade(
             targetState = isCompleted,
             animationSpec = tween(durationMillis = 300),
@@ -229,7 +239,9 @@ fun HabitCompletionButton(
                 tint = iconTintColor,
                 modifier = Modifier
                     .size(32.dp)
-                    .rotate(rotation)
+                    .graphicsLayer {
+                        rotationZ = rotationState.value
+                    }
             )
         }
     }
@@ -280,7 +292,6 @@ fun HabitItemCard(
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 0.dp)
             .then(modifier)
-            .clip(MaterialTheme.shapes.medium)
             .clickable(onClick = onClick),
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
@@ -361,12 +372,9 @@ class MorphPolygonShape(
 
     override fun createOutline(
         size: Size,
-        layoutDirection: LayoutDirection, // This parameter was missing
-        density: Density                  // This parameter was missing
+        layoutDirection: LayoutDirection,
+        density: Density
     ): Outline {
-        // Below assumes that you haven't scaled the specific RoundedPolygons used
-        // for the Morph yet, and that you want the shape to fit exactly into the
-        // size of the Composable.
         path.rewind()
         morph.toPath(percentage, path.asAndroidPath())
         matrix.reset()

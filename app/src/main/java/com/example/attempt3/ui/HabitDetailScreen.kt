@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -62,12 +63,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.example.attempt3.data.Database.Completion
 import com.example.attempt3.data.Database.Habit
@@ -106,7 +108,8 @@ fun SharedTransitionScope.HabitDetailScreen(
     var showDeleteConfirmation by remember { mutableStateOf(false) } // State for delete confirmation dialog
     val habit = habitWithCompletions.habit
     val completions = habitWithCompletions.completions
-    val animatedColor by animateColorAsState(targetValue = Color(habit.color), animationSpec = tween(durationMillis = 500))
+    
+    val animatedColorState = animateColorAsState(targetValue = Color(habit.color), animationSpec = tween(durationMillis = 500))
     
     val streak = remember(habit, completions, currentDateMillis) { calculateStreak(habit, completions, currentDateMillis) }
 
@@ -165,7 +168,7 @@ fun SharedTransitionScope.HabitDetailScreen(
         )
     }
 
-    val animatedPaddingTop by animateDpAsState(
+    val animatedPaddingTopState = animateDpAsState(
         targetValue = if (isEditSheetOpen) 60.dp else 160.dp,
         animationSpec = if (isEditSheetOpen) {
             tween(durationMillis = 300, easing = FastOutSlowInEasing)
@@ -174,7 +177,7 @@ fun SharedTransitionScope.HabitDetailScreen(
         },
         label = "paddingTop"
     )
-    val animatedScale by animateFloatAsState(
+    val animatedScaleState = animateFloatAsState(
         targetValue = if (isEditSheetOpen) 0.9f else 1f,
         animationSpec = if (isEditSheetOpen) {
             tween(durationMillis = 300, easing = FastOutSlowInEasing)
@@ -191,12 +194,16 @@ fun SharedTransitionScope.HabitDetailScreen(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null
             ) { if (!isEditSheetOpen) onDismiss() }
-            .padding(top = animatedPaddingTop, bottom = 16.dp),
+            .offset { IntOffset(0, animatedPaddingTopState.value.roundToPx()) }
+            .padding(bottom = 16.dp),
         contentAlignment = Alignment.TopCenter
     ) {
         Card(
             modifier = Modifier
-                .scale(animatedScale)
+                .graphicsLayer {
+                    scaleX = animatedScaleState.value
+                    scaleY = animatedScaleState.value
+                }
                 .sharedElementWithCallerManagedVisibility(
                     rememberSharedContentState(key = "card-${habit.id}"),
                     visible = !isEditSheetOpen
@@ -247,10 +254,13 @@ fun SharedTransitionScope.HabitDetailScreen(
                         )
                         Box(
                         modifier = Modifier
-                            .scale(closeScale)
+                            .graphicsLayer {
+                                scaleX = closeScale
+                                scaleY = closeScale
+                            }
                             .size(48.dp)
                             .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.secondaryContainer.copy(secondaryContainerAlpha))
+                            .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = secondaryContainerAlpha))
                             .border(
                                 1.dp,
                                 cardBorderColor,
@@ -291,7 +301,7 @@ fun SharedTransitionScope.HabitDetailScreen(
 
                 Heatmap(
                     completions = completions,
-                    habitColor = animatedColor,
+                    habitColor = animatedColorState.value,
                     modifier = Modifier.fillMaxWidth().padding(top = if (showMonthLabels) 0.dp else 8.dp),
                     showMonthLabels = showMonthLabels,
                     visibleDayLabels = heatmapVisibleDays,
@@ -317,7 +327,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                             modifier = Modifier
                                 .size(35.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.secondaryContainer.copy(secondaryContainerAlpha))
+                                .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = secondaryContainerAlpha))
                                 .border(
                                     1.dp,
                                     cardBorderColor,
@@ -345,7 +355,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                             modifier = Modifier
                                 .size(35.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.secondaryContainer.copy(secondaryContainerAlpha))
+                                .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = secondaryContainerAlpha))
                                 .border(
                                     1.dp,
                                     cardBorderColor,
@@ -376,7 +386,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                             modifier = Modifier
                                 .size(35.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.secondaryContainer.copy(secondaryContainerAlpha))
+                                .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = secondaryContainerAlpha))
                                 .border(
                                     1.dp,
                                     cardBorderColor,
@@ -409,7 +419,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                             modifier = Modifier
                                 .height(35.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.secondaryContainer.copy(secondaryContainerAlpha))
+                                .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = secondaryContainerAlpha))
                                 .border(
                                     1.dp,
                                     cardBorderColor,
@@ -458,7 +468,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                 MonthCalendar(
                     //modifier = Modifier.padding(horizontal = 8.dp),
                     completions = completions,
-                    habitColor = animatedColor,
+                    habitColor = animatedColorState.value,
                     vibrationsEnabled = vibrationsEnabled,
                     reduceGridReactions = disableAnimations,
                     currentDateMillis = currentDateMillis,
