@@ -320,6 +320,12 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
         }
     }
 
+    LaunchedEffect(showHabitSheet) {
+        if (!showHabitSheet) {
+            habitToEdit = null
+        }
+    }
+
     val isAnySheetOpen = showHabitSheet || showSettingsScreen || habitToView != null || showArchiveSheet || showReorderSheet || showStatisticScreen
 
     BackHandler(enabled = isAnySheetOpen || isFabMenuExpanded) {
@@ -442,7 +448,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                             modifier = Modifier.fillMaxSize(),
                                             contentPadding = PaddingValues(top = paddingValues.calculateTopPadding()),
                                             verticalArrangement = Arrangement.spacedBy(12.dp),
-                                            userScrollEnabled = habitToView == null && habitToEdit == null
+                                            userScrollEnabled = !isAnySheetOpen && !isFabMenuExpanded
                                         ) {
                                             item {
                                                 AnimatedVisibility(visible = heroCardVisible) {
@@ -718,7 +724,10 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                         modifier = Modifier
                             .fillMaxSize()
                             .background(Color.Black.copy(alpha = 0.5f))
-                            .clickable { showHabitSheet = false }
+                            .clickable { 
+                                showHabitSheet = false 
+                                habitToEdit = null
+                            }
                     )
                 }
 
@@ -759,7 +768,10 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
 
                             override suspend fun onPreFling(available: Velocity): Velocity {
                                 if (sheetOffsetY.value > 0) {
-                                    if (sheetOffsetY.value > dismissThresholdPx) showHabitSheet = false
+                                    if (sheetOffsetY.value > dismissThresholdPx) {
+                                        showHabitSheet = false
+                                        habitToEdit = null
+                                    }
                                     else sheetOffsetY.animateTo(0f, spring())
                                     return available
                                 }
