@@ -352,34 +352,26 @@ class SettingsDataStore(private val context: Context) {
         }
     }
 
+    // Make the reset to default button only affect and be visible in the appearence settings
     suspend fun resetToDefault() {
         context.dataStore.edit { settings ->
+            // Appearance settings
             settings[THEME_KEY] = DefaultSettings.THEME
             settings[USE_MATERIAL_THEMING_KEY] = true
             settings[MONTH_LABELS_KEY] = false
-            settings[VIBRATIONS_KEY] = true
             settings[BORDERS_KEY] = DefaultSettings.BORDERS
             settings[DAY_OF_WEEK_LABELS_VISIBLE_KEY] = false
             settings[DAY_OF_WEEK_LABELS_ON_RIGHT_KEY] = false
             settings[SHOW_ALL_DAY_OF_WEEK_LABELS_KEY] = true
             settings[HEATMAP_VISIBLE_DAYS_KEY] = DefaultSettings.HEATMAP_VISIBLE_DAYS
-            settings[GLOBAL_NOTIFICATIONS_KEY] = false
-            settings[GLOBAL_NOTIFICATION_TIME_KEY] = DefaultSettings.GLOBAL_NOTIFICATION_TIME
-            settings[GLOBAL_NOTIFICATION_DAYS_KEY] = DefaultSettings.GLOBAL_NOTIFICATION_DAYS
-            settings[SKIP_COMPLETED_HABIT_NOTIFICATIONS_KEY] = false
-            settings[IS_24_HOUR_KEY] = false
-            settings[HERO_CARD_VISIBLE_KEY] = true
             settings[YEAR_DIVIDER_KEY] = false
             settings[YEAR_LABELS_KEY] = false
-            settings[HEATMAP_SCROLLING_KEY] = false
             settings[SHOW_SCROLL_BLUR_KEY] = true
             settings[SCROLL_BLUR_TARGETS_KEY] = DefaultSettings.SCROLL_BLUR_TARGETS
             settings[REDUCE_MOVEMENT_KEY] = DefaultSettings.REDUCE_MOVEMENT
             settings[REDUCE_MOVEMENT_TARGETS_KEY] = DefaultSettings.REDUCE_MOVEMENT_TARGETS
             settings[USE_HABIT_COLOR_FOR_CARD_KEY] = false
             settings[HABIT_COLOR_TARGETS_KEY] = DefaultSettings.HABIT_COLOR_TARGETS
-            settings[HEATMAP_WEEKS_KEY] = DefaultSettings.HEATMAP_WEEKS
-            settings[HEATMAP_INFINITE_KEY] = DefaultSettings.HEATMAP_INFINITE
         }
     }
 }

@@ -2,6 +2,7 @@
 
 package com.example.attempt3.data.settings
 
+// Make the reset to default button only affect and be visible in the appearence settings
 object DefaultSettings {
     const val THEME = "system"
     const val USE_MATERIAL_THEMING = true
