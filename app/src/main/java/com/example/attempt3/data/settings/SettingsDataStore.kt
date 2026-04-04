@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
@@ -44,6 +45,8 @@ class SettingsDataStore(private val context: Context) {
         val REDUCE_MOVEMENT_TARGETS_KEY = stringPreferencesKey("reduce_movement_targets")
         val USE_HABIT_COLOR_FOR_CARD_KEY = booleanPreferencesKey("use_habit_color_for_card")
         val HABIT_COLOR_TARGETS_KEY = stringPreferencesKey("habit_color_targets")
+        val HEATMAP_WEEKS_KEY = intPreferencesKey("heatmap_weeks")
+        val HEATMAP_INFINITE_KEY = booleanPreferencesKey("heatmap_infinite")
     }
 
     val theme: Flow<String> = context.dataStore.data
@@ -327,6 +330,28 @@ class SettingsDataStore(private val context: Context) {
         }
     }
 
+    val heatmapWeeks: Flow<Int> = context.dataStore.data
+        .map { preferences ->
+            preferences[HEATMAP_WEEKS_KEY] ?: DefaultSettings.HEATMAP_WEEKS
+        }
+
+    suspend fun setHeatmapWeeks(weeks: Int) {
+        context.dataStore.edit { settings ->
+            settings[HEATMAP_WEEKS_KEY] = weeks
+        }
+    }
+
+    val heatmapInfinite: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[HEATMAP_INFINITE_KEY] ?: DefaultSettings.HEATMAP_INFINITE
+        }
+
+    suspend fun setHeatmapInfinite(infinite: Boolean) {
+        context.dataStore.edit { settings ->
+            settings[HEATMAP_INFINITE_KEY] = infinite
+        }
+    }
+
     suspend fun resetToDefault() {
         context.dataStore.edit { settings ->
             settings[THEME_KEY] = DefaultSettings.THEME
@@ -353,6 +378,8 @@ class SettingsDataStore(private val context: Context) {
             settings[REDUCE_MOVEMENT_TARGETS_KEY] = DefaultSettings.REDUCE_MOVEMENT_TARGETS
             settings[USE_HABIT_COLOR_FOR_CARD_KEY] = false
             settings[HABIT_COLOR_TARGETS_KEY] = DefaultSettings.HABIT_COLOR_TARGETS
+            settings[HEATMAP_WEEKS_KEY] = DefaultSettings.HEATMAP_WEEKS
+            settings[HEATMAP_INFINITE_KEY] = DefaultSettings.HEATMAP_INFINITE
         }
     }
 }

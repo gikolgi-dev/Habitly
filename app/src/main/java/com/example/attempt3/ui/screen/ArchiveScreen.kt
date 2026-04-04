@@ -64,6 +64,8 @@ fun ArchiveScreen(
     vibrationsEnabled: Boolean,
     useHabitColor: Boolean,
     disableAnimations: Boolean,
+    heatmapWeeks: Int = 0,
+    heatmapInfinite: Boolean = false,
     currentDateMillis: Long = System.currentTimeMillis()
 ) {
     val scope = rememberCoroutineScope()
@@ -183,6 +185,8 @@ fun ArchiveScreen(
                                     borderContrast = borderContrast,
                                     useHabitColor = useHabitColor,
                                     disableAnimations = disableAnimations,
+                                    heatmapWeeks = heatmapWeeks,
+                                    heatmapInfinite = heatmapInfinite,
                                     currentDateMillis = currentDateMillis,
                                     onComplete = { },
                                     onClick = { },

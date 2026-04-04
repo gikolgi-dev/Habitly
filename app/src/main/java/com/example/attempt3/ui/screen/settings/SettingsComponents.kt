@@ -282,6 +282,59 @@ fun SettingsSwitchNavigationItem(
 }
 
 @Composable
+fun SettingsNavigationItem(
+    text: String,
+    settingsDataStore: SettingsDataStore,
+    modifier: Modifier = Modifier,
+    description: String? = null,
+    position: SettingsItemPosition = SettingsItemPosition.Alone,
+    showDivider: Boolean = false,
+    onClick: () -> Unit
+) {
+    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 48.dp) {
+        SettingsItemBox(settingsDataStore = settingsDataStore, position = position, modifier = modifier) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onClick)
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = text,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        description?.let {
+                            Text(
+                                text = it,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                if (showDivider) {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(start = 16.dp, end = 16.dp),
+                        thickness = 0.5.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun SettingsCheckboxItemContent(
     text: String,
     checked: Boolean,
@@ -564,10 +617,10 @@ fun ModernSettingsItem(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 0.dp),
-        border = BorderStroke(
-            1.dp,
-            MaterialTheme.colorScheme.outline.copy(alpha = borderContrast)
-        ),
+            border = BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.outline.copy(alpha = borderContrast)
+            ),
         shape = shape,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {

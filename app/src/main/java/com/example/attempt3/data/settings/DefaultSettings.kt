@@ -28,4 +28,6 @@ object DefaultSettings {
     const val REDUCE_MOVEMENT_TARGETS = "Rotation,Grid Reactions"
     const val USE_HABIT_COLOR_FOR_CARD = false
     const val HABIT_COLOR_TARGETS = "Habit Cards,Statistic Screen"
+    const val HEATMAP_WEEKS = 20
+    const val HEATMAP_INFINITE = false
 }

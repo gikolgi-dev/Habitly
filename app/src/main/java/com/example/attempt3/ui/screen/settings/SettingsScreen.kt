@@ -613,6 +613,25 @@ fun SettingsScreen(
             ) { paddingValues ->
                 GeneralSettingsScreen(
                     settingsDataStore = settingsDataStore,
+                    onNavigateToHeatmapWeeks = { navController.navigate("heatmap_weeks") { launchSingleTop = true } },
+                    modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
+                )
+            }
+        }
+
+        composable(
+            route = "heatmap_weeks"
+        ) {
+            SettingsScaffold(
+                title = "Week limit",
+                onBack = {
+                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+                    navController.popBackStack()
+                },
+                borderContrast = borderContrast,
+            ) { paddingValues ->
+                HeatmapWeeksSubScreen(
+                    settingsDataStore = settingsDataStore,
                     modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
                 )
             }

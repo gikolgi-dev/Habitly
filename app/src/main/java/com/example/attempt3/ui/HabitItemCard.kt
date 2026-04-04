@@ -268,6 +268,8 @@ fun HabitItemCard(
     onUnarchive: (() -> Unit)? = null,
     onDelete: (() -> Unit)? = null,
     heatmapScrollEnabled: Boolean = false,
+    heatmapWeeks: Int = 0,
+    heatmapInfinite: Boolean = false,
     isPreview: Boolean = false,
     currentDateMillis: Long = System.currentTimeMillis(),
     @SuppressLint("ModifierParameter") modifier: Modifier = Modifier
@@ -356,6 +358,8 @@ fun HabitItemCard(
                     showYearDivider = showYearDivider,
                     showYearLabels = showYearLabels,
                     showScrollBlur = showScrollBlur,
+                    minWeeks = heatmapWeeks,
+                    isInfinite = heatmapInfinite,
                     currentDateMillis = currentDateMillis
                 )
             }

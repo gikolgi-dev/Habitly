@@ -101,6 +101,8 @@ fun SharedTransitionScope.HabitDetailScreen(
     disableAnimations: Boolean,
     useHabitColor: Boolean,
     theme: String,
+    heatmapWeeks: Int = 0,
+    heatmapInfinite: Boolean = false,
     currentDateMillis: Long = System.currentTimeMillis(),
     isEditSheetOpen: Boolean = false
 ) {
@@ -309,7 +311,8 @@ fun SharedTransitionScope.HabitDetailScreen(
                     showYearDivider = showYearDivider,
                     showYearLabels = showYearLabels,
                     showScrollBlur = showScrollBlur,
-                    minWeeks = 30, // Display a bit more heatmap columns even if they are empty
+                    minWeeks = maxOf(30, heatmapWeeks), // Display a bit more heatmap columns even if they are empty
+                    isInfinite = heatmapInfinite,
                     currentDateMillis = currentDateMillis
                 )
 

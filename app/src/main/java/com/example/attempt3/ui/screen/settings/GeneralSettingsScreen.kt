@@ -29,6 +29,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun GeneralSettingsScreen(
     settingsDataStore: SettingsDataStore,
+    onNavigateToHeatmapWeeks: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
@@ -87,6 +88,13 @@ fun GeneralSettingsScreen(
                 }
                 if (vibrationsEnabled) haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
             }
+            SettingsNavigationItem(
+                text = "Week limit",
+                description = "Limit the amount of weeks shown in the heatmap. High values may impact performance.",
+                settingsDataStore = settingsDataStore,
+                position = SettingsItemPosition.Middle,
+                onClick = onNavigateToHeatmapWeeks
+            )
             SettingsSwitchItem(
                 text = "Skip completed habit notifications",
                 description = "Don't notify if the habit is already completed today",

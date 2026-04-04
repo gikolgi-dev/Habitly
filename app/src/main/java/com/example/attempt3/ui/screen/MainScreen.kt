@@ -104,6 +104,7 @@ import com.example.attempt3.data.Database.HabitDatabase
 import com.example.attempt3.data.Database.HabitViewModel
 import com.example.attempt3.data.Database.HabitWithCompletions
 import com.example.attempt3.data.Database.HabitsUiState
+import com.example.attempt3.data.settings.DefaultSettings
 import com.example.attempt3.data.settings.SettingsDataStore
 import com.example.attempt3.notifications.NotificationScheduler
 import com.example.attempt3.ui.HabitDetailScreen
@@ -192,6 +193,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     val is24Hour by settingsDataStore.is24Hour.collectAsState(initial = false)
     val heroCardVisible by settingsDataStore.heroCardVisible.collectAsState(initial = true)
     val heatmapScrolling by settingsDataStore.heatmapScrolling.collectAsState(initial = false)
+    val heatmapWeeks by settingsDataStore.heatmapWeeks.collectAsState(initial = DefaultSettings.HEATMAP_WEEKS)
+    val heatmapInfinite by settingsDataStore.heatmapInfinite.collectAsState(initial = DefaultSettings.HEATMAP_INFINITE)
 
     // Additional settings for consistent Shared Element Transition colors/animations
     val reduceMovement by settingsDataStore.reduceMovement.collectAsState(initial = false)
@@ -463,6 +466,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                     showScrollBlur = showScrollBlur && "Heatmap" in scrollBlurTargets,
                                                     borderContrast = borderContrast!!,
                                                     heatmapScrollEnabled = heatmapScrolling,
+                                                    heatmapWeeks = heatmapWeeks,
+                                                    heatmapInfinite = heatmapInfinite,
                                                     useHabitColor = useHabitColorForItemCards,
                                                     disableAnimations = disableAnimations,
                                                     currentDateMillis = currentDateMillis,
@@ -541,6 +546,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                         vibrationsEnabled = vibrationsEnabled,
                         useHabitColor = useHabitColorForItemCards,
                         disableAnimations = disableAnimations,
+                        heatmapWeeks = heatmapWeeks,
+                        heatmapInfinite = heatmapInfinite,
                         currentDateMillis = currentDateMillis
                     )
                 }
@@ -637,6 +644,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                             disableAnimations = disableAnimations,
                             useHabitColor = useHabitColorForItemCards,
                             theme = theme,
+                            heatmapWeeks = heatmapWeeks,
+                            heatmapInfinite = heatmapInfinite,
                             currentDateMillis = currentDateMillis,
                             isEditSheetOpen = showHabitSheet
                         )
@@ -846,6 +855,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                             showScrollBlur = false,
                             borderContrast = borderContrast!!,
                             heatmapScrollEnabled = false,
+                            heatmapWeeks = heatmapWeeks,
+                            heatmapInfinite = heatmapInfinite,
                             useHabitColor = useHabitColorForItemCards,
                             disableAnimations = disableAnimations,
                             onComplete = { /* Do nothing in preview */ },

@@ -69,6 +69,7 @@ fun Heatmap(
     showYearLabels: Boolean = true,
     showScrollBlur: Boolean,
     minWeeks: Int = 0,
+    isInfinite: Boolean = false,
     currentDateMillis: Long = System.currentTimeMillis()
 ) {
     val density = LocalDensity.current
@@ -124,7 +125,7 @@ fun Heatmap(
                 with(density) { (remainingSpacePx.toFloat() / (numWeeksOnScreen - 1)).toDp() }
             } else minHorizontalSpacing
 
-            val totalWeeks = remember(completions, numWeeksOnScreen, isScrollable, minWeeks, currentDateMillis) {
+            val totalWeeks = remember(completions, numWeeksOnScreen, isScrollable, minWeeks, isInfinite, currentDateMillis) {
                 val oldestCompletion = if (completions.isNotEmpty()) completions.minOf { it.date } else null
                 val weeksDiff = if (oldestCompletion == null) 0 else {
                     val cal = Calendar.getInstance().apply { firstDayOfWeek = Calendar.MONDAY }
@@ -148,7 +149,15 @@ fun Heatmap(
 
                     ((currentMon - oldestMon) / (1000L * 60 * 60 * 24 * 7)).toInt() + 1
                 }
-                if (isScrollable) maxOf(weeksDiff, numWeeksOnScreen, minWeeks) else numWeeksOnScreen
+                if (isScrollable) {
+                    if (isInfinite) {
+                        maxOf(weeksDiff + 2, numWeeksOnScreen, minWeeks)
+                    } else {
+                        maxOf(numWeeksOnScreen, minWeeks)
+                    }
+                } else {
+                    numWeeksOnScreen
+                }
             }
 
             val weeksData = remember(totalWeeks, showMonthLabels, completionDates, todayDayIndex, currentDateMillis, tz) {
@@ -267,10 +276,11 @@ private fun DayOfWeekLabels(
             labels.forEachIndexed { index, label ->
                 val isVisible = dayValues[index] in visibleDayLabels
                 Box(Modifier.height(cellSize), contentAlignment = Alignment.Center) {
+                    val alpha = if (isVisible) 0.6f else 0f
                     Text(
                         text = label,
                         fontSize = 8.sp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (isVisible) 0.6f else 0f),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha),
                         style = LocalTextStyle.current.copy(
                             platformStyle = PlatformTextStyle(includeFontPadding = false),
                             lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.Both)
