@@ -8,6 +8,7 @@ import android.annotation.SuppressLint
 import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.core.Animatable
@@ -249,6 +250,11 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     var isFabMenuExpanded by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
 
+    var cachedHabitToView by remember { mutableStateOf<HabitWithCompletions?>(null) }
+    if (habitToView != null) {
+        cachedHabitToView = habitToView
+    }
+
     val isEditMode = habitToEdit != null
     val title = if (isEditMode) "Edit Habit" else "Add New Habit"
     val buttonText = if (isEditMode) "Save Changes" else "Save"
@@ -294,34 +300,6 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
         validate(completionsPerInterval)
     }
 
-    LaunchedEffect(habitToEdit, showHabitSheet) {
-        if (showHabitSheet) {
-            if (habitToEdit != null) {
-                habitName = habitToEdit!!.name
-                habitDescription = habitToEdit!!.description
-                habitColor = Color(habitToEdit!!.color)
-                habitIconKey = habitToEdit!!.icon
-                completionsPerInterval = habitToEdit!!.completionsPerInterval.toString()
-                intervalUnit = habitToEdit!!.intervalUnit
-                notificationsEnabled = habitToEdit!!.notificationsEnabled
-                notificationTime = habitToEdit!!.notificationTime ?: "09:00"
-                notificationDays = habitToEdit!!.notificationDays?.split(',')?.toSet() ?: emptySet()
-                customColor = null
-            } else {
-                habitName = ""
-                habitDescription = ""
-                habitColor = habitColors.first()
-                habitIconKey = defaultHabitIconKey
-                completionsPerInterval = "1"
-                intervalUnit = "day"
-                notificationsEnabled = false
-                notificationTime = "09:00"
-                notificationDays = emptySet()
-                customColor = null
-            }
-        }
-    }
-
     LaunchedEffect(showHabitSheet) {
         if (!showHabitSheet) {
             habitToEdit = null
@@ -333,7 +311,10 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     BackHandler(enabled = isAnySheetOpen || isFabMenuExpanded) {
         if (isFabMenuExpanded) { isFabMenuExpanded = false; return@BackHandler }
         if (showStatisticScreen) { showStatisticScreen = false; initialHabitIdForStats = null; return@BackHandler }
-        if (showHabitSheet) { showHabitSheet = false; return@BackHandler }
+        if (showHabitSheet) { 
+            showHabitSheet = false
+            return@BackHandler 
+        }
         if (showSettingsScreen) { showSettingsScreen = false; return@BackHandler }
         if (habitToView != null) { habitToView = null; return@BackHandler }
         if (showArchiveSheet) { showArchiveSheet = false; return@BackHandler }
@@ -462,10 +443,13 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                 key = { it.habit.id }
                                             ) { habitWithCompletions ->
                                                 val isCompleted = habitWithCompletions.completions.any { it.date in startOfDay..endOfDay }
+                                                val isEditingThis = isEditMode && habitToEdit?.id == habitWithCompletions.habit.id
+                                                val isViewingThis = habitToView?.habit?.id == habitWithCompletions.habit.id
+                                                
                                                 HabitItemCard(
                                                     modifier = Modifier.sharedElementWithCallerManagedVisibility(
                                                         rememberSharedContentState(key = "card-${habitWithCompletions.habit.id}"),
-                                                        visible = habitToView?.habit?.id != habitWithCompletions.habit.id
+                                                        visible = !isViewingThis && !isEditingThis
                                                     ),
                                                     habit = habitWithCompletions.habit,
                                                     isCompleted = isCompleted,
@@ -607,45 +591,55 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                     visible = habitToView != null,
                     modifier = Modifier.fillMaxSize(),
                     enter = fadeIn(animationSpec = tween(durationMillis = 250)),
-                    exit = fadeOut(animationSpec = tween(durationMillis = 250))
+                    exit = ExitTransition.None
                 ) {
                     habitToView?.let { habitWithCompletions ->
-                        val habitState by remember(habitsUiState) {
+                        val habitState by remember(habitsUiState, habitWithCompletions) {
                             derivedStateOf {
                                 (habitsUiState as? HabitsUiState.Success)?.habits
-                                    ?.find { it.habit.id == habitWithCompletions.habit.id }
+                                    ?.find { it.habit.id == habitWithCompletions.habit.id } ?: habitWithCompletions
                             }
                         }
 
-                        habitState?.let { it ->
-                            HabitDetailScreen(
-                                habitWithCompletions = it,
-                                viewModel = viewModel,
-                                isArchivedView = false,
-                                animatedVisibilityScope = this@AnimatedVisibility,
-                                onDismiss = { habitToView = null },
-                                onEditHabit = {
-                                    habitToEdit = it
-                                    showHabitSheet = true
-                                },
-                                onShowStatistics = { habit ->
-                                    initialHabitIdForStats = habit.id
-                                    showStatisticScreen = true
-                                },
-                                borderContrast = borderContrast!!,
-                                showScrollBlur = showScrollBlur && "Heatmap" in scrollBlurTargets,
-                                showYearLabels = showYearLabels!!,
-                                showYearDivider = showYearDivider!!,
-                                vibrationsEnabled = vibrationsEnabled,
-                                showMonthLabels = showMonthLabels!!,
-                                dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight!!,
-                                heatmapVisibleDays = heatmapVisibleDays!!,
-                                disableAnimations = disableAnimations,
-                                useHabitColor = useHabitColorForItemCards,
-                                theme = theme,
-                                currentDateMillis = currentDateMillis
-                            )
-                        }
+                        HabitDetailScreen(
+                            habitWithCompletions = habitState,
+                            viewModel = viewModel,
+                            isArchivedView = false,
+                            animatedVisibilityScope = this@AnimatedVisibility,
+                            onDismiss = { habitToView = null },
+                            onEditHabit = {
+                                habitName = it.name
+                                habitDescription = it.description
+                                habitColor = Color(it.color)
+                                habitIconKey = it.icon
+                                completionsPerInterval = it.completionsPerInterval.toString()
+                                intervalUnit = it.intervalUnit
+                                notificationsEnabled = it.notificationsEnabled
+                                notificationTime = it.notificationTime ?: "09:00"
+                                notificationDays = it.notificationDays?.split(',')?.toSet() ?: emptySet()
+                                customColor = null
+                                
+                                habitToEdit = it
+                                showHabitSheet = true
+                            },
+                            onShowStatistics = { habit ->
+                                initialHabitIdForStats = habit.id
+                                showStatisticScreen = true
+                            },
+                            borderContrast = borderContrast!!,
+                            showScrollBlur = showScrollBlur && "Heatmap" in scrollBlurTargets,
+                            showYearLabels = showYearLabels!!,
+                            showYearDivider = showYearDivider!!,
+                            vibrationsEnabled = vibrationsEnabled,
+                            showMonthLabels = showMonthLabels!!,
+                            dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight!!,
+                            heatmapVisibleDays = heatmapVisibleDays!!,
+                            disableAnimations = disableAnimations,
+                            useHabitColor = useHabitColorForItemCards,
+                            theme = theme,
+                            currentDateMillis = currentDateMillis,
+                            isEditSheetOpen = showHabitSheet
+                        )
                     }
                 }
 
@@ -728,7 +722,6 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                             .background(Color.Black.copy(alpha = 0.5f))
                             .clickable { 
                                 showHabitSheet = false 
-                                habitToEdit = null
                             }
                     )
                 }
@@ -772,7 +765,6 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                 if (sheetOffsetY.value > 0) {
                                     if (sheetOffsetY.value > dismissThresholdPx) {
                                         showHabitSheet = false
-                                        habitToEdit = null
                                     }
                                     else sheetOffsetY.animateTo(0f, spring())
                                     return available
@@ -840,6 +832,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                             .offset { IntOffset(0, sheetOffsetY.value.roundToInt()) }
                             .nestedScroll(nestedScrollConnection)
                     ) {
+                        val previewKey = if (isEditMode) "card-${habitToEdit!!.id}" else "card-preview"
                         HabitItemCard(
                             habit = dummyHabit,
                             isCompleted = false,
@@ -857,7 +850,12 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                             disableAnimations = disableAnimations,
                             onComplete = { /* Do nothing in preview */ },
                             onClick = { /* Do nothing in preview */ },
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+                            modifier = Modifier
+                                .sharedElementWithCallerManagedVisibility(
+                                    rememberSharedContentState(key = previewKey),
+                                    visible = showHabitSheet
+                                )
+                                .padding(horizontal = 8.dp, vertical = 8.dp),
                             currentDateMillis = currentDateMillis
                         )
                         
@@ -877,7 +875,6 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                         scope.launch {
                                             if (sheetOffsetY.value > dismissThresholdPx) {
                                                 showHabitSheet = false
-                                                habitToEdit = null
                                             } else {
                                                 sheetOffsetY.animateTo(0f, spring())
                                             }
@@ -947,7 +944,10 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                         }
                                     },
                                     hasNotificationPermission = notificationPermissionHandler.hasPermission,
-                                    headerModifier = headerModifier
+                                    headerModifier = headerModifier,
+                                    onClose = {
+                                        showHabitSheet = false
+                                    }
                                 )
                             }
                         }
@@ -1016,18 +1016,10 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                     if (newHabit.notificationsEnabled) {
                                         notificationScheduler.scheduleNotification(newHabit)
                                     }
-                                    // Reset the state for the next new habit
-                                    habitName = ""
-                                    habitDescription = ""
-                                    habitColor = habitColors.first()
-                                    habitIconKey = defaultHabitIconKey
-                                    completionsPerInterval = "1"
-                                    intervalUnit = "day"
-                                    completionsError = null
                                 }
                                 showHabitSheet = false
-                                habitToEdit = null
-                                customColor = null
+                                // We purposefully do NOT clear habitToEdit instantly 
+                                // to ensure the exit animation transitions cleanly
                             }
                         }
                     }
@@ -1065,6 +1057,17 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 expanded = isFabMenuExpanded,
                 onExpandedChange = { isFabMenuExpanded = it },
                 onAddHabit = {
+                    habitName = ""
+                    habitDescription = ""
+                    habitColor = habitColors.first()
+                    habitIconKey = defaultHabitIconKey
+                    completionsPerInterval = "1"
+                    intervalUnit = "day"
+                    notificationsEnabled = false
+                    notificationTime = "09:00"
+                    notificationDays = emptySet()
+                    customColor = null
+                    
                     habitToEdit = null
                     showHabitSheet = true
                 },

@@ -8,7 +8,10 @@ import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -75,7 +78,7 @@ import java.util.Calendar
 import java.util.concurrent.TimeUnit
 
 
-@OptIn(ExperimentalSharedTransitionApi::class)
+@OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SharedTransitionScope.HabitDetailScreen(
     habitWithCompletions: HabitWithCompletions,
@@ -96,7 +99,8 @@ fun SharedTransitionScope.HabitDetailScreen(
     disableAnimations: Boolean,
     useHabitColor: Boolean,
     theme: String,
-    currentDateMillis: Long = System.currentTimeMillis()
+    currentDateMillis: Long = System.currentTimeMillis(),
+    isEditSheetOpen: Boolean = false
 ) {
     val haptic = LocalHapticFeedback.current
     var showDeleteConfirmation by remember { mutableStateOf(false) } // State for delete confirmation dialog
@@ -161,21 +165,41 @@ fun SharedTransitionScope.HabitDetailScreen(
         )
     }
 
+    val animatedPaddingTop by animateDpAsState(
+        targetValue = if (isEditSheetOpen) 60.dp else 160.dp,
+        animationSpec = if (isEditSheetOpen) {
+            tween(durationMillis = 300, easing = FastOutSlowInEasing)
+        } else {
+            tween(durationMillis = 250, easing = FastOutSlowInEasing)
+        },
+        label = "paddingTop"
+    )
+    val animatedScale by animateFloatAsState(
+        targetValue = if (isEditSheetOpen) 0.9f else 1f,
+        animationSpec = if (isEditSheetOpen) {
+            tween(durationMillis = 300, easing = FastOutSlowInEasing)
+        } else {
+            tween(durationMillis = 300, delayMillis = 200, easing = LinearOutSlowInEasing)
+        },
+        label = "scale"
+    )
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null
-            ) { onDismiss() }
-            .padding(top = 160.dp, bottom = 16.dp),
+            ) { if (!isEditSheetOpen) onDismiss() }
+            .padding(top = animatedPaddingTop, bottom = 16.dp),
         contentAlignment = Alignment.TopCenter
     ) {
         Card(
             modifier = Modifier
-                .sharedElement(
+                .scale(animatedScale)
+                .sharedElementWithCallerManagedVisibility(
                     rememberSharedContentState(key = "card-${habit.id}"),
-                    animatedVisibilityScope = animatedVisibilityScope
+                    visible = !isEditSheetOpen
                 )
                 .fillMaxWidth(0.9f)
                 .clickable(
