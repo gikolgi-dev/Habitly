@@ -199,8 +199,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     val habitColorTargets by settingsDataStore.habitColorTargets.collectAsState(initial = setOf("Habit Cards", "Statistic Screen"))
     val theme by settingsDataStore.theme.collectAsState(initial = "system")
 
-    val useHabitColor = useHabitColorForCard && "Habit Cards" in habitColorTargets
-
+    val useHabitColorForItemCards = useHabitColorForCard && "Habit Cards" in habitColorTargets
+    val useHabitColorForStatistics = useHabitColorForCard && "Statistic Screen" in habitColorTargets
 
     val areSettingsLoaded = borderContrast != null &&
             showMonthLabels != null &&
@@ -471,7 +471,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                     showScrollBlur = showScrollBlur && "Heatmap" in scrollBlurTargets,
                                                     borderContrast = borderContrast!!,
                                                     heatmapScrollEnabled = heatmapScrolling,
-                                                    useHabitColor = useHabitColor,
+                                                    useHabitColor = useHabitColorForItemCards,
                                                     disableAnimations = disableAnimations,
                                                     currentDateMillis = currentDateMillis,
                                                     onComplete = {
@@ -540,7 +540,15 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                         uiState = archivedHabitsUiState,
                         habitDao = habitDao,
                         onBack = { showArchiveSheet = false },
-                        settingsDataStore = settingsDataStore,
+                        borderContrast = borderContrast ?: 0f,
+                        showMonthLabels = showMonthLabels ?: false,
+                        showYearDivider = showYearDivider ?: false,
+                        showYearLabels = showYearLabels ?: false,
+                        heatmapVisibleDays = heatmapVisibleDays ?: emptySet(),
+                        dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight ?: false,
+                        vibrationsEnabled = vibrationsEnabled,
+                        useHabitColor = useHabitColorForItemCards,
+                        disableAnimations = disableAnimations,
                         currentDateMillis = currentDateMillis
                     )
                 }
@@ -564,7 +572,14 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                     enter = slideInHorizontally(animationSpec = tween(durationMillis = 250)) { -it },
                     exit = slideOutHorizontally(animationSpec = tween(durationMillis = 250)) { -it }
                 ) {
-                    ReorderScreen(habitViewModel = viewModel, onBack = { showReorderSheet = false }, settingsDataStore = settingsDataStore)
+                    ReorderScreen(
+                        habitViewModel = viewModel,
+                        onBack = { showReorderSheet = false },
+                        borderContrast = borderContrast ?: 0f,
+                        vibrationsEnabled = vibrationsEnabled,
+                        useHabitColor = useHabitColorForItemCards,
+                        disableAnimations = disableAnimations
+                    )
                 }
 
                 AnimatedVisibility(
@@ -618,7 +633,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                 dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight!!,
                                 heatmapVisibleDays = heatmapVisibleDays!!,
                                 disableAnimations = disableAnimations,
-                                useHabitColorForCard = useHabitColorForCard,
+                                useHabitColor = useHabitColorForItemCards,
                                 theme = theme,
                                 currentDateMillis = currentDateMillis
                             )
@@ -655,7 +670,11 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                             initialHabitIdForStats = null
                         },
                         initialHabitId = initialHabitIdForStats,
-                        settingsDataStore = settingsDataStore,
+                        borderContrast = borderContrast ?: 0f,
+                        vibrationsEnabled = vibrationsEnabled,
+                        showScrollBlur = showScrollBlur,
+                        scrollBlurTargets = scrollBlurTargets,
+                        useHabitColor = useHabitColorForStatistics,
                         currentDateMillis = currentDateMillis
                     )
                 }
@@ -681,8 +700,12 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 ) {
                     SettingsScreen(
                         onDismiss = { showSettingsScreen = false },
-                        db = HabitDatabase.getDatabase(context), // Fallback if db is needed here
-                        settingsDataStore = settingsDataStore
+                        db = HabitDatabase.getDatabase(context),
+                        settingsDataStore = settingsDataStore,
+                        vibrationsEnabled = vibrationsEnabled,
+                        borderContrast = borderContrast ?: 0f,
+                        is24Hour = is24Hour,
+                        theme = theme
                     )
                 }
 
@@ -816,7 +839,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                             showScrollBlur = false,
                             borderContrast = borderContrast!!,
                             heatmapScrollEnabled = false,
-                            useHabitColor = useHabitColor,
+                            useHabitColor = useHabitColorForItemCards,
                             disableAnimations = disableAnimations,
                             onComplete = { /* Do nothing in preview */ },
                             onClick = { /* Do nothing in preview */ },

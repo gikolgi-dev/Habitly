@@ -94,7 +94,7 @@ fun SharedTransitionScope.HabitDetailScreen(
     dayOfWeekLabelsOnRight: Boolean,
     heatmapVisibleDays: Set<String>,
     disableAnimations: Boolean,
-    useHabitColorForCard: Boolean,
+    useHabitColor: Boolean,
     theme: String,
     currentDateMillis: Long = System.currentTimeMillis()
 ) {
@@ -113,13 +113,13 @@ fun SharedTransitionScope.HabitDetailScreen(
     }
     val secondaryContainerAlpha = if (useDarkTheme) 0.25f else 1f
 
-    val cardBackgroundColor = if (useHabitColorForCard) {
+    val cardBackgroundColor = if (useHabitColor) {
         lerp(Color(habit.color), MaterialTheme.colorScheme.surfaceVariant, 0.85f)
     } else {
         MaterialTheme.colorScheme.surfaceVariant
     }
 
-    val cardBorderColor = if (useHabitColorForCard) {
+    val cardBorderColor = if (useHabitColor) {
         lerp(Color(habit.color), lerp(Color(habit.color), MaterialTheme.colorScheme.surfaceVariant, 0.85f), 1f - borderContrast)
     } else {
         MaterialTheme.colorScheme.outline.copy(alpha = borderContrast)
