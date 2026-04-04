@@ -3,7 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     id("com.google.devtools.ksp")
-    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.23" // Add this line
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.1.0" // Add this line
 }
 
 // Set to true to enable Developer Mode (safe testing without affecting real data)
@@ -11,9 +11,7 @@ val isDeveloperMode = false
 
 android {
     namespace = "com.example.attempt3"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = if (isDeveloperMode) "com.developer.habitly" else "com.habitly.habitly"
@@ -53,9 +51,9 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
-    implementation("androidx.compose.animation:animation")
-    implementation("com.github.skydoves:colorpicker-compose:1.0.0")
-    implementation("androidx.core:core-splashscreen:1.0.1")
+    implementation(libs.androidx.compose.animation)
+    implementation(libs.colorpicker.compose)
+    implementation(libs.androidx.core.splashscreen)
 
     // Compose BOM — this controls all compose versions automatically
     implementation(platform(libs.androidx.compose.bom))
@@ -66,33 +64,33 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
-    implementation("androidx.compose.animation:animation") // includes sharedElement
+    implementation(libs.androidx.animation) // includes sharedElement
 
     // Extra icons, etc.
-    implementation("androidx.compose.material:material-icons-extended")
+    implementation(libs.androidx.compose.material.icons.extended)
 
     // Navigation & other Jetpack libs
-    implementation("androidx.navigation:navigation-compose:2.8.3")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.4")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.9.4")
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
 
     // Work Manager
     implementation(libs.androidx.work.runtime.ktx)
 
     // Room database
-    implementation("androidx.room:room-runtime:2.6.1")
-    implementation("androidx.room:room-ktx:2.6.1")
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
     implementation(libs.material)
-    ksp("androidx.room:room-compiler:2.6.1")
+    ksp(libs.androidx.room.compiler)
 
     // GSON
-    implementation("com.google.code.gson:gson:2.10.1")
+    implementation(libs.gson)
 
     // Kotlinx Serialization
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3") // Add this line
+    implementation(libs.kotlinx.serialization.json) // Add this line
 
     // DataStore
-    implementation("androidx.datastore:datastore-preferences:1.1.1")
+    implementation(libs.androidx.datastore.preferences)
 
     // Testing
     testImplementation(libs.junit)

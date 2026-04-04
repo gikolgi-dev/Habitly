@@ -8,6 +8,7 @@ import androidx.room.Database
 import androidx.room.Delete
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
@@ -47,7 +48,8 @@ data class Habit(
             childColumns = ["habitId"],
             onDelete = ForeignKey.CASCADE
         )
-    ]
+    ],
+    indices = [Index(value = ["habitId"])]
 )
 data class Completion(
     @PrimaryKey val id: String,
@@ -129,7 +131,7 @@ interface HabitDao {
     suspend fun clearCompletions()
 }
 
-@Database(entities = [Habit::class, Completion::class], version = 11)
+@Database(entities = [Habit::class, Completion::class], version = 12, exportSchema = false)
 abstract class HabitDatabase : RoomDatabase() {
     abstract fun habitDao(): HabitDao
 
@@ -143,7 +145,14 @@ abstract class HabitDatabase : RoomDatabase() {
                     context.applicationContext,
                     HabitDatabase::class.java,
                     "habit_database"
-                ).addMigrations(MIGRATION_5_6, MIGRATION_6_7, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11).build()
+                ).addMigrations(
+                    MIGRATION_5_6, 
+                    MIGRATION_6_7, 
+                    MIGRATION_8_9, 
+                    MIGRATION_9_10, 
+                    MIGRATION_10_11,
+                    MIGRATION_11_12
+                ).build()
                 INSTANCE = instance
                 instance
             }
@@ -206,5 +215,27 @@ val MIGRATION_9_10 = object : Migration(9, 10) {
 val MIGRATION_10_11 = object : Migration(10, 11) {
     override fun migrate(database: SupportSQLiteDatabase) {
         database.execSQL("ALTER TABLE Habit ADD COLUMN notificationDays TEXT")
+    }
+}
+
+val MIGRATION_11_12 = object : Migration(11, 12) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        // 1. Ensure Habit.notificationDays column exists
+        val habitCursor = database.query("PRAGMA table_info(Habit)")
+        var hasNotificationDays = false
+        while (habitCursor.moveToNext()) {
+            val nameIndex = habitCursor.getColumnIndex("name")
+            if (nameIndex != -1 && habitCursor.getString(nameIndex) == "notificationDays") {
+                hasNotificationDays = true
+                break
+            }
+        }
+        habitCursor.close()
+        if (!hasNotificationDays) {
+            database.execSQL("ALTER TABLE Habit ADD COLUMN notificationDays TEXT")
+        }
+
+        // 2. Ensure Completion index on habitId exists
+        database.execSQL("CREATE INDEX IF NOT EXISTS index_Completion_habitId ON Completion (habitId)")
     }
 }
