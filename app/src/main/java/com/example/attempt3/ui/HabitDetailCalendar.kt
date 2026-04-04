@@ -50,8 +50,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -175,7 +175,7 @@ fun MonthCalendar(
                         month.getDisplayName(
                             Calendar.MONTH,
                             Calendar.LONG,
-                            LocalLocale.current.platformLocale
+                            LocalConfiguration.current.locales[0]
                         )
                     } ${month.get(Calendar.YEAR)}",
                     style = MaterialTheme.typography.titleMedium,
@@ -234,23 +234,23 @@ fun MonthCalendar(
                 .layout { measurable, constraints ->
                     val padPx = 16.dp.roundToPx()
                     val spacingPx = 4.dp.roundToPx()
-                    
+
                     // Inflate width constraint by padding on both sides to widen the pager's clipping bounds
                     val placeable = measurable.measure(
                         constraints.copy(
                             maxWidth = constraints.maxWidth + padPx * 2
                         )
                     )
-                    
+
                     // Calculate expected height based on the number of rows of the currently displayed month.
                     // The content width is actually equal to constraints.maxWidth because:
                     // Pager width = maxWidth + 32px, and contentPadding = 16px on each side.
                     // So content width = (maxWidth + 32) - 32 = maxWidth.
                     val availableWidth = constraints.maxWidth
                     val cellWidth = (availableWidth - 6 * spacingPx) / 7f
-                    
+
                     val gridHeight = (animatedNumRows * cellWidth + (animatedNumRows - 1) * spacingPx).toInt()
-                    
+
                     layout(constraints.maxWidth, gridHeight) {
                         // Place at -padPx to align the grid correctly while allowing bleed into the 16dp padding
                         placeable.place(-padPx, -padPx)

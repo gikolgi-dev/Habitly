@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -57,7 +56,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -313,7 +311,7 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                     MaterialTheme.colorScheme.outline.copy(alpha = bordersAlpha),
                     RoundedCornerShape(8.dp)
                 )
-                .padding(16.dp),
+                .padding(8.dp),
             contentAlignment = Alignment.Center
         ) {
             if (selectedFileUri == null) {
@@ -380,7 +378,7 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                             onCheckedChange = { mergeData = it }
                         )
                     }
-                    Spacer(modifier = Modifier.height(24.dp))
+                    /*Spacer(modifier = Modifier.height(24.dp))*/
 
                     Row {
                         Button(onClick = { selectedFileUri = null }) {
@@ -538,6 +536,6 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                 }
             }
         }
-        Spacer(modifier = Modifier.navigationBarsPadding())
+        Spacer(modifier = Modifier.height(8.dp))
     }
 }
