@@ -7,6 +7,7 @@ package com.example.attempt3.ui.colors
 import android.app.Activity
 import android.os.Build
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,15 +19,20 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import com.example.attempt3.data.settings.SettingsDataStore
+import kotlinx.coroutines.delay
 
 @Composable
 fun Attempt3Theme(
@@ -96,7 +102,16 @@ fun Attempt3Theme(
         baseColorScheme
     }
 
-    val animationSpec = tween<Color>(durationMillis = 400)
+    var enableAnimations by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        // Delay enabling animations until after DataStore has loaded initial values 
+        // and initial layout passes are done.
+        delay(500)
+        enableAnimations = true
+    }
+
+    val animationSpec = if (enableAnimations) tween<Color>(durationMillis = 400) else snap<Color>()
+    
     val animatedColorScheme = colorScheme.copy(
         primary = animateColorAsState(colorScheme.primary, animationSpec, label = "primary").value,
         onPrimary = animateColorAsState(colorScheme.onPrimary, animationSpec, label = "onPrimary").value,

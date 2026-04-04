@@ -5,10 +5,12 @@ package com.example.attempt3.data.Database
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -31,6 +33,10 @@ class HabitViewModel(private val habitDao: HabitDao) : ViewModel() {
             if (changes.isEmpty()) {
                 habits
             } else {
+                val now = Calendar.getInstance()
+                val timezoneOffsetInMinutes = TimeUnit.MILLISECONDS.toMinutes(now.timeZone.rawOffset.toLong()).toInt()
+                val cal = Calendar.getInstance()
+
                 habits.map { habitWithCompletions ->
                     val habitId = habitWithCompletions.habit.id
                     val change = changes[habitId]
@@ -38,12 +44,19 @@ class HabitViewModel(private val habitDao: HabitDao) : ViewModel() {
                         habitWithCompletions
                     } else {
                         val (isCompleted, date) = change
-                        val now = Calendar.getInstance()
-                        val timezoneOffsetInMinutes = TimeUnit.MILLISECONDS.toMinutes(now.timeZone.rawOffset.toLong()).toInt()
-
-                        val startOfDay = Calendar.getInstance().apply { timeInMillis = date; set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }.timeInMillis
-                        val endOfDay = Calendar.getInstance().apply { timeInMillis = date; set(Calendar.HOUR_OF_DAY, 23); set(Calendar.MINUTE, 59); set(Calendar.SECOND, 59); set(Calendar.MILLISECOND, 999) }.timeInMillis
-
+                        
+                        cal.timeInMillis = date
+                        cal.set(Calendar.HOUR_OF_DAY, 0)
+                        cal.set(Calendar.MINUTE, 0)
+                        cal.set(Calendar.SECOND, 0)
+                        cal.set(Calendar.MILLISECOND, 0)
+                        val startOfDay = cal.timeInMillis
+                        
+                        cal.set(Calendar.HOUR_OF_DAY, 23)
+                        cal.set(Calendar.MINUTE, 59)
+                        cal.set(Calendar.SECOND, 59)
+                        cal.set(Calendar.MILLISECOND, 999)
+                        val endOfDay = cal.timeInMillis
 
                         if (isCompleted) {
                             val alreadyCompleted = habitWithCompletions.completions.any { it.date in startOfDay..endOfDay }
@@ -64,6 +77,7 @@ class HabitViewModel(private val habitDao: HabitDao) : ViewModel() {
                 }
             }
         }
+            .flowOn(Dispatchers.Default)
             .map { HabitsUiState.Success(it) }
             .stateIn(
                 scope = viewModelScope,
