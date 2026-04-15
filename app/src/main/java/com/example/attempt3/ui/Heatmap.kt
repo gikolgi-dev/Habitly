@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
@@ -160,8 +159,13 @@ fun Heatmap(
                 }
             }
 
-            val weeksData = remember(totalWeeks, showMonthLabels, completionDates, todayDayIndex, currentDateMillis, tz) {
-                val monthFormat = SimpleDateFormat("MMM", Locale.getDefault())
+            val lazyListState = rememberLazyListState()
+            val flingBehavior = rememberMaxSpeedFlingBehavior(with(density) { 3000.dp.toPx() })
+
+            LaunchedEffect(isScrollable) { lazyListState.scrollToItem(0) }
+
+            val monthFormat = remember { SimpleDateFormat("MMM", Locale.getDefault()) }
+            val currentMondayMillis = remember(currentDateMillis) {
                 val cal = Calendar.getInstance().apply {
                     firstDayOfWeek = Calendar.MONDAY
                     timeInMillis = currentDateMillis
@@ -172,71 +176,8 @@ fun Heatmap(
                     set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
                     if (timeInMillis > currentDateMillis) add(Calendar.WEEK_OF_YEAR, -1)
                 }
-                val currentMonday = cal.timeInMillis
-                
-                val rawWeeks = List(totalWeeks) { weekIndex ->
-                    cal.timeInMillis = currentMonday
-                    cal.add(Calendar.WEEK_OF_YEAR, -weekIndex)
-                    val weekStartMillis = cal.timeInMillis
-                    
-                    val offset = tz.getOffset(weekStartMillis)
-                    val weekStartDayIndex = (weekStartMillis + offset) / 86400000L
-
-                    val completed = BooleanArray(7)
-                    val future = BooleanArray(7)
-                    var todayIdx = -1
-                    
-                    for (i in 0..6) {
-                        val dayIndex = weekStartDayIndex + i
-                        completed[i] = completionDates.contains(dayIndex)
-                        future[i] = dayIndex > todayDayIndex
-                        if (dayIndex == todayDayIndex) todayIdx = i
-                    }
-
-                    // Year transition check using minimal calendar operations
-                    cal.add(Calendar.DAY_OF_YEAR, 6)
-                    val yearEnd = cal.get(Calendar.YEAR)
-                    cal.add(Calendar.WEEK_OF_YEAR, -1)
-                    val yearPrev = cal.get(Calendar.YEAR)
-                    val isStartOfYear = yearEnd != yearPrev
-                    val yearDigits = if (isStartOfYear) yearEnd.toString() else null
-
-                    Triple(weekStartMillis, Triple(completed.toList(), future.toList(), todayIdx), Pair(isStartOfYear, yearDigits))
-                }
-
-                val monthLabels = MutableList<String?>(totalWeeks) { null }
-                if (showMonthLabels) {
-                    val labelCal = Calendar.getInstance()
-                    for (i in 0 until totalWeeks) {
-                        labelCal.timeInMillis = rawWeeks[i].first
-                        var found: String? = null
-                        for (d in 0..6) {
-                            if (labelCal.get(Calendar.DAY_OF_MONTH) == 1) {
-                                found = monthFormat.format(labelCal.time)
-                                break
-                            }
-                            labelCal.add(Calendar.DAY_OF_YEAR, 1)
-                        }
-                        if (found != null) {
-                            val target = when {
-                                i == 0 && totalWeeks > 1 -> 1
-                                i == totalWeeks - 1 && totalWeeks > 1 -> totalWeeks - 2
-                                else -> i
-                            }
-                            if (monthLabels[target] == null) monthLabels[target] = found
-                        }
-                    }
-                }
-
-                rawWeeks.mapIndexed { index, (startMillis, status, year) ->
-                    HeatmapWeekData(startMillis, status.first, status.second, status.third, monthLabels[index], year.first, year.second)
-                }
+                cal.timeInMillis
             }
-
-            val lazyListState = rememberLazyListState()
-            val flingBehavior = rememberMaxSpeedFlingBehavior(with(density) { 3000.dp.toPx() })
-
-            LaunchedEffect(isScrollable) { lazyListState.scrollToItem(0) }
 
             LazyRow(
                 modifier = Modifier.fillMaxWidth().graphicsLayer(clip = false).fadingEdge(lazyListState, isScrollable && showScrollBlur),
@@ -246,7 +187,61 @@ fun Heatmap(
                 horizontalArrangement = if (!isScrollable) Arrangement.SpaceBetween else Arrangement.spacedBy(horizontalSpacing),
                 userScrollEnabled = isScrollable
             ) {
-                items(items = weeksData, key = { it.weekStartMillis }) { weekData ->
+                items(count = totalWeeks, key = { it }) { weekIndex ->
+                    val weekData = remember(weekIndex, currentMondayMillis, completionDates, todayDayIndex, showMonthLabels, tz) {
+                        val cal = Calendar.getInstance()
+                        cal.firstDayOfWeek = Calendar.MONDAY
+                        cal.timeInMillis = currentMondayMillis
+                        cal.add(Calendar.WEEK_OF_YEAR, -weekIndex)
+                        val weekStartMillis = cal.timeInMillis
+                        
+                        val offset = tz.getOffset(weekStartMillis)
+                        val weekStartDayIndex = (weekStartMillis + offset) / 86400000L
+
+                        val completed = BooleanArray(7)
+                        val future = BooleanArray(7)
+                        var todayIdx = -1
+                        
+                        for (i in 0..6) {
+                            val dayIndex = weekStartDayIndex + i
+                            completed[i] = completionDates.contains(dayIndex)
+                            future[i] = dayIndex > todayDayIndex
+                            if (dayIndex == todayDayIndex) todayIdx = i
+                        }
+
+                        // Year transition check
+                        cal.add(Calendar.DAY_OF_YEAR, 6)
+                        val yearEnd = cal.get(Calendar.YEAR)
+                        cal.add(Calendar.WEEK_OF_YEAR, -1)
+                        val yearPrev = cal.get(Calendar.YEAR)
+                        val isStartOfYear = yearEnd != yearPrev
+                        val yearDigits = if (isStartOfYear) yearEnd.toString() else null
+                        
+                        // Month label logic
+                        var monthLabel: String? = null
+                        if (showMonthLabels) {
+                            val labelCal = Calendar.getInstance()
+                            labelCal.timeInMillis = weekStartMillis
+                            for (d in 0..6) {
+                                if (labelCal.get(Calendar.DAY_OF_MONTH) == 1) {
+                                    monthLabel = monthFormat.format(labelCal.time)
+                                    break
+                                }
+                                labelCal.add(Calendar.DAY_OF_YEAR, 1)
+                            }
+                        }
+
+                        HeatmapWeekData(
+                            weekStartMillis, 
+                            completed.toList(), 
+                            future.toList(), 
+                            todayIdx, 
+                            monthLabel, 
+                            isStartOfYear, 
+                            yearDigits
+                        )
+                    }
+                    
                     HeatmapWeekColumn(weekData, habitColor, cellSize, verticalSpacing, horizontalSpacing, showMonthLabels, showYearDivider, showYearLabels)
                 }
             }
