@@ -47,6 +47,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -294,8 +295,8 @@ fun HabitItemCard(
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 0.dp)
             .then(modifier)
+            .clip(MaterialTheme.shapes.medium)
             .clickable(onClick = onClick),
-        shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
             containerColor = cardBackgroundColor,
             contentColor = MaterialTheme.colorScheme.onSurface

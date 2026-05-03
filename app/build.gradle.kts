@@ -3,7 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     id("com.google.devtools.ksp")
-    id("org.jetbrains.kotlin.plugin.serialization") version "2.1.0" // Add this line
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.1.0"
 }
 
 // Set to true to enable Developer Mode (safe testing without affecting real data)
