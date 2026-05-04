@@ -12,6 +12,7 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -134,7 +135,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     val haptic = LocalHapticFeedback.current
     val context = LocalContext.current
     val notificationScheduler = remember { NotificationScheduler(context) }
-    
+
     val notificationPermissionHandler = rememberNotificationPermissionHandler {
         // Optional logic when permission is granted
     }
@@ -156,7 +157,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
-    
+
     val startOfDay by remember {
         derivedStateOf {
             Calendar.getInstance().apply {
@@ -200,7 +201,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     val reduceMovement by settingsDataStore.reduceMovement.collectAsState(initial = false)
     val reduceMovementTargets by settingsDataStore.reduceMovementTargets.collectAsState(initial = emptySet())
     val disableAnimations = reduceMovement && "Rotation" in reduceMovementTargets
-    
+
     val useHabitColorForCard by settingsDataStore.useHabitColorForCard.collectAsState(initial = true)
     val habitColorTargets by settingsDataStore.habitColorTargets.collectAsState(initial = setOf("Habit Cards", "Statistic Screen"))
     val theme by settingsDataStore.theme.collectAsState(initial = "system")
@@ -264,7 +265,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     var completionsError by remember { mutableStateOf<String?>(null) }
     var notificationsEnabled by remember { mutableStateOf(false) }
     var notificationTime by remember { mutableStateOf<String?>("09:00") }
-    
+
     val allDays = remember { setOf("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN") }
     var notificationDays by remember { mutableStateOf(allDays) }
 
@@ -309,9 +310,9 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     BackHandler(enabled = isAnySheetOpen || isFabMenuExpanded) {
         if (isFabMenuExpanded) { isFabMenuExpanded = false; return@BackHandler }
         if (showStatisticScreen) { showStatisticScreen = false; initialHabitIdForStats = null; return@BackHandler }
-        if (showHabitSheet) { 
+        if (showHabitSheet) {
             showHabitSheet = false
-            return@BackHandler 
+            return@BackHandler
         }
         if (showSettingsScreen) { showSettingsScreen = false; return@BackHandler }
         if (habitToView != null) { habitToView = null; return@BackHandler }
@@ -392,14 +393,24 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
 
     Box(Modifier.fillMaxSize()) {
         SharedTransitionLayout {
-            val mainContentModifier = if ((isAnySheetOpen || isFabMenuExpanded) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                Modifier.blur(16.dp)
+            val mainBlurRadius by animateDpAsState(
+                targetValue = if ((isAnySheetOpen || isFabMenuExpanded) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) 16.dp else 0.dp,
+                label = "mainBlurRadius"
+            )
+
+            val mainContentModifier = if (mainBlurRadius > 0.dp) {
+                Modifier.blur(mainBlurRadius)
             } else {
                 Modifier
             }
 
-            val timePickerBlurModifier = if (showTimePicker && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                Modifier.blur(10.dp)
+            val timePickerBlurRadius by animateDpAsState(
+                targetValue = if (showTimePicker && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) 10.dp else 0.dp,
+                label = "timePickerBlurRadius"
+            )
+
+            val timePickerBlurModifier = if (timePickerBlurRadius > 0.dp) {
+                Modifier.blur(timePickerBlurRadius)
             } else {
                 Modifier
             }
@@ -443,45 +454,58 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                 val isCompleted = habitWithCompletions.completions.any { it.date in startOfDay..endOfDay }
                                                 val isEditingThis = isEditMode && habitToEdit?.id == habitWithCompletions.habit.id
                                                 val isViewingThis = habitToView?.habit?.id == habitWithCompletions.habit.id
-                                                
-                                                HabitItemCard(
-                                                    modifier = Modifier.sharedElementWithCallerManagedVisibility(
-                                                        rememberSharedContentState(key = "card-${habitWithCompletions.habit.id}"),
-                                                        visible = !isViewingThis && !isEditingThis
-                                                    ),
-                                                    habit = habitWithCompletions.habit,
-                                                    isCompleted = isCompleted,
-                                                    completions = habitWithCompletions.completions,
-                                                    showCheckbox = true,
-                                                    showMonthLabels = showMonthLabels!!,
-                                                    visibleDayLabels = heatmapVisibleDays!!,
-                                                    dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight!!,
-                                                    showYearDivider = showYearDivider!!,
-                                                    showYearLabels = showYearLabels!!,
-                                                    showScrollBlur = showScrollBlur && "Heatmap" in scrollBlurTargets,
-                                                    borderContrast = borderContrast!!,
-                                                    heatmapScrollEnabled = heatmapScrolling,
-                                                    heatmapWeeks = heatmapWeeks,
-                                                    heatmapInfinite = heatmapInfinite,
-                                                    useHabitColor = useHabitColorForItemCards,
-                                                    disableAnimations = disableAnimations,
-                                                    currentDateMillis = currentDateMillis,
-                                                    onComplete = {
-                                                        if (vibrationsEnabled) {
-                                                            haptic.performHapticFeedback(
-                                                                HapticFeedbackType.TextHandleMove
-                                                            )
-                                                        }
-                                                        viewModel.toggleCompletion(
-                                                            habitWithCompletions.habit,
-                                                            Calendar.getInstance().apply { timeInMillis = currentDateMillis },
-                                                            isCompleted
+
+                                                val shadowColor = MaterialTheme.colorScheme.surfaceVariant.copy(/*alpha = 0.15f*/)
+
+                                                Box {
+                                                    if (isViewingThis || isEditingThis) {
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .matchParentSize()
+                                                                .padding(horizontal = 12.dp)
+                                                                .background(shadowColor, MaterialTheme.shapes.medium)
                                                         )
-                                                    },
-                                                    onClick = {
-                                                        habitToView = habitWithCompletions
                                                     }
-                                                )
+                                                    HabitItemCard(
+                                                        modifier = Modifier.sharedElementWithCallerManagedVisibility(
+                                                            rememberSharedContentState(key = "card-${habitWithCompletions.habit.id}"),
+                                                            visible = !isViewingThis && !isEditingThis,
+                                                            boundsTransform = { _, _ -> tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing) }
+                                                        ),
+                                                        habit = habitWithCompletions.habit,
+                                                        isCompleted = isCompleted,
+                                                        completions = habitWithCompletions.completions,
+                                                        showCheckbox = true,
+                                                        showMonthLabels = showMonthLabels!!,
+                                                        visibleDayLabels = heatmapVisibleDays!!,
+                                                        dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight!!,
+                                                        showYearDivider = showYearDivider!!,
+                                                        showYearLabels = showYearLabels!!,
+                                                        showScrollBlur = showScrollBlur && "Heatmap" in scrollBlurTargets,
+                                                        borderContrast = borderContrast!!,
+                                                        heatmapScrollEnabled = heatmapScrolling,
+                                                        heatmapWeeks = heatmapWeeks,
+                                                        heatmapInfinite = heatmapInfinite,
+                                                        useHabitColor = useHabitColorForItemCards,
+                                                        disableAnimations = disableAnimations,
+                                                        currentDateMillis = currentDateMillis,
+                                                        onComplete = {
+                                                            if (vibrationsEnabled) {
+                                                                haptic.performHapticFeedback(
+                                                                    HapticFeedbackType.TextHandleMove
+                                                                )
+                                                            }
+                                                            viewModel.toggleCompletion(
+                                                                habitWithCompletions.habit,
+                                                                Calendar.getInstance().apply { timeInMillis = currentDateMillis },
+                                                                isCompleted
+                                                            )
+                                                        },
+                                                        onClick = {
+                                                            habitToView = habitWithCompletions
+                                                        }
+                                                    )
+                                                }
                                             }
                                             item {
                                                 Spacer(modifier = Modifier.height(80.dp))
@@ -525,8 +549,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 AnimatedVisibility(
                     visible = showArchiveSheet,
                     modifier = Modifier.fillMaxSize(),
-                    enter = slideInHorizontally(animationSpec = tween(durationMillis = 250)) { -it },
-                    exit = slideOutHorizontally(animationSpec = tween(durationMillis = 250)) { -it }
+                    enter = slideInHorizontally(animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { -it },
+                    exit = slideOutHorizontally(animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { -it }
                 ) {
                     ArchiveScreen(
                         uiState = archivedHabitsUiState,
@@ -563,8 +587,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 AnimatedVisibility(
                     visible = showReorderSheet,
                     modifier = Modifier.fillMaxSize(),
-                    enter = slideInHorizontally(animationSpec = tween(durationMillis = 250)) { -it },
-                    exit = slideOutHorizontally(animationSpec = tween(durationMillis = 250)) { -it }
+                    enter = slideInHorizontally(animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { -it },
+                    exit = slideOutHorizontally(animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { -it }
                 ) {
                     ReorderScreen(
                         habitViewModel = viewModel,
@@ -592,7 +616,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 AnimatedVisibility(
                     visible = habitToView != null,
                     modifier = Modifier.fillMaxSize(),
-                    enter = fadeIn(animationSpec = tween(durationMillis = 250)),
+                    enter = fadeIn(animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)),
                     exit = ExitTransition.None
                 ) {
                     habitToView?.let { habitWithCompletions ->
@@ -620,7 +644,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                 notificationTime = it.notificationTime ?: "09:00"
                                 notificationDays = it.notificationDays?.split(',')?.toSet() ?: allDays
                                 customColor = null
-                                
+
                                 habitToEdit = it
                                 showHabitSheet = true
                             },
@@ -656,8 +680,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                         modifier = Modifier
                             .fillMaxSize()
                             .background(Color.Black.copy(alpha = 0.5f))
-                            .clickable { 
-                                showStatisticScreen = false 
+                            .clickable {
+                                showStatisticScreen = false
                                 initialHabitIdForStats = null
                             }
                     )
@@ -666,13 +690,13 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 AnimatedVisibility(
                     visible = showStatisticScreen,
                     modifier = Modifier.fillMaxSize(),
-                    enter = slideInVertically(animationSpec = tween(durationMillis = 250)) { -it },
-                    exit = slideOutVertically(animationSpec = tween(durationMillis = 250)) { -it }
+                    enter = slideInVertically(animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { -it },
+                    exit = slideOutVertically(animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { -it }
                 ) {
                     StatisticScreen(
-                        viewModel = viewModel, 
-                        onBack = { 
-                            showStatisticScreen = false 
+                        viewModel = viewModel,
+                        onBack = {
+                            showStatisticScreen = false
                             initialHabitIdForStats = null
                         },
                         initialHabitId = initialHabitIdForStats,
@@ -701,8 +725,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 AnimatedVisibility(
                     visible = showSettingsScreen,
                     modifier = Modifier.fillMaxSize(),
-                    enter = slideInHorizontally(animationSpec = tween(durationMillis = 300)) { it },
-                    exit = slideOutHorizontally(animationSpec = tween(durationMillis = 300)) { it }
+                    enter = slideInHorizontally(animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { it },
+                    exit = slideOutHorizontally(animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { it }
                 ) {
                     SettingsScreen(
                         onDismiss = { showSettingsScreen = false },
@@ -724,8 +748,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                         modifier = Modifier
                             .fillMaxSize()
                             .background(Color.Black.copy(alpha = 0.5f))
-                            .clickable { 
-                                showHabitSheet = false 
+                            .clickable {
+                                showHabitSheet = false
                             }
                     )
                 }
@@ -738,8 +762,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 AnimatedVisibility(
                     visible = showHabitSheet,
                     modifier = Modifier.align(Alignment.BottomCenter),
-                    enter = slideInVertically(animationSpec = tween(durationMillis = 250)) { it },
-                    exit = slideOutVertically(animationSpec = tween(durationMillis = 250)) { it }
+                    enter = fadeIn(animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)),
+                    exit = fadeOut(animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing))
                 ) {
                     val dismissThresholdPx = with(LocalDensity.current) { 175.dp.toPx() }
                     val scrollState = rememberScrollState()
@@ -859,12 +883,13 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                             modifier = Modifier
                                 .sharedElementWithCallerManagedVisibility(
                                     rememberSharedContentState(key = previewKey),
-                                    visible = showHabitSheet
+                                    visible = showHabitSheet,
+                                    boundsTransform = { _, _ -> tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing) }
                                 )
                                 .padding(horizontal = 8.dp, vertical = 8.dp),
                             currentDateMillis = currentDateMillis
                         )
-                        
+
                         Surface(
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
@@ -962,8 +987,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
 
                 AnimatedVisibility(
                     visible = showHabitSheet,
-                    enter = fadeIn(),
-                    exit = fadeOut(),
+                    enter = fadeIn(animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)),
+                    exit = fadeOut(animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)),
                     modifier = Modifier.align(Alignment.BottomCenter)
                 ) {
                     val habits = (habitsUiState as? HabitsUiState.Success)?.habits ?: emptyList()
@@ -1024,7 +1049,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                     }
                                 }
                                 showHabitSheet = false
-                                // We purposefully do NOT clear habitToEdit instantly 
+                                // We purposefully do NOT clear habitToEdit instantly
                                 // to ensure the exit animation transitions cleanly
                             }
                         }
@@ -1035,8 +1060,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
 
         AnimatedVisibility(
             visible = habitsUiState is HabitsUiState.Loading,
-            enter = fadeIn(animationSpec = tween(durationMillis = 250)),
-            exit = fadeOut(animationSpec = tween(durationMillis = 250))
+            enter = fadeIn(animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)),
+            exit = fadeOut(animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing))
         ) {
             Surface(modifier = Modifier.fillMaxSize(),color = MaterialTheme.colorScheme.background) {
                 Column(
@@ -1073,16 +1098,16 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                     notificationTime = "09:00"
                     notificationDays = allDays
                     customColor = null
-                    
+
                     habitToEdit = null
                     showHabitSheet = true
                 },
                 onShowArchived = { showArchiveSheet = true },
                 onShowSettings = { showSettingsScreen = true },
                 onShowReorder = { showReorderSheet = true },
-                onShowStatistics = { 
+                onShowStatistics = {
                     initialHabitIdForStats = null
-                    showStatisticScreen = true 
+                    showStatisticScreen = true
                 },
                 settingsDataStore = settingsDataStore
             )

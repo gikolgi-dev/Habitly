@@ -166,6 +166,9 @@ val habitIconMap = mapOf(
 
 const val defaultHabitIconKey = "SelfImprovement"
 
+val habitIconRows = habitIconMap.keys.toList().chunked(8)
+val habitColorRows = (0..habitColors.size).chunked(8)
+
 private fun calculateGridDistance(index1: Int, index2: Int, columns: Int): Float {
     val r1 = index1 / columns
     val c1 = index1 % columns
@@ -200,7 +203,7 @@ private fun HabitIconItem(
 
     val pressedIconIndex = pressedIconIndexProvider()
     val distance = if (pressedIconIndex != null) calculateGridDistance(index, pressedIconIndex, 8) else 100f
-    
+
     val scale by animateFloatAsState(
         targetValue = if (pressedIconIndex == index && !reduceGridReactions) 1.2f else 1f,
         animationSpec = spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessLow),
@@ -289,7 +292,7 @@ private fun HabitColorItem(
     val haptic = LocalHapticFeedback.current
     val pressedColorIndex = pressedColorIndexProvider()
     val distance = if (pressedColorIndex != null) calculateGridDistance(index, pressedColorIndex, 8) else 100f
-    
+
     val scale by animateFloatAsState(
         targetValue = if (pressedColorIndex == index && !reduceGridReactions) 1.2f else 1f,
         animationSpec = spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessLow),
@@ -382,7 +385,7 @@ private fun CustomColorItem(
     val haptic = LocalHapticFeedback.current
     val pressedColorIndex = pressedColorIndexProvider()
     val distance = if (pressedColorIndex != null) calculateGridDistance(index, pressedColorIndex, 8) else 100f
-    
+
     val scale by animateFloatAsState(
         targetValue = if (pressedColorIndex == index && !reduceGridReactions) 1.2f else 1f,
         animationSpec = spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessLow),
@@ -567,7 +570,7 @@ fun HabitSheetContent(
     val is24Hour by settingsDataStore.is24Hour.collectAsState(initial = false)
     val reduceMovement by settingsDataStore.reduceMovement.collectAsState(initial = false)
     val reduceMovementTargets by settingsDataStore.reduceMovementTargets.collectAsState(initial = emptySet())
-    val reduceGridReactions = reduceMovement && "Grid Reactions" in reduceMovementTargets
+    val reduceGridReactions by remember { derivedStateOf { reduceMovement && "Grid Reactions" in reduceMovementTargets } }
 
     val isScrolled by remember { derivedStateOf { scrollState.value > 0 } }
     val dividerAlpha by animateFloatAsState(targetValue = if (isScrolled) 1f else 0f, label = "dividerAlpha")
@@ -576,12 +579,11 @@ fun HabitSheetContent(
     val pressedColorIndexState = remember { mutableStateOf<Int?>(null) }
 
     var isInitial by remember { mutableStateOf(true) }
+    LaunchedEffect(Unit) { isInitial = false }
 
     // Scroll to bottom when notifications are enabled to follow expansion
     LaunchedEffect(notificationsEnabled, hasNotificationPermission) {
-        if (isInitial) {
-            return@LaunchedEffect
-        }
+        if (isInitial) return@LaunchedEffect
         if (notificationsEnabled && hasNotificationPermission) {
             withTimeoutOrNull(600) {
                 snapshotFlow { scrollState.maxValue }.collect { max ->
@@ -599,7 +601,7 @@ fun HabitSheetContent(
         ) {
             Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
                 Text(
-                    title, 
+                    title,
                     style = MaterialTheme.typography.headlineLarge,
                     modifier = Modifier.align(Alignment.Center)
                 )
@@ -727,10 +729,9 @@ fun HabitSheetContent(
                 ) {
                     Text("Choose an Icon", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurface)
                     Spacer(modifier = Modifier.height(8.dp))
-                    
+
                     // Optimized Non-Lazy Grid
-                    val icons = remember { habitIconMap.keys.toList() }
-                    val iconRows = remember(icons) { icons.chunked(8) }
+                    val iconRows = habitIconRows
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         iconRows.forEachIndexed { rowIndex, rowIcons ->
                             Row(
@@ -773,12 +774,10 @@ fun HabitSheetContent(
                 ) {
                     Text("Choose a Color", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurface)
                     Spacer(modifier = Modifier.height(8.dp))
-                    
+
                     // Optimized Non-Lazy Grid
-                    val colorItemsCount = habitColors.size + 1
-                    val allIndices = remember { (0 until colorItemsCount).toList() }
-                    val colorRows = remember(allIndices) { allIndices.chunked(8) }
-                    
+                    val colorRows = habitColorRows
+
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         colorRows.forEachIndexed { rowIndex, rowIndices ->
                             Row(
