@@ -135,7 +135,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     val haptic = LocalHapticFeedback.current
     val context = LocalContext.current
     val notificationScheduler = remember { NotificationScheduler(context) }
-    
+
     val notificationPermissionHandler = rememberNotificationPermissionHandler {
         // Optional logic when permission is granted
     }
@@ -157,7 +157,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
-    
+
     val startOfDay by remember {
         derivedStateOf {
             Calendar.getInstance().apply {
@@ -201,7 +201,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     val reduceMovement by settingsDataStore.reduceMovement.collectAsState(initial = false)
     val reduceMovementTargets by settingsDataStore.reduceMovementTargets.collectAsState(initial = emptySet())
     val disableAnimations = reduceMovement && "Rotation" in reduceMovementTargets
-    
+
     val useHabitColorForCard by settingsDataStore.useHabitColorForCard.collectAsState(initial = true)
     val habitColorTargets by settingsDataStore.habitColorTargets.collectAsState(initial = setOf("Habit Cards", "Statistic Screen"))
     val theme by settingsDataStore.theme.collectAsState(initial = "system")
@@ -265,7 +265,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     var completionsError by remember { mutableStateOf<String?>(null) }
     var notificationsEnabled by remember { mutableStateOf(false) }
     var notificationTime by remember { mutableStateOf<String?>("09:00") }
-    
+
     val allDays = remember { setOf("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN") }
     var notificationDays by remember { mutableStateOf(allDays) }
 
@@ -310,9 +310,9 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     BackHandler(enabled = isAnySheetOpen || isFabMenuExpanded) {
         if (isFabMenuExpanded) { isFabMenuExpanded = false; return@BackHandler }
         if (showStatisticScreen) { showStatisticScreen = false; initialHabitIdForStats = null; return@BackHandler }
-        if (showHabitSheet) { 
+        if (showHabitSheet) {
             showHabitSheet = false
-            return@BackHandler 
+            return@BackHandler
         }
         if (showSettingsScreen) { showSettingsScreen = false; return@BackHandler }
         if (habitToView != null) { habitToView = null; return@BackHandler }
@@ -454,46 +454,58 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                 val isCompleted = habitWithCompletions.completions.any { it.date in startOfDay..endOfDay }
                                                 val isEditingThis = isEditMode && habitToEdit?.id == habitWithCompletions.habit.id
                                                 val isViewingThis = habitToView?.habit?.id == habitWithCompletions.habit.id
-                                                
-                                                HabitItemCard(
-                                                    modifier = Modifier.sharedElementWithCallerManagedVisibility(
-                                                        rememberSharedContentState(key = "card-${habitWithCompletions.habit.id}"),
-                                                        visible = !isViewingThis && !isEditingThis,
-                                                        boundsTransform = { _, _ -> tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing) }
-                                                    ),
-                                                    habit = habitWithCompletions.habit,
-                                                    isCompleted = isCompleted,
-                                                    completions = habitWithCompletions.completions,
-                                                    showCheckbox = true,
-                                                    showMonthLabels = showMonthLabels!!,
-                                                    visibleDayLabels = heatmapVisibleDays!!,
-                                                    dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight!!,
-                                                    showYearDivider = showYearDivider!!,
-                                                    showYearLabels = showYearLabels!!,
-                                                    showScrollBlur = showScrollBlur && "Heatmap" in scrollBlurTargets,
-                                                    borderContrast = borderContrast!!,
-                                                    heatmapScrollEnabled = heatmapScrolling,
-                                                    heatmapWeeks = heatmapWeeks,
-                                                    heatmapInfinite = heatmapInfinite,
-                                                    useHabitColor = useHabitColorForItemCards,
-                                                    disableAnimations = disableAnimations,
-                                                    currentDateMillis = currentDateMillis,
-                                                    onComplete = {
-                                                        if (vibrationsEnabled) {
-                                                            haptic.performHapticFeedback(
-                                                                HapticFeedbackType.TextHandleMove
-                                                            )
-                                                        }
-                                                        viewModel.toggleCompletion(
-                                                            habitWithCompletions.habit,
-                                                            Calendar.getInstance().apply { timeInMillis = currentDateMillis },
-                                                            isCompleted
+
+                                                val shadowColor = MaterialTheme.colorScheme.surfaceVariant.copy(/*alpha = 0.15f*/)
+
+                                                Box {
+                                                    if (isViewingThis || isEditingThis) {
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .matchParentSize()
+                                                                .padding(horizontal = 12.dp)
+                                                                .background(shadowColor, MaterialTheme.shapes.medium)
                                                         )
-                                                    },
-                                                    onClick = {
-                                                        habitToView = habitWithCompletions
                                                     }
-                                                )
+                                                    HabitItemCard(
+                                                        modifier = Modifier.sharedElementWithCallerManagedVisibility(
+                                                            rememberSharedContentState(key = "card-${habitWithCompletions.habit.id}"),
+                                                            visible = !isViewingThis && !isEditingThis,
+                                                            boundsTransform = { _, _ -> tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing) }
+                                                        ),
+                                                        habit = habitWithCompletions.habit,
+                                                        isCompleted = isCompleted,
+                                                        completions = habitWithCompletions.completions,
+                                                        showCheckbox = true,
+                                                        showMonthLabels = showMonthLabels!!,
+                                                        visibleDayLabels = heatmapVisibleDays!!,
+                                                        dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight!!,
+                                                        showYearDivider = showYearDivider!!,
+                                                        showYearLabels = showYearLabels!!,
+                                                        showScrollBlur = showScrollBlur && "Heatmap" in scrollBlurTargets,
+                                                        borderContrast = borderContrast!!,
+                                                        heatmapScrollEnabled = heatmapScrolling,
+                                                        heatmapWeeks = heatmapWeeks,
+                                                        heatmapInfinite = heatmapInfinite,
+                                                        useHabitColor = useHabitColorForItemCards,
+                                                        disableAnimations = disableAnimations,
+                                                        currentDateMillis = currentDateMillis,
+                                                        onComplete = {
+                                                            if (vibrationsEnabled) {
+                                                                haptic.performHapticFeedback(
+                                                                    HapticFeedbackType.TextHandleMove
+                                                                )
+                                                            }
+                                                            viewModel.toggleCompletion(
+                                                                habitWithCompletions.habit,
+                                                                Calendar.getInstance().apply { timeInMillis = currentDateMillis },
+                                                                isCompleted
+                                                            )
+                                                        },
+                                                        onClick = {
+                                                            habitToView = habitWithCompletions
+                                                        }
+                                                    )
+                                                }
                                             }
                                             item {
                                                 Spacer(modifier = Modifier.height(80.dp))
@@ -632,7 +644,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                 notificationTime = it.notificationTime ?: "09:00"
                                 notificationDays = it.notificationDays?.split(',')?.toSet() ?: allDays
                                 customColor = null
-                                
+
                                 habitToEdit = it
                                 showHabitSheet = true
                             },
@@ -668,8 +680,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                         modifier = Modifier
                             .fillMaxSize()
                             .background(Color.Black.copy(alpha = 0.5f))
-                            .clickable { 
-                                showStatisticScreen = false 
+                            .clickable {
+                                showStatisticScreen = false
                                 initialHabitIdForStats = null
                             }
                     )
@@ -682,9 +694,9 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                     exit = slideOutVertically(animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { -it }
                 ) {
                     StatisticScreen(
-                        viewModel = viewModel, 
-                        onBack = { 
-                            showStatisticScreen = false 
+                        viewModel = viewModel,
+                        onBack = {
+                            showStatisticScreen = false
                             initialHabitIdForStats = null
                         },
                         initialHabitId = initialHabitIdForStats,
@@ -736,8 +748,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                         modifier = Modifier
                             .fillMaxSize()
                             .background(Color.Black.copy(alpha = 0.5f))
-                            .clickable { 
-                                showHabitSheet = false 
+                            .clickable {
+                                showHabitSheet = false
                             }
                     )
                 }
@@ -877,7 +889,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                 .padding(horizontal = 8.dp, vertical = 8.dp),
                             currentDateMillis = currentDateMillis
                         )
-                        
+
                         Surface(
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
@@ -1037,7 +1049,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                     }
                                 }
                                 showHabitSheet = false
-                                // We purposefully do NOT clear habitToEdit instantly 
+                                // We purposefully do NOT clear habitToEdit instantly
                                 // to ensure the exit animation transitions cleanly
                             }
                         }
@@ -1086,16 +1098,16 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                     notificationTime = "09:00"
                     notificationDays = allDays
                     customColor = null
-                    
+
                     habitToEdit = null
                     showHabitSheet = true
                 },
                 onShowArchived = { showArchiveSheet = true },
                 onShowSettings = { showSettingsScreen = true },
                 onShowReorder = { showReorderSheet = true },
-                onShowStatistics = { 
+                onShowStatistics = {
                     initialHabitIdForStats = null
-                    showStatisticScreen = true 
+                    showStatisticScreen = true
                 },
                 settingsDataStore = settingsDataStore
             )
