@@ -1,15 +1,44 @@
-*.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
+# Build artifacts
 /build
-/captures
+/app/build
+.gradle
 .externalNativeBuild
 .cxx
-local.properties
+/captures
+
+# IDE Settings (IntelliJ / Android Studio)
+/.idea/
+/.kotlin/
+*.iml
+*.iws
+atlassian-ide-plugin.xml
+
+# Local configuration
+/local.properties
+/bundle*
+/lineage*
+
+# Logs and temporary files
+*.log
+.DS_Store
+Thumbs.db
+
+# Signing files
+*.jks
+*.keystore
+*.pk8
+*.pem
+google-services.json
+
+# Hardware/Device specific
+.externalNativeBuild
+
+# Backup and temp files
+*~
+*.swp
+*.bak
+
+# Lint and testing
+/lint/intermediate-reports/
+/lint/reports/
+/app/lint/

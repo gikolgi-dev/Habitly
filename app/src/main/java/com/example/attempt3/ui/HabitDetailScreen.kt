@@ -208,7 +208,8 @@ fun SharedTransitionScope.HabitDetailScreen(
                 }
                 .sharedElementWithCallerManagedVisibility(
                     rememberSharedContentState(key = "card-${habit.id}"),
-                    visible = !isEditSheetOpen
+                    visible = !isEditSheetOpen,
+                    boundsTransform = { _, _ -> tween(durationMillis = 300, easing = FastOutSlowInEasing) }
                 )
                 .fillMaxWidth(0.9f)
                 .clickable(
