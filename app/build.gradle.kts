@@ -3,7 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     id("com.google.devtools.ksp")
-    id("org.jetbrains.kotlin.plugin.serialization") version "2.1.0" // Add this line
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.1.0"
 }
 
 // Set to true to enable Developer Mode (safe testing without affecting real data)
@@ -17,11 +17,11 @@ android {
         applicationId = if (isDeveloperMode) "com.developer.habitly" else "com.habitly.habitly"
         minSdk = 24
         targetSdk = 36
-        versionCode = 5
-        versionName = "2.4.0"
+        versionCode = 6
+        versionName = "2.4.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        
+
         // Dynamically set the app name based on the developer mode
         resValue("string", "app_name", if (isDeveloperMode) "Habitly [D]" else "Habitly")
     }
