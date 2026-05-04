@@ -1,0 +1,31 @@
+<vector
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="107dp"
+    android:height="200dp"
+    android:viewportWidth="400"
+    android:viewportHeight="750"
+>
+    <!-- Combined continuous arrow path -->
+    <path
+        android:pathData="M 100,330 C 100,480 280,530 280,430 C 280,310 60,350 120,490 C 150,560 250,560 300,610"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+    />
+
+    <!-- Arrowhead -->
+    <group
+        android:translateX="308"
+        android:translateY="618"
+        android:rotation="45"
+    >
+        <path
+            android:pathData="M 0,0 L -22,-11 L -22,11 Z"
+            android:fillColor="#FFFFFFFF"
+            android:strokeColor="#FFFFFFFF"
+            android:strokeWidth="2"
+            android:strokeLineJoin="round"
+        />
+    </group>
+</vector>
