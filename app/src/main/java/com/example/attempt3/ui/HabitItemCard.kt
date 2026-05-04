@@ -16,6 +16,8 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -48,7 +50,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Matrix
@@ -56,8 +57,6 @@ import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asAndroidPath
-import androidx.compose.ui.graphics.drawOutline
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
@@ -163,16 +162,16 @@ fun HabitCompletionButton(
     ) { state ->
         if (state) 1f else 0f
     }
-    
+
     val animatedHabitColorState = animateColorAsState(targetValue = color, animationSpec = tween(300), label = "habitColor")
-    
+
     val morph = circleToSquareMorph
     val path = remember { Path() }
     val matrix = remember { Matrix() }
-    
+
     val rotationAnimationSpec = tween<Float>(durationMillis = 400, easing = FastOutSlowInEasing)
     val rotationState = animateFloatAsState(if (isCompleted) 180f else 0f, label = "fab_icon_rotation", animationSpec = rotationAnimationSpec)
-    
+
     var isPressed by remember { mutableStateOf(false) }
     val scaleState = animateFloatAsState(
         targetValue = if (isPressed && !disableAnimations && !disablePressAnimation) 0.85f else 1f,
@@ -180,29 +179,22 @@ fun HabitCompletionButton(
         label = "button_scale"
     )
 
+    val p = progressState.value
+    val currentColor = animatedHabitColorState.value
+    val bgAlpha = lerp(0.1f, 1f, p)
+    val strokeAlpha = lerp(borderContrast, 1f, p)
+    val shape = MorphPolygonShape(morph, p, path, matrix)
+
     Box(
         modifier = modifier
             .size(64.dp)
             .graphicsLayer {
                 scaleX = scaleState.value
                 scaleY = scaleState.value
-                shape = MorphPolygonShape(morph, progressState.value, path, matrix)
-                clip = true
             }
-            .drawBehind {
-                val currentColor = animatedHabitColorState.value
-                val p = progressState.value
-                val bgAlpha = lerp(0.1f, 1f, p)
-                val strokeAlpha = lerp(if(borderContrast>0.1f) borderContrast else 0.1f, 1f, p)
-                
-                val bgColor = currentColor.copy(alpha = bgAlpha)
-                val strokeColor = currentColor.copy(alpha = strokeAlpha)
-                
-                drawRect(color = bgColor)
-                
-                val outline = MorphPolygonShape(morph, p, path, matrix).createOutline(size, layoutDirection, this)
-                drawOutline(outline, color = strokeColor, style = Stroke(width = 1.dp.toPx()))
-            }
+            .background(currentColor.copy(alpha = bgAlpha), shape)
+            .border(1.dp, currentColor.copy(alpha = strokeAlpha), shape)
+            .clip(shape)
             .pointerInput(isCompleted, disablePressAnimation) {
                 detectTapGestures(
                     onPress = {
