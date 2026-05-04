@@ -23,11 +23,13 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -79,9 +81,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
@@ -91,13 +95,16 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.example.attempt3.R
 import com.example.attempt3.data.Database.Completion
 import com.example.attempt3.data.Database.Habit
 import com.example.attempt3.data.Database.HabitDao
@@ -433,6 +440,48 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                         modifier = Modifier.fillMaxSize()
                                     ) {
                                         val habitsWithCompletions = (habitsUiState as? HabitsUiState.Success)?.habits ?: emptyList()
+
+                                        if (habitsWithCompletions.isEmpty()) {
+                                            BoxWithConstraints(
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentAlignment = Alignment.BottomEnd
+                                            ) {
+                                                val scale = minOf(maxWidth.value / 400f, maxHeight.value / 750f).coerceAtMost(1f)
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(width = 400.dp * scale, height = 750.dp * scale)
+                                                        .offset(y = 32.dp * scale)
+                                                ) {
+                                                    Image(
+                                                        painter = painterResource(id = R.drawable.welcome_image),
+                                                        contentDescription = null,
+                                                        colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)),
+                                                        modifier = Modifier.fillMaxSize()
+                                                    )
+                                                    Column(
+                                                        modifier = Modifier
+                                                            .offset(x = 25.dp * scale, y = 220.dp * scale)
+                                                            .rotate(-3f),
+                                                        horizontalAlignment = Alignment.Start
+                                                    ) {
+                                                        Text(
+                                                            text = "Start by adding",
+                                                            style = MaterialTheme.typography.headlineLarge.copy(fontSize = 42.sp * scale),
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                                        )
+                                                        Text(
+                                                            text = "a new habit",
+                                                            style = MaterialTheme.typography.headlineLarge.copy(fontSize = 42.sp * scale),
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                                            modifier = Modifier.padding(start = 15.dp * scale)
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+
                                         val lazyListState = rememberLazyListState()
 
                                         LazyColumn(
@@ -762,8 +811,14 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 AnimatedVisibility(
                     visible = showHabitSheet,
                     modifier = Modifier.align(Alignment.BottomCenter),
-                    enter = fadeIn(animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)),
-                    exit = fadeOut(animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing))
+                    enter = slideInVertically(
+                        initialOffsetY = { it },
+                        animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)
+                    ) + fadeIn(animationSpec = tween(durationMillis = 300)),
+                    exit = slideOutVertically(
+                        targetOffsetY = { it },
+                        animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)
+                    ) + fadeOut(animationSpec = tween(durationMillis = 300))
                 ) {
                     val dismissThresholdPx = with(LocalDensity.current) { 175.dp.toPx() }
                     val scrollState = rememberScrollState()
@@ -987,8 +1042,14 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
 
                 AnimatedVisibility(
                     visible = showHabitSheet,
-                    enter = fadeIn(animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)),
-                    exit = fadeOut(animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)),
+                    enter = slideInVertically(
+                        initialOffsetY = { it },
+                        animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)
+                    ) + fadeIn(animationSpec = tween(durationMillis = 300)),
+                    exit = slideOutVertically(
+                        targetOffsetY = { it },
+                        animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)
+                    ) + fadeOut(animationSpec = tween(durationMillis = 300)),
                     modifier = Modifier.align(Alignment.BottomCenter)
                 ) {
                     val habits = (habitsUiState as? HabitsUiState.Success)?.habits ?: emptyList()
