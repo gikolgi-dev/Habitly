@@ -21,6 +21,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -28,6 +29,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -78,11 +80,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
@@ -95,9 +100,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.example.attempt3.R
 import com.example.attempt3.data.Database.Completion
 import com.example.attempt3.data.Database.Habit
 import com.example.attempt3.data.Database.HabitDao
@@ -305,7 +312,17 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
         }
     }
 
-    val isAnySheetOpen = showHabitSheet || showSettingsScreen || habitToView != null || showArchiveSheet || showReorderSheet || showStatisticScreen
+    val isAnySheetOpen by remember {
+        derivedStateOf {
+            showHabitSheet || showSettingsScreen || habitToView != null || showArchiveSheet || showReorderSheet || showStatisticScreen
+        }
+    }
+
+    val isFullScreenSheetOpen by remember {
+        derivedStateOf {
+            showSettingsScreen || habitToView != null || showArchiveSheet || showReorderSheet || showStatisticScreen
+        }
+    }
 
     BackHandler(enabled = isAnySheetOpen || isFabMenuExpanded) {
         if (isFabMenuExpanded) { isFabMenuExpanded = false; return@BackHandler }
@@ -433,6 +450,48 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                         modifier = Modifier.fillMaxSize()
                                     ) {
                                         val habitsWithCompletions = (habitsUiState as? HabitsUiState.Success)?.habits ?: emptyList()
+
+                                        if (habitsWithCompletions.isEmpty()) {
+                                            BoxWithConstraints(
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentAlignment = Alignment.BottomEnd
+                                            ) {
+                                                val scale = minOf(maxWidth.value / 400f, maxHeight.value / 750f).coerceAtMost(1f)
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(width = 400.dp * scale, height = 750.dp * scale)
+                                                        .offset(y = 32.dp * scale)
+                                                ) {
+                                                    Image(
+                                                        painter = painterResource(id = R.drawable.empty_state),
+                                                        contentDescription = null,
+                                                        colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)),
+                                                        modifier = Modifier.fillMaxSize()
+                                                    )
+                                                    Column(
+                                                        modifier = Modifier
+                                                            .offset(x = 25.dp * scale, y = 220.dp * scale)
+                                                            .rotate(-3f),
+                                                        horizontalAlignment = Alignment.Start
+                                                    ) {
+                                                        Text(
+                                                            text = "Start by adding",
+                                                            style = MaterialTheme.typography.headlineLarge.copy(fontSize = 42.sp * scale),
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                                        )
+                                                        Text(
+                                                            text = "a new habit",
+                                                            style = MaterialTheme.typography.headlineLarge.copy(fontSize = 42.sp * scale),
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                                            modifier = Modifier.padding(start = 15.dp * scale)
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+
                                         val lazyListState = rememberLazyListState()
 
                                         LazyColumn(
@@ -646,6 +705,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                 customColor = null
 
                                 habitToEdit = it
+                                isFabMenuExpanded = false
                                 showHabitSheet = true
                             },
                             onShowStatistics = { habit ->
@@ -759,14 +819,27 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                     if (showHabitSheet) sheetOffsetY.snapTo(0f)
                 }
 
+                val scrollState = rememberScrollState()
+                val dismissThresholdPx = with(LocalDensity.current) { 175.dp.toPx() }
+
+                LaunchedEffect(showHabitSheet) {
+                    if (showHabitSheet) {
+                        scrollState.scrollTo(0)
+                    }
+                }
+
                 AnimatedVisibility(
                     visible = showHabitSheet,
                     modifier = Modifier.align(Alignment.BottomCenter),
-                    enter = fadeIn(animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)),
-                    exit = fadeOut(animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing))
+                    enter = slideInVertically(
+                        initialOffsetY = { it },
+                        animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)
+                    ) + fadeIn(animationSpec = tween(durationMillis = 300)),
+                    exit = slideOutVertically(
+                        targetOffsetY = { it },
+                        animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)
+                    ) + fadeOut(animationSpec = tween(durationMillis = 300))
                 ) {
-                    val dismissThresholdPx = with(LocalDensity.current) { 175.dp.toPx() }
-                    val scrollState = rememberScrollState()
                     val nestedScrollConnection = remember {
                         object : NestedScrollConnection {
                             // Fixed signature: added 'source' parameter
@@ -985,13 +1058,19 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                     }
                 }
 
+                val habitsForSave = (habitsUiState as? HabitsUiState.Success)?.habits ?: emptyList()
                 AnimatedVisibility(
                     visible = showHabitSheet,
-                    enter = fadeIn(animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)),
-                    exit = fadeOut(animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)),
+                    enter = slideInVertically(
+                        initialOffsetY = { it },
+                        animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)
+                    ) + fadeIn(animationSpec = tween(durationMillis = 300)),
+                    exit = slideOutVertically(
+                        targetOffsetY = { it },
+                        animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)
+                    ) + fadeOut(animationSpec = tween(durationMillis = 300)),
                     modifier = Modifier.align(Alignment.BottomCenter)
                 ) {
-                    val habits = (habitsUiState as? HabitsUiState.Success)?.habits ?: emptyList()
                     SaveHabitButton(
                         buttonText = buttonText,
                         isEnabled = habitName.trim().isNotBlank() && completionsError == null,
@@ -1021,7 +1100,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                     } else {
                                         notificationScheduler.cancelNotification(updatedHabit)
                                     }
-                                    habitToView = habits.find { it.habit.id == updatedHabit.id }
+                                    habitToView = habitsForSave.find { it.habit.id == updatedHabit.id }
                                 } else {
                                     val newHabit = Habit(
                                         id = UUID.randomUUID().toString(),
@@ -1030,7 +1109,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                         icon = habitIconKey,
                                         color = (customColor ?: habitColor).toArgb(),
                                         archived = false,
-                                        orderIndex = habits.size,
+                                        orderIndex = habitsForSave.size,
                                         createdAt = System.currentTimeMillis().toString(),
                                         isInverse = false,
                                         emoji = null,
@@ -1075,42 +1154,45 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
         }
 
         AnimatedVisibility(
-            modifier = Modifier.align(Alignment.BottomEnd),
-            visible = habitsUiState is HabitsUiState.Success && !isAnySheetOpen,
+            modifier = Modifier.fillMaxSize(),
+            visible = habitsUiState is HabitsUiState.Success && !isFullScreenSheetOpen,
             enter = fadeIn(),
             exit = fadeOut()
         ) {
-            FabMenu(
-                modifier = Modifier
-                    .windowInsetsPadding(WindowInsets.safeDrawing)
-                    .padding(end = 16.dp, bottom = 16.dp)
-                    .offset(x = 8.dp, y = 20.dp),
-                expanded = isFabMenuExpanded,
-                onExpandedChange = { isFabMenuExpanded = it },
-                onAddHabit = {
-                    habitName = ""
-                    habitDescription = ""
-                    habitColor = habitColors.first()
-                    habitIconKey = defaultHabitIconKey
-                    completionsPerInterval = "1"
-                    intervalUnit = "day"
-                    notificationsEnabled = false
-                    notificationTime = "09:00"
-                    notificationDays = allDays
-                    customColor = null
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomEnd) {
+                FabMenu(
+                    modifier = Modifier
+                        .windowInsetsPadding(WindowInsets.safeDrawing)
+                        .padding(end = 16.dp, bottom = 16.dp)
+                        .offset(x = 8.dp, y = 20.dp),
+                    expanded = isFabMenuExpanded,
+                    onExpandedChange = { isFabMenuExpanded = it },
+                    onAddHabit = {
+                        habitName = ""
+                        habitDescription = ""
+                        habitColor = habitColors.first()
+                        habitIconKey = defaultHabitIconKey
+                        completionsPerInterval = "1"
+                        intervalUnit = "day"
+                        notificationsEnabled = false
+                        notificationTime = "09:00"
+                        notificationDays = allDays
+                        customColor = null
 
-                    habitToEdit = null
-                    showHabitSheet = true
-                },
-                onShowArchived = { showArchiveSheet = true },
-                onShowSettings = { showSettingsScreen = true },
-                onShowReorder = { showReorderSheet = true },
-                onShowStatistics = {
-                    initialHabitIdForStats = null
-                    showStatisticScreen = true
-                },
-                settingsDataStore = settingsDataStore
-            )
+                        habitToEdit = null
+                        isFabMenuExpanded = false
+                        showHabitSheet = true
+                    },
+                    onShowArchived = { showArchiveSheet = true },
+                    onShowSettings = { showSettingsScreen = true },
+                    onShowReorder = { showReorderSheet = true },
+                    onShowStatistics = {
+                        initialHabitIdForStats = null
+                        showStatisticScreen = true
+                    },
+                    settingsDataStore = settingsDataStore
+                )
+            }
         }
     }
 }
