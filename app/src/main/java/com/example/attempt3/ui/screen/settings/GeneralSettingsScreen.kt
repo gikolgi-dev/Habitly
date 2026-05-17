@@ -95,18 +95,6 @@ fun GeneralSettingsScreen(
                 position = SettingsItemPosition.Middle,
                 onClick = onNavigateToHeatmapWeeks
             )
-            SettingsSwitchItem(
-                text = "Skip completed habit notifications",
-                description = "Don't notify if the habit is already completed today",
-                checked = skipCompleted,
-                settingsDataStore = settingsDataStore,
-                position = SettingsItemPosition.Middle
-            ) {
-                scope.launch {
-                    settingsDataStore.setSkipCompletedHabitNotifications(it)
-                }
-                if (vibrationsEnabled) haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
-            }
             SettingsItemBox(settingsDataStore = settingsDataStore, position = SettingsItemPosition.Bottom) {
                 Column(
                     Modifier
