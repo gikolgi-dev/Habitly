@@ -93,7 +93,7 @@ fun Attempt3Theme(
                 background = Color(0xFFFFFFFF),
                 onBackground = Color(0xFF121216),
                 surface = Color(0xFFFFFFFF),
-                surfaceVariant = Color(0xFFF9F9F9),
+                surfaceVariant = Color(0xFFdcdcdc),
                 onSurface = Color(0xFF121216),
                 onSurfaceVariant = Color(0xFF121216)
             )
