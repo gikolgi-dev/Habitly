@@ -7,7 +7,7 @@ plugins {
 }
 
 // Set to true to enable Developer Mode (safe testing without affecting real data)
-val isDeveloperMode = true
+val isDeveloperMode = false
 
 android {
     namespace = "com.example.attempt3"
@@ -24,6 +24,7 @@ android {
 
         // Dynamically set the app name based on the developer mode
         resValue("string", "app_name", if (isDeveloperMode) "Habitly [D]" else "Habitly")
+        buildConfigField("boolean", "IS_DEVELOPER_MODE", isDeveloperMode.toString())
     }
 
     buildTypes {
@@ -44,6 +45,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
