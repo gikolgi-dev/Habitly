@@ -33,6 +33,8 @@ class SettingsDataStore(private val context: Context) {
         val GLOBAL_NOTIFICATION_TIME_KEY = stringPreferencesKey("global_notification_time")
         val GLOBAL_NOTIFICATION_DAYS_KEY = stringPreferencesKey("global_notification_days")
         val SKIP_COMPLETED_HABIT_NOTIFICATIONS_KEY = booleanPreferencesKey("skip_completed_habit_notifications")
+        val SNOOZE_ENABLED_KEY = booleanPreferencesKey("snooze_enabled")
+        val SNOOZE_DURATION_MINUTES_KEY = intPreferencesKey("snooze_duration_minutes")
         val IS_24_HOUR_KEY = booleanPreferencesKey("is_24_hour")
         val HERO_CARD_VISIBLE_KEY = booleanPreferencesKey("hero_card_visible")
         val YEAR_DIVIDER_KEY = booleanPreferencesKey("year_divider")
@@ -100,7 +102,7 @@ class SettingsDataStore(private val context: Context) {
             } else {
                 val oldValue = preferences[OLD_BORDERS_KEY]
                 val newValue = if (oldValue == true) 1.0f else if (oldValue == false) 0.0f else DefaultSettings.BORDERS
-                
+
                 // Migrate to the new key and remove the old one
                 context.dataStore.edit {
                     it[BORDERS_KEY] = newValue
@@ -130,7 +132,7 @@ class SettingsDataStore(private val context: Context) {
                 // Migration logic from old boolean settings
                 val visible = preferences[DAY_OF_WEEK_LABELS_VISIBLE_KEY]
                 val all = preferences[SHOW_ALL_DAY_OF_WEEK_LABELS_KEY]
-                
+
                 if (visible == null && all == null) {
                     DefaultSettings.HEATMAP_VISIBLE_DAYS.split(',').filter { it.isNotEmpty() }.toSet()
                 } else {
@@ -153,18 +155,18 @@ class SettingsDataStore(private val context: Context) {
         .map { preferences ->
             preferences[GLOBAL_NOTIFICATIONS_KEY] ?: false
         }
-    
+
     suspend fun setGlobalNotificationsEnabled(enabled: Boolean) {
         context.dataStore.edit { settings ->
             settings[GLOBAL_NOTIFICATIONS_KEY] = enabled
         }
     }
-    
+
     val globalNotificationTime: Flow<String> = context.dataStore.data
         .map { preferences ->
             preferences[GLOBAL_NOTIFICATION_TIME_KEY] ?: DefaultSettings.GLOBAL_NOTIFICATION_TIME
         }
-    
+
     suspend fun setGlobalNotificationTime(time: String) {
         context.dataStore.edit { settings ->
             settings[GLOBAL_NOTIFICATION_TIME_KEY] = time
@@ -192,6 +194,28 @@ class SettingsDataStore(private val context: Context) {
     suspend fun setSkipCompletedHabitNotifications(skip: Boolean) {
         context.dataStore.edit { settings ->
             settings[SKIP_COMPLETED_HABIT_NOTIFICATIONS_KEY] = skip
+        }
+    }
+
+    val snoozeEnabled: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[SNOOZE_ENABLED_KEY] ?: DefaultSettings.SNOOZE_ENABLED
+        }
+
+    suspend fun setSnoozeEnabled(enabled: Boolean) {
+        context.dataStore.edit { settings ->
+            settings[SNOOZE_ENABLED_KEY] = enabled
+        }
+    }
+
+    val snoozeDurationMinutes: Flow<Int> = context.dataStore.data
+        .map { preferences ->
+            preferences[SNOOZE_DURATION_MINUTES_KEY] ?: DefaultSettings.SNOOZE_DURATION_MINUTES
+        }
+
+    suspend fun setSnoozeDurationMinutes(minutes: Int) {
+        context.dataStore.edit { settings ->
+            settings[SNOOZE_DURATION_MINUTES_KEY] = minutes
         }
     }
 

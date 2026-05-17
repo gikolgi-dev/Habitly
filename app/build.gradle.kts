@@ -24,6 +24,7 @@ android {
 
         // Dynamically set the app name based on the developer mode
         resValue("string", "app_name", if (isDeveloperMode) "Habitly [D]" else "Habitly")
+        buildConfigField("boolean", "IS_DEVELOPER_MODE", isDeveloperMode.toString())
     }
 
     buildTypes {
@@ -44,6 +45,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
