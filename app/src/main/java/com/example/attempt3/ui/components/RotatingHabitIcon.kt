@@ -67,7 +67,8 @@ fun RotatingHabitIcon(
 
     val icon = habitIconMap[habit.icon] ?: Icons.Default.Refresh
     val animatedColor by animateColorAsState(targetValue = Color(habit.color), label = "habitColor")
-    
+    val cookieShape = MaterialShapes.Cookie12Sided.toShape()
+
     // Springy pop when icon changes
     var oldIcon by remember { mutableStateOf(habit.icon) }
     val scale = remember { Animatable(1f) }
@@ -89,12 +90,14 @@ fun RotatingHabitIcon(
             modifier = Modifier
                 .fillMaxSize()
                 .rotate(rotation)
-                .clip(MaterialShapes.Cookie12Sided.toShape())
-                .background(animatedColor.copy(alpha = 0.1f))
+                .background(
+                    animatedColor.copy(alpha = 0.1f),
+                    cookieShape
+                )
                 .border(
                     1.dp,
                     animatedColor.copy(alpha = borderContrast),
-                    MaterialShapes.Cookie12Sided.toShape()
+                    cookieShape
                 )
         )
         Crossfade(targetState = icon, animationSpec = tween(300), label = "iconCrossfade") { currentIcon ->
