@@ -72,9 +72,9 @@ fun Heatmap(
     currentDateMillis: Long = System.currentTimeMillis()
 ) {
     val density = LocalDensity.current
-    
+
     val tz = remember { TimeZone.getDefault() }
-    
+
     val todayDayIndex = remember(currentDateMillis, tz) {
         val offset = tz.getOffset(currentDateMillis)
         (currentDateMillis + offset) / 86400000L
@@ -128,7 +128,7 @@ fun Heatmap(
                 val oldestCompletion = if (completions.isNotEmpty()) completions.minOf { it.date } else null
                 val weeksDiff = if (oldestCompletion == null) 0 else {
                     val cal = Calendar.getInstance().apply { firstDayOfWeek = Calendar.MONDAY }
-                    
+
                     cal.timeInMillis = oldestCompletion
                     cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
                     cal.set(Calendar.HOUR_OF_DAY, 0)
@@ -188,20 +188,20 @@ fun Heatmap(
                 userScrollEnabled = isScrollable
             ) {
                 items(count = totalWeeks, key = { it }) { weekIndex ->
-                    val weekData = remember(weekIndex, currentMondayMillis, completionDates, todayDayIndex, showMonthLabels, tz) {
+                    val weekData = remember(weekIndex, currentMondayMillis, completionDates, todayDayIndex, showMonthLabels, tz, isScrollable, totalWeeks) {
                         val cal = Calendar.getInstance()
                         cal.firstDayOfWeek = Calendar.MONDAY
                         cal.timeInMillis = currentMondayMillis
                         cal.add(Calendar.WEEK_OF_YEAR, -weekIndex)
                         val weekStartMillis = cal.timeInMillis
-                        
+
                         val offset = tz.getOffset(weekStartMillis)
                         val weekStartDayIndex = (weekStartMillis + offset) / 86400000L
 
                         val completed = BooleanArray(7)
                         val future = BooleanArray(7)
                         var todayIdx = -1
-                        
+
                         for (i in 0..6) {
                             val dayIndex = weekStartDayIndex + i
                             completed[i] = completionDates.contains(dayIndex)
@@ -216,10 +216,10 @@ fun Heatmap(
                         val yearPrev = cal.get(Calendar.YEAR)
                         val isStartOfYear = yearEnd != yearPrev
                         val yearDigits = if (isStartOfYear) yearEnd.toString() else null
-                        
+
                         // Month label logic
                         var monthLabel: String? = null
-                        if (showMonthLabels) {
+                        if (showMonthLabels && !(!isScrollable && weekIndex == totalWeeks - 1)) {
                             val labelCal = Calendar.getInstance()
                             labelCal.timeInMillis = weekStartMillis
                             for (d in 0..6) {
@@ -232,16 +232,16 @@ fun Heatmap(
                         }
 
                         HeatmapWeekData(
-                            weekStartMillis, 
-                            completed.toList(), 
-                            future.toList(), 
-                            todayIdx, 
-                            monthLabel, 
-                            isStartOfYear, 
+                            weekStartMillis,
+                            completed.toList(),
+                            future.toList(),
+                            todayIdx,
+                            monthLabel,
+                            isStartOfYear,
                             yearDigits
                         )
                     }
-                    
+
                     HeatmapWeekColumn(weekData, habitColor, cellSize, verticalSpacing, horizontalSpacing, showMonthLabels, showYearDivider, showYearLabels)
                 }
             }
