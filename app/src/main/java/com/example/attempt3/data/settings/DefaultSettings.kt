@@ -13,6 +13,8 @@ object DefaultSettings {
     const val GLOBAL_NOTIFICATION_TIME = "09:00"
     const val GLOBAL_NOTIFICATION_DAYS = "MON,TUE,WED,THU,FRI,SAT,SUN"
     const val SKIP_COMPLETED_HABIT_NOTIFICATIONS = false
+    const val SNOOZE_ENABLED = true
+    const val SNOOZE_DURATION_MINUTES = 60
     const val IS_24_HOUR = false
     const val HERO_CARD_VISIBLE = true
     const val YEAR_DIVIDER = false

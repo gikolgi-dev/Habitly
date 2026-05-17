@@ -1120,7 +1120,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
         }
 
         AnimatedVisibility(
-            visible = habitsUiState is HabitsUiState.Loading,
+            visible = habitsUiState is HabitsUiState.Loading || !areSettingsLoaded,
             enter = fadeIn(animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)),
             exit = fadeOut(animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing))
         ) {

@@ -111,7 +111,7 @@ class NotificationScheduler(private val context: Context) {
 
         scheduleAlarm(alarmManager, nextAlarmTime, pendingIntent)
     }
-    
+
     fun cancelGeneralNotification() {
         val intent = Intent(context, NotificationReceiver::class.java)
         val pendingIntent = PendingIntent.getBroadcast(
@@ -125,7 +125,7 @@ class NotificationScheduler(private val context: Context) {
 }
 
 /**
- * Helper to centralize exact alarm scheduling logic, falling back to inexact 
+ * Helper to centralize exact alarm scheduling logic, falling back to inexact
  * alarms if exact alarms are not permitted.
  */
 internal fun scheduleAlarm(alarmManager: AlarmManager, timeInMillis: Long, pendingIntent: PendingIntent) {
@@ -149,13 +149,51 @@ internal fun scheduleAlarm(alarmManager: AlarmManager, timeInMillis: Long, pendi
 
 class NotificationReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        // goAsync allows doing async work (like DB queries) inside the BroadcastReceiver 
+        // goAsync allows doing async work (like DB queries) inside the BroadcastReceiver
         // without keeping the main thread blocked and risking an ANR
         val pendingResult = goAsync()
-        
+
         val habitId = intent.getStringExtra("habitId") ?: run {
             // Terminate early if habitId is missing, preventing crashes downstream
             pendingResult.finish()
+            return
+        }
+
+        // --- Handle direct action from the Notification: "Snooze" ---
+        if (intent.action == "ACTION_SNOOZE_NOTIFICATION") {
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val settingsDataStore = SettingsDataStore(context)
+                    val snoozeDurationMinutes = settingsDataStore.snoozeDurationMinutes.first()
+
+                    val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+
+                    val targetDate = intent.getLongExtra("targetDate", Calendar.getInstance().timeInMillis)
+
+                    // Create pending intent for snoozed notification
+                    val rescheduleIntent = Intent(context, NotificationReceiver::class.java).apply {
+                        action = "ACTION_SHOW_SNOOZED_NOTIFICATION"
+                        putExtra("habitId", habitId)
+                        putExtra("habitName", intent.getStringExtra("habitName"))
+                        putExtra("targetDate", targetDate)
+                    }
+                    val pendingIntent = PendingIntent.getBroadcast(
+                        context,
+                        habitId.hashCode() + 3, // Unique request code
+                        rescheduleIntent,
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    )
+
+                    val snoozeTime = Calendar.getInstance().timeInMillis + (snoozeDurationMinutes * 60 * 1000L)
+                    scheduleAlarm(alarmManager, snoozeTime, pendingIntent)
+
+                    // Dismiss the current notification
+                    val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                    notificationManager.cancel(habitId.hashCode())
+                } finally {
+                    pendingResult.finish()
+                }
+            }
             return
         }
 
@@ -164,15 +202,17 @@ class NotificationReceiver : BroadcastReceiver() {
             CoroutineScope(Dispatchers.IO).launch {
                 try {
                     val dao = HabitDatabase.getDatabase(context).habitDao()
-                    val now = Calendar.getInstance()
-                    val timezoneOffsetInMinutes = TimeUnit.MILLISECONDS.toMinutes(now.timeZone.rawOffset.toLong()).toInt()
+
+                    val targetDate = intent.getLongExtra("targetDate", Calendar.getInstance().timeInMillis)
+                    val dateCal = Calendar.getInstance().apply { timeInMillis = targetDate }
+                    val timezoneOffsetInMinutes = TimeUnit.MILLISECONDS.toMinutes(dateCal.timeZone.rawOffset.toLong()).toInt()
 
                     // Insert completion directly into the database
                     dao.insertCompletion(
                         com.example.attempt3.data.Database.Completion(
                             id = UUID.randomUUID().toString(),
                             habitId = habitId,
-                            date = now.timeInMillis,
+                            date = targetDate,
                             timezoneOffsetInMinutes = timezoneOffsetInMinutes,
                             amountOfCompletions = 1
                         )
@@ -189,6 +229,9 @@ class NotificationReceiver : BroadcastReceiver() {
             return
         }
 
+        val isSnoozedTrigger = intent.action == "ACTION_SHOW_SNOOZED_NOTIFICATION"
+        val targetDate = intent.getLongExtra("targetDate", Calendar.getInstance().timeInMillis)
+
         // --- Handle showing the notification & scheduling the next one ---
         val notificationTime = intent.getStringExtra("notificationTime")
 
@@ -196,28 +239,29 @@ class NotificationReceiver : BroadcastReceiver() {
             try {
                 var shouldShow = true
                 val isGeneralNotification = habitId == GENERAL_NOTIFICATION_ID
+                val settingsDataStore = SettingsDataStore(context)
+                val snoozeEnabled = settingsDataStore.snoozeEnabled.first()
 
                 if (!isGeneralNotification) {
-                    val settingsDataStore = SettingsDataStore(context)
                     // Check if the user has opted to skip notifications for habits already completed today
                     val skipCompleted = settingsDataStore.skipCompletedHabitNotifications.first()
 
                     if (skipCompleted) {
                         val dao = HabitDatabase.getDatabase(context).habitDao()
-                        
+
                         // Define bounds for "today" to check for existing completions
-                        val startOfDay = Calendar.getInstance().apply { 
+                        val startOfDay = Calendar.getInstance().apply {
                             set(Calendar.HOUR_OF_DAY, 0)
                             set(Calendar.MINUTE, 0)
                             set(Calendar.SECOND, 0)
-                            set(Calendar.MILLISECOND, 0) 
+                            set(Calendar.MILLISECOND, 0)
                         }.timeInMillis
-                        
-                        val endOfDay = Calendar.getInstance().apply { 
+
+                        val endOfDay = Calendar.getInstance().apply {
                             set(Calendar.HOUR_OF_DAY, 23)
                             set(Calendar.MINUTE, 59)
                             set(Calendar.SECOND, 59)
-                            set(Calendar.MILLISECOND, 999) 
+                            set(Calendar.MILLISECOND, 999)
                         }.timeInMillis
 
                         val completionsCount = dao.countCompletionsForHabitOnDay(habitId, startOfDay, endOfDay)
@@ -228,12 +272,12 @@ class NotificationReceiver : BroadcastReceiver() {
                 }
 
                 if (shouldShow) {
-                    showNotification(context, intent, habitId, isGeneralNotification)
+                    showNotification(context, intent, habitId, isGeneralNotification, snoozeEnabled, targetDate)
                 }
 
-                // Since AlarmManager only schedules the alarm once, we must re-schedule 
-                // the next occurrence manually
-                if (notificationTime != null) {
+                // Since AlarmManager only schedules the alarm once, we must re-schedule
+                // the next occurrence manually. We don't reschedule if this is just a snoozed trigger.
+                if (!isSnoozedTrigger && notificationTime != null) {
                     val days = intent.getStringArrayExtra("notificationDays")?.toSet()
                     if (isGeneralNotification) {
                         if (days != null) {
@@ -251,7 +295,14 @@ class NotificationReceiver : BroadcastReceiver() {
         }
     }
 
-    private fun showNotification(context: Context, intent: Intent, habitId: String, isGeneralNotification: Boolean) {
+    private fun showNotification(
+        context: Context,
+        intent: Intent,
+        habitId: String,
+        isGeneralNotification: Boolean,
+        snoozeEnabled: Boolean,
+        targetDate: Long
+    ) {
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         // Create the notification channel (required for API 26+)
@@ -294,11 +345,33 @@ class NotificationReceiver : BroadcastReceiver() {
             .setContentIntent(activityPendingIntent)
             .setAutoCancel(true) // Dismiss the notification automatically when tapped
 
+        // Add the inline "Snooze" action
+        if (snoozeEnabled) {
+            val snoozeIntent = Intent(context, NotificationReceiver::class.java).apply {
+                action = "ACTION_SNOOZE_NOTIFICATION"
+                putExtra("habitId", habitId)
+                putExtra("habitName", intent.getStringExtra("habitName"))
+                putExtra("targetDate", targetDate)
+            }
+            val snoozePendingIntent = PendingIntent.getBroadcast(
+                context,
+                habitId.hashCode() + 2, // Unique request code
+                snoozeIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            builder.addAction(
+                0,
+                "Snooze",
+                snoozePendingIntent
+            )
+        }
+
         // Add the inline "Complete" action for single habits
         if (!isGeneralNotification) {
             val actionIntent = Intent(context, NotificationReceiver::class.java).apply {
                 action = "ACTION_COMPLETE_HABIT"
                 putExtra("habitId", habitId)
+                putExtra("targetDate", targetDate)
             }
             val actionPendingIntent = PendingIntent.getBroadcast(
                 context,
@@ -339,7 +412,7 @@ class NotificationReceiver : BroadcastReceiver() {
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        
+
         val (hour, minute) = notificationTime.split(":").map { it.toInt() }
 
         val timeInMillis = getNextAlarmTime(hour, minute, days)
@@ -364,9 +437,9 @@ class NotificationReceiver : BroadcastReceiver() {
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        
+
         val (hour, minute) = time.split(":").map { it.toInt() }
-        
+
         val nextAlarmTime = getNextAlarmTime(hour, minute, days) ?: return
 
         scheduleAlarm(alarmManager, nextAlarmTime, pendingIntent)
@@ -391,7 +464,7 @@ fun getNextAlarmTime(hour: Int, minute: Int, days: Set<String>): Long? {
     val enabledDays = days.mapNotNull { dayMap[it] }.toSet()
 
     val now = Calendar.getInstance()
-    
+
     // Check up to 7 days ahead to find the next active day for the alarm
     for (i in 0..7) {
         val calendar = Calendar.getInstance().apply {
@@ -401,7 +474,7 @@ fun getNextAlarmTime(hour: Int, minute: Int, days: Set<String>): Long? {
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
         }
-        
+
         val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
         if (enabledDays.contains(dayOfWeek)) {
             // Must be strictly in the future
@@ -410,6 +483,6 @@ fun getNextAlarmTime(hour: Int, minute: Int, days: Set<String>): Long? {
             }
         }
     }
-    
+
     return null
 }

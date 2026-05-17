@@ -173,16 +173,9 @@ fun SettingsScreen(
     val scope = rememberCoroutineScope()
     val showConfirmationDialog = remember { mutableStateOf(false) }
     val showSecondConfirmationDialog = remember { mutableStateOf(false) }
-    var showTimePicker by remember { mutableStateOf(false) }
-    var showNotificationSheet by remember { mutableStateOf(false) }
     val context = LocalContext.current
-    
-    val globalNotificationsEnabled by settingsDataStore.globalNotificationsEnabled.collectAsState(initial = false)
-    val globalNotificationTime by settingsDataStore.globalNotificationTime.collectAsState(initial = "09:00")
-    val globalNotificationDays by settingsDataStore.globalNotificationDays.collectAsState(initial = emptySet())
 
     val haptic = LocalHapticFeedback.current
-    val notificationScheduler = remember { NotificationScheduler(context) }
     val uriHandler = LocalUriHandler.current
     val useDarkTheme = when (theme) {
         "light" -> false
@@ -204,227 +197,7 @@ fun SettingsScreen(
         }
     }
 
-    val notificationPermissionHandler = rememberNotificationPermissionHandler {
-        scope.launch {
-            settingsDataStore.setGlobalNotificationsEnabled(true)
-            notificationScheduler.scheduleGeneralNotification(globalNotificationTime, globalNotificationDays)
-            if (vibrationsEnabled) {
-                haptic.performHapticFeedback(HapticFeedbackType.ToggleOn)
-            }
-        }
-    }
-
-    fun handleNotificationToggle(enable: Boolean) {
-        if (enable) {
-            if (notificationPermissionHandler.hasPermission) {
-                scope.launch {
-                    settingsDataStore.setGlobalNotificationsEnabled(true)
-                    notificationScheduler.scheduleGeneralNotification(globalNotificationTime, globalNotificationDays)
-                    if (vibrationsEnabled) {
-                        haptic.performHapticFeedback(HapticFeedbackType.ToggleOn)
-                    }
-                }
-            } else {
-                notificationPermissionHandler.requestPermission()
-            }
-        } else {
-            scope.launch {
-                settingsDataStore.setGlobalNotificationsEnabled(false)
-                notificationScheduler.cancelGeneralNotification()
-                if (vibrationsEnabled) {
-                    haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
-                }
-            }
-        }
-    }
-
-    if (showConfirmationDialog.value) {
-        AlertDialog(
-            onDismissRequest = { showConfirmationDialog.value = false },
-            title = { Text("Clear all data?", color = MaterialTheme.colorScheme.onSurface) },
-            text = { Text("This action is irreversible and will delete all your habits and completions.", color = MaterialTheme.colorScheme.onSurfaceVariant) },
-            confirmButton = {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    OutlinedButton(
-                        modifier = Modifier.weight(1f),
-                        onClick = { showConfirmationDialog.value = false },
-                        shape = CircleShape,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface)
-                    ) {
-                        Text("Cancel")
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Button(
-                        modifier = Modifier.weight(1f),
-                        onClick = {
-                            showConfirmationDialog.value = false
-                            showSecondConfirmationDialog.value = true
-                        },
-                        shape = CircleShape,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
-                    ) {
-                        Text("Clear Data", color = Color.White)
-                    }
-                }
-            },
-            dismissButton = null,
-            containerColor = MaterialTheme.colorScheme.surface
-        )
-    }
-
-    if (showSecondConfirmationDialog.value) {
-        AlertDialog(
-            onDismissRequest = { showSecondConfirmationDialog.value = false },
-            title = { Text("Are you absolutely sure?", color = MaterialTheme.colorScheme.onSurface) },
-            text = { Text("This is your final warning. All data will be lost.", color = MaterialTheme.colorScheme.onSurfaceVariant) },
-            confirmButton = {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    OutlinedButton(
-                        modifier = Modifier.weight(1f),
-                        onClick = { showSecondConfirmationDialog.value = false },
-                        shape = CircleShape,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface)
-                    ) {
-                        Text("Cancel")
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Button(
-                        modifier = Modifier.weight(1f),
-                        onClick = {
-                            scope.launch(Dispatchers.IO) {
-                                db.clearAllTables()
-                                withContext(Dispatchers.Main) {
-                                    onDismiss()
-                                 }
-                            }
-                            showSecondConfirmationDialog.value = false
-                        },
-                        shape = CircleShape,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
-                    ) {
-                        Text("Delete", color = Color.White)
-                    }
-                }
-            },
-            dismissButton = null,
-            containerColor = MaterialTheme.colorScheme.surface
-        )
-    }
-
-    if (showTimePicker) {
-        val initialHour = globalNotificationTime.split(":")[0].toIntOrNull() ?: 9
-        val initialMinute = globalNotificationTime.split(":")[1].toIntOrNull() ?: 0
-        CustomTimePickerDialog(
-            onDismissRequest = { showTimePicker = false },
-            onConfirm = { hour, minute ->
-                scope.launch {
-                    val newTime = String.format("%02d:%02d", hour, minute)
-                    settingsDataStore.setGlobalNotificationTime(newTime)
-                    if (globalNotificationsEnabled) {
-                        notificationScheduler.scheduleGeneralNotification(
-                            newTime,
-                            globalNotificationDays
-                        )
-                    }
-                }
-                showTimePicker = false
-            },
-            initialHour = initialHour,
-            initialMinute = initialMinute,
-            borderContrast = borderContrast,
-            is24Hour = is24Hour
-        )
-    }
-
-    val blurModifier = if (showTimePicker && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        Modifier.blur(10.dp)
-    } else {
-        Modifier
-    }
-
-    if (showNotificationSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            dragHandle = { BottomSheetDefaults.DragHandle(Modifier.fillMaxWidth(0.15f)) }
-        ) {
-            val scrollState = rememberScrollState()
-            Column(
-                modifier = blurModifier
-                    .verticalScroll(scrollState, enabled = scrollState.maxValue > 0)
-                    .navigationBarsPadding()
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-
-                ) {
-                    Text(
-                        fontSize = 32.sp,
-                        text = "Daily notifications",
-                        style = MaterialTheme.typography.titleLargeEmphasized,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Switch(
-                        checked = globalNotificationsEnabled && notificationPermissionHandler.hasPermission,
-                        onCheckedChange = { handleNotificationToggle(it) }
-                    )
-                }
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-
-                    ) {
-                    Text(
-                        fontSize = 14.sp,
-                        text = "Create a daily notification to remind you of adding completions.",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                val isEnabled = globalNotificationsEnabled && notificationPermissionHandler.hasPermission
-                NotificationTimeSelectors(
-                    notificationTime = globalNotificationTime,
-                    selectedDays = globalNotificationDays,
-                    onTimeClick = { if (isEnabled) else notificationPermissionHandler.requestPermission() },
-                    onDaySelected = { day ->
-                        scope.launch {
-                            val newDays = if (globalNotificationDays.contains(day)) {
-                                globalNotificationDays - day
-                            } else {
-                                globalNotificationDays + day
-                            }
-                            settingsDataStore.setGlobalNotificationDays(newDays)
-                            if (globalNotificationsEnabled) {
-                                notificationScheduler.scheduleGeneralNotification(
-                                    globalNotificationTime,
-                                    newDays
-                                )
-                            }
-                        }
-                    },
-                    isEnabled = isEnabled,
-                    borderAlpha = borderContrast,
-                    is24Hour = is24Hour,
-                    modifier = Modifier.padding(horizontal = 20.dp)
-                )
-            }
-        }
-    }
+    val blurModifier = Modifier
 
     NavHost(
         navController = navController,
@@ -487,14 +260,14 @@ fun SettingsScreen(
                     }
                     item {
                         ModernSettingsItem(
-                            title = "Daily Notifications",
-                            subtitle = "Set daily notification completion reminder",
+                            title = "Notifications",
+                            subtitle = "Manage daily and habit notifications",
                             icon = Icons.Default.Notifications,
                             iconBackgroundColor = MaterialTheme.colorScheme.tertiary,
                             iconColor = MaterialTheme.colorScheme.onTertiary,
                             settingsDataStore = settingsDataStore,
                             position = SettingsItemPosition.Alone
-                        ) { }
+                        ) { navController.navigate("notifications") { launchSingleTop = true } }
                     }
                     item {
                         SettingsGroup(settingsDataStore = settingsDataStore) {
@@ -708,6 +481,26 @@ fun SettingsScreen(
                 )
             }
         }
+
+        composable(
+            route = "notifications"
+        ) {
+            SettingsScaffold(
+                title = "Notifications",
+                onBack = {
+                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+                    navController.popBackStack()
+                },
+                borderContrast = borderContrast,
+            ) { paddingValues ->
+                NotificationSettingsScreen(
+                    settingsDataStore = settingsDataStore,
+                    is24Hour = is24Hour,
+                    borderContrast = borderContrast,
+                    modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
+                )
+            }
+        }
     }
 }
 
@@ -724,9 +517,9 @@ fun AnimatedVisibilityScope.SettingsScaffold(
 ) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     val density = LocalDensity.current
-    
+
     val statusBarPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    
+
     // Use fixed base height, content list will scroll under it.
     // Reducing maxHeight for one word title.
     val hasSpace = title.contains(" ")
@@ -735,7 +528,7 @@ fun AnimatedVisibilityScope.SettingsScaffold(
     val minHeight = 72.dp + statusBarPadding
     val maxHeightPx = with(density) { maxHeight.toPx() }
     val minHeightPx = with(density) { minHeight.toPx() }
-    
+
     SideEffect {
         if (scrollBehavior.state.heightOffsetLimit != minHeightPx - maxHeightPx) {
             scrollBehavior.state.heightOffsetLimit = minHeightPx - maxHeightPx
@@ -745,7 +538,7 @@ fun AnimatedVisibilityScope.SettingsScaffold(
     val collapsedFraction = scrollBehavior.state.collapsedFraction
 
     val cornerRadius by transition.animateDp(
-        transitionSpec = { 
+        transitionSpec = {
             if (targetState == EnterExitState.Visible) {
                 tween(SETTINGS_TRANSITION_DURATION, easing = FastOutSlowInEasing)
             } else {
@@ -779,7 +572,7 @@ fun AnimatedVisibilityScope.SettingsScaffold(
             },
         topBar = {
             val currentHeight = maxHeight + with(density) { scrollBehavior.state.heightOffset.toDp() }
-            
+
             Surface(
                 color = if (collapsedFraction > 0.9f) MaterialTheme.colorScheme.background else Color.Transparent,
                 modifier = Modifier
@@ -821,9 +614,9 @@ fun AnimatedVisibilityScope.SettingsScaffold(
                     }
                     val collapsedFontSize = 22.sp
                     val fontSize = (expandedFontSize.value - (expandedFontSize.value - collapsedFontSize.value) * collapsedFraction).sp
-                    
+
                     val titleStartPadding = (20 + (72 - 20) * collapsedFraction).dp
-                    
+
                     // Use newlines to force stacking for multi-word titles when expanded
                     val displayTitle = remember(title, collapsedFraction) {
                         if (collapsedFraction < 0.5f && title.contains(" ")) {
@@ -832,7 +625,7 @@ fun AnimatedVisibilityScope.SettingsScaffold(
                             title
                         }
                     }
-                    
+
                     Text(
                         text = displayTitle,
                         fontWeight = FontWeight.SemiBold,

@@ -12,18 +12,25 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.lifecycleScope
 import com.example.attempt3.data.Database.HabitDatabase
 import com.example.attempt3.data.Database.HabitViewModel
 import com.example.attempt3.data.Database.HabitViewModelFactory
 import com.example.attempt3.data.settings.SettingsDataStore
 import com.example.attempt3.ui.colors.Attempt3Theme
 import com.example.attempt3.ui.screen.ExpressiveMainScreen
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        val splashScreen = installSplashScreen()
+        var isReady = false
+
         super.onCreate(savedInstanceState)
-        
+
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT)
@@ -41,10 +48,24 @@ class MainActivity : ComponentActivity() {
             HabitViewModelFactory(habitDao)
         }
 
-        setContent {
-            Attempt3Theme(settingsDataStore = settingsDataStore) {
-                ExpressiveMainScreen(viewModel, habitDao, db, settingsDataStore)
+        splashScreen.setKeepOnScreenCondition { !isReady }
+
+        lifecycleScope.launch {
+            // Wait for settings to load so colors are correct from the very first frame
+            val initialTheme = settingsDataStore.theme.first()
+            val initialMaterial = settingsDataStore.useMaterialTheming.first()
+
+            setContent {
+                Attempt3Theme(
+                    settingsDataStore = settingsDataStore,
+                    initialTheme = initialTheme,
+                    initialUseMaterialTheming = initialMaterial
+                ) {
+                    ExpressiveMainScreen(viewModel, habitDao, db, settingsDataStore)
+                }
             }
+            
+            isReady = true
         }
     }
 
