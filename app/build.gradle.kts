@@ -7,7 +7,7 @@ plugins {
 }
 
 // Set to true to enable Developer Mode (safe testing without affecting real data)
-val isDeveloperMode = false
+val isDeveloperMode = true
 
 android {
     namespace = "com.example.attempt3"

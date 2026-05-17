@@ -37,11 +37,13 @@ import kotlinx.coroutines.delay
 @Composable
 fun Attempt3Theme(
     settingsDataStore: SettingsDataStore,
+    initialTheme: String = "system",
+    initialUseMaterialTheming: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    val theme by settingsDataStore.theme.collectAsState(initial = "system")
-    val useMaterialTheming by settingsDataStore.useMaterialTheming.collectAsState(initial = true)
-    
+    val theme by settingsDataStore.theme.collectAsState(initial = initialTheme)
+    val useMaterialTheming by settingsDataStore.useMaterialTheming.collectAsState(initial = initialUseMaterialTheming)
+
     val isSystemDark = isSystemInDarkTheme()
     val isDark = when (theme) {
         "light" -> false
@@ -104,14 +106,14 @@ fun Attempt3Theme(
 
     var enableAnimations by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
-        // Delay enabling animations until after DataStore has loaded initial values 
+        // Delay enabling animations until after DataStore has loaded initial values
         // and initial layout passes are done.
         delay(500)
         enableAnimations = true
     }
 
     val animationSpec = if (enableAnimations) tween<Color>(durationMillis = 400) else snap<Color>()
-    
+
     val animatedColorScheme = colorScheme.copy(
         primary = animateColorAsState(colorScheme.primary, animationSpec, label = "primary").value,
         onPrimary = animateColorAsState(colorScheme.onPrimary, animationSpec, label = "onPrimary").value,
