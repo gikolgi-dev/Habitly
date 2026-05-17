@@ -2,6 +2,13 @@
 
 A simple and modern app to help you build and maintain good habits. Track your daily progress, visualize your consistency with heatmaps, and set reminders to stay on track.
 
+## ⚠️ Important Notes
+
+Please be aware that this app uses **Material 3 Expressive** extensively, which is currently experimental/unstable.
+
+*   This app is made to work for android 7+ (api version 24+) devices, although its recomended to use the newest version because its tested the best.
+*   Tablets and foldables, as well as horizontal mode arent curently supported 
+
 ## ✨ Features
 
 *   **Track Habits**: Easily mark habits as done for the day.
@@ -17,13 +24,3 @@ A simple and modern app to help you build and maintain good habits. Track your d
 2.  Download the latest `.apk` file.
 3.  Open the file on your Android device to install it.
     *   *Note: You may need to allow installation from unknown sources in your device settings.*
-
----
-
-## ⚠️ Important Note
-
-Please be aware that this app uses **Material 3 Expressive** extensively, which is currently experimental/unstable.
-
-*   The app has currently only been tested on a **Pixel 8** with android 16 installed.
-*   You might experience layout issues or crashes on other devices or screen sizes.
-*   If it wasn't obvious this is an android only app
