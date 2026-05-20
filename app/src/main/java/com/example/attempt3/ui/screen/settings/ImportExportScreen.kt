@@ -85,11 +85,14 @@ import kotlinx.serialization.json.Json
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
+import java.text.SimpleDateFormat
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import java.util.Date
+import java.util.Locale
 import java.util.UUID
 
 @Serializable
@@ -310,7 +313,7 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxHeight(exportFraction.coerceIn(0f, 1f))
+                    .weight(exportFraction.coerceAtLeast(0.0001f))
                     .graphicsLayer { alpha = exportAlpha }
                     .clip(RoundedCornerShape(8.dp))
                     .background(color = MaterialTheme.colorScheme.surfaceVariant)
@@ -323,7 +326,7 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                         val currentDate = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                             LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
                         } else {
-                            ""
+                            SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
                         }
                         exportLauncher.launch("habits_backup_$currentDate.json")
                     }
@@ -364,7 +367,7 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f)
+                .weight((1f - exportFraction).coerceAtLeast(0.0001f))
                 .clip(RoundedCornerShape(8.dp))
                 .background(color = MaterialTheme.colorScheme.surfaceVariant)
                 .border(
