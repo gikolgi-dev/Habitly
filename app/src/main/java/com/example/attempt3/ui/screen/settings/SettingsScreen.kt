@@ -24,6 +24,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -702,7 +703,7 @@ private fun HoldToClearSettingsItem(
             if (vibrationsEnabled) {
                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
             }
-            
+
             // Launch the ticking haptics in a child coroutine so it cancels automatically
             val hapticJob = launch {
                 var nextDelay = 300L
@@ -733,7 +734,7 @@ private fun HoldToClearSettingsItem(
 
             if (progress.value >= 1f) {
                 clearState = ClearState.HoldingComplete
-                
+
                 // Aggressive haptics pause (0.5s) runs inside this LaunchedEffect!
                 // If the user releases, isPressing becomes false, cancelling this LaunchedEffect.
                 if (vibrationsEnabled) {
@@ -772,7 +773,7 @@ private fun HoldToClearSettingsItem(
 
     val successColor = MaterialTheme.colorScheme.error
     val progressColor = MaterialTheme.colorScheme.error.copy(alpha = 0.55f)
-    
+
     val animatedBgColor by animateColorAsState(
         targetValue = when (clearState) {
             ClearState.Success -> successColor
@@ -808,11 +809,12 @@ private fun HoldToClearSettingsItem(
                 .onSizeChanged { layoutSize = it }
                 .pointerInput(Unit) {
                     awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
                         if (clearState == ClearState.Success || clearState == ClearState.HoldingComplete) {
                             return@awaitEachGesture
                         }
                         isPressing = true
-                        
+
                         while (true) {
                             val event = awaitPointerEvent()
                             if (event.changes.all { !it.pressed }) {
@@ -894,4 +896,3 @@ private fun HoldToClearSettingsItem(
         }
     }
 }
-
