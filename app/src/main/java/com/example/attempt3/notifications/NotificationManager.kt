@@ -372,6 +372,26 @@ class NotificationReceiver : BroadcastReceiver() {
             .setContentIntent(activityPendingIntent)
             .setAutoCancel(true) // Dismiss the notification automatically when tapped
 
+        // Add the inline "Complete" action for single habits
+        if (!isGeneralNotification) {
+            val actionIntent = Intent(context, NotificationReceiver::class.java).apply {
+                action = "ACTION_COMPLETE_HABIT"
+                putExtra("habitId", habitId)
+                putExtra("targetDate", targetDate)
+            }
+            val actionPendingIntent = PendingIntent.getBroadcast(
+                context,
+                habitId.hashCode() + 1, // Offset the hash code to avoid intent collisions
+                actionIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            builder.addAction(
+                0, // 0 means no icon is specified (action icons are largely ignored on modern Android anyway)
+                "Complete",
+                actionPendingIntent
+            )
+        }
+
         // Add the inline "Snooze" action
         if (snoozeEnabled) {
             val snoozeIntent = Intent(context, NotificationReceiver::class.java).apply {
@@ -390,26 +410,6 @@ class NotificationReceiver : BroadcastReceiver() {
                 0,
                 "Snooze",
                 snoozePendingIntent
-            )
-        }
-
-        // Add the inline "Complete" action for single habits
-        if (!isGeneralNotification) {
-            val actionIntent = Intent(context, NotificationReceiver::class.java).apply {
-                action = "ACTION_COMPLETE_HABIT"
-                putExtra("habitId", habitId)
-                putExtra("targetDate", targetDate)
-            }
-            val actionPendingIntent = PendingIntent.getBroadcast(
-                context,
-                habitId.hashCode() + 1, // Offset the hash code to avoid intent collisions
-                actionIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            builder.addAction(
-                0, // 0 means no icon is specified (action icons are largely ignored on modern Android anyway)
-                "Complete",
-                actionPendingIntent
             )
         }
 
