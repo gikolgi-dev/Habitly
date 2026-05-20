@@ -124,6 +124,8 @@ import com.example.attempt3.ui.components.CustomTimePickerDialog
 import com.example.attempt3.ui.components.rememberNotificationPermissionHandler
 import com.example.attempt3.ui.defaultHabitIconKey
 import com.example.attempt3.ui.screen.settings.SettingsScreen
+import com.example.attempt3.ui.screen.settings.settingsEnterTransition
+import com.example.attempt3.ui.screen.settings.settingsPopExitTransition
 import com.github.skydoves.colorpicker.compose.ColorEnvelope
 import com.github.skydoves.colorpicker.compose.HsvColorPicker
 import com.github.skydoves.colorpicker.compose.rememberColorPickerController
@@ -773,8 +775,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 AnimatedVisibility(
                     visible = showSettingsScreen,
                     modifier = Modifier.fillMaxSize(),
-                    enter = slideInHorizontally(animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { it },
-                    exit = slideOutHorizontally(animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { it }
+                    enter = settingsEnterTransition(),
+                    exit = settingsPopExitTransition()
                 ) {
                     SettingsScreen(
                         onDismiss = { showSettingsScreen = false },
