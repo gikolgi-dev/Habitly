@@ -2,8 +2,6 @@
 
 package com.example.attempt3.ui.screen.settings
 
-import androidx.compose.animation.*
-
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Color
@@ -13,6 +11,7 @@ import android.provider.OpenableColumns
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.EaseInOutQuart
 import androidx.compose.animation.core.Spring
@@ -20,6 +19,10 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -31,7 +34,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -47,15 +49,11 @@ import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -69,6 +67,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.attempt3.data.Database.Completion
 import com.example.attempt3.data.Database.Habit
@@ -126,6 +126,7 @@ data class ExportedCompletion(
 
 @Serializable
 data class ExportData(
+    val appOrigin: String = "habitly",
     val habits: List<ExportedHabit>
 )
 
@@ -218,7 +219,10 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
     var mergeData by remember { mutableStateOf(false) }
     var isToggling by remember { mutableStateOf(false) }
 
-    val jsonParser = remember { Json { ignoreUnknownKeys = true } }
+    val jsonParser = remember { Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = true
+    } }
 
     val habitColorMap = remember {
         predefinedColors.flatMap { namedColor ->
@@ -290,6 +294,35 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
         contract = ActivityResultContracts.GetContent(),
         onResult = { uri: Uri? ->
             selectedFileUri = uri
+            if (uri != null) {
+                scope.launch {
+                    try {
+                        val headerText = withContext(Dispatchers.IO) {
+                            context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                                val reader = java.io.BufferedReader(java.io.InputStreamReader(inputStream))
+                                val buffer = CharArray(4000)
+                                val readCount = reader.read(buffer)
+                                if (readCount != -1) {
+                                    String(buffer, 0, readCount)
+                                } else {
+                                    ""
+                                }
+                            }
+                        }
+                        if (headerText != null) {
+                            if (headerText.contains("\"appOrigin\":\"habitly\"") ||
+                                headerText.contains("\"appOrigin\": \"habitly\"") ||
+                                headerText.contains("\"completionsPerInterval\"")) {
+                                importType = ImportType.APP_BACKUP
+                            } else {
+                                importType = null // let the user choose if it can't determine or is from somewhere else
+                            }
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            }
         }
     )
 
