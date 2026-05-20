@@ -11,15 +11,19 @@ import androidx.compose.ui.unit.sp
  */
 object TimeDisplayConstants {
     val ReferenceWidth = 320.dp
-    
+
     // 24h Display Constants
     // Reduced from 150.sp to 110.sp to fit "HH:mm" within the reference width
-    val Base24hFontSize = 110.sp
+    val Base24hFontSize = 135.sp
     const val ColonOffsetYRatio = -8f
-    
+
     // 12h Display Constants
     val Base12hHourSize = 180.sp
     val Base12hMinuteSize = 90.sp
     val Base12hAmPmSize = 60.sp
     const val StackOffsetYRatio = -16f
+
+    // Crop amount constants for negative vertical padding to reduce font padding
+    val Base12hCropAmount = 24.dp
+    val Base24hCropAmount = 0.dp
 }
