@@ -68,6 +68,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -75,6 +76,7 @@ import com.example.attempt3.data.Database.Completion
 import com.example.attempt3.data.Database.Habit
 import com.example.attempt3.data.Database.HabitViewModel
 import com.example.attempt3.data.Database.HabitWithCompletions
+import com.example.attempt3.notifications.NotificationScheduler
 import com.example.attempt3.ui.components.RotatingHabitIcon
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
@@ -107,6 +109,8 @@ fun SharedTransitionScope.HabitDetailScreen(
     isEditSheetOpen: Boolean = false
 ) {
     val haptic = LocalHapticFeedback.current
+    val context = LocalContext.current
+    val notificationScheduler = remember { NotificationScheduler(context) }
     var showDeleteConfirmation by remember { mutableStateOf(false) } // State for delete confirmation dialog
     val habit = habitWithCompletions.habit
     val completions = habitWithCompletions.completions
@@ -157,6 +161,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                         onClick = {
                             onDismiss()
                             viewModel.deleteHabit(habit)
+                            notificationScheduler.cancelNotification(habit)
                         },
                         shape = CircleShape,
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
@@ -400,7 +405,9 @@ fun SharedTransitionScope.HabitDetailScreen(
                                     if (vibrationsEnabled) {
                                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     }
-                                    viewModel.updateHabit(habit.copy(archived = !isArchivedView))
+                                    val updatedHabit = habit.copy(archived = !isArchivedView)
+                                    viewModel.updateHabit(updatedHabit)
+                                    notificationScheduler.scheduleNotification(updatedHabit)
                                     onDismiss()
                                 },
                             contentAlignment = Alignment.Center

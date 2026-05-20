@@ -31,7 +31,7 @@ class NotificationScheduler(private val context: Context) {
     private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
     fun scheduleNotification(habit: Habit) {
-        if (!habit.notificationsEnabled || habit.notificationTime == null) {
+        if (habit.archived || !habit.notificationsEnabled || habit.notificationTime == null) {
             cancelNotification(habit)
             return
         }
@@ -121,6 +121,33 @@ class NotificationScheduler(private val context: Context) {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         alarmManager.cancel(pendingIntent)
+    }
+
+    suspend fun rescheduleAll() {
+        val dao = HabitDatabase.getDatabase(context).habitDao()
+        val habits = dao.getAllHabitsSnapshot()
+        for (habit in habits) {
+            scheduleNotification(habit)
+        }
+
+        val settingsDataStore = SettingsDataStore(context)
+        val globalEnabled = settingsDataStore.globalNotificationsEnabled.first()
+        if (globalEnabled) {
+            val globalTime = settingsDataStore.globalNotificationTime.first()
+            val globalDays = settingsDataStore.globalNotificationDays.first()
+            scheduleGeneralNotification(globalTime, globalDays)
+        } else {
+            cancelGeneralNotification()
+        }
+    }
+
+    suspend fun cancelAllNotifications() {
+        val dao = HabitDatabase.getDatabase(context).habitDao()
+        val habits = dao.getAllHabitsSnapshot()
+        for (habit in habits) {
+            cancelNotification(habit)
+        }
+        cancelGeneralNotification()
     }
 }
 

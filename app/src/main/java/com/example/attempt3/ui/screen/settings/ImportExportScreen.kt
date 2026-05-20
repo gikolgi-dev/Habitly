@@ -74,6 +74,7 @@ import com.example.attempt3.data.Database.Completion
 import com.example.attempt3.data.Database.Habit
 import com.example.attempt3.data.Database.HabitDatabase
 import com.example.attempt3.data.settings.SettingsDataStore
+import com.example.attempt3.notifications.NotificationScheduler
 import com.example.attempt3.ui.colors.predefinedColors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -778,11 +779,13 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
 
                                                 withContext(Dispatchers.IO) {
                                                     if (!mergeData) {
+                                                        NotificationScheduler(context).cancelAllNotifications()
                                                         db.habitDao().clearAllTables()
                                                     }
                                                     db.habitDao().insertHabits(habitsToInsert)
                                                     db.habitDao()
                                                         .insertCompletions(completionsToInsert)
+                                                    NotificationScheduler(context).rescheduleAll()
                                                 }
                                                 Toast.makeText(
                                                     context,

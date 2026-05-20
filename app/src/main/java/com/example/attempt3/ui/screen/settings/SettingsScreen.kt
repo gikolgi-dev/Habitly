@@ -344,6 +344,63 @@ fun SettingsScreen(
                     item { Spacer(modifier = Modifier.navigationBarsPadding()) }
                 }
             }
+            if (showConfirmationDialog.value) {
+                AlertDialog(
+                    onDismissRequest = { showConfirmationDialog.value = false },
+                    title = { Text("Clear all data") },
+                    text = { Text("Are you sure you want to delete all habits and their completions? This cannot be undone.", color = MaterialTheme.colorScheme.onSurface) },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                showConfirmationDialog.value = false
+                                showSecondConfirmationDialog.value = true
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                        ) {
+                            Text("Delete")
+                        }
+                    },
+                    dismissButton = {
+                        OutlinedButton(
+                            onClick = { showConfirmationDialog.value = false }
+                        ) {
+                            Text("Cancel")
+                        }
+                    },
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
+            }
+
+            if (showSecondConfirmationDialog.value) {
+                AlertDialog(
+                    onDismissRequest = { showSecondConfirmationDialog.value = false },
+                    title = { Text("Confirm deletion") },
+                    text = { Text("Are you absolutely sure? All your progress will be lost permanently.", color = MaterialTheme.colorScheme.onSurface) },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                showSecondConfirmationDialog.value = false
+                                scope.launch(Dispatchers.IO) {
+                                    val scheduler = NotificationScheduler(context)
+                                    scheduler.cancelAllNotifications()
+                                    db.habitDao().clearAllTables()
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                        ) {
+                            Text("Yes, delete everything")
+                        }
+                    },
+                    dismissButton = {
+                        OutlinedButton(
+                            onClick = { showSecondConfirmationDialog.value = false }
+                        ) {
+                            Text("Cancel")
+                        }
+                    },
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
+            }
         }
 
         // Sub Screens

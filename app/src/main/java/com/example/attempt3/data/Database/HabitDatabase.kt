@@ -85,6 +85,9 @@ interface HabitDao {
     @Query("SELECT * FROM habit WHERE archived = 0 ORDER BY orderIndex")
     fun getAllHabits(): Flow<List<Habit>>
 
+    @Query("SELECT * FROM habit")
+    suspend fun getAllHabitsSnapshot(): List<Habit>
+
     @Transaction
     @Query("SELECT * FROM habit WHERE archived = 0 ORDER BY orderIndex")
     fun getHabitsWithCompletions(): Flow<List<HabitWithCompletions>>
