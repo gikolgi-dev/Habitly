@@ -659,7 +659,8 @@ fun SettingsSegmentedSelector(
     options: List<String>,
     selectedIndex: Int,
     onSelectionChange: (Int) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
 ) {
     SingleChoiceSegmentedButtonRow(
         modifier = modifier.fillMaxWidth()
@@ -669,6 +670,7 @@ fun SettingsSegmentedSelector(
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
                 onClick = { onSelectionChange(index) },
                 selected = index == selectedIndex,
+                enabled = enabled,
                 label = { Text(label) },
                 colors = SegmentedButtonDefaults.colors(
                     activeContainerColor = MaterialTheme.colorScheme.primary,

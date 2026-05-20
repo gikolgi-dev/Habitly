@@ -10,6 +10,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -42,13 +44,21 @@ fun NotificationSettingsScreen(
     val haptic = LocalHapticFeedback.current
     val notificationScheduler = remember { NotificationScheduler(context) }
 
-    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
-    val skipCompleted by settingsDataStore.skipCompletedHabitNotifications.collectAsState(initial = DefaultSettings.SKIP_COMPLETED_HABIT_NOTIFICATIONS)
-    val snoozeEnabled by settingsDataStore.snoozeEnabled.collectAsState(initial = DefaultSettings.SNOOZE_ENABLED)
-    val snoozeDurationMinutes by settingsDataStore.snoozeDurationMinutes.collectAsState(initial = DefaultSettings.SNOOZE_DURATION_MINUTES)
-    val globalNotificationsEnabled by settingsDataStore.globalNotificationsEnabled.collectAsState(initial = false)
-    val globalNotificationTime by settingsDataStore.globalNotificationTime.collectAsState(initial = "09:00")
-    val globalNotificationDays by settingsDataStore.globalNotificationDays.collectAsState(initial = emptySet())
+    val vibrationsEnabledState = settingsDataStore.vibrations.collectAsState(initial = null)
+    val skipCompletedState = settingsDataStore.skipCompletedHabitNotifications.collectAsState(initial = null)
+    val snoozeEnabledState = settingsDataStore.snoozeEnabled.collectAsState(initial = null)
+    val snoozeDurationMinutesState = settingsDataStore.snoozeDurationMinutes.collectAsState(initial = null)
+    val globalNotificationsEnabledState = settingsDataStore.globalNotificationsEnabled.collectAsState(initial = null)
+    val globalNotificationTimeState = settingsDataStore.globalNotificationTime.collectAsState(initial = null)
+    val globalNotificationDaysState = settingsDataStore.globalNotificationDays.collectAsState(initial = null)
+
+    val vibrationsEnabled = vibrationsEnabledState.value ?: return
+    val skipCompleted = skipCompletedState.value ?: return
+    val snoozeEnabled = snoozeEnabledState.value ?: return
+    val snoozeDurationMinutes = snoozeDurationMinutesState.value ?: return
+    val globalNotificationsEnabled = globalNotificationsEnabledState.value ?: return
+    val globalNotificationTime = globalNotificationTimeState.value ?: return
+    val globalNotificationDays = globalNotificationDaysState.value ?: return
 
     val notificationPermissionHandler = rememberNotificationPermissionHandler {
         scope.launch {
@@ -199,10 +209,15 @@ fun NotificationSettingsScreen(
                 if (vibrationsEnabled) haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
             }
             SettingsItemBox(settingsDataStore = settingsDataStore, position = SettingsItemPosition.Bottom) {
+                val snoozeDurationAlpha by animateFloatAsState(
+                    targetValue = if (snoozeEnabled) 1f else 0.5f,
+                    label = "SnoozeDurationAlpha"
+                )
                 Column(
                     Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .alpha(snoozeDurationAlpha)
                 ) {
                     Text(
                         text = "Snooze duration",
@@ -236,6 +251,7 @@ fun NotificationSettingsScreen(
                     SettingsSegmentedSelector(
                         options = options,
                         selectedIndex = selectedIndex,
+                        enabled = snoozeEnabled,
                         onSelectionChange = { index ->
                             val newValue = if (BuildConfig.IS_DEVELOPER_MODE) {
                                 when (index) {
