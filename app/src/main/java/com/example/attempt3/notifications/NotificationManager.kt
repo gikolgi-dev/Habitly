@@ -18,9 +18,13 @@ import com.example.attempt3.data.Database.HabitDatabase
 import com.example.attempt3.data.settings.SettingsDataStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
@@ -192,6 +196,7 @@ class NotificationReceiver : BroadcastReceiver() {
                 try {
                     val settingsDataStore = SettingsDataStore(context)
                     val snoozeDurationMinutes = settingsDataStore.snoozeDurationMinutes.first()
+                    val is24Hour = settingsDataStore.is24Hour.first()
 
                     val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
@@ -214,8 +219,42 @@ class NotificationReceiver : BroadcastReceiver() {
                     val snoozeTime = Calendar.getInstance().timeInMillis + (snoozeDurationMinutes * 60 * 1000L)
                     scheduleAlarm(alarmManager, snoozeTime, pendingIntent)
 
-                    // Dismiss the current notification
+                    // Format the snooze time based on settings
+                    val sdf = if (is24Hour) {
+                        SimpleDateFormat("HH:mm", Locale.getDefault())
+                    } else {
+                        SimpleDateFormat("h:mm a", Locale.getDefault())
+                    }
+                    val formattedTime = sdf.format(Date(snoozeTime))
+
+                    // Update the SAME notification to show "Snoozed until xx:xx"
+                    val isGeneralNotification = habitId == GENERAL_NOTIFICATION_ID
+                    val title = if (isGeneralNotification) "Daily Reminder" else "Completion Reminder"
+                    val contentText = "Snoozed until $formattedTime"
+
+                    val activityIntent = Intent(context, MainActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    }
+                    val activityPendingIntent = PendingIntent.getActivity(
+                        context,
+                        0,
+                        activityIntent,
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    )
+
+                    val snoozedNotification = NotificationCompat.Builder(context, "habit_reminders")
+                        .setContentTitle(title)
+                        .setContentText(contentText)
+                        .setSmallIcon(R.drawable.ic_stat_name)
+                        .setContentIntent(activityPendingIntent)
+                        .setAutoCancel(true)
+                        .build()
+
                     val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                    notificationManager.notify(habitId.hashCode(), snoozedNotification)
+
+                    // Wait 3 seconds and then dismiss the notification
+                    delay(2000L)
                     notificationManager.cancel(habitId.hashCode())
                 } finally {
                     pendingResult.finish()
