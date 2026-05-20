@@ -579,11 +579,13 @@ fun HabitSheetContent(
     val pressedColorIndexState = remember { mutableStateOf<Int?>(null) }
 
     var isInitial by remember { mutableStateOf(true) }
-    LaunchedEffect(Unit) { isInitial = false }
 
     // Scroll to bottom when notifications are enabled to follow expansion
     LaunchedEffect(notificationsEnabled, hasNotificationPermission) {
-        if (isInitial) return@LaunchedEffect
+        if (isInitial) {
+            isInitial = false
+            return@LaunchedEffect
+        }
         if (notificationsEnabled && hasNotificationPermission) {
             withTimeoutOrNull(600) {
                 snapshotFlow { scrollState.maxValue }.collect { max ->

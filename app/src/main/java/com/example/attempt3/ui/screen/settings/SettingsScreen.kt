@@ -38,6 +38,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
@@ -71,6 +72,21 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberTopAppBarState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.delay
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
@@ -171,8 +187,6 @@ fun SettingsScreen(
 ) {
     val navController = rememberNavController()
     val scope = rememberCoroutineScope()
-    val showConfirmationDialog = remember { mutableStateOf(false) }
-    val showSecondConfirmationDialog = remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     val haptic = LocalHapticFeedback.current
@@ -280,15 +294,22 @@ fun SettingsScreen(
                                 settingsDataStore = settingsDataStore,
                                 position = SettingsItemPosition.Top
                             ) { navController.navigate("import") { launchSingleTop = true } }
-                            GroupedSettingsItem(
+                            HoldToClearSettingsItem(
                                 title = "Clear all data",
                                 subtitle = "Delete all habits and their completions",
                                 icon = Icons.Default.Delete,
                                 iconBackgroundColor = MaterialTheme.colorScheme.errorContainer,
                                 iconColor = MaterialTheme.colorScheme.onErrorContainer,
                                 settingsDataStore = settingsDataStore,
+                                vibrationsEnabled = vibrationsEnabled,
                                 position = SettingsItemPosition.Bottom
-                            ) { showConfirmationDialog.value = true }
+                            ) {
+                                scope.launch(Dispatchers.IO) {
+                                    val scheduler = NotificationScheduler(context)
+                                    scheduler.cancelAllNotifications()
+                                    db.habitDao().clearAllTables()
+                                }
+                            }
                         }
                     }
                     item {
@@ -344,63 +365,7 @@ fun SettingsScreen(
                     item { Spacer(modifier = Modifier.navigationBarsPadding()) }
                 }
             }
-            if (showConfirmationDialog.value) {
-                AlertDialog(
-                    onDismissRequest = { showConfirmationDialog.value = false },
-                    title = { Text("Clear all data") },
-                    text = { Text("Are you sure you want to delete all habits and their completions? This cannot be undone.", color = MaterialTheme.colorScheme.onSurface) },
-                    confirmButton = {
-                        Button(
-                            onClick = {
-                                showConfirmationDialog.value = false
-                                showSecondConfirmationDialog.value = true
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                        ) {
-                            Text("Delete")
-                        }
-                    },
-                    dismissButton = {
-                        OutlinedButton(
-                            onClick = { showConfirmationDialog.value = false }
-                        ) {
-                            Text("Cancel")
-                        }
-                    },
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
-            }
 
-            if (showSecondConfirmationDialog.value) {
-                AlertDialog(
-                    onDismissRequest = { showSecondConfirmationDialog.value = false },
-                    title = { Text("Confirm deletion") },
-                    text = { Text("Are you absolutely sure? All your progress will be lost permanently.", color = MaterialTheme.colorScheme.onSurface) },
-                    confirmButton = {
-                        Button(
-                            onClick = {
-                                showSecondConfirmationDialog.value = false
-                                scope.launch(Dispatchers.IO) {
-                                    val scheduler = NotificationScheduler(context)
-                                    scheduler.cancelAllNotifications()
-                                    db.habitDao().clearAllTables()
-                                }
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                        ) {
-                            Text("Yes, delete everything")
-                        }
-                    },
-                    dismissButton = {
-                        OutlinedButton(
-                            onClick = { showSecondConfirmationDialog.value = false }
-                        ) {
-                            Text("Cancel")
-                        }
-                    },
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
-            }
         }
 
         // Sub Screens
@@ -725,3 +690,228 @@ fun AnimatedVisibilityScope.SettingsScaffold(
         content = content
     )
 }
+
+private enum class ClearState {
+    Idle, Holding, HoldingComplete, Success
+}
+
+@Composable
+private fun HoldToClearSettingsItem(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    iconBackgroundColor: Color,
+    iconColor: Color,
+    settingsDataStore: SettingsDataStore,
+    vibrationsEnabled: Boolean,
+    position: SettingsItemPosition = SettingsItemPosition.Alone,
+    onHoldComplete: () -> Unit
+) {
+    val haptic = LocalHapticFeedback.current
+    val coroutineScope = rememberCoroutineScope()
+    var isPressing by remember { mutableStateOf(false) }
+    val progress = remember { Animatable(0f) }
+    var layoutSize by remember { mutableStateOf(IntSize.Zero) }
+    var clearState by remember { mutableStateOf(ClearState.Idle) }
+
+    LaunchedEffect(isPressing) {
+        if (isPressing && clearState == ClearState.Idle) {
+            clearState = ClearState.Holding
+            val duration = 3000L
+            if (vibrationsEnabled) {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            }
+            
+            // Launch the ticking haptics in a child coroutine so it cancels automatically
+            val hapticJob = launch {
+                var nextDelay = 300L
+                while (isPressing && progress.value < 1f) {
+                    delay(nextDelay)
+                    if (isPressing && progress.value < 1f && vibrationsEnabled) {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    }
+                    val p = progress.value
+                    nextDelay = when {
+                        p > 0.9f -> 40L
+                        p > 0.8f -> 60L
+                        p > 0.6f -> 100L
+                        p > 0.4f -> 150L
+                        p > 0.2f -> 220L
+                        else -> 300L
+                    }
+                }
+            }
+
+            // Animate progress to 1f. If this coroutine is cancelled (e.g. key changed), the animation cancels.
+            progress.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(durationMillis = duration.toInt(), easing = LinearEasing)
+            )
+
+            hapticJob.cancel()
+
+            if (progress.value >= 1f) {
+                clearState = ClearState.HoldingComplete
+                
+                // Aggressive haptics pause (0.5s) runs inside this LaunchedEffect!
+                // If the user releases, isPressing becomes false, cancelling this LaunchedEffect.
+                if (vibrationsEnabled) {
+                    for (i in 0..5) {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        delay(80L)
+                    }
+                } else {
+                    delay(500L)
+                }
+
+                // If we get here, the user held for the full 3s + 0.5s pause without releasing!
+                // Now we perform the deletion and display the success checkmark.
+                // We launch this final phase in the external coroutineScope so that releasing
+                // the touch AFTER success starts does not abort the 1-second success screen.
+                coroutineScope.launch {
+                    clearState = ClearState.Success
+                    onHoldComplete()
+                    delay(1000L)
+                    clearState = ClearState.Idle
+                    progress.snapTo(0f)
+                }
+            }
+        } else {
+            if (clearState == ClearState.Holding || clearState == ClearState.HoldingComplete) {
+                clearState = ClearState.Idle
+                if (progress.value > 0f) {
+                    progress.animateTo(
+                        targetValue = 0f,
+                        animationSpec = tween(durationMillis = 300)
+                    )
+                }
+            }
+        }
+    }
+
+    val successColor = MaterialTheme.colorScheme.error
+    val progressColor = MaterialTheme.colorScheme.error.copy(alpha = 0.55f)
+    
+    val animatedBgColor by animateColorAsState(
+        targetValue = when (clearState) {
+            ClearState.Success -> successColor
+            ClearState.Holding, ClearState.HoldingComplete -> progressColor
+            ClearState.Idle -> Color.Transparent
+        },
+        animationSpec = tween(
+            durationMillis = when (clearState) {
+                ClearState.Success -> 300
+                ClearState.Idle -> 300
+                else -> 150
+            }
+        )
+    )
+
+    val successAlpha by animateFloatAsState(
+        targetValue = if (clearState == ClearState.Success) 1f else 0f,
+        animationSpec = tween(durationMillis = 300)
+    )
+    val contentAlpha by animateFloatAsState(
+        targetValue = if (clearState == ClearState.Success) 0f else 1f,
+        animationSpec = tween(durationMillis = 300)
+    )
+    val successRotation by animateFloatAsState(
+        targetValue = if (clearState == ClearState.Success) 0f else -180f,
+        animationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing)
+    )
+
+    SettingsItemBox(settingsDataStore = settingsDataStore, position = position) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .onSizeChanged { layoutSize = it }
+                .pointerInput(Unit) {
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        if (clearState == ClearState.Success || clearState == ClearState.HoldingComplete) {
+                            return@awaitEachGesture
+                        }
+                        isPressing = true
+                        
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            if (event.changes.all { !it.pressed }) {
+                                break
+                            }
+                            val pointer = event.changes.firstOrNull { it.pressed }
+                            if (pointer != null) {
+                                val pos = pointer.position
+                                if (pos.x < 0 || pos.x > layoutSize.width || pos.y < 0 || pos.y > layoutSize.height) {
+                                    break
+                                }
+                            }
+                        }
+                        isPressing = false
+                    }
+                }
+                .drawBehind {
+                    val width = if (clearState == ClearState.Success) {
+                        size.width
+                    } else {
+                        size.width * progress.value
+                    }
+                    if (width > 0f) {
+                        drawRect(
+                            color = animatedBgColor,
+                            size = Size(width = width, height = size.height)
+                        )
+                    }
+                }
+        ) {
+            Row(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .graphicsLayer {
+                        alpha = contentAlpha
+                    },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                RotatingCookie(
+                    icon = icon,
+                    iconBackgroundColor = iconBackgroundColor,
+                    iconColor = iconColor,
+                    settingsDataStore = settingsDataStore,
+                    contentDescription = title
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+                Column {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .graphicsLayer {
+                        alpha = successAlpha
+                        scaleX = 0.8f + 0.2f * successAlpha
+                        scaleY = 0.8f + 0.2f * successAlpha
+                        rotationZ = successRotation
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = "Success",
+                    tint = MaterialTheme.colorScheme.onError,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+        }
+    }
+}
+
