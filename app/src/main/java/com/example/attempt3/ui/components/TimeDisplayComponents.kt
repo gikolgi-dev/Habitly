@@ -11,12 +11,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.attempt3.ui.components.TimeDisplayConstants.Base12hAmPmSize
+import com.example.attempt3.ui.components.TimeDisplayConstants.Base12hCropAmount
 import com.example.attempt3.ui.components.TimeDisplayConstants.Base12hHourSize
 import com.example.attempt3.ui.components.TimeDisplayConstants.Base12hMinuteSize
+import com.example.attempt3.ui.components.TimeDisplayConstants.Base24hCropAmount
 import com.example.attempt3.ui.components.TimeDisplayConstants.Base24hFontSize
 import com.example.attempt3.ui.components.TimeDisplayConstants.ColonOffsetYRatio
 import com.example.attempt3.ui.components.TimeDisplayConstants.ReferenceWidth
@@ -39,8 +43,10 @@ fun TimeDisplay24h(
         val scale = maxWidth / ReferenceWidth
         val fontSize = (Base24hFontSize.value * scale).sp
         val colonOffset = (ColonOffsetYRatio * scale).dp
+        val cropAmount = (Base24hCropAmount.value * scale).dp
 
         Row(
+            modifier = Modifier.negativeVerticalPadding(cropAmount),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -87,8 +93,10 @@ fun TimeDisplay12h(
         val minuteSize = (Base12hMinuteSize.value * scale).sp
         val amPmSize = (Base12hAmPmSize.value * scale).sp
         val stackOffsetY = (StackOffsetYRatio * scale).dp
+        val cropAmount = (Base12hCropAmount.value * scale).dp
 
         Row(
+            modifier = Modifier.negativeVerticalPadding(cropAmount),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -102,5 +110,17 @@ fun TimeDisplay12h(
                 offsetY = stackOffsetY
             )
         }
+    }
+}
+
+private fun Modifier.negativeVerticalPadding(padding: Dp): Modifier = this.layout { measurable, constraints ->
+    val paddingPx = padding.roundToPx()
+    val placeable = measurable.measure(constraints)
+    val newHeight = (placeable.height - paddingPx * 2).coerceAtLeast(0)
+    layout(
+        width = placeable.width,
+        height = newHeight
+    ) {
+        placeable.placeRelative(0, -paddingPx)
     }
 }

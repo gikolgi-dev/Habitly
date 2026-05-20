@@ -49,11 +49,10 @@ fun StatisticScreen(
     vibrationsEnabled: Boolean,
     showScrollBlur: Boolean,
     scrollBlurTargets: Set<String>,
-    useHabitColor: Boolean,
-    currentDateMillis: Long = System.currentTimeMillis()
+    useHabitColor: Boolean
 ) {
     val habitsUiState by viewModel.habitsUiState.collectAsState()
-    val habits = (habitsUiState as? HabitsUiState.Success)?.habits ?: emptyList()
+    val habits = (habitsUiState as? HabitsUiState.Success)?.habits?.filterNot { it.habit.archived } ?: emptyList()
     val haptic = LocalHapticFeedback.current
 
     val actualCount = habits.size

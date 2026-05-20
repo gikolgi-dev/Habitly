@@ -18,9 +18,13 @@ import com.example.attempt3.data.Database.HabitDatabase
 import com.example.attempt3.data.settings.SettingsDataStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
@@ -31,7 +35,7 @@ class NotificationScheduler(private val context: Context) {
     private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
     fun scheduleNotification(habit: Habit) {
-        if (!habit.notificationsEnabled || habit.notificationTime == null) {
+        if (habit.archived || !habit.notificationsEnabled || habit.notificationTime == null) {
             cancelNotification(habit)
             return
         }
@@ -122,6 +126,33 @@ class NotificationScheduler(private val context: Context) {
         )
         alarmManager.cancel(pendingIntent)
     }
+
+    suspend fun rescheduleAll() {
+        val dao = HabitDatabase.getDatabase(context).habitDao()
+        val habits = dao.getAllHabitsSnapshot()
+        for (habit in habits) {
+            scheduleNotification(habit)
+        }
+
+        val settingsDataStore = SettingsDataStore(context)
+        val globalEnabled = settingsDataStore.globalNotificationsEnabled.first()
+        if (globalEnabled) {
+            val globalTime = settingsDataStore.globalNotificationTime.first()
+            val globalDays = settingsDataStore.globalNotificationDays.first()
+            scheduleGeneralNotification(globalTime, globalDays)
+        } else {
+            cancelGeneralNotification()
+        }
+    }
+
+    suspend fun cancelAllNotifications() {
+        val dao = HabitDatabase.getDatabase(context).habitDao()
+        val habits = dao.getAllHabitsSnapshot()
+        for (habit in habits) {
+            cancelNotification(habit)
+        }
+        cancelGeneralNotification()
+    }
 }
 
 /**
@@ -165,6 +196,7 @@ class NotificationReceiver : BroadcastReceiver() {
                 try {
                     val settingsDataStore = SettingsDataStore(context)
                     val snoozeDurationMinutes = settingsDataStore.snoozeDurationMinutes.first()
+                    val is24Hour = settingsDataStore.is24Hour.first()
 
                     val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
@@ -187,8 +219,42 @@ class NotificationReceiver : BroadcastReceiver() {
                     val snoozeTime = Calendar.getInstance().timeInMillis + (snoozeDurationMinutes * 60 * 1000L)
                     scheduleAlarm(alarmManager, snoozeTime, pendingIntent)
 
-                    // Dismiss the current notification
+                    // Format the snooze time based on settings
+                    val sdf = if (is24Hour) {
+                        SimpleDateFormat("HH:mm", Locale.getDefault())
+                    } else {
+                        SimpleDateFormat("h:mm a", Locale.getDefault())
+                    }
+                    val formattedTime = sdf.format(Date(snoozeTime))
+
+                    // Update the SAME notification to show "Snoozed until xx:xx"
+                    val isGeneralNotification = habitId == GENERAL_NOTIFICATION_ID
+                    val title = if (isGeneralNotification) "Daily Reminder" else "Completion Reminder"
+                    val contentText = "Snoozed until $formattedTime"
+
+                    val activityIntent = Intent(context, MainActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    }
+                    val activityPendingIntent = PendingIntent.getActivity(
+                        context,
+                        0,
+                        activityIntent,
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    )
+
+                    val snoozedNotification = NotificationCompat.Builder(context, "habit_reminders")
+                        .setContentTitle(title)
+                        .setContentText(contentText)
+                        .setSmallIcon(R.drawable.ic_stat_name)
+                        .setContentIntent(activityPendingIntent)
+                        .setAutoCancel(true)
+                        .build()
+
                     val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                    notificationManager.notify(habitId.hashCode(), snoozedNotification)
+
+                    // Wait 3 seconds and then dismiss the notification
+                    delay(2000L)
                     notificationManager.cancel(habitId.hashCode())
                 } finally {
                     pendingResult.finish()
@@ -345,6 +411,26 @@ class NotificationReceiver : BroadcastReceiver() {
             .setContentIntent(activityPendingIntent)
             .setAutoCancel(true) // Dismiss the notification automatically when tapped
 
+        // Add the inline "Complete" action for single habits
+        if (!isGeneralNotification) {
+            val actionIntent = Intent(context, NotificationReceiver::class.java).apply {
+                action = "ACTION_COMPLETE_HABIT"
+                putExtra("habitId", habitId)
+                putExtra("targetDate", targetDate)
+            }
+            val actionPendingIntent = PendingIntent.getBroadcast(
+                context,
+                habitId.hashCode() + 1, // Offset the hash code to avoid intent collisions
+                actionIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            builder.addAction(
+                0, // 0 means no icon is specified (action icons are largely ignored on modern Android anyway)
+                "Complete",
+                actionPendingIntent
+            )
+        }
+
         // Add the inline "Snooze" action
         if (snoozeEnabled) {
             val snoozeIntent = Intent(context, NotificationReceiver::class.java).apply {
@@ -363,26 +449,6 @@ class NotificationReceiver : BroadcastReceiver() {
                 0,
                 "Snooze",
                 snoozePendingIntent
-            )
-        }
-
-        // Add the inline "Complete" action for single habits
-        if (!isGeneralNotification) {
-            val actionIntent = Intent(context, NotificationReceiver::class.java).apply {
-                action = "ACTION_COMPLETE_HABIT"
-                putExtra("habitId", habitId)
-                putExtra("targetDate", targetDate)
-            }
-            val actionPendingIntent = PendingIntent.getBroadcast(
-                context,
-                habitId.hashCode() + 1, // Offset the hash code to avoid intent collisions
-                actionIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            builder.addAction(
-                0, // 0 means no icon is specified (action icons are largely ignored on modern Android anyway)
-                "Complete",
-                actionPendingIntent
             )
         }
 

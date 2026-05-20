@@ -39,12 +39,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.attempt3.data.Database.Habit
 import com.example.attempt3.data.Database.HabitDao
 import com.example.attempt3.data.Database.HabitsUiState
+import com.example.attempt3.notifications.NotificationScheduler
 import com.example.attempt3.ui.AppBackButton
 import com.example.attempt3.ui.HabitItemCard
 import kotlinx.coroutines.launch
@@ -72,6 +74,8 @@ fun ArchiveScreen(
     var habitToDelete by remember { mutableStateOf<Habit?>(null) }
     
     val haptic = LocalHapticFeedback.current
+    val context = LocalContext.current
+    val notificationScheduler = remember { NotificationScheduler(context) }
 
     if (habitToDelete != null) {
         AlertDialog(
@@ -98,6 +102,7 @@ fun ArchiveScreen(
                             scope.launch {
                                 habitToDelete?.let {
                                     habitDao.deleteHabit(it)
+                                    notificationScheduler.cancelNotification(it)
                                 }
                                 habitToDelete = null
                             }
@@ -192,11 +197,9 @@ fun ArchiveScreen(
                                     onClick = { },
                                     onUnarchive = {
                                         scope.launch {
-                                            habitDao.updateHabit(
-                                                habitWithCompletions.habit.copy(
-                                                    archived = false
-                                                )
-                                            )
+                                            val restoredHabit = habitWithCompletions.habit.copy(archived = false)
+                                            habitDao.updateHabit(restoredHabit)
+                                            notificationScheduler.scheduleNotification(restoredHabit)
                                         }
                                     },
                                     onDelete = {
