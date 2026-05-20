@@ -753,8 +753,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                         vibrationsEnabled = vibrationsEnabled,
                         showScrollBlur = showScrollBlur,
                         scrollBlurTargets = scrollBlurTargets,
-                        useHabitColor = useHabitColorForStatistics,
-                        currentDateMillis = currentDateMillis
+                        useHabitColor = useHabitColorForStatistics
                     )
                 }
 
