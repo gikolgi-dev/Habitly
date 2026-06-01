@@ -139,6 +139,20 @@ class HabitViewModel(private val habitDao: HabitDao) : ViewModel() {
         }
     }
 
+    fun updateHabitStatsLayout(habit: Habit, layout: String?) {
+        viewModelScope.launch {
+            habitDao.updateHabit(habit.copy(statsLayout = layout))
+        }
+    }
+
+    fun applyStatsLayoutToAll(layout: String?) {
+        viewModelScope.launch {
+            val habits = habitDao.getAllHabitsSnapshot()
+            val updatedHabits = habits.map { it.copy(statsLayout = layout) }
+            habitDao.updateHabits(updatedHabits)
+        }
+    }
+
     fun deleteHabit(habit: Habit) {
         viewModelScope.launch {
             habitDao.deleteHabit(habit)

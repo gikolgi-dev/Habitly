@@ -37,7 +37,8 @@ data class Habit(
     val intervalUnit: String = "day",
     val notificationsEnabled: Boolean = false,
     val notificationTime: String? = null,
-    val notificationDays: String? = null
+    val notificationDays: String? = null,
+    val statsLayout: String? = null
 )
 
 @Entity(
@@ -134,7 +135,7 @@ interface HabitDao {
     suspend fun clearCompletions()
 }
 
-@Database(entities = [Habit::class, Completion::class], version = 12, exportSchema = false)
+@Database(entities = [Habit::class, Completion::class], version = 13, exportSchema = false)
 abstract class HabitDatabase : RoomDatabase() {
     abstract fun habitDao(): HabitDao
 
@@ -154,7 +155,8 @@ abstract class HabitDatabase : RoomDatabase() {
                     MIGRATION_8_9, 
                     MIGRATION_9_10, 
                     MIGRATION_10_11,
-                    MIGRATION_11_12
+                    MIGRATION_11_12,
+                    MIGRATION_12_13
                 ).build()
                 INSTANCE = instance
                 instance
@@ -242,3 +244,10 @@ val MIGRATION_11_12 = object : Migration(11, 12) {
         database.execSQL("CREATE INDEX IF NOT EXISTS index_Completion_habitId ON Completion (habitId)")
     }
 }
+
+val MIGRATION_12_13 = object : Migration(12, 13) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("ALTER TABLE Habit ADD COLUMN statsLayout TEXT DEFAULT NULL")
+    }
+}
+
