@@ -4,6 +4,7 @@ package com.habitly.habitly.ui.screen
 
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -16,11 +17,16 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -31,6 +37,10 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -46,8 +56,11 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CopyAll
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.DonutLarge
@@ -68,6 +81,22 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.SplitButtonDefaults
+import androidx.compose.material3.SplitButtonLayout
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.PlainTooltip
+import androidx.compose.material3.TooltipAnchorPosition
+import androidx.compose.material3.rememberTooltipState
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.paneTitle
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -80,12 +109,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
@@ -144,7 +178,7 @@ private fun getModuleDisplayName(id: String): String = when (id) {
     else -> id.replace("_", " ").replaceFirstChar { it.uppercase() }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun StatisticScreen(
     viewModel: HabitViewModel,
@@ -231,15 +265,29 @@ fun StatisticScreen(
         MaterialTheme.colorScheme.surfaceVariant
     }
 
+    val topBarTint = if (useHabitColor) currentHabitColor else MaterialTheme.colorScheme.onSurface
+
     val currentIndex = if (actualCount > 0) pagerState.currentPage % actualCount else 0
     val currentHabit = habits.getOrNull(currentIndex)
 
     fun enterEditMode() {
-        val currentLayout = currentHabit?.habit?.statsLayout?.split(",")?.filter { it.isNotEmpty() }
-            ?: defaultLayout
-        savedLayout = currentLayout
-        localActiveModules = currentLayout
+        val statsLayout = currentHabit?.habit?.statsLayout
+        val currentLayout = if (statsLayout == null) {
+            defaultLayout
+        } else {
+            statsLayout.split(",").filter { it.isNotEmpty() }
+        }
+        val sanitized = sanitizeStaticModuleList(currentLayout)
+        savedLayout = sanitized
+        localActiveModules = sanitized
         isEditMode = true
+    }
+
+    fun resetToDefault() {
+        localActiveModules = sanitizeStaticModuleList(defaultLayout)
+        if (vibrationsEnabled) {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        }
     }
 
     fun cancelEdits() {
@@ -263,168 +311,112 @@ fun StatisticScreen(
     }
 
     fun onRemoveModule(moduleId: String) {
-        localActiveModules = localActiveModules.filter { it != moduleId }
+        localActiveModules = sanitizeStaticModuleList(localActiveModules.filter { it != moduleId })
     }
 
     fun onAddModule(moduleId: String) {
         if (!localActiveModules.contains(moduleId)) {
-            localActiveModules = localActiveModules + moduleId
+            localActiveModules = sanitizeStaticModuleList(localActiveModules + moduleId)
         }
     }
 
     fun onReorderModules(newList: List<String>) {
-        localActiveModules = newList
+        localActiveModules = sanitizeStaticModuleList(newList)
     }
 
     var isShelfExpanded by remember { mutableStateOf(false) }
+    val navigationBarsPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val animatedShelfHeight by animateDpAsState(
-        targetValue = if (isShelfExpanded) 580.dp else 60.dp,
+        targetValue = if (isShelfExpanded) 580.dp else (60.dp + navigationBarsPadding),
         animationSpec = tween(durationMillis = 300), // Smooth non-bouncy drawer height transition
         label = "shelfHeight"
     )
 
+    val nestedScrollConnection = remember(isEditMode) {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (isEditMode) {
+                    val dy = available.y
+                    if (dy < -15f) {
+                        isShelfExpanded = true
+                    } else if (dy > 15f) {
+                        isShelfExpanded = false
+                    }
+                }
+                return Offset.Zero
+            }
+        }
+    }
+
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
                     val currentHabitName = currentHabit?.habit?.name ?: ""
                     Text(
-                        text = "Statistics for $currentHabitName",
+                        text = currentHabitName,
                         fontWeight = FontWeight.SemiBold,
-                        color = currentHabitColor
+                        color = topBarTint
                     )
                 },
-                actions = {
-                    if (isEditMode) {
-                        var showDropdown by remember { mutableStateOf(false) }
-
-                        Row(
-                            modifier = Modifier
-                                .height(36.dp)
-                                .background(
-                                    color = MaterialTheme.colorScheme.primaryContainer,
-                                    shape = RoundedCornerShape(18.dp)
-                                ),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxHeight()
-                                    .clickable {
-                                        saveEdits(applyToAll = false)
+                navigationIcon = {
+                    Crossfade(targetState = isEditMode, label = "navigationIconTransition") { editing ->
+                        if (editing) {
+                            AppBackButton(
+                                onBack = {
+                                    if (vibrationsEnabled) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
                                     }
-                                    .padding(horizontal = 12.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Check,
-                                        contentDescription = "Save",
-                                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Text(
-                                        text = "Save",
-                                        style = MaterialTheme.typography.labelLarge,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                }
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxHeight(0.6f)
-                                    .width(1.dp)
-                                    .background(
-                                        MaterialTheme.colorScheme.onPrimaryContainer.copy(
-                                            alpha = 0.2f
-                                        )
-                                    )
+                                    cancelEdits()
+                                },
+                                borderContrast = borderContrast,
+                                icon = Icons.AutoMirrored.Filled.ArrowBack,
+                                tint = topBarTint,
+                                backgroundColor = backButtonBackgroundColor
                             )
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxHeight()
-                                    .clickable { showDropdown = true }
-                                    .padding(horizontal = 8.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.ArrowDropDown,
-                                    contentDescription = "Save Options",
-                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                androidx.compose.material3.DropdownMenu(
-                                    expanded = showDropdown,
-                                    onDismissRequest = { showDropdown = false }
-                                ) {
-                                    androidx.compose.material3.DropdownMenuItem(
-                                        text = { Text("Save") },
-                                        onClick = {
-                                            showDropdown = false
-                                            saveEdits(applyToAll = false)
-                                        }
-                                    )
-                                    androidx.compose.material3.DropdownMenuItem(
-                                        text = { Text("Save & Apply to All") },
-                                        onClick = {
-                                            showDropdown = false
-                                            saveEdits(applyToAll = true)
-                                            Toast.makeText(
-                                                context,
-                                                "Applied layout to all habits",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                        }
-                                    )
-                                }
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        AppBackButton(
-                            onBack = {
-                                if (vibrationsEnabled) {
-                                    haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
-                                }
-                                cancelEdits()
-                            },
-                            borderContrast = borderContrast,
-                            icon = Icons.AutoMirrored.Filled.ArrowBack,
-                            tint = currentHabitColor,
-                            backgroundColor = backButtonBackgroundColor
-                        )
-                    } else {
-                        IconButton(
-                            onClick = {
-                                enterEditMode()
-                                if (vibrationsEnabled) {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                }
-                            }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = "Edit Layout",
-                                tint = currentHabitColor
+                        } else {
+                            AppBackButton(
+                                onBack = {
+                                    enterEditMode()
+                                    if (vibrationsEnabled) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    }
+                                },
+                                borderContrast = borderContrast,
+                                icon = Icons.Default.Edit,
+                                tint = topBarTint,
+                                backgroundColor = backButtonBackgroundColor
                             )
                         }
-                        AppBackButton(
-                            onBack = {
-                                if (vibrationsEnabled) {
-                                    haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
-                                }
-                                onBack()
-                            },
-                            borderContrast = borderContrast,
-                            icon = Icons.Default.Close,
-                            tint = currentHabitColor,
-                            backgroundColor = backButtonBackgroundColor
-                        )
+                    }
+                },
+                actions = {
+                    Crossfade(targetState = isEditMode, label = "actionsTransition") { editing ->
+                        if (editing) {
+                            AppBackButton(
+                                onBack = {
+                                    resetToDefault()
+                                },
+                                borderContrast = borderContrast,
+                                icon = Icons.Default.Refresh,
+                                tint = topBarTint,
+                                backgroundColor = backButtonBackgroundColor
+                            )
+                        } else {
+                            AppBackButton(
+                                onBack = {
+                                    if (vibrationsEnabled) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+                                    }
+                                    onBack()
+                                },
+                                borderContrast = borderContrast,
+                                icon = Icons.Default.Close,
+                                tint = topBarTint,
+                                backgroundColor = backButtonBackgroundColor
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -442,7 +434,11 @@ fun StatisticScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues),
+                    .padding(
+                        top = paddingValues.calculateTopPadding(),
+                        bottom = 0.dp
+                    )
+                    .nestedScroll(nestedScrollConnection),
                 contentAlignment = Alignment.Center
             ) {
                 if (habits.isEmpty()) {
@@ -471,11 +467,12 @@ fun StatisticScreen(
 
                             val pageLayout = remember(habit.habit.statsLayout) {
                                 val layout = habit.habit.statsLayout
-                                if (layout.isNullOrEmpty()) {
+                                val rawList = if (layout == null) {
                                     defaultLayout
                                 } else {
                                     layout.split(",").filter { it.isNotEmpty() }
                                 }
+                                sanitizeStaticModuleList(rawList)
                             }
 
                             val activeList =
@@ -507,9 +504,10 @@ fun StatisticScreen(
                             borderContrast = borderContrast,
                             useHabitColorForCard = useHabitColor,
                             currentHabitColor = currentHabitColor,
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .padding(bottom = 16.dp)
+                             modifier = Modifier
+                                 .align(Alignment.BottomCenter)
+                                 .navigationBarsPadding()
+                                 .padding(bottom = 16.dp)
                         )
                     }
 
@@ -541,132 +539,242 @@ fun StatisticScreen(
                             shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
                             color = MaterialTheme.colorScheme.surfaceContainerHigh,
                             tonalElevation = 8.dp,
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                            border = if (borderContrast > 0f) {
+                                BorderStroke(
+                                    1.dp,
+                                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = borderContrast)
+                                )
+                            } else null
                         ) {
                             Column(
-                                modifier = Modifier.fillMaxSize(),
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .navigationBarsPadding(),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Surface(
+                                var sheetDragAccumulator by remember { mutableFloatStateOf(0f) }
+                                Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .height(animatedShelfHeight),
-                                    shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
-                                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                    tonalElevation = 8.dp,
-                                    border = if (borderContrast > 0f) {
-                                        BorderStroke(
-                                            1.dp,
-                                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = borderContrast)
-                                        )
-                                    } else null
-                                ) {
-                                    Column(
-                                        modifier = Modifier.fillMaxSize(),
-                                        horizontalAlignment = Alignment.CenterHorizontally
-                                    ) {
-                                        var sheetDragAccumulator by remember {
-                                            mutableFloatStateOf(
-                                                0f
-                                            )
-                                        }
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .pointerInput(Unit) {
-                                                    detectDragGestures(
-                                                        onDragEnd = {
-                                                            if (sheetDragAccumulator < -50f) {
-                                                                isShelfExpanded = true
-                                                            } else if (sheetDragAccumulator > 50f) {
-                                                                isShelfExpanded = false
-                                                            }
-                                                            sheetDragAccumulator = 0f
-                                                        },
-                                                        onDragCancel = {
-                                                            sheetDragAccumulator = 0f
-                                                        },
-                                                        onDrag = { change, dragAmount ->
-                                                            change.consume()
-                                                            sheetDragAccumulator += dragAmount.y
-                                                        }
-                                                    )
-                                                }
-                                                .clickable { isShelfExpanded = !isShelfExpanded }
-                                                .padding(vertical = 12.dp),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .width(36.dp)
-                                                        .height(4.dp)
-                                                        .background(
-                                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
-                                                                alpha = 0.4f
-                                                            ),
-                                                            shape = CircleShape
-                                                        )
-                                                )
-                                                Spacer(modifier = Modifier.height(6.dp))
-                                                Text(
-                                                    text = if (isShelfExpanded) "Potential Modules (Drag up/Tap to Add)" else "Add Modules (Tap/Swipe Up to Expand)",
-                                                    style = MaterialTheme.typography.labelMedium,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    fontWeight = FontWeight.Medium
-                                                )
-                                            }
-                                        }
-
-                                        if (isShelfExpanded && currentHabit != null) {
-                                            if (inactiveModules.isEmpty()) {
-                                                Box(
-                                                    modifier = Modifier.fillMaxSize(),
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Text(
-                                                        text = "All modules are active",
-                                                        style = MaterialTheme.typography.bodyMedium,
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                    )
-                                                }
-                                            } else {
-                                                LazyVerticalGrid(
-                                                    columns = GridCells.Fixed(2),
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .weight(1f)
-                                                        .padding(
-                                                            horizontal = 12.dp,
-                                                            vertical = 8.dp
-                                                        ),
-                                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                                                ) {
-                                                    itemsIndexed(
-                                                        items = inactiveModules,
-                                                        key = { _, item -> item },
-                                                        span = { _, item ->
-                                                            GridItemSpan(if (item == "monthly_chart") 2 else 1)
-                                                        }
-                                                    ) { _, moduleId ->
-                                                        InactiveModuleCard(
-                                                            moduleId = moduleId,
-                                                            habit = currentHabit,
-                                                            accentColor = currentHabitColor,
-                                                            vibrationsEnabled = vibrationsEnabled,
-                                                            borderContrast = borderContrast,
-                                                            useHabitColorForCard = useHabitColor,
-                                                            onAdd = { onAddModule(moduleId) }
-                                                        )
+                                        .clickable { isShelfExpanded = !isShelfExpanded }
+                                        .draggable(
+                                            orientation = Orientation.Vertical,
+                                            state = rememberDraggableState { delta ->
+                                                sheetDragAccumulator += delta
+                                            },
+                                            onDragStopped = { velocity ->
+                                                if (sheetDragAccumulator < -30f || velocity < -300f) {
+                                                    isShelfExpanded = true
+                                                } else if (sheetDragAccumulator > 30f || velocity > 300f) {
+                                                    if (isShelfExpanded) {
+                                                        isShelfExpanded = false
+                                                    } else {
+                                                        cancelEdits()
                                                     }
                                                 }
+                                                sheetDragAccumulator = 0f
                                             }
+                                        )
+                                         .padding(top = 14.dp, bottom = 14.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .width(56.dp)
+                                            .height(6.dp)
+                                            .background(
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                                    alpha = 0.4f
+                                                ),
+                                                shape = CircleShape
+                                            )
+                                    )
+                                }
+
+                                AnimatedVisibility(
+                                     visible = isShelfExpanded && currentHabit != null,
+                                     enter = fadeIn(animationSpec = tween(300, delayMillis = 100)),
+                                     exit = fadeOut(animationSpec = tween(200)),
+                                     modifier = Modifier.weight(1f)
+                                 ) {
+                                     if (inactiveModules.isEmpty()) {
+                                         Box(
+                                             modifier = Modifier.fillMaxSize(),
+                                             contentAlignment = Alignment.Center
+                                         ) {
+                                             Text(
+                                                 text = "All modules are active",
+                                                 style = MaterialTheme.typography.bodyMedium,
+                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
+                                             )
+                                         }
+                                     } else {
+                                         LazyVerticalGrid(
+                                             columns = GridCells.Fixed(2),
+                                             modifier = Modifier.fillMaxWidth(),
+                                             contentPadding = PaddingValues(
+                                                 start = 12.dp,
+                                                 end = 12.dp,
+                                                 top = 8.dp,
+                                                 bottom = 48.dp
+                                             ),
+                                             horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                             verticalArrangement = Arrangement.spacedBy(8.dp)
+                                         ) {
+                                             itemsIndexed(
+                                                 items = inactiveModules,
+                                                 key = { _, item -> item },
+                                                 span = { _, item ->
+                                                     GridItemSpan(if (item == "monthly_chart") 2 else 1)
+                                                 }
+                                             ) { _, moduleId ->
+                                                 Box(
+                                                     modifier = Modifier.animateItem(
+                                                         placementSpec = spring(
+                                                             dampingRatio = Spring.DampingRatioMediumBouncy,
+                                                             stiffness = Spring.StiffnessMediumLow
+                                                         ),
+                                                         fadeInSpec = tween(200),
+                                                         fadeOutSpec = tween(200)
+                                                     )
+                                                 ) {
+                                                     InactiveModuleCard(
+                                                         moduleId = moduleId,
+                                                         habit = currentHabit!!,
+                                                         accentColor = currentHabitColor,
+                                                         vibrationsEnabled = vibrationsEnabled,
+                                                         borderContrast = borderContrast,
+                                                         useHabitColorForCard = useHabitColor,
+                                                         onAdd = { onAddModule(moduleId) }
+                                                     )
+                                                 }
+                                             }
+                                         }
+                                     }
+                                 }
+                            }
+                        }
+                    }
+
+                    var showSaveDropdown by remember { mutableStateOf(false) }
+
+                    AnimatedVisibility(
+                        visible = isEditMode,
+                        enter = slideInVertically(
+                            initialOffsetY = { it },
+                            animationSpec = tween(durationMillis = 300)
+                        ) + fadeIn(),
+                        exit = slideOutVertically(
+                            targetOffsetY = { it },
+                            animationSpec = tween(durationMillis = 300)
+                        ) + fadeOut(),
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .offset(y = -animatedShelfHeight - 16.dp, x = -16.dp)
+                    ) {
+                        SplitButtonLayout(
+                            modifier = Modifier.shadow(elevation = 6.dp, shape = CircleShape),
+                            leadingButton = {
+                                SplitButtonDefaults.LeadingButton(
+                                    onClick = {
+                                        saveEdits(applyToAll = false)
+                                    }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        modifier = Modifier.size(SplitButtonDefaults.LeadingIconSize),
+                                        contentDescription = "Save Layout",
+                                    )
+                                    Spacer(Modifier.size(ButtonDefaults.IconSpacing))
+                                    Text("Save")
+                                }
+                            },
+                            trailingButton = {
+                                val description = "Toggle Save Options"
+                                TooltipBox(
+                                    positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
+                                        TooltipAnchorPosition.Above
+                                    ),
+                                    tooltip = {
+                                        PlainTooltip(
+                                            modifier = Modifier.semantics {
+                                                liveRegion = LiveRegionMode.Assertive
+                                                paneTitle = description
+                                            }
+                                        ) {
+                                            Text(description)
+                                        }
+                                    },
+                                    state = rememberTooltipState(),
+                                ) {
+                                    SplitButtonDefaults.TrailingButton(
+                                        checked = showSaveDropdown,
+                                        onCheckedChange = { showSaveDropdown = it },
+                                        modifier = Modifier.semantics {
+                                            stateDescription = if (showSaveDropdown) "Expanded" else "Collapsed"
+                                            contentDescription = description
+                                        },
+                                    ) {
+                                        val rotation: Float by animateFloatAsState(
+                                            targetValue = if (showSaveDropdown) 180f else 0f,
+                                            label = "Trailing Icon Rotation",
+                                        )
+                                        Icon(
+                                            imageVector = Icons.Filled.KeyboardArrowDown,
+                                            modifier = Modifier
+                                                .size(SplitButtonDefaults.TrailingIconSize)
+                                                .graphicsLayer {
+                                                    this.rotationZ = rotation
+                                                },
+                                            contentDescription = "Save Options Toggle",
+                                        )
+                                        androidx.compose.material3.DropdownMenu(
+                                            expanded = showSaveDropdown,
+                                            onDismissRequest = { showSaveDropdown = false },
+                                            offset = DpOffset(0.dp, (-12).dp),
+                                            modifier = Modifier
+                                                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                                                .then(
+                                                    if (borderContrast > 0f) {
+                                                        Modifier.border(
+                                                            1.dp,
+                                                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = borderContrast),
+                                                            shape = RoundedCornerShape(12.dp)
+                                                        )
+                                                    } else Modifier
+                                                )
+                                        ) {
+                                            androidx.compose.material3.DropdownMenuItem(
+                                                text = {
+                                                    Text(
+                                                        text = "Save & Apply to All",
+                                                        style = MaterialTheme.typography.bodyMedium,
+                                                        fontWeight = FontWeight.SemiBold
+                                                    )
+                                                },
+                                                leadingIcon = {
+                                                    Icon(
+                                                        imageVector = Icons.Default.CopyAll,
+                                                        contentDescription = null,
+                                                        tint = MaterialTheme.colorScheme.secondary,
+                                                        modifier = Modifier.size(18.dp)
+                                                    )
+                                                },
+                                                onClick = {
+                                                    showSaveDropdown = false
+                                                    saveEdits(applyToAll = true)
+                                                    Toast.makeText(
+                                                        context,
+                                                        "Applied layout to all habits",
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
+                                                }
+                                            )
                                         }
                                     }
                                 }
                             }
-                        }
+                        )
                     }
                 }
             }
@@ -692,47 +800,9 @@ fun InactiveModuleCard(
                 remember(accentColor, onSurface) { lerp(accentColor, onSurface, 0.3f) }
 
             val haptic = LocalHapticFeedback.current
-            var dragOffsetY by remember { mutableFloatStateOf(0f) }
-            val animatedDragOffsetY by animateFloatAsState(
-                targetValue = dragOffsetY,
-                label = "dragOffsetY"
-            )
 
             Box(
                 modifier = Modifier
-                    .padding(vertical = 4.dp)
-                    .graphicsLayer {
-                        translationY = dragOffsetY
-                        val dragScale = if (dragOffsetY < 0f) (1f + dragOffsetY / 1000f).coerceIn(
-                            0.8f,
-                            1f
-                        ) else 1f
-                        scaleX = dragScale
-                        scaleY = dragScale
-                    }
-                    .pointerInput(moduleId) {
-                        detectDragGestures(
-                            onDragStart = {
-                                dragOffsetY = 0f
-                            },
-                            onDragEnd = {
-                                if (dragOffsetY < -150f) {
-                                    onAdd()
-                                    if (vibrationsEnabled) {
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    }
-                                }
-                                dragOffsetY = 0f
-                            },
-                            onDragCancel = {
-                                dragOffsetY = 0f
-                            },
-                            onDrag = { change, dragAmount ->
-                                change.consume()
-                                dragOffsetY = (dragOffsetY + dragAmount.y).coerceAtMost(0f)
-                            }
-                        )
-                    }
                     .clickable {
                         onAdd()
                         if (vibrationsEnabled) {
@@ -824,6 +894,31 @@ fun InactiveModuleCard(
                         habitColor = accentColor,
                         interactive = false
                     )
-        }
-    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .offset(x = 6.dp, y = (-6).dp)
+                        .size(22.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = CircleShape
+                        )
+                        .clickable {
+                            if (vibrationsEnabled) {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            }
+                            onAdd()
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Add",
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+            }
 }

@@ -2,6 +2,11 @@
 
 package com.habitly.habitly.ui.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -28,6 +33,9 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -110,7 +118,8 @@ private fun RenderStatCard(
     borderContrast: Float,
     useHabitColorForCard: Boolean,
     vibrationsEnabled: Boolean,
-    showScrollBlur: Boolean
+    showScrollBlur: Boolean,
+    isEditMode: Boolean
 ) {
     when (moduleId) {
         "longest_streak" -> StatCard(
@@ -185,7 +194,8 @@ private fun RenderStatCard(
             showScrollBlur = showScrollBlur,
             borderContrast = borderContrast,
             useHabitColorForCard = useHabitColorForCard,
-            habitColor = accentColor
+            habitColor = accentColor,
+            interactive = !isEditMode
         )
     }
 }
@@ -215,14 +225,7 @@ fun HabitStatisticsContent(
         lerp(accentColor, onSurface, 0.3f)
     }
 
-    val defaultLayout = remember {
-        listOf("longest_streak", "completion_ratio", "avg_completion_time", "days_since_creation", "monthly_chart")
-    }
-    val modulesToRender = if (activeModules.isEmpty() && habit.habit.statsLayout.isNullOrEmpty()) {
-        defaultLayout
-    } else {
-        activeModules
-    }
+    val modulesToRender = activeModules
 
     val currentModulesToRender by rememberUpdatedState(modulesToRender)
     val currentOnReorderModules by rememberUpdatedState(onReorderModules)
@@ -235,204 +238,253 @@ fun HabitStatisticsContent(
     var fingerPositionX by remember { mutableFloatStateOf(0f) }
     var fingerPositionY by remember { mutableFloatStateOf(0f) }
     var touchOffsetWithinItem by remember { mutableStateOf(Offset.Zero) }
+    val navigationBarsPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
-    LazyVerticalGrid(
-        state = lazyGridState,
-        columns = GridCells.Fixed(2),
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 8.dp),
-        contentPadding = PaddingValues(top = 16.dp, bottom = if (isEditMode) 80.dp else 48.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        itemsIndexed(
-            items = modulesToRender,
-            key = { _, item -> item },
-            span = { _, item ->
-                GridItemSpan(if (item == "monthly_chart") 2 else 1)
-            }
-        ) { index, moduleId ->
-            val isBeingDragged = index == draggedItemIndex
+    if (modulesToRender.isEmpty()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "No modules selected for empty stats",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    } else {
+        LazyVerticalGrid(
+            state = lazyGridState,
+            columns = GridCells.Fixed(2),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 8.dp),
+            contentPadding = PaddingValues(top = 16.dp, bottom = (if (isEditMode) 96.dp else 80.dp) + navigationBarsPadding),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            itemsIndexed(
+                items = modulesToRender,
+                key = { _, item -> item },
+                span = { _, item ->
+                    GridItemSpan(if (item == "monthly_chart") 2 else 1)
+                }
+            ) { index, moduleId ->
+                val isBeingDragged = index == draggedItemIndex
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .graphicsLayer {
-                        val itemInfo = lazyGridState.layoutInfo.visibleItemsInfo.find { it.key == moduleId }
-                        if (isBeingDragged && itemInfo != null) {
-                            translationX = fingerPositionX - touchOffsetWithinItem.x - itemInfo.offset.x
-                            translationY = fingerPositionY - touchOffsetWithinItem.y - itemInfo.offset.y
-                            shadowElevation = 8.dp.value * density
-                        } else {
-                            translationX = 0f
-                            translationY = 0f
-                            shadowElevation = 0f
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .graphicsLayer {
+                            val itemInfo = lazyGridState.layoutInfo.visibleItemsInfo.find { it.key == moduleId }
+                            if (isBeingDragged && itemInfo != null) {
+                                translationX = fingerPositionX - touchOffsetWithinItem.x - itemInfo.offset.x
+                                translationY = fingerPositionY - touchOffsetWithinItem.y - itemInfo.offset.y
+                                shadowElevation = 8.dp.value * density
+                            } else {
+                                translationX = 0f
+                                translationY = 0f
+                                shadowElevation = 0f
+                            }
+                            scaleX = 1f
+                            scaleY = 1f
                         }
-                        scaleX = 1f
-                        scaleY = 1f
-                    }
-                    .then(
-                        if (isEditMode) {
-                            Modifier.pointerInput(moduleId) {
-                                detectDragGesturesAfterLongPress(
-                                    onDragStart = { offset ->
-                                        draggedItemIndex = currentModulesToRender.indexOf(moduleId)
-                                        touchOffsetWithinItem = offset
-                                        val itemInfo = lazyGridState.layoutInfo.visibleItemsInfo.find { it.key == moduleId }
-                                        if (itemInfo != null) {
-                                            fingerPositionX = itemInfo.offset.x + offset.x
-                                            fingerPositionY = itemInfo.offset.y + offset.y
-                                        }
-                                        if (vibrationsEnabled) {
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        }
-                                    },
-                                    onDragEnd = {
-                                        draggedItemIndex = null
-                                        fingerPositionX = 0f
-                                        fingerPositionY = 0f
-                                        touchOffsetWithinItem = Offset.Zero
-                                        if (vibrationsEnabled) {
-                                            haptic.performHapticFeedback(HapticFeedbackType.GestureEnd)
-                                        }
-                                    },
-                                    onDragCancel = {
-                                        draggedItemIndex = null
-                                        fingerPositionX = 0f
-                                        fingerPositionY = 0f
-                                        touchOffsetWithinItem = Offset.Zero
-                                    },
-                                    onDrag = { change, dragAmount ->
-                                        change.consume()
-                                        fingerPositionX += dragAmount.x
-                                        fingerPositionY += dragAmount.y
-                                        
-                                        val visibleItems = lazyGridState.layoutInfo.visibleItemsInfo
-                                        val currentItem = visibleItems.find { it.key == moduleId }
-                                        
-                                        if (currentItem != null && currentItem.index == draggedItemIndex) {
-                                            val cursorPosition = Offset(fingerPositionX, fingerPositionY)
-                                            
-                                            val targetItem = visibleItems.find { item ->
-                                                val itemOffset = item.offset
-                                                val itemSize = item.size
-                                                
-                                                val isInside = cursorPosition.x >= itemOffset.x && cursorPosition.x <= itemOffset.x + itemSize.width &&
-                                                               cursorPosition.y >= itemOffset.y && cursorPosition.y <= itemOffset.y + itemSize.height
-                                                
-                                                if (isInside && item.key != moduleId) {
-                                                    val targetMidX = itemOffset.x + itemSize.width / 2f
-                                                    val targetMidY = itemOffset.y + itemSize.height / 2f
-                                                    
-                                                    val buffer = 10 * density
-                                                    val isBelow = itemOffset.y > currentItem.offset.y
-                                                    val isAbove = itemOffset.y < currentItem.offset.y
-                                                    val isRight = itemOffset.x > currentItem.offset.x
-                                                    val isLeft = itemOffset.x < currentItem.offset.x
-                                                    
-                                                    when {
-                                                        isBelow -> cursorPosition.y >= targetMidY + buffer
-                                                        isAbove -> cursorPosition.y <= targetMidY - buffer
-                                                        isRight -> cursorPosition.x >= targetMidX + buffer
-                                                        isLeft -> cursorPosition.x <= targetMidX - buffer
-                                                        else -> true
-                                                    }
-                                                } else {
-                                                    false
-                                                }
+                        .then(
+                            if (isEditMode) {
+                                Modifier.pointerInput(moduleId) {
+                                    detectDragGesturesAfterLongPress(
+                                        onDragStart = { offset ->
+                                            draggedItemIndex = currentModulesToRender.indexOf(moduleId)
+                                            touchOffsetWithinItem = offset
+                                            val itemInfo = lazyGridState.layoutInfo.visibleItemsInfo.find { it.key == moduleId }
+                                            if (itemInfo != null) {
+                                                fingerPositionX = itemInfo.offset.x + offset.x
+                                                fingerPositionY = itemInfo.offset.y + offset.y
                                             }
+                                            if (vibrationsEnabled) {
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            }
+                                        },
+                                        onDragEnd = {
+                                            draggedItemIndex = null
+                                            fingerPositionX = 0f
+                                            fingerPositionY = 0f
+                                            touchOffsetWithinItem = Offset.Zero
+                                            if (vibrationsEnabled) {
+                                                haptic.performHapticFeedback(HapticFeedbackType.GestureEnd)
+                                            }
+                                        },
+                                        onDragCancel = {
+                                            draggedItemIndex = null
+                                            fingerPositionX = 0f
+                                            fingerPositionY = 0f
+                                            touchOffsetWithinItem = Offset.Zero
+                                        },
+                                        onDrag = { change, dragAmount ->
+                                            change.consume()
+                                            fingerPositionX += dragAmount.x
+                                            fingerPositionY += dragAmount.y
                                             
-                                            if (targetItem != null) {
-                                                val currentIndex = currentItem.index
-                                                val isDraggedFullWidth = moduleId == "monthly_chart"
+                                            val visibleItems = lazyGridState.layoutInfo.visibleItemsInfo
+                                            val currentItem = visibleItems.find { it.key == moduleId }
+                                            
+                                            if (currentItem != null && currentItem.index == draggedItemIndex) {
+                                                val cursorPosition = Offset(fingerPositionX, fingerPositionY)
                                                 
-                                                val targetRowItems = visibleItems.filter { 
-                                                    kotlin.math.abs(it.offset.y - targetItem.offset.y) < 5 
-                                                }
-                                                val sortedTargetRowIndices = targetRowItems.map { item ->
-                                                    modulesToRender.indexOfFirst { it == item.key }
-                                                }.filter { it != -1 }.sorted()
-
-                                                val insertIndex = if (sortedTargetRowIndices.isNotEmpty()) {
-                                                    val firstTargetIndex = sortedTargetRowIndices.first()
-                                                    val lastTargetIndex = sortedTargetRowIndices.last()
+                                                val targetItem = visibleItems.find { item ->
+                                                    val itemOffset = item.offset
+                                                    val itemSize = item.size
                                                     
-                                                    if (kotlin.math.abs(currentItem.offset.y - targetItem.offset.y) < 5) {
-                                                        targetItem.index
-                                                    } else if (targetItem.offset.y > currentItem.offset.y) {
-                                                        if (isDraggedFullWidth) lastTargetIndex else targetItem.index
+                                                    val isInside = cursorPosition.x >= itemOffset.x && cursorPosition.x <= itemOffset.x + itemSize.width &&
+                                                                   cursorPosition.y >= itemOffset.y && cursorPosition.y <= itemOffset.y + itemSize.height
+                                                    
+                                                    if (isInside && item.key != moduleId) {
+                                                        val targetMidX = itemOffset.x + itemSize.width / 2f
+                                                        val targetMidY = itemOffset.y + itemSize.height / 2f
+                                                        
+                                                        val buffer = 10 * density
+                                                        val isBelow = itemOffset.y > currentItem.offset.y
+                                                        val isAbove = itemOffset.y < currentItem.offset.y
+                                                        val isRight = itemOffset.x > currentItem.offset.x
+                                                        val isLeft = itemOffset.x < currentItem.offset.x
+                                                        
+                                                        when {
+                                                            isBelow -> cursorPosition.y >= targetMidY + buffer
+                                                            isAbove -> cursorPosition.y <= targetMidY - buffer
+                                                            isRight -> cursorPosition.x >= targetMidX + buffer
+                                                            isLeft -> cursorPosition.x <= targetMidX - buffer
+                                                            else -> true
+                                                        }
                                                     } else {
-                                                        if (isDraggedFullWidth) firstTargetIndex else targetItem.index
+                                                        false
                                                     }
-                                                } else {
-                                                    targetItem.index
                                                 }
                                                 
-                                                val newList = currentModulesToRender.toMutableList()
-                                                if (insertIndex != currentIndex && currentIndex in newList.indices && insertIndex in newList.indices) {
-                                                    newList.removeAt(currentIndex)
-                                                    newList.add(insertIndex, moduleId)
+                                                if (targetItem != null) {
+                                                    val currentIndex = currentItem.index
+                                                    val isDraggedFullWidth = moduleId == "monthly_chart"
                                                     
-                                                    draggedItemIndex = insertIndex
-                                                    currentOnReorderModules(newList)
-                                                    if (vibrationsEnabled) {
-                                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                    val targetRowItems = visibleItems.filter { 
+                                                        kotlin.math.abs(it.offset.y - targetItem.offset.y) < 5 
+                                                    }
+                                                    val sortedTargetRowIndices = targetRowItems.map { item ->
+                                                        modulesToRender.indexOfFirst { it == item.key }
+                                                    }.filter { it != -1 }.sorted()
+
+                                                    val insertIndex = if (sortedTargetRowIndices.isNotEmpty()) {
+                                                        val firstTargetIndex = sortedTargetRowIndices.first()
+                                                        val lastTargetIndex = sortedTargetRowIndices.last()
+                                                        
+                                                        if (kotlin.math.abs(currentItem.offset.y - targetItem.offset.y) < 5) {
+                                                            targetItem.index
+                                                        } else if (targetItem.offset.y > currentItem.offset.y) {
+                                                            if (isDraggedFullWidth) lastTargetIndex else targetItem.index
+                                                        } else {
+                                                            if (isDraggedFullWidth) firstTargetIndex else targetItem.index
+                                                        }
+                                                    } else {
+                                                        targetItem.index
+                                                    }
+                                                    
+                                                    val newList = currentModulesToRender.toMutableList()
+                                                    if (insertIndex != currentIndex && currentIndex in newList.indices && insertIndex in newList.indices) {
+                                                        newList.removeAt(currentIndex)
+                                                        newList.add(insertIndex, moduleId)
+                                                        
+                                                        val sanitizedList = sanitizeModuleOrder(
+                                                            newList = newList,
+                                                            oldList = currentModulesToRender,
+                                                            draggedModuleId = moduleId
+                                                        )
+                                                        
+                                                        val newDraggedIndex = sanitizedList.indexOf(moduleId)
+                                                        if (newDraggedIndex != -1) {
+                                                            draggedItemIndex = newDraggedIndex
+                                                        }
+                                                        currentOnReorderModules(sanitizedList)
+                                                        if (vibrationsEnabled) {
+                                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                        }
                                                     }
                                                 }
                                             }
                                         }
-                                    }
+                                    )
+                                }
+                            } else Modifier
+                        )
+                        .then(
+                            if (isBeingDragged) {
+                                Modifier
+                            } else {
+                                Modifier.animateItem(
+                                    placementSpec = spring(
+                                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                                        stiffness = Spring.StiffnessMediumLow
+                                    ),
+                                    fadeInSpec = tween(200),
+                                    fadeOutSpec = tween(200)
                                 )
                             }
-                        } else Modifier
+                        )
+                ) {
+                    RenderStatCard(
+                        moduleId = moduleId,
+                        stats = stats,
+                        monthlyStats = monthlyStats,
+                        displayAccentColor = displayAccentColor,
+                        accentColor = accentColor,
+                        borderContrast = borderContrast,
+                        useHabitColorForCard = useHabitColorForCard,
+                        vibrationsEnabled = vibrationsEnabled,
+                        showScrollBlur = showScrollBlur,
+                        isEditMode = isEditMode
                     )
-                    .then(
-                        if (isBeingDragged) {
-                            Modifier
-                        } else {
-                            Modifier.animateItem(
-                                placementSpec = spring(
-                                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                                    stiffness = Spring.StiffnessMediumLow
-                                ),
-                                fadeInSpec = tween(200),
-                                fadeOutSpec = tween(200)
+                    
+                    AnimatedVisibility(
+                        visible = isEditMode,
+                        enter = scaleIn(
+                            animationSpec = tween(
+                                durationMillis = 300,
+                                easing = androidx.compose.animation.core.FastOutSlowInEasing
                             )
-                        }
-                    )
-            ) {
-                RenderStatCard(
-                    moduleId = moduleId,
-                    stats = stats,
-                    monthlyStats = monthlyStats,
-                    displayAccentColor = displayAccentColor,
-                    accentColor = accentColor,
-                    borderContrast = borderContrast,
-                    useHabitColorForCard = useHabitColorForCard,
-                    vibrationsEnabled = vibrationsEnabled,
-                    showScrollBlur = showScrollBlur
-                )
-                
-                if (isEditMode) {
-                    Box(
+                        ) + fadeIn(
+                            animationSpec = tween(
+                                durationMillis = 300
+                            )
+                        ),
+                        exit = scaleOut(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioNoBouncy,
+                                stiffness = Spring.StiffnessMedium
+                            )
+                        ) + fadeOut(),
                         modifier = Modifier
                             .align(Alignment.TopEnd)
-                            .offset(x = (-4).dp, y = 4.dp)
-                            .size(22.dp)
-                            .background(
-                                color = MaterialTheme.colorScheme.error,
-                                shape = CircleShape
-                            )
-                            .clickable { onRemoveModule(moduleId) },
-                        contentAlignment = Alignment.Center
+                            .offset(x = 6.dp, y = (-6).dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Remove",
-                            tint = MaterialTheme.colorScheme.onError,
-                            modifier = Modifier.size(14.dp)
-                        )
+                        Box(
+                            modifier = Modifier
+                                .size(22.dp)
+                                .background(
+                                    color = MaterialTheme.colorScheme.error,
+                                    shape = CircleShape
+                                )
+                                .clickable {
+                                    if (vibrationsEnabled) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    }
+                                    onRemoveModule(moduleId)
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Remove",
+                                tint = MaterialTheme.colorScheme.onError,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -465,7 +517,7 @@ fun StatCard(
     }
 
     Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth().height(96.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         colors = CardDefaults.cardColors(containerColor = cardBackgroundColor),
         border = BorderStroke(1.dp, cardBorderColor)
@@ -590,7 +642,9 @@ fun MonthlyCompletionGraph(
                 .fillMaxWidth()
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(40.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -601,7 +655,10 @@ fun MonthlyCompletionGraph(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 if (interactive) {
-                    IconButton(onClick = { isZoomedOut = !isZoomedOut }) {
+                    IconButton(
+                        onClick = { isZoomedOut = !isZoomedOut },
+                        modifier = Modifier.size(40.dp)
+                    ) {
                         Icon(
                             imageVector = if (isZoomedOut) Icons.Default.ZoomIn else Icons.Default.ZoomOut,
                             contentDescription = if (isZoomedOut) "Zoom In" else "Zoom Out",
@@ -617,7 +674,7 @@ fun MonthlyCompletionGraph(
                     Text("No data available", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             } else {
-                if (isZoomedOut || !interactive) {
+                if (isZoomedOut) {
                     MonthlyLineChart(
                         data = stats,
                         modifier = Modifier
@@ -647,7 +704,7 @@ fun MonthlyCompletionGraph(
                                     }
                                 },
                                 orientation = Orientation.Horizontal,
-                                enabled = scrollState.maxValue > 0,
+                                enabled = scrollState.maxValue > 0 && interactive,
                                 onDragStopped = { velocity ->
                                     scrollState.scroll {
                                         with(flingBehavior) {
@@ -670,18 +727,20 @@ fun MonthlyCompletionGraph(
                             showLabels = true,
                             lineColor = accentColor,
                             vibrationsEnabled = vibrationsEnabled,
-                            interactive = true,
+                            interactive = interactive,
                             onPointSelected = { x ->
-                                coroutineScope.launch {
-                                    val viewportWidth = scrollState.viewportSize
-                                    if (viewportWidth > 0) {
-                                        val targetScrollValue =
-                                            scrollState.maxValue + (viewportWidth / 2f) - x
-                                        scrollState.animateScrollTo(
-                                            targetScrollValue
-                                                .coerceIn(0f, scrollState.maxValue.toFloat())
-                                                .toInt()
-                                        )
+                                if (interactive) {
+                                    coroutineScope.launch {
+                                        val viewportWidth = scrollState.viewportSize
+                                        if (viewportWidth > 0) {
+                                            val targetScrollValue =
+                                                scrollState.maxValue + (viewportWidth / 2f) - x
+                                            scrollState.animateScrollTo(
+                                                targetScrollValue
+                                                    .coerceIn(0f, scrollState.maxValue.toFloat())
+                                                    .toInt()
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -692,4 +751,80 @@ fun MonthlyCompletionGraph(
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
+}
+
+fun sanitizeStaticModuleList(list: List<String>): List<String> {
+    val chartIndex = list.indexOf("monthly_chart")
+    if (chartIndex == -1) return list
+    if (chartIndex % 2 == 0) return list
+    
+    val targetIndex = if (chartIndex + 1 < list.size) chartIndex + 1 else chartIndex - 1
+    val resolvedIndex = if (targetIndex % 2 == 0) targetIndex else {
+        if (targetIndex - 1 >= 0) targetIndex - 1 else 0
+    }
+    
+    if (resolvedIndex == chartIndex) return list
+    
+    val result = list.toMutableList()
+    result.removeAt(chartIndex)
+    result.add(resolvedIndex, "monthly_chart")
+    return result
+}
+
+private fun sanitizeModuleOrder(
+    newList: List<String>,
+    oldList: List<String>,
+    draggedModuleId: String?
+): List<String> {
+    val chartIndex = newList.indexOf("monthly_chart")
+    if (chartIndex == -1) return newList
+    
+    if (chartIndex % 2 == 0) return newList
+    
+    val oldChartIndex = oldList.indexOf("monthly_chart")
+    
+    val targetIndex = if (draggedModuleId == "monthly_chart") {
+        if (chartIndex > oldChartIndex) {
+            chartIndex + 1
+        } else {
+            chartIndex - 1
+        }
+    } else if (draggedModuleId != null) {
+        val oldModuleIndex = oldList.indexOf(draggedModuleId)
+        val newModuleIndex = newList.indexOf(draggedModuleId)
+        
+        if (oldModuleIndex != -1 && newModuleIndex != -1) {
+            if (oldModuleIndex > oldChartIndex && newModuleIndex < chartIndex) {
+                chartIndex + 1
+            } else if (oldModuleIndex < oldChartIndex && newModuleIndex > chartIndex) {
+                chartIndex - 1
+            } else {
+                if (chartIndex > oldChartIndex) chartIndex + 1 else chartIndex - 1
+            }
+        } else {
+            if (chartIndex > oldChartIndex) chartIndex + 1 else chartIndex - 1
+        }
+    } else {
+        if (chartIndex + 1 < newList.size) chartIndex + 1 else chartIndex - 1
+    }
+    
+    val coercedIndex = targetIndex.coerceIn(0, newList.size - 1)
+    val finalIndex = if (coercedIndex % 2 == 0) coercedIndex else {
+        if (coercedIndex > chartIndex) {
+            (coercedIndex + 1).coerceAtMost(newList.size - 1)
+        } else {
+            (coercedIndex - 1).coerceAtLeast(0)
+        }
+    }
+    
+    val resolvedIndex = if (finalIndex % 2 == 0) finalIndex else {
+        if (finalIndex - 1 >= 0) finalIndex - 1 else 0
+    }
+    
+    if (resolvedIndex == chartIndex) return newList
+    
+    val result = newList.toMutableList()
+    result.removeAt(chartIndex)
+    result.add(resolvedIndex, "monthly_chart")
+    return result
 }

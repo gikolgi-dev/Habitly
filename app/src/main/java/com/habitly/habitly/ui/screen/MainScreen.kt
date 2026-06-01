@@ -741,8 +741,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 AnimatedVisibility(
                     visible = showStatisticScreen,
                     modifier = Modifier.fillMaxSize(),
-                    enter = slideInVertically(animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { -it },
-                    exit = slideOutVertically(animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { -it }
+                    enter = slideInVertically(animationSpec = tween(durationMillis = 400, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { it } + fadeIn(animationSpec = tween(durationMillis = 300)),
+                    exit = slideOutVertically(animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { it } + fadeOut(animationSpec = tween(durationMillis = 300))
                 ) {
                     StatisticScreen(
                         viewModel = viewModel,

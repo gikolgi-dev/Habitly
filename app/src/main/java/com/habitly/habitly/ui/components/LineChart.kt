@@ -53,7 +53,7 @@ fun MonthlyLineChart(
         }
     }
     
-    var selectedIndex by remember { mutableStateOf<Int?>(null) }
+    var selectedIndex by remember(interactive) { mutableStateOf<Int?>(null) }
     val tooltipTextColor = MaterialTheme.colorScheme.onPrimary
     val tooltipPaint = remember(density, tooltipTextColor) {
         Paint().apply {
