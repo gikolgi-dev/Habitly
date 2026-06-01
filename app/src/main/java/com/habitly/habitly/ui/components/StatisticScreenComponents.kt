@@ -277,7 +277,7 @@ fun HabitStatisticsContent(
                             Modifier.pointerInput(moduleId) {
                                 detectDragGesturesAfterLongPress(
                                     onDragStart = { offset ->
-                                        draggedItemIndex = index
+                                        draggedItemIndex = currentModulesToRender.indexOf(moduleId)
                                         touchOffsetWithinItem = offset
                                         val itemInfo = lazyGridState.layoutInfo.visibleItemsInfo.find { it.key == moduleId }
                                         if (itemInfo != null) {
