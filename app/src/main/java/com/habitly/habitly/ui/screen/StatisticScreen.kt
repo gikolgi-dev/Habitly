@@ -152,7 +152,9 @@ private val defaultLayout = listOf(
     "monthly_chart"
 )
 
-private fun getModuleIcon(id: String): ImageVector = when (id) {
+private fun getBaseModuleId(id: String): String = if (id.endsWith("_full")) id.removeSuffix("_full") else id
+
+private fun getModuleIcon(id: String): ImageVector = when (getBaseModuleId(id)) {
     "longest_streak" -> Icons.Default.Star
     "current_streak" -> Icons.Default.FlashOn
     "completion_ratio" -> Icons.Default.DonutLarge
@@ -165,7 +167,7 @@ private fun getModuleIcon(id: String): ImageVector = when (id) {
     else -> Icons.Default.Star
 }
 
-private fun getModuleDisplayName(id: String): String = when (id) {
+private fun getModuleDisplayName(id: String): String = when (getBaseModuleId(id)) {
     "longest_streak" -> "Longest Streak"
     "current_streak" -> "Current Streak"
     "completion_ratio" -> "Completion Ratio"
@@ -175,7 +177,7 @@ private fun getModuleDisplayName(id: String): String = when (id) {
     "best_day_of_week" -> "Best Day of the Week"
     "rate_last_30_days" -> "Rate Last 30 Days"
     "monthly_chart" -> "Monthly Completion Chart"
-    else -> id.replace("_", " ").replaceFirstChar { it.uppercase() }
+    else -> getBaseModuleId(id).replace("_", " ").replaceFirstChar { it.uppercase() }
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -204,6 +206,7 @@ fun StatisticScreen(
     var isEditMode by remember { mutableStateOf(false) }
     var localActiveModules by remember { mutableStateOf<List<String>>(emptyList()) }
     var savedLayout by remember { mutableStateOf<List<String>>(emptyList()) }
+    var lastSavedLayouts by remember { mutableStateOf<Map<String, List<String>>>(emptyMap()) }
 
     LaunchedEffect(habits, initialHabitId) {
         if (actualCount > 0) {
@@ -299,15 +302,18 @@ fun StatisticScreen(
             val layoutStr = localActiveModules.joinToString(",")
             if (applyToAll) {
                 viewModel.applyStatsLayoutToAll(layoutStr)
+                lastSavedLayouts = habits.associate { h -> h.habit.id to localActiveModules }
             } else {
                 viewModel.updateHabitStatsLayout(it.habit, layoutStr)
+                lastSavedLayouts = lastSavedLayouts + (it.habit.id to localActiveModules)
             }
         }
         isEditMode = false
     }
 
     val inactiveModules = remember(localActiveModules) {
-        ALL_STAT_MODULES.filter { it !in localActiveModules }.sortedBy { getModuleDisplayName(it) }
+        val activeBases = localActiveModules.map { getBaseModuleId(it) }
+        ALL_STAT_MODULES.filter { it !in activeBases }.sortedBy { getModuleDisplayName(it) }
     }
 
     fun onRemoveModule(moduleId: String) {
@@ -479,7 +485,12 @@ fun StatisticScreen(
                                 if (isEditMode && habit.habit.id == currentHabit?.habit?.id) {
                                     localActiveModules
                                 } else {
-                                    pageLayout
+                                    val saved = lastSavedLayouts[habit.habit.id]
+                                    if (saved != null && pageLayout != saved) {
+                                        saved
+                                    } else {
+                                        pageLayout
+                                    }
                                 }
 
                             HabitStatisticsContent(
