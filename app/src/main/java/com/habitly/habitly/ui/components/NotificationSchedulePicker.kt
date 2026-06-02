@@ -56,7 +56,8 @@ fun NotificationTimeSelectors(
     isEnabled: Boolean,
     borderAlpha: Float,
     is24Hour: Boolean,
-    vibrationsEnabled: Boolean = true
+    vibrationsEnabled: Boolean = true,
+    onDisabledClick: () -> Unit = {}
 ) {
     val alpha by animateFloatAsState(targetValue = if (isEnabled) 1f else 0.5f, label = "")
 
@@ -82,8 +83,13 @@ fun NotificationTimeSelectors(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(
-                    enabled = isEnabled,
-                    onClick = onTimeClick,
+                    onClick = {
+                        if (isEnabled) {
+                            onTimeClick()
+                        } else {
+                            onDisabledClick()
+                        }
+                    },
                     indication = null,
                     interactionSource = remember { MutableInteractionSource() }
                 )
@@ -135,7 +141,8 @@ fun NotificationTimeSelectors(
             vibrationsEnabled = vibrationsEnabled,
             onDaySelected = onDaySelected,
             borderAlpha = borderAlpha,
-            horizontalPadding = 0.dp
+            horizontalPadding = 0.dp,
+            onDisabledClick = onDisabledClick
         )
     }
 }

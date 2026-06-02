@@ -49,6 +49,7 @@ class SettingsDataStore(private val context: Context) {
         val HABIT_COLOR_TARGETS_KEY = stringPreferencesKey("habit_color_targets")
         val HEATMAP_WEEKS_KEY = intPreferencesKey("heatmap_weeks")
         val HEATMAP_INFINITE_KEY = booleanPreferencesKey("heatmap_infinite")
+        val HAS_ASKED_NOTIFICATION_PERMISSION_KEY = booleanPreferencesKey("has_asked_notification_permission")
     }
 
     val theme: Flow<String> = context.dataStore.data
@@ -373,6 +374,17 @@ class SettingsDataStore(private val context: Context) {
     suspend fun setHeatmapInfinite(infinite: Boolean) {
         context.dataStore.edit { settings ->
             settings[HEATMAP_INFINITE_KEY] = infinite
+        }
+    }
+
+    val hasAskedNotificationPermission: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[HAS_ASKED_NOTIFICATION_PERMISSION_KEY] ?: DefaultSettings.HAS_ASKED_NOTIFICATION_PERMISSION
+        }
+
+    suspend fun setHasAskedNotificationPermission(asked: Boolean) {
+        context.dataStore.edit { settings ->
+            settings[HAS_ASKED_NOTIFICATION_PERMISSION_KEY] = asked
         }
     }
 

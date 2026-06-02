@@ -23,9 +23,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,6 +36,8 @@ import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.habitly.habitly.MainActivity
+import com.habitly.habitly.data.settings.SettingsDataStore
+import kotlinx.coroutines.launch
 
 /**
  * Interface to interact with notification permission logic.
@@ -52,6 +56,11 @@ fun rememberNotificationPermissionHandler(
     onPermissionGranted: () -> Unit = {}
 ): NotificationPermissionHandler {
     val context = LocalContext.current
+    val settingsDataStore = remember { SettingsDataStore(context) }
+    val scope = rememberCoroutineScope()
+    val hasAskedPermissionState = settingsDataStore.hasAskedNotificationPermission.collectAsState(initial = false)
+    val hasAskedPermission = hasAskedPermissionState.value
+
     var hasPermission by remember {
         mutableStateOf(
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -90,7 +99,7 @@ fun rememberNotificationPermissionHandler(
         )
     }
 
-    return remember(hasPermission, showSettingsDialog) {
+    return remember(hasPermission, showSettingsDialog, hasAskedPermission) {
         object : NotificationPermissionHandler {
             override val hasPermission: Boolean get() = hasPermission
             
@@ -106,20 +115,14 @@ fun rememberNotificationPermissionHandler(
                     if (currentStatus == PackageManager.PERMISSION_GRANTED) {
                         onPermissionGranted()
                     } else {
-                        // If we've already shown rationale and it's still denied, 
-                        // or if we shouldn't show rationale but it's denied (and not the first time),
-                        // then it might be permanently denied.
-                        
-                        // Heuristic for "Permanently Denied": 
-                        // If currentStatus is DENIED and shouldShowRationale is false, 
-                        // it's either the first time OR it's permanently denied.
-                        // Since this is triggered by a button press, if we want to be aggressive, 
-                        // we can show our own dialog if the system one doesn't appear.
-                        
-                        if (!shouldShowRationale && hasPermission == false) {
-                            // This state often means "Don't ask again" was selected previously.
+                        if (hasAskedPermission && !shouldShowRationale) {
+                            // This state means "Don't ask again" was selected previously.
                             // We'll show the settings dialog.
+                            showSettingsDialog = true
                         } else {
+                            scope.launch {
+                                settingsDataStore.setHasAskedNotificationPermission(true)
+                            }
                             launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
                         }
                     }

@@ -29,4 +29,6 @@ object DefaultSettings {
     const val HABIT_COLOR_TARGETS = "Habit Cards,Statistic Screen"
     const val HEATMAP_WEEKS = 20
     const val HEATMAP_INFINITE = false
+    const val HAS_ASKED_NOTIFICATION_PERMISSION = false
 }
+

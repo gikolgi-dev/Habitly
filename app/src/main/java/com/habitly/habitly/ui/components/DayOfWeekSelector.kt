@@ -39,7 +39,8 @@ fun DayOfWeekSelector(
     enabled: Boolean = true,
     vibrationsEnabled: Boolean = true,
     borderAlpha: Float = 0.1f,
-    horizontalPadding: Dp = 0.dp
+    horizontalPadding: Dp = 0.dp,
+    onDisabledClick: () -> Unit = {}
 ) {
     val haptic = LocalHapticFeedback.current
     val days = listOf("M", "T", "W", "T", "F", "S", "S")
@@ -73,11 +74,15 @@ fun DayOfWeekSelector(
                     .background(
                         animatedColorState.value
                     )
-                    .clickable(enabled = enabled) {
-                        if (vibrationsEnabled) {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    .clickable {
+                        if (enabled) {
+                            if (vibrationsEnabled) {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            }
+                            onDaySelected(day)
+                        } else {
+                            onDisabledClick()
                         }
-                        onDaySelected(day)
                     },
                 contentAlignment = Alignment.Center
             ) {

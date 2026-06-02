@@ -164,7 +164,7 @@ fun NotificationSettingsScreen(
                     NotificationTimeSelectors(
                         notificationTime = globalNotificationTime,
                         selectedDays = globalNotificationDays,
-                        onTimeClick = { if (isEnabled) showTimePicker = true else notificationPermissionHandler.requestPermission() },
+                        onTimeClick = { showTimePicker = true },
                         onDaySelected = { day ->
                             scope.launch {
                                 val newDays = if (globalNotificationDays.contains(day)) {
@@ -179,6 +179,13 @@ fun NotificationSettingsScreen(
                                         newDays
                                     )
                                 }
+                            }
+                        },
+                        onDisabledClick = {
+                            if (!notificationPermissionHandler.hasPermission) {
+                                notificationPermissionHandler.requestPermission()
+                            } else {
+                                handleNotificationToggle(true)
                             }
                         },
                         isEnabled = isEnabled,

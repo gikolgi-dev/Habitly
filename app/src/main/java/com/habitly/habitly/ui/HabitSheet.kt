@@ -853,8 +853,9 @@ fun HabitSheetContent(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable(
-                                enabled = hasNotificationPermission,
-                                onClick = { onNotificationsEnabledChanged(!notificationsEnabled) }
+                                onClick = {
+                                    onNotificationsEnabledChanged(!notificationsEnabled)
+                                }
                             )
                             .padding(horizontal = 12.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,

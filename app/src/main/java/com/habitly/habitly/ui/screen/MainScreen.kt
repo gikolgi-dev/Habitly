@@ -149,6 +149,15 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
         // Optional logic when permission is granted
     }
 
+    val hasAskedPermissionState = settingsDataStore.hasAskedNotificationPermission.collectAsState(initial = null)
+    val hasAskedPermission = hasAskedPermissionState.value
+
+    LaunchedEffect(hasAskedPermission, notificationPermissionHandler.hasPermission) {
+        if (hasAskedPermission == false && !notificationPermissionHandler.hasPermission) {
+            notificationPermissionHandler.requestPermission()
+        }
+    }
+
     val habitsUiState by viewModel.habitsUiState.collectAsState()
     val archivedHabitsUiState by viewModel.archivedHabitsUiState.collectAsState()
 
