@@ -7,7 +7,7 @@ plugins {
 }
 
 // Set to true to enable Developer Mode (safe testing without affecting real data)
-val isDeveloperMode = true
+val isDeveloperMode = false
 
 android {
     namespace = "com.habitly.habitly"
@@ -17,8 +17,8 @@ android {
         applicationId = if (isDeveloperMode) "com.developer.habitly" else "com.habitly.habitly"
         minSdk = 24
         targetSdk = 36
-        versionCode = 11
-        versionName = "2.5.3"
+        versionCode = 12
+        versionName = "2.6.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
