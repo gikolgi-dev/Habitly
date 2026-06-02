@@ -85,7 +85,10 @@ import com.habitly.habitly.data.MonthlyCompletion
 import com.habitly.habitly.data.calculateMonthlyStats
 import com.habitly.habitly.data.calculateStatistics
 import com.habitly.habitly.ui.fadingEdge
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -163,7 +166,7 @@ private fun RenderStatCard(
             isFullWidth = isFullWidth
         )
         "completion_ratio" -> StatCard(
-            label = "Completed Ratio",
+            label = "Total Completed Ratio",
             value = "${stats.completionRatio}%",
             accentColor = displayAccentColor,
             borderContrast = borderContrast,
@@ -304,12 +307,14 @@ fun HabitStatisticsContent(
         onReorderModules(newList)
     }
 
-    val stats = remember(habit) {
-        calculateStatistics(habit)
+    val statsState = produceState<HabitStatistics?>(initialValue = null, key1 = habit) {
+        value = withContext(Dispatchers.Default) { calculateStatistics(habit) }
     }
-    val monthlyStats = remember(habit) {
-        calculateMonthlyStats(habit)
+    val monthlyStatsState = produceState<List<MonthlyCompletion>?>(initialValue = null, key1 = habit) {
+        value = withContext(Dispatchers.Default) { calculateMonthlyStats(habit) }
     }
+    val stats = statsState.value
+    val monthlyStats = monthlyStatsState.value
     
     val onSurface = MaterialTheme.colorScheme.onSurface
     val displayAccentColor = remember(accentColor, onSurface) {
@@ -362,6 +367,43 @@ fun HabitStatisticsContent(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+    } else if (stats == null || monthlyStats == null) {
+        // Show lightweight placeholder cards while stats compute in background
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(
+                start = 8.dp, end = 8.dp, top = 16.dp, bottom = 80.dp + navigationBarsPadding
+            ),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            itemsIndexed(
+                items = modulesToRender,
+                key = { _, item -> if (item.endsWith("_full")) item.removeSuffix("_full") else item },
+                span = { _, item ->
+                    GridItemSpan(if (item == "monthly_chart" || item.endsWith("_full")) 2 else 1)
+                }
+            ) { _, moduleId ->
+                val placeholderColor = if (useHabitColorForCard) {
+                    lerp(accentColor, MaterialTheme.colorScheme.surfaceVariant, 0.75f)
+                } else {
+                    MaterialTheme.colorScheme.surfaceContainer
+                }
+                val placeholderBorderColor = if (useHabitColorForCard) {
+                    lerp(accentColor, lerp(accentColor, MaterialTheme.colorScheme.surfaceVariant, 0.75f), 1f - borderContrast)
+                } else {
+                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = borderContrast)
+                }
+                val height = if (moduleId == "monthly_chart") 236.dp else 96.dp
+                Card(
+                    modifier = Modifier.fillMaxWidth().height(height),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    colors = CardDefaults.cardColors(containerColor = placeholderColor),
+                    border = BorderStroke(1.dp, placeholderBorderColor)
+                ) {}
+            }
+        }
     } else {
         LazyVerticalGrid(
             state = lazyGridState,
@@ -397,7 +439,7 @@ fun HabitStatisticsContent(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .zIndex(if (isSelectedForResize || isDraggingLeft || isDraggingRight) 1f else 0f)
+                        .zIndex(if (isBeingDragged) 10f else if (isSelectedForResize || isDraggingLeft || isDraggingRight) 1f else 0f)
                         .onGloballyPositioned { coordinates ->
                             cardWidthPx = coordinates.size.width
                         }
@@ -429,7 +471,9 @@ fun HabitStatisticsContent(
                             if (isBeingDragged && itemInfo != null) {
                                 translationX = fingerPositionX - touchOffsetWithinItem.x - itemInfo.offset.x
                                 translationY = fingerPositionY - touchOffsetWithinItem.y - itemInfo.offset.y
-                                shadowElevation = 8.dp.value * density
+                                scaleX = 1.05f
+                                scaleY = 1.05f
+                                shadowElevation = 16.dp.value * density
                             } else {
                                 if (!(isDraggingLeft || isDraggingRight)) {
                                     translationX = 0f
@@ -915,7 +959,7 @@ fun StatCard(
 
     Card(
         modifier = modifier.fillMaxWidth().height(height),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(containerColor = cardBackgroundColor),
         border = BorderStroke(1.dp, cardBorderColor)
     ) {
@@ -1069,7 +1113,7 @@ fun MonthlyCompletionGraph(
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(containerColor = cardBackgroundColor),
         border = BorderStroke(1.dp, cardBorderColor)
     ) {

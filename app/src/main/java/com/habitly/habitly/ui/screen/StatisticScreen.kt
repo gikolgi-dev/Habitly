@@ -803,14 +803,40 @@ fun InactiveModuleCard(
     useHabitColorForCard: Boolean,
     onAdd: () -> Unit
 ) {
-            val stats = remember(habit) { com.habitly.habitly.data.calculateStatistics(habit) }
-            val monthlyStats =
-                remember(habit) { com.habitly.habitly.data.calculateMonthlyStats(habit) }
+            val statsState = androidx.compose.runtime.produceState<com.habitly.habitly.data.HabitStatistics?>(initialValue = null, key1 = habit) {
+                value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { com.habitly.habitly.data.calculateStatistics(habit) }
+            }
+            val monthlyStatsState = androidx.compose.runtime.produceState<List<com.habitly.habitly.data.MonthlyCompletion>?>(initialValue = null, key1 = habit) {
+                value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { com.habitly.habitly.data.calculateMonthlyStats(habit) }
+            }
+            val stats = statsState.value
+            val monthlyStats = monthlyStatsState.value
             val onSurface = MaterialTheme.colorScheme.onSurface
             val displayAccentColor =
                 remember(accentColor, onSurface) { lerp(accentColor, onSurface, 0.3f) }
 
             val haptic = LocalHapticFeedback.current
+
+            if (stats == null || monthlyStats == null) {
+                val placeholderColor = if (useHabitColorForCard) {
+                    lerp(accentColor, MaterialTheme.colorScheme.surfaceVariant, 0.75f)
+                } else {
+                    MaterialTheme.colorScheme.surfaceContainer
+                }
+                val placeholderBorderColor = if (useHabitColorForCard) {
+                    lerp(accentColor, lerp(accentColor, MaterialTheme.colorScheme.surfaceVariant, 0.75f), 1f - borderContrast)
+                } else {
+                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = borderContrast)
+                }
+                val height = if (moduleId == "monthly_chart") 236.dp else 96.dp
+                Card(
+                    modifier = Modifier.fillMaxWidth().height(height),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    colors = CardDefaults.cardColors(containerColor = placeholderColor),
+                    border = BorderStroke(1.dp, placeholderBorderColor)
+                ) {}
+                return
+            }
 
             Box(
                 modifier = Modifier
