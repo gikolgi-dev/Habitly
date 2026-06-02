@@ -18,6 +18,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
@@ -39,6 +40,7 @@ fun MonthlyLineChart(
     textColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     showLabels: Boolean = true,
     vibrationsEnabled: Boolean = true,
+    interactive: Boolean = true,
     onPointSelected: (Float) -> Unit = {}
 ) {
     val density = LocalDensity.current
@@ -51,7 +53,7 @@ fun MonthlyLineChart(
         }
     }
     
-    var selectedIndex by remember { mutableStateOf<Int?>(null) }
+    var selectedIndex by remember(interactive) { mutableStateOf<Int?>(null) }
     val tooltipTextColor = MaterialTheme.colorScheme.onPrimary
     val tooltipPaint = remember(density, tooltipTextColor) {
         Paint().apply {
@@ -61,37 +63,47 @@ fun MonthlyLineChart(
         }
     }
 
-    Canvas(
-        modifier = modifier.pointerInput(data, vibrationsEnabled) {
-            detectTapGestures { offset ->
-                if (data.isEmpty()) return@detectTapGestures
-                
-                val horizontalPadding = 10.dp.toPx()
-                val availableWidth = size.width - 2 * horizontalPadding
-                
-                val index = if (data.size > 1) {
-                    val fraction = (offset.x - horizontalPadding) / availableWidth
-                    (fraction * (data.size - 1)).roundToInt().coerceIn(0, data.size - 1)
-                } else {
-                    0
-                }
-                
-                if (selectedIndex != index) {
-                    selectedIndex = index
-                    if (vibrationsEnabled) {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+    val pointerInputModifier = if (interactive) {
+        Modifier.pointerInput(data, vibrationsEnabled) {
+            awaitPointerEventScope {
+                while (true) {
+                    val event = awaitPointerEvent()
+                    val change = event.changes.firstOrNull()
+                    if (change != null) {
+                        if (change.pressed) {
+                            val position = change.position
+                            if (data.isNotEmpty()) {
+                                val horizontalPadding = 10.dp.toPx()
+                                val availableWidth = size.width - 2 * horizontalPadding
+                                val index = if (data.size > 1) {
+                                    val fraction = (position.x - horizontalPadding) / availableWidth
+                                    (fraction * (data.size - 1)).roundToInt().coerceIn(0, data.size - 1)
+                                } else {
+                                    0
+                                }
+                                if (selectedIndex != index) {
+                                    selectedIndex = index
+                                    if (vibrationsEnabled) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    }
+                                    val x = if (data.size > 1) {
+                                        horizontalPadding + index * (size.width - 2 * horizontalPadding) / (data.size - 1)
+                                    } else {
+                                        size.width.toFloat() / 2
+                                    }
+                                    onPointSelected(x)
+                                }
+                            }
+                            change.consume()
+                        }
                     }
-                    val x = if (data.size > 1) {
-                        horizontalPadding + index * (size.width - 2 * horizontalPadding) / (data.size - 1)
-                    } else {
-                        size.width.toFloat() / 2
-                    }
-                    onPointSelected(x)
-                } else {
-                    selectedIndex = null
                 }
             }
         }
+    } else Modifier
+
+    Canvas(
+        modifier = modifier.then(pointerInputModifier)
     ) {
         if (data.isEmpty()) return@Canvas
 
@@ -165,8 +177,15 @@ fun MonthlyLineChart(
             
             val y = xAxisY - (item.percentage / maxPercentage) * usableHeight
             
-            // Draw outline for selected point
+            // Draw outline for selected point and dotted guide line
             if (i == selectedIndex) {
+                drawLine(
+                    color = lineColor.copy(alpha = 0.5f),
+                    start = Offset(x, y),
+                    end = Offset(x, xAxisY),
+                    strokeWidth = 1.5.dp.toPx(),
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
+                )
                 drawCircle(
                     color = lineColor.copy(alpha = 0.3f),
                     radius = 8.dp.toPx(),

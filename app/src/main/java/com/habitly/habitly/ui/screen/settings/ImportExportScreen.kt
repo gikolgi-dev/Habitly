@@ -112,6 +112,7 @@ data class ExportedHabit(
     val notificationsEnabled: Boolean,
     val notificationTime: String?,
     val notificationDays: String?,
+    val statsLayout: String? = null,
     val completions: List<ExportedCompletion>
 )
 
@@ -258,6 +259,7 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                                     notificationsEnabled = habitWithCompletions.habit.notificationsEnabled,
                                     notificationTime = habitWithCompletions.habit.notificationTime,
                                     notificationDays = habitWithCompletions.habit.notificationDays,
+                                    statsLayout = habitWithCompletions.habit.statsLayout,
                                     completions = habitWithCompletions.completions.map { completion ->
                                         ExportedCompletion(
                                             id = completion.id,
@@ -797,7 +799,8 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                                                             intervalUnit = exportedHabit.intervalUnit,
                                                             notificationsEnabled = exportedHabit.notificationsEnabled,
                                                             notificationTime = exportedHabit.notificationTime,
-                                                            notificationDays = exportedHabit.notificationDays
+                                                            notificationDays = exportedHabit.notificationDays,
+                                                            statsLayout = exportedHabit.statsLayout
                                                         )
                                                     })
                                                     completionsToInsert.addAll(exportedData.habits.flatMap { exportedHabit ->

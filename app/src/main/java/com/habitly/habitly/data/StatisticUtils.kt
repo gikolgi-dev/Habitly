@@ -12,6 +12,7 @@ import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 import kotlin.math.sin
 
 data class HabitStatistics(
@@ -19,7 +20,11 @@ data class HabitStatistics(
     val completionRatio: Int,
     val averageCompletionTime: String,
     val timeSinceCreation: Long,
-    val daysSinceLongestStreak: Long
+    val daysSinceLongestStreak: Long,
+    val currentStreak: Int,
+    val totalCompletions: Int,
+    val bestDayOfWeek: String,
+    val rateLast30Days: Int
 )
 
 data class MonthlyCompletion(
@@ -111,7 +116,22 @@ fun calculateStatistics(habitWithCompletions: HabitWithCompletions): HabitStatis
         "N/A"
     }
 
-    return HabitStatistics(maxStreak, ratio.toInt(), avgTimeStr,  maxPossible, daysSinceLongestStreak)
+    val currentStreak = calculateCurrentStreak(habit, completions)
+    val totalCompletionsVal = completions.sumOf { it.amountOfCompletions }
+    val bestDayOfWeek = calculateBestDayOfWeek(completions)
+    val rateLast30Days = calculateRateLast30Days(completions)
+
+    return HabitStatistics(
+        longestStreak = maxStreak,
+        completionRatio = ratio.toInt(),
+        averageCompletionTime = avgTimeStr,
+        timeSinceCreation = maxPossible,
+        daysSinceLongestStreak = daysSinceLongestStreak,
+        currentStreak = currentStreak,
+        totalCompletions = totalCompletionsVal,
+        bestDayOfWeek = bestDayOfWeek,
+        rateLast30Days = rateLast30Days
+    )
 }
 
 private fun calculateLongestStreak(habit: Habit, completions: List<Completion>): Pair<Int, Long> {
@@ -366,4 +386,145 @@ fun calculateMonthlyStats(habitWithCompletions: HabitWithCompletions): List<Mont
         calendar.add(Calendar.MONTH, 1)
     }
     return stats
+}
+
+fun calculateCurrentStreak(habit: Habit, completions: List<Completion>): Int {
+    if (completions.isEmpty()) return 0
+    val completedDays = completions.map { completion ->
+        val c = Calendar.getInstance().apply { timeInMillis = completion.date }
+        c.set(Calendar.HOUR_OF_DAY, 0)
+        c.set(Calendar.MINUTE, 0)
+        c.set(Calendar.SECOND, 0)
+        c.set(Calendar.MILLISECOND, 0)
+        c.timeInMillis
+    }.toSet()
+
+    if (completedDays.isEmpty()) return 0
+
+    val today = Calendar.getInstance().apply {
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }.timeInMillis
+
+    val yesterday = Calendar.getInstance().apply {
+        add(Calendar.DAY_OF_YEAR, -1)
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }.timeInMillis
+
+    if (habit.intervalUnit == "day") {
+        val hasCompletedToday = completedDays.contains(today)
+        val hasCompletedYesterday = completedDays.contains(yesterday)
+        val startDay = when {
+            hasCompletedToday -> today
+            hasCompletedYesterday -> yesterday
+            else -> return 0
+        }
+        var streak = 0
+        val c = Calendar.getInstance().apply { timeInMillis = startDay }
+        while (completedDays.contains(c.timeInMillis)) {
+            streak++
+            c.add(Calendar.DAY_OF_YEAR, -1)
+        }
+        return streak
+    } else {
+        val calendarField = if (habit.intervalUnit == "week") Calendar.WEEK_OF_YEAR else Calendar.MONTH
+        var currentStreak = 0
+        val c = Calendar.getInstance().apply { timeInMillis = today }
+        
+        while (true) {
+            if (calendarField == Calendar.WEEK_OF_YEAR) {
+                val firstDayOfWeek = c.firstDayOfWeek
+                while (c.get(Calendar.DAY_OF_WEEK) != firstDayOfWeek) {
+                    c.add(Calendar.DAY_OF_YEAR, -1)
+                }
+            } else {
+                c.set(Calendar.DAY_OF_MONTH, 1)
+            }
+            c.set(Calendar.HOUR_OF_DAY, 0)
+            c.set(Calendar.MINUTE, 0)
+            c.set(Calendar.SECOND, 0)
+            c.set(Calendar.MILLISECOND, 0)
+            
+            val startOfPeriod = c.timeInMillis
+            val nextPeriod = c.clone() as Calendar
+            nextPeriod.add(calendarField, 1)
+            val endOfPeriod = nextPeriod.timeInMillis - 1
+            
+            var completionsInPeriod = 0
+            val checkCal = c.clone() as Calendar
+            while (checkCal.timeInMillis <= endOfPeriod) {
+                if (completedDays.contains(checkCal.timeInMillis)) {
+                    completionsInPeriod++
+                }
+                checkCal.add(Calendar.DAY_OF_YEAR, 1)
+            }
+            
+            val target = habit.completionsPerInterval
+            val isCurrentPeriod = (System.currentTimeMillis() in startOfPeriod..endOfPeriod)
+            
+            if (isCurrentPeriod) {
+                val diff = System.currentTimeMillis() - startOfPeriod
+                val daysPassed = TimeUnit.MILLISECONDS.toDays(diff).toInt() + 1
+                val currentMisses = daysPassed - completionsInPeriod
+                val totalDaysInPeriod = if (calendarField == Calendar.WEEK_OF_YEAR) 7 else c.getActualMaximum(Calendar.DAY_OF_MONTH)
+                val allowedMisses = totalDaysInPeriod - target
+                
+                if (currentMisses <= allowedMisses) {
+                    currentStreak += completionsInPeriod
+                } else {
+                    break
+                }
+            } else {
+                if (completionsInPeriod >= target) {
+                    currentStreak += completionsInPeriod
+                } else {
+                    break
+                }
+            }
+            
+            c.add(calendarField, -1)
+            
+            val createdAt = habit.createdAt.toLongOrNull() ?: 0L
+            val firstDate = completedDays.minOrNull() ?: 0L
+            val minDate = min(createdAt, firstDate)
+            if (c.timeInMillis < minDate - (31L * 24 * 3600 * 1000)) {
+                break
+            }
+        }
+        return currentStreak
+    }
+}
+
+fun calculateBestDayOfWeek(completions: List<Completion>): String {
+    if (completions.isEmpty()) return "N/A"
+    val dayCounts = IntArray(8)
+    val c = Calendar.getInstance()
+    completions.forEach { completion ->
+        c.timeInMillis = completion.date
+        val day = c.get(Calendar.DAY_OF_WEEK)
+        dayCounts[day] += completion.amountOfCompletions
+    }
+    var bestDay = Calendar.SUNDAY
+    var maxCount = -1
+    for (day in Calendar.SUNDAY..Calendar.SATURDAY) {
+        if (dayCounts[day] > maxCount) {
+            maxCount = dayCounts[day]
+            bestDay = day
+        }
+    }
+    if (maxCount == 0) return "N/A"
+    c.set(Calendar.DAY_OF_WEEK, bestDay)
+    return c.getDisplayName(Calendar.DAY_OF_WEEK, Calendar.LONG, Locale.getDefault()) ?: "N/A"
+}
+
+fun calculateRateLast30Days(completions: List<Completion>): Int {
+    val thirtyDaysAgo = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(30)
+    val completionsLast30 = completions.filter { it.date >= thirtyDaysAgo }.sumOf { it.amountOfCompletions }
+    val rate = (completionsLast30.toFloat() / 30f) * 100f
+    return rate.coerceIn(0f, 100f).roundToInt()
 }

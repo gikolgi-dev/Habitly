@@ -149,6 +149,15 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
         // Optional logic when permission is granted
     }
 
+    val hasAskedPermissionState = settingsDataStore.hasAskedNotificationPermission.collectAsState(initial = null)
+    val hasAskedPermission = hasAskedPermissionState.value
+
+    LaunchedEffect(hasAskedPermission, notificationPermissionHandler.hasPermission) {
+        if (hasAskedPermission == false && !notificationPermissionHandler.hasPermission) {
+            notificationPermissionHandler.requestPermission()
+        }
+    }
+
     val habitsUiState by viewModel.habitsUiState.collectAsState()
     val archivedHabitsUiState by viewModel.archivedHabitsUiState.collectAsState()
 
@@ -741,8 +750,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 AnimatedVisibility(
                     visible = showStatisticScreen,
                     modifier = Modifier.fillMaxSize(),
-                    enter = slideInVertically(animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { -it },
-                    exit = slideOutVertically(animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { -it }
+                    enter = slideInVertically(animationSpec = tween(durationMillis = 400, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { it } + fadeIn(animationSpec = tween(durationMillis = 300)),
+                    exit = slideOutVertically(animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { it } + fadeOut(animationSpec = tween(durationMillis = 300))
                 ) {
                     StatisticScreen(
                         viewModel = viewModel,
