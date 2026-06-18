@@ -46,6 +46,8 @@ import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -461,6 +463,43 @@ fun SharedTransitionScope.HabitDetailScreen(
                             "day" -> "Daily"
                             else -> "${habit.completionsPerInterval}/${habit.intervalUnit.replaceFirstChar { it.uppercase() }}"
                         }
+                        val notificationsSet = habit.notificationsEnabled && habit.notificationTime != null
+                        Box(
+                            modifier = Modifier
+                                .height(35.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = secondaryContainerAlpha))
+                                .border(
+                                    1.dp,
+                                    cardBorderColor,
+                                    RoundedCornerShape(8.dp)
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    imageVector = if (notificationsSet) Icons.Default.NotificationsActive else Icons.Default.Notifications,
+                                    contentDescription = "Notification Time",
+                                    modifier = Modifier.size(20.dp),
+                                    tint = if (notificationsSet) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(
+                                        alpha = 0.38f
+                                    )
+                                )
+                                if (notificationsSet && habit.notificationTime != null) {
+                                    Spacer(modifier = Modifier.size(4.dp))
+                                    Text(
+                                        text = habit.notificationTime,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.size(8.dp))
                         Box(
                             modifier = Modifier
                                 .wrapContentWidth()
