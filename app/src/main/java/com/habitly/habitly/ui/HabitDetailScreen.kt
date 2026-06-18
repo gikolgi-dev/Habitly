@@ -115,7 +115,8 @@ fun SharedTransitionScope.HabitDetailScreen(
     heatmapWeeks: Int = 0,
     heatmapInfinite: Boolean = false,
     currentDateMillis: Long = System.currentTimeMillis(),
-    isEditSheetOpen: Boolean = false
+    isEditSheetOpen: Boolean = false,
+    transitionProgress: Float = 1f
 ) {
     val haptic = LocalHapticFeedback.current
     val context = LocalContext.current
@@ -292,19 +293,49 @@ fun SharedTransitionScope.HabitDetailScreen(
                             ),
                             label = "button_scale"
                         )
+                        val todayStart = remember(currentDateMillis) {
+                            Calendar.getInstance().apply {
+                                timeInMillis = currentDateMillis
+                                set(Calendar.HOUR_OF_DAY, 0)
+                                set(Calendar.MINUTE, 0)
+                                set(Calendar.SECOND, 0)
+                                set(Calendar.MILLISECOND, 0)
+                            }.timeInMillis
+                        }
+                        val todayEnd = remember(currentDateMillis) {
+                            Calendar.getInstance().apply {
+                                timeInMillis = currentDateMillis
+                                set(Calendar.HOUR_OF_DAY, 23)
+                                set(Calendar.MINUTE, 59)
+                                set(Calendar.SECOND, 59)
+                                set(Calendar.MILLISECOND, 999)
+                            }.timeInMillis
+                        }
+                        val isCompletedToday = remember(completions, todayStart, todayEnd) {
+                            completions.any { it.date in todayStart..todayEnd }
+                        }
+                        val startRadius = if (isCompletedToday) 8.dp else 32.dp
+                        val detailCornerRadius = startRadius + (8.dp - startRadius) * transitionProgress
+                        val closeButtonShape = RoundedCornerShape(detailCornerRadius)
+
                         Box(
                             modifier = Modifier
+                                .sharedElementWithCallerManagedVisibility(
+                                    rememberSharedContentState(key = "button-${habit.id}"),
+                                    visible = !isEditSheetOpen,
+                                    boundsTransform = { _, _ -> tween(durationMillis = 300, easing = FastOutSlowInEasing) }
+                                )
                                 .graphicsLayer {
                                     scaleX = closeScale
                                     scaleY = closeScale
                                 }
                                 .size(48.dp)
-                                .clip(RoundedCornerShape(8.dp))
+                                .clip(closeButtonShape)
                                 .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = secondaryContainerAlpha))
                                 .border(
                                     1.dp,
                                     cardBorderColor,
-                                    RoundedCornerShape(8.dp)
+                                    closeButtonShape
                                 )
                                 .pointerInput(Unit) {
                                     detectTapGestures(

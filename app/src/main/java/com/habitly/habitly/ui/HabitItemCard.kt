@@ -1,10 +1,12 @@
 /* Habitly - Licensed under GNU GPL v3.0 or later. See <https://www.gnu.org/licenses/gpl-3.0.html> */
 
-@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalSharedTransitionApi::class)
 
 package com.habitly.habitly.ui
 
 import android.annotation.SuppressLint
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
@@ -29,6 +31,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -151,7 +154,10 @@ fun HabitCompletionButton(
     borderContrast: Float,
     disableAnimations: Boolean,
     disablePressAnimation: Boolean = false,
-    onComplete: () -> Unit
+    onComplete: () -> Unit,
+    sharedTransitionScope: SharedTransitionScope? = null,
+    visible: Boolean = true,
+    transitionProgress: Float = 0f
 ) {
     val color = Color(habit.color)
     val transition = updateTransition(targetState = isCompleted, label = "CompletionTransition")
@@ -163,19 +169,27 @@ fun HabitCompletionButton(
         if (state) 1f else 0f
     }
 
-    val animatedHabitColorState = animateColorAsState(targetValue = color, animationSpec = tween(300), label = "habitColor")
+    val animatedHabitColorState =
+        animateColorAsState(targetValue = color, animationSpec = tween(300), label = "habitColor")
 
     val morph = circleToSquareMorph
     val path = remember { Path() }
     val matrix = remember { Matrix() }
 
     val rotationAnimationSpec = tween<Float>(durationMillis = 400, easing = FastOutSlowInEasing)
-    val rotationState = animateFloatAsState(if (isCompleted) 180f else 0f, label = "fab_icon_rotation", animationSpec = rotationAnimationSpec)
+    val rotationState = animateFloatAsState(
+        if (isCompleted) 180f else 0f,
+        label = "fab_icon_rotation",
+        animationSpec = rotationAnimationSpec
+    )
 
     var isPressed by remember { mutableStateOf(false) }
     val scaleState = animateFloatAsState(
         targetValue = if (isPressed && !disableAnimations && !disablePressAnimation) 0.85f else 1f,
-        animationSpec = if (isPressed) spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessLow) else spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        animationSpec = if (isPressed) spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessLow) else spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
         label = "button_scale"
     )
 
@@ -183,10 +197,24 @@ fun HabitCompletionButton(
     val currentColor = animatedHabitColorState.value
     val bgAlpha = lerp(0.1f, 1f, p)
     val strokeAlpha = lerp(borderContrast, 1f, p)
-    val shape = MorphPolygonShape(morph, p, path, matrix)
+    val startRadius = 32.dp - (24.dp * p)
+    val cornerRadius = startRadius + (8.dp - startRadius) * transitionProgress
+    val shape = RoundedCornerShape(cornerRadius)
 
+    val buttonModifier = if (sharedTransitionScope != null) {
+        with(sharedTransitionScope) {
+            Modifier.sharedElementWithCallerManagedVisibility(
+                rememberSharedContentState(key = "button-${habit.id}"),
+                visible = visible,
+                boundsTransform = { _, _ -> tween(durationMillis = 300, easing = FastOutSlowInEasing) }
+            )
+        }
+    } else {
+        Modifier
+    }
     Box(
         modifier = modifier
+            .then(buttonModifier)
             .size(64.dp)
             .graphicsLayer {
                 scaleX = scaleState.value
@@ -267,7 +295,10 @@ fun HabitItemCard(
     heatmapInfinite: Boolean = false,
     isPreview: Boolean = false,
     currentDateMillis: Long = System.currentTimeMillis(),
-    @SuppressLint("ModifierParameter") modifier: Modifier = Modifier
+    @SuppressLint("ModifierParameter") modifier: Modifier = Modifier,
+    sharedTransitionScope: SharedTransitionScope? = null,
+    visible: Boolean = true,
+    transitionProgress: Float = 0f
 ) {
     val targetCardBackgroundColor = if (useHabitColor) {
         lerp(Color(habit.color), MaterialTheme.colorScheme.surfaceVariant, 0.85f)
@@ -276,13 +307,25 @@ fun HabitItemCard(
     }
 
     val targetCardBorderColor = if (useHabitColor) {
-        lerp(Color(habit.color), lerp(Color(habit.color), MaterialTheme.colorScheme.surfaceVariant, 0.85f), 1f - borderContrast)
+        lerp(
+            Color(habit.color),
+            lerp(Color(habit.color), MaterialTheme.colorScheme.surfaceVariant, 0.85f),
+            1f - borderContrast
+        )
     } else {
         MaterialTheme.colorScheme.outline.copy(alpha = borderContrast)
     }
 
-    val cardBackgroundColor by animateColorAsState(targetValue = targetCardBackgroundColor, animationSpec = tween(300), label = "cardBgColor")
-    val cardBorderColor by animateColorAsState(targetValue = targetCardBorderColor, animationSpec = tween(300), label = "cardBorderColor")
+    val cardBackgroundColor by animateColorAsState(
+        targetValue = targetCardBackgroundColor,
+        animationSpec = tween(300),
+        label = "cardBgColor"
+    )
+    val cardBorderColor by animateColorAsState(
+        targetValue = targetCardBorderColor,
+        animationSpec = tween(300),
+        label = "cardBorderColor"
+    )
 
     Card(
         modifier = Modifier
@@ -323,7 +366,10 @@ fun HabitItemCard(
                         borderContrast = borderContrast,
                         disableAnimations = disableAnimations,
                         disablePressAnimation = isPreview,
-                        onComplete = onComplete
+                        onComplete = onComplete,
+                        sharedTransitionScope = sharedTransitionScope,
+                        visible = visible,
+                        transitionProgress = transitionProgress
                     )
                 } else {
                     Row {

@@ -13,6 +13,7 @@ import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -417,6 +418,12 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
 
     Box(Modifier.fillMaxSize()) {
         SharedTransitionLayout {
+            val sharedTransitionScope = this
+            val detailTransitionProgress by animateFloatAsState(
+                targetValue = if (habitToView != null) 1f else 0f,
+                animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+                label = "detailTransitionProgress"
+            )
             val mainBlurRadius by animateDpAsState(
                 targetValue = if ((isAnySheetOpen || isFabMenuExpanded) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) 16.dp else 0.dp,
                 label = "mainBlurRadius"
@@ -571,7 +578,10 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                         },
                                                         onClick = {
                                                             habitToView = habitWithCompletions
-                                                        }
+                                                        },
+                                                        sharedTransitionScope = sharedTransitionScope,
+                                                        visible = !isViewingThis && !isEditingThis,
+                                                        transitionProgress = detailTransitionProgress
                                                     )
                                                 }
                                             }
@@ -740,7 +750,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                             heatmapWeeks = heatmapWeeks,
                             heatmapInfinite = heatmapInfinite,
                             currentDateMillis = currentDateMillis,
-                            isEditSheetOpen = showHabitSheet
+                            isEditSheetOpen = showHabitSheet,
+                            transitionProgress = detailTransitionProgress
                         )
                     }
                 }
