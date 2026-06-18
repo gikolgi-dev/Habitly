@@ -73,7 +73,8 @@ fun Heatmap(
     currentDateMillis: Long = System.currentTimeMillis(),
     habit: Habit? = null,
     showNotificationDot: Boolean = false,
-    notificationDotRange: String = "today_and_future"
+    notificationDotRange: String = "today_and_future",
+    notificationDotAlpha: Float = 1f
 ) {
     val density = LocalDensity.current
 
@@ -293,7 +294,7 @@ fun Heatmap(
                         )
                     }
 
-                    HeatmapWeekColumn(weekData, habitColor, cellSize, verticalSpacing, horizontalSpacing, showMonthLabels, showYearDivider, showYearLabels)
+                    HeatmapWeekColumn(weekData, habitColor, cellSize, verticalSpacing, horizontalSpacing, showMonthLabels, showYearDivider, showYearLabels, notificationDotAlpha)
                 }
             }
         }

@@ -12,6 +12,7 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -100,6 +101,7 @@ fun SharedTransitionScope.HabitDetailScreen(
     showYearLabels: Boolean,
     heatmapNotificationDot: Boolean,
     heatmapNotificationDotRange: String,
+    heatmapNotificationDotDetailOnly: Boolean,
     showYearDivider: Boolean,
     vibrationsEnabled: Boolean,
     showMonthLabels: Boolean,
@@ -119,9 +121,20 @@ fun SharedTransitionScope.HabitDetailScreen(
     var showDeleteConfirmation by remember { mutableStateOf(false) } // State for delete confirmation dialog
     val habit = habitWithCompletions.habit
     val completions = habitWithCompletions.completions
-
     val animatedColorState =
         animateColorAsState(targetValue = Color(habit.color), animationSpec = tween(durationMillis = 500))
+
+    val notificationDotAlpha by animatedVisibilityScope.transition.animateFloat(
+        transitionSpec = { tween(durationMillis = 300, easing = FastOutSlowInEasing) },
+        label = "notificationDotAlpha"
+    ) { state ->
+        if (heatmapNotificationDotDetailOnly) {
+            if (state == androidx.compose.animation.EnterExitState.Visible) 1f else 0f
+        } else {
+            1f
+        }
+    }
+
 
     val streak =
         remember(habit, completions, currentDateMillis) { calculateStreak(habit, completions, currentDateMillis) }
@@ -340,7 +353,8 @@ fun SharedTransitionScope.HabitDetailScreen(
                     currentDateMillis = currentDateMillis,
                     habit = habit,
                     showNotificationDot = heatmapNotificationDot,
-                    notificationDotRange = heatmapNotificationDotRange
+                    notificationDotRange = heatmapNotificationDotRange,
+                    notificationDotAlpha = notificationDotAlpha
                 )
 
                 //Spacer(modifier = Modifier.height(4.dp))

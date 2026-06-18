@@ -21,6 +21,7 @@ object DefaultSettings {
     const val YEAR_LABELS = false
     const val HEATMAP_NOTIFICATION_DOT = false
     const val HEATMAP_NOTIFICATION_DOT_RANGE = "today_and_future"
+    const val HEATMAP_NOTIFICATION_DOT_DETAIL_ONLY = false
     const val HEATMAP_SCROLLING = false
     const val SHOW_SCROLL_BLUR = true
     const val SCROLL_BLUR_TARGETS = "Line Chart"

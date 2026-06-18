@@ -41,6 +41,7 @@ class SettingsDataStore(private val context: Context) {
         val YEAR_LABELS_KEY = booleanPreferencesKey("year_labels")
         val HEATMAP_NOTIFICATION_DOT_KEY = booleanPreferencesKey("heatmap_notification_dot")
         val HEATMAP_NOTIFICATION_DOT_RANGE_KEY = stringPreferencesKey("heatmap_notification_dot_range")
+        val HEATMAP_NOTIFICATION_DOT_DETAIL_ONLY_KEY = booleanPreferencesKey("heatmap_notification_dot_detail_only")
         val HEATMAP_SCROLLING_KEY = booleanPreferencesKey("heatmap_scrolling")
         val SHOW_SCROLL_BLUR_KEY = booleanPreferencesKey("show_scroll_blur")
         val SCROLL_BLUR_TARGETS_KEY = stringPreferencesKey("scroll_blur_targets")
@@ -285,6 +286,17 @@ class SettingsDataStore(private val context: Context) {
     suspend fun setHeatmapNotificationDotRange(range: String) {
         context.dataStore.edit { settings ->
             settings[HEATMAP_NOTIFICATION_DOT_RANGE_KEY] = range
+        }
+    }
+
+    val heatmapNotificationDotDetailOnly: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[HEATMAP_NOTIFICATION_DOT_DETAIL_ONLY_KEY] ?: DefaultSettings.HEATMAP_NOTIFICATION_DOT_DETAIL_ONLY
+        }
+
+    suspend fun setHeatmapNotificationDotDetailOnly(only: Boolean) {
+        context.dataStore.edit { settings ->
+            settings[HEATMAP_NOTIFICATION_DOT_DETAIL_ONLY_KEY] = only
         }
     }
 

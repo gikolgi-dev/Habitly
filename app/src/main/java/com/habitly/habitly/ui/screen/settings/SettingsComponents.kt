@@ -140,6 +140,7 @@ fun SettingsSwitchItemContent(
     text: String,
     checked: Boolean,
     description: String? = null,
+    enabled: Boolean = true,
     showDivider: Boolean = false,
     onCheckedChange: (Boolean) -> Unit
 ) {
@@ -149,7 +150,7 @@ fun SettingsSwitchItemContent(
                 .fillMaxWidth()
                 .selectable(
                     selected = checked,
-                    onClick = { onCheckedChange(!checked) }
+                    onClick = { if (enabled) onCheckedChange(!checked) }
                 )
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -158,19 +159,20 @@ fun SettingsSwitchItemContent(
                 Text(
                     text = text,
                     style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                 )
                 description?.let {
                     Text(
                         text = it,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
                     )
                 }
             }
             Switch(
                 checked = checked,
-                onCheckedChange = { onCheckedChange(it) },
+                onCheckedChange = null,
+                enabled = enabled,
                 modifier = Modifier.padding(start = 16.dp)
             )
         }
@@ -190,6 +192,7 @@ fun SettingsSwitchItem(
     checked: Boolean,
     settingsDataStore: SettingsDataStore,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
     description: String? = null,
     position: SettingsItemPosition = SettingsItemPosition.Alone,
     showDivider: Boolean = false,
@@ -201,6 +204,7 @@ fun SettingsSwitchItem(
                 text = text,
                 checked = checked,
                 description = description,
+                enabled = enabled,
                 showDivider = showDivider,
                 onCheckedChange = onCheckedChange
             )

@@ -33,6 +33,7 @@ fun HeatmapNotificationDotSubScreen(
     val heatmapNotificationDot by settingsDataStore.heatmapNotificationDot.collectAsState(initial = DefaultSettings.HEATMAP_NOTIFICATION_DOT)
     val heatmapNotificationDotRange by settingsDataStore.heatmapNotificationDotRange.collectAsState(initial = DefaultSettings.HEATMAP_NOTIFICATION_DOT_RANGE)
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
+    val heatmapNotificationDotDetailOnly by settingsDataStore.heatmapNotificationDotDetailOnly.collectAsState(initial = DefaultSettings.HEATMAP_NOTIFICATION_DOT_DETAIL_ONLY)
 
     val haptic = LocalHapticFeedback.current
     val scrollState = rememberScrollState()
@@ -98,6 +99,28 @@ fun HeatmapNotificationDotSubScreen(
                     }
                 )
             }
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+
+        SettingsGroup(
+            settingsDataStore = settingsDataStore
+        ) {
+            SettingsSwitchItem(
+                text = "Only show on detail screen",
+                checked = heatmapNotificationDotDetailOnly,
+                enabled = heatmapNotificationDot,
+                settingsDataStore = settingsDataStore,
+                position = SettingsItemPosition.Alone,
+                onCheckedChange = { isChecked ->
+                    scope.launch {
+                        settingsDataStore.setHeatmapNotificationDotDetailOnly(isChecked)
+                    }
+                    if (vibrationsEnabled) {
+                        haptic.performHapticFeedback(HapticFeedbackType.ToggleOn)
+                    }
+                }
+            )
         }
         Spacer(modifier = Modifier.height(16.dp).navigationBarsPadding())
     }

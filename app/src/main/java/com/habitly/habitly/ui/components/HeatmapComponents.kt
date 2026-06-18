@@ -52,7 +52,8 @@ fun HeatmapWeekColumn(
     horizontalSpacing: Dp,
     showMonthLabels: Boolean,
     showYearDivider: Boolean,
-    showYearLabels: Boolean
+    showYearLabels: Boolean,
+    notificationDotAlpha: Float = 1f
 ) {
     val onSurface = MaterialTheme.colorScheme.onSurface
     val surface = MaterialTheme.colorScheme.surface
@@ -148,7 +149,7 @@ fun HeatmapWeekColumn(
 
                     if (weekData.notificationDots[i]) {
                         drawCircle(
-                            color = Color.White,
+                            color = Color.White.copy(alpha = notificationDotAlpha),
                             radius = 1.dp.toPx(),
                             center = Offset(cellSizePx / 2f, top + cellSizePx / 2f)
                         )
