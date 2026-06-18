@@ -372,7 +372,8 @@ fun SettingsScreen(
                     settingsDataStore = settingsDataStore,
                     onNavigateToScrollBlur = { navController.navigate("scroll_blur") { launchSingleTop = true } },
                     onNavigateToHabitColor = { navController.navigate("habit_color") { launchSingleTop = true } },
-                    onNavigateToReduceMovement = { navController.navigate("reduce_movement") { launchSingleTop = true } }
+                    onNavigateToReduceMovement = { navController.navigate("reduce_movement") { launchSingleTop = true } },
+                    onNavigateToHeatmapNotificationDot = { navController.navigate("heatmap_notification_dot") { launchSingleTop = true } }
                 )
             }
         }
@@ -408,6 +409,24 @@ fun SettingsScreen(
                 borderContrast = borderContrast,
             ) { paddingValues ->
                 HeatmapWeeksSubScreen(
+                    settingsDataStore = settingsDataStore,
+                    modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
+                )
+            }
+        }
+
+        composable(
+            route = "heatmap_notification_dot"
+        ) {
+            SettingsScaffold(
+                title = "Notification indicator",
+                onBack = {
+                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+                    navController.popBackStack()
+                },
+                borderContrast = borderContrast
+            ) { paddingValues ->
+                HeatmapNotificationDotSubScreen(
                     settingsDataStore = settingsDataStore,
                     modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
                 )

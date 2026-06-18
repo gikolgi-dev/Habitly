@@ -205,6 +205,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     val showMonthLabels by settingsDataStore.monthLabels.collectAsState(initial = null)
     val showYearDivider by settingsDataStore.yearDivider.collectAsState(initial = null)
     val showYearLabels by settingsDataStore.yearLabels.collectAsState(initial = null)
+    val heatmapNotificationDot by settingsDataStore.heatmapNotificationDot.collectAsState(initial = null)
+    val heatmapNotificationDotRange by settingsDataStore.heatmapNotificationDotRange.collectAsState(initial = null)
     val showScrollBlur by settingsDataStore.showScrollBlur.collectAsState(initial = true)
     val scrollBlurTargets by settingsDataStore.scrollBlurTargets.collectAsState(initial = setOf("Heatmap", "Line Chart"))
     val heatmapVisibleDays by settingsDataStore.heatmapVisibleDays.collectAsState(initial = null)
@@ -228,6 +230,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     val useHabitColorForStatistics = useHabitColorForCard && "Statistic Screen" in habitColorTargets
 
     val areSettingsLoaded = borderContrast != null &&
+            heatmapNotificationDot != null &&
+            heatmapNotificationDotRange != null &&
             showMonthLabels != null &&
             showYearDivider != null &&
             showYearLabels != null &&
@@ -541,6 +545,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                         dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight!!,
                                                         showYearDivider = showYearDivider!!,
                                                         showYearLabels = showYearLabels!!,
+                                                        heatmapNotificationDot = heatmapNotificationDot!!,
+                                                        heatmapNotificationDotRange = heatmapNotificationDotRange!!,
                                                         showScrollBlur = showScrollBlur && "Heatmap" in scrollBlurTargets,
                                                         borderContrast = borderContrast!!,
                                                         heatmapScrollEnabled = heatmapScrolling,
@@ -620,6 +626,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                         showMonthLabels = showMonthLabels ?: false,
                         showYearDivider = showYearDivider ?: false,
                         showYearLabels = showYearLabels ?: false,
+                        heatmapNotificationDot = heatmapNotificationDot ?: false,
+                        heatmapNotificationDotRange = heatmapNotificationDotRange ?: DefaultSettings.HEATMAP_NOTIFICATION_DOT_RANGE,
                         heatmapVisibleDays = heatmapVisibleDays ?: emptySet(),
                         dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight ?: false,
                         vibrationsEnabled = vibrationsEnabled,
@@ -715,6 +723,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                             borderContrast = borderContrast!!,
                             showScrollBlur = showScrollBlur && "Heatmap" in scrollBlurTargets,
                             showYearLabels = showYearLabels!!,
+                            heatmapNotificationDot = heatmapNotificationDot!!,
+                            heatmapNotificationDotRange = heatmapNotificationDotRange!!,
                             showYearDivider = showYearDivider!!,
                             vibrationsEnabled = vibrationsEnabled,
                             showMonthLabels = showMonthLabels!!,
@@ -936,6 +946,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                             dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight!!,
                             showYearDivider = showYearDivider!!,
                             showYearLabels = showYearLabels!!,
+                            heatmapNotificationDot = heatmapNotificationDot!!,
+                            heatmapNotificationDotRange = heatmapNotificationDotRange!!,
                             showScrollBlur = false,
                             borderContrast = borderContrast!!,
                             heatmapScrollEnabled = false,

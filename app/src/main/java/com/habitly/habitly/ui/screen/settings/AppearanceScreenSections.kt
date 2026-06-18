@@ -126,11 +126,13 @@ fun HeatmapSection(
     showMonthLabels: Boolean,
     showYearDivider: Boolean,
     showYearLabels: Boolean,
+    heatmapNotificationDot: Boolean,
     borderContrast: Float,
     vibrationsEnabled: Boolean,
     settingsDataStore: SettingsDataStore,
     scope: CoroutineScope,
-    haptic: HapticFeedback
+    haptic: HapticFeedback,
+    onNavigateToHeatmapNotificationDot: () -> Unit
 ) {
     val heatmapVisibleDaysState = settingsDataStore.heatmapVisibleDays.collectAsState(initial = null)
     
@@ -175,6 +177,21 @@ fun HeatmapSection(
                 haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
             }
         }
+
+        SettingsSwitchNavigationItem(
+            text = "Notification indicator",
+            description = "Show a dot on days with scheduled notifications",
+            checked = heatmapNotificationDot,
+            settingsDataStore = settingsDataStore,
+            position = SettingsItemPosition.Middle,
+            onCheckedChange = {
+                scope.launch { settingsDataStore.setHeatmapNotificationDot(it) }
+                if (vibrationsEnabled) {
+                    haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+                }
+            },
+            onClick = onNavigateToHeatmapNotificationDot
+        )
 
         SettingsItemBox(settingsDataStore = settingsDataStore, position = SettingsItemPosition.Bottom) {
             Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {

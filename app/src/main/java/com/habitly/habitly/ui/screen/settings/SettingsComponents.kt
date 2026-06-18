@@ -399,6 +399,67 @@ fun SettingsCheckboxItem(
         }
     }
 }
+@Composable
+fun SettingsRadioButtonItemContent(
+    text: String,
+    selected: Boolean,
+    enabled: Boolean = true,
+    showDivider: Boolean = false,
+    onClick: () -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(enabled = enabled, onClick = onClick)
+                .padding(horizontal = 16.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            androidx.compose.material3.RadioButton(
+                selected = selected,
+                onClick = onClick,
+                enabled = enabled,
+                modifier = Modifier.padding(end = 16.dp)
+            )
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+            )
+        }
+        if (showDivider) {
+            HorizontalDivider(
+                modifier = Modifier.padding(start = 78.dp, end = 16.dp),
+                thickness = 0.5.dp,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            )
+        }
+    }
+}
+
+@Composable
+fun SettingsRadioButtonItem(
+    text: String,
+    selected: Boolean,
+    settingsDataStore: SettingsDataStore,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    position: SettingsItemPosition = SettingsItemPosition.Alone,
+    showDivider: Boolean = false,
+    onClick: () -> Unit
+) {
+    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 46.dp) {
+        SettingsItemBox(settingsDataStore = settingsDataStore, position = position, modifier = modifier) {
+            SettingsRadioButtonItemContent(
+                text = text,
+                selected = selected,
+                enabled = enabled,
+                showDivider = showDivider,
+                onClick = onClick
+            )
+        }
+    }
+}
 
 @Composable
 fun RotatingCookie(

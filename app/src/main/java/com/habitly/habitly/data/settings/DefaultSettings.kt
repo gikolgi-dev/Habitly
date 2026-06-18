@@ -19,6 +19,8 @@ object DefaultSettings {
     const val HERO_CARD_VISIBLE = true
     const val YEAR_DIVIDER = false
     const val YEAR_LABELS = false
+    const val HEATMAP_NOTIFICATION_DOT = false
+    const val HEATMAP_NOTIFICATION_DOT_RANGE = "today_and_future"
     const val HEATMAP_SCROLLING = false
     const val SHOW_SCROLL_BLUR = true
     const val SCROLL_BLUR_TARGETS = "Line Chart"

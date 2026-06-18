@@ -252,6 +252,8 @@ fun HabitItemCard(
     dayOfWeekLabelsOnRight: Boolean,
     showYearDivider: Boolean,
     showYearLabels: Boolean,
+    heatmapNotificationDot: Boolean,
+    heatmapNotificationDotRange: String,
     showScrollBlur: Boolean = true,
     borderContrast: Float,
     useHabitColor: Boolean,
@@ -353,7 +355,10 @@ fun HabitItemCard(
                     showScrollBlur = showScrollBlur,
                     minWeeks = heatmapWeeks,
                     isInfinite = heatmapInfinite,
-                    currentDateMillis = currentDateMillis
+                    currentDateMillis = currentDateMillis,
+                    habit = habit,
+                    showNotificationDot = heatmapNotificationDot,
+                    notificationDotRange = heatmapNotificationDotRange
                 )
             }
         }

@@ -98,6 +98,8 @@ fun SharedTransitionScope.HabitDetailScreen(
     borderContrast: Float,
     showScrollBlur: Boolean,
     showYearLabels: Boolean,
+    heatmapNotificationDot: Boolean,
+    heatmapNotificationDotRange: String,
     showYearDivider: Boolean,
     vibrationsEnabled: Boolean,
     showMonthLabels: Boolean,
@@ -335,7 +337,10 @@ fun SharedTransitionScope.HabitDetailScreen(
                     showScrollBlur = showScrollBlur,
                     minWeeks = maxOf(30, heatmapWeeks), // Display a bit more heatmap columns even if they are empty
                     isInfinite = heatmapInfinite,
-                    currentDateMillis = currentDateMillis
+                    currentDateMillis = currentDateMillis,
+                    habit = habit,
+                    showNotificationDot = heatmapNotificationDot,
+                    notificationDotRange = heatmapNotificationDotRange
                 )
 
                 //Spacer(modifier = Modifier.height(4.dp))
