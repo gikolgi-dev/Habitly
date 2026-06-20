@@ -5,6 +5,8 @@
 package com.habitly.habitly.ui
 
 import android.annotation.SuppressLint
+import kotlin.math.roundToInt
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.Crossfade
@@ -53,6 +55,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Matrix
@@ -60,6 +63,8 @@ import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asAndroidPath
+import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
@@ -76,7 +81,13 @@ import com.habitly.habitly.data.Database.Habit
 import com.habitly.habitly.ui.colors.isBright
 import com.habitly.habitly.ui.components.RotatingHabitIcon
 
-private val circleToSquareMorph = Morph(MaterialShapes.Circle, MaterialShapes.Square)
+val circleToSquareMorph = Morph(MaterialShapes.Circle, MaterialShapes.Square)
+
+val precomputedMorphPaths = Array(101) { i ->
+    val path = Path()
+    circleToSquareMorph.toPath(i / 100f, path.asAndroidPath())
+    path
+}
 
 @Composable
 fun HabitTitleAndDescription(
@@ -157,7 +168,10 @@ fun HabitCompletionButton(
     onComplete: () -> Unit,
     sharedTransitionScope: SharedTransitionScope? = null,
     visible: Boolean = true,
-    transitionProgress: Float = 0f
+    transitionProgressProvider: () -> Float = { 0f },
+    theme: String = "system",
+    detailBgColor: Color = Color.Unspecified,
+    detailBorderColor: Color = Color.Unspecified
 ) {
     val color = Color(habit.color)
     val transition = updateTransition(targetState = isCompleted, label = "CompletionTransition")
@@ -172,9 +186,6 @@ fun HabitCompletionButton(
     val animatedHabitColorState =
         animateColorAsState(targetValue = color, animationSpec = tween(300), label = "habitColor")
 
-    val morph = circleToSquareMorph
-    val path = remember { Path() }
-    val matrix = remember { Matrix() }
 
     val rotationAnimationSpec = tween<Float>(durationMillis = 400, easing = FastOutSlowInEasing)
     val rotationState = animateFloatAsState(
@@ -193,14 +204,6 @@ fun HabitCompletionButton(
         label = "button_scale"
     )
 
-    val p = progressState.value
-    val currentColor = animatedHabitColorState.value
-    val bgAlpha = lerp(0.1f, 1f, p)
-    val strokeAlpha = lerp(borderContrast, 1f, p)
-    val startRadius = 32.dp - (24.dp * p)
-    val cornerRadius = startRadius + (8.dp - startRadius) * transitionProgress
-    val shape = RoundedCornerShape(cornerRadius)
-
     val buttonModifier = if (sharedTransitionScope != null) {
         with(sharedTransitionScope) {
             Modifier.sharedElementWithCallerManagedVisibility(
@@ -212,6 +215,7 @@ fun HabitCompletionButton(
     } else {
         Modifier
     }
+
     Box(
         modifier = modifier
             .then(buttonModifier)
@@ -220,9 +224,35 @@ fun HabitCompletionButton(
                 scaleX = scaleState.value
                 scaleY = scaleState.value
             }
-            .background(currentColor.copy(alpha = bgAlpha), shape)
-            .border(1.dp, currentColor.copy(alpha = strokeAlpha), shape)
-            .clip(shape)
+            .drawBehind {
+                val p = progressState.value
+                val tp = transitionProgressProvider()
+                val morphPercentage = p + (1f - p) * tp
+                val index = (morphPercentage * 100).roundToInt().coerceIn(0, 100)
+                val cachedPath = precomputedMorphPaths[index]
+
+                val bgAlpha = lerp(0.1f, 1f, p)
+                val strokeAlpha = lerp(borderContrast, 1f, p)
+                val currentColor = animatedHabitColorState.value
+
+                val itemBgColor = currentColor.copy(alpha = bgAlpha)
+                val itemStrokeColor = currentColor.copy(alpha = strokeAlpha)
+                
+                val targetBgColor = if (detailBgColor != Color.Unspecified) detailBgColor else itemBgColor
+                val targetBorderColor = if (detailBorderColor != Color.Unspecified) detailBorderColor else itemStrokeColor
+                
+                val currentBgColor = lerp(itemBgColor, targetBgColor, tp)
+                val currentStrokeColor = lerp(itemStrokeColor, targetBorderColor, tp)
+                
+                scale(
+                    scaleX = size.width,
+                    scaleY = size.height,
+                    pivot = androidx.compose.ui.geometry.Offset.Zero
+                ) {
+                    drawPath(cachedPath, color = currentBgColor)
+                    drawPath(cachedPath, color = currentStrokeColor, style = Stroke(width = 1.dp.toPx() / size.width))
+                }
+            }
             .pointerInput(isCompleted, disablePressAnimation) {
                 detectTapGestures(
                     onPress = {
@@ -298,7 +328,8 @@ fun HabitItemCard(
     @SuppressLint("ModifierParameter") modifier: Modifier = Modifier,
     sharedTransitionScope: SharedTransitionScope? = null,
     visible: Boolean = true,
-    transitionProgress: Float = 0f
+    transitionProgressProvider: () -> Float = { 0f },
+    theme: String = "system"
 ) {
     val targetCardBackgroundColor = if (useHabitColor) {
         lerp(Color(habit.color), MaterialTheme.colorScheme.surfaceVariant, 0.85f)
@@ -326,6 +357,14 @@ fun HabitItemCard(
         animationSpec = tween(300),
         label = "cardBorderColor"
     )
+    val useDarkTheme = when (theme) {
+        "light" -> false
+        "dark" -> true
+        else -> androidx.compose.foundation.isSystemInDarkTheme()
+    }
+    val secondaryContainerAlpha = if (useDarkTheme) 0.25f else 1f
+    val detailBgColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = secondaryContainerAlpha)
+    val detailBorderColor = cardBorderColor
 
     Card(
         modifier = Modifier
@@ -369,7 +408,10 @@ fun HabitItemCard(
                         onComplete = onComplete,
                         sharedTransitionScope = sharedTransitionScope,
                         visible = visible,
-                        transitionProgress = transitionProgress
+                        transitionProgressProvider = transitionProgressProvider,
+                        theme = theme,
+                        detailBgColor = detailBgColor,
+                        detailBorderColor = detailBorderColor
                     )
                 } else {
                     Row {
@@ -413,21 +455,18 @@ fun HabitItemCard(
 
 class MorphPolygonShape(
     private val morph: Morph,
-    private val percentage: Float,
-    private val path: Path = Path(),
-    private val matrix: Matrix = Matrix()
+    private val percentage: Float
 ) : Shape {
-
     override fun createOutline(
         size: Size,
         layoutDirection: LayoutDirection,
         density: Density
     ): Outline {
-        path.rewind()
+        val path = Path()
         morph.toPath(percentage, path.asAndroidPath())
-        matrix.reset()
-        matrix.scale(size.width, size.height)
-        path.transform(matrix)
+        val matrix = android.graphics.Matrix()
+        matrix.setScale(size.width, size.height)
+        path.asAndroidPath().transform(matrix)
         return Outline.Generic(path)
     }
 }

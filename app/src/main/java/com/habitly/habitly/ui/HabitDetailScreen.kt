@@ -7,6 +7,8 @@ package com.habitly.habitly.ui
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
+import kotlin.math.roundToInt
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
@@ -39,6 +41,8 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.habitly.habitly.ui.circleToSquareMorph
+import com.habitly.habitly.ui.MorphPolygonShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ShowChart
@@ -69,18 +73,30 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.PaintingStyle.Companion.Stroke
+import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.asAndroidPath
+import androidx.graphics.shapes.toPath
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.habitly.habitly.data.Database.Completion
 import com.habitly.habitly.data.Database.Habit
 import com.habitly.habitly.data.Database.HabitViewModel
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.unit.LayoutDirection
 import com.habitly.habitly.data.Database.HabitWithCompletions
 import com.habitly.habitly.notifications.NotificationScheduler
 import com.habitly.habitly.ui.components.RotatingHabitIcon
@@ -116,7 +132,7 @@ fun SharedTransitionScope.HabitDetailScreen(
     heatmapInfinite: Boolean = false,
     currentDateMillis: Long = System.currentTimeMillis(),
     isEditSheetOpen: Boolean = false,
-    transitionProgress: Float = 1f
+    transitionProgressProvider: () -> Float = { 1f }
 ) {
     val haptic = LocalHapticFeedback.current
     val context = LocalContext.current
@@ -126,6 +142,7 @@ fun SharedTransitionScope.HabitDetailScreen(
     val completions = habitWithCompletions.completions
     val animatedColorState =
         animateColorAsState(targetValue = Color(habit.color), animationSpec = tween(durationMillis = 500))
+    val isSharedVisible = !isEditSheetOpen && animatedVisibilityScope.transition.targetState == androidx.compose.animation.EnterExitState.Visible
 
     val notificationDotAlpha by animatedVisibilityScope.transition.animateFloat(
         transitionSpec = { tween(durationMillis = 300, easing = FastOutSlowInEasing) },
@@ -240,7 +257,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                 }
                 .sharedElementWithCallerManagedVisibility(
                     rememberSharedContentState(key = "card-${habit.id}"),
-                    visible = !isEditSheetOpen,
+                    visible = isSharedVisible,
                     boundsTransform = { _, _ -> tween(durationMillis = 300, easing = FastOutSlowInEasing) }
                 )
                 .fillMaxWidth(0.9f)
@@ -314,15 +331,14 @@ fun SharedTransitionScope.HabitDetailScreen(
                         val isCompletedToday = remember(completions, todayStart, todayEnd) {
                             completions.any { it.date in todayStart..todayEnd }
                         }
-                        val startRadius = if (isCompletedToday) 8.dp else 32.dp
-                        val detailCornerRadius = startRadius + (8.dp - startRadius) * transitionProgress
-                        val closeButtonShape = RoundedCornerShape(detailCornerRadius)
+                        
+                        val secondaryContainerColor = MaterialTheme.colorScheme.secondaryContainer
 
                         Box(
                             modifier = Modifier
                                 .sharedElementWithCallerManagedVisibility(
                                     rememberSharedContentState(key = "button-${habit.id}"),
-                                    visible = !isEditSheetOpen,
+                                    visible = isSharedVisible,
                                     boundsTransform = { _, _ -> tween(durationMillis = 300, easing = FastOutSlowInEasing) }
                                 )
                                 .graphicsLayer {
@@ -330,13 +346,21 @@ fun SharedTransitionScope.HabitDetailScreen(
                                     scaleY = closeScale
                                 }
                                 .size(48.dp)
-                                .clip(closeButtonShape)
-                                .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = secondaryContainerAlpha))
-                                .border(
-                                    1.dp,
-                                    cardBorderColor,
-                                    closeButtonShape
-                                )
+                                .drawBehind {
+                                    val startPercentage = if (isCompletedToday) 1f else 0f
+                                    val morphPercentage = startPercentage + (1f - startPercentage) * transitionProgressProvider()
+                                    val index = (morphPercentage * 100).roundToInt().coerceIn(0, 100)
+                                    val cachedPath = com.habitly.habitly.ui.precomputedMorphPaths[index]
+
+                                    scale(
+                                        scaleX = size.width,
+                                        scaleY = size.height,
+                                        pivot = androidx.compose.ui.geometry.Offset.Zero
+                                    ) {
+                                        drawPath(cachedPath, color = secondaryContainerColor.copy(alpha = secondaryContainerAlpha))
+                                        drawPath(cachedPath, color = cardBorderColor, style = Stroke(width = 1.dp.toPx() / size.width))
+                                    }
+                                }
                                 .pointerInput(Unit) {
                                     detectTapGestures(
                                         onPress = {

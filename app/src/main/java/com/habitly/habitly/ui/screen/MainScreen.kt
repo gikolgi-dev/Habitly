@@ -419,7 +419,11 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     Box(Modifier.fillMaxSize()) {
         SharedTransitionLayout {
             val sharedTransitionScope = this
-            val detailTransitionProgress by animateFloatAsState(
+            val lastViewedHabitId = remember { mutableStateOf<String?>(null) }
+            if (habitToView != null) {
+                lastViewedHabitId.value = habitToView?.habit?.id
+            }
+            val detailTransitionProgressState = animateFloatAsState(
                 targetValue = if (habitToView != null) 1f else 0f,
                 animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing),
                 label = "detailTransitionProgress"
@@ -562,6 +566,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                         heatmapWeeks = heatmapWeeks,
                                                         heatmapInfinite = heatmapInfinite,
                                                         useHabitColor = useHabitColorForItemCards,
+                                                        theme = theme,
                                                         disableAnimations = disableAnimations,
                                                         currentDateMillis = currentDateMillis,
                                                         onComplete = {
@@ -581,7 +586,11 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                         },
                                                         sharedTransitionScope = sharedTransitionScope,
                                                         visible = !isViewingThis && !isEditingThis,
-                                                        transitionProgress = detailTransitionProgress
+                                                        transitionProgressProvider = { 
+                                                            if (isViewingThis || (habitToView == null && lastViewedHabitId.value == habitWithCompletions.habit.id)) 
+                                                                detailTransitionProgressState.value 
+                                                            else 0f 
+                                                        }
                                                     )
                                                 }
                                             }
@@ -751,7 +760,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                             heatmapInfinite = heatmapInfinite,
                             currentDateMillis = currentDateMillis,
                             isEditSheetOpen = showHabitSheet,
-                            transitionProgress = detailTransitionProgress
+                            transitionProgressProvider = { detailTransitionProgressState.value }
                         )
                     }
                 }
