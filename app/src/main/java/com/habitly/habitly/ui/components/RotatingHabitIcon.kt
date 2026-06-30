@@ -32,6 +32,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -40,6 +42,24 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.habitly.habitly.data.Database.Habit
 import com.habitly.habitly.ui.habitIconMap
+val LocalRotatingIconRotation = compositionLocalOf<() -> Float> { { 0f } }
+
+@Composable
+fun ProvideRotatingIconRotation(content: @Composable () -> Unit) {
+    val infiniteTransition = rememberInfiniteTransition(label = "rotating_icon_rotation")
+    val animatedRotation = infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(30000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "rotation"
+    )
+    CompositionLocalProvider(LocalRotatingIconRotation provides { animatedRotation.value }) {
+        content()
+    }
+}
 
 @Composable
 fun RotatingHabitIcon(
@@ -49,17 +69,7 @@ fun RotatingHabitIcon(
     shouldAnimate: Boolean = true
 ) {
     val rotation = if (shouldAnimate) {
-        val infiniteTransition = rememberInfiniteTransition(label = "rotation")
-        val animatedRotation by infiniteTransition.animateFloat(
-            initialValue = 0f,
-            targetValue = 360f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(30000, easing = LinearEasing),
-                repeatMode = RepeatMode.Restart
-            ),
-            label = "rotation"
-        )
-        animatedRotation
+        LocalRotatingIconRotation.current()
     } else {
         0f
     }

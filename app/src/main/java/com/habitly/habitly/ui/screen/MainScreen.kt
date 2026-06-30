@@ -126,6 +126,7 @@ import com.habitly.habitly.ui.SaveHabitButton
 import com.habitly.habitly.ui.colors.habitColors
 import com.habitly.habitly.ui.components.CustomTimePickerDialog
 import com.habitly.habitly.ui.components.rememberNotificationPermissionHandler
+import com.habitly.habitly.ui.components.ProvideRotatingIconRotation
 import com.habitly.habitly.ui.defaultHabitIconKey
 import com.habitly.habitly.ui.screen.settings.SettingsScreen
 import com.habitly.habitly.ui.screen.settings.settingsEnterTransition
@@ -420,7 +421,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
         )
     }
 
-    Box(Modifier.fillMaxSize()) {
+    ProvideRotatingIconRotation {
+        Box(Modifier.fillMaxSize()) {
         SharedTransitionLayout {
             val sharedTransitionScope = this
             val lastViewedHabitId = remember { mutableStateOf<String?>(null) }
@@ -1224,6 +1226,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
             )
         }
     }
+}
 }
 
 @Composable

@@ -278,6 +278,11 @@ fun HabitCompletionButton(
         } else {
             animatedHabitColor
         }
+        val tp = transitionProgressProvider()
+        val iconSize = 32.dp + (20.dp - 32.dp) * tp
+        val delayStart = if (isCompleted) 0f else 0.4f
+        val fadeProgress = if (tp < delayStart) 0f else (tp - delayStart) / (1f - delayStart)
+        val iconAlpha = (1f - fadeProgress).coerceIn(0f, 1f)
 
         Crossfade(
             targetState = isCompleted,
@@ -289,9 +294,10 @@ fun HabitCompletionButton(
                 contentDescription = if (completed) "Completed" else "Complete",
                 tint = iconTintColor,
                 modifier = Modifier
-                    .size(32.dp)
+                    .size(iconSize)
                     .graphicsLayer {
                         rotationZ = rotationState.value
+                        alpha = if (isCompleted) 1f else iconAlpha
                     }
             )
         }

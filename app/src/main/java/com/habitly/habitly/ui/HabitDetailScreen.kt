@@ -400,10 +400,17 @@ fun SharedTransitionScope.HabitDetailScreen(
                                 },
                             contentAlignment = Alignment.Center
                         ) {
+                            val tp = transitionProgressProvider()
+                            val iconSize = 32.dp + (20.dp - 32.dp) * tp
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "Close",
-                                modifier = Modifier.size(20.dp),
+                                modifier = Modifier
+                                    .size(iconSize)
+                                    .graphicsLayer {
+                                        rotationZ = if (isCompletedToday) 180f else 0f
+                                        alpha = if (isCompletedToday) 1f else tp
+                                    },
                                 tint = MaterialTheme.colorScheme.onSurface
                             )
                         }
