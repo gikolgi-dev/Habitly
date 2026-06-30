@@ -434,6 +434,11 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing),
                 label = "detailTransitionProgress"
             )
+            val editSheetTransitionProgressState = animateFloatAsState(
+                targetValue = if (showHabitSheet) 1f else 0f,
+                animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+                label = "editSheetTransitionProgress"
+            )
             val mainBlurRadius by animateDpAsState(
                 targetValue = if ((isAnySheetOpen || isFabMenuExpanded) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) 16.dp else 0.dp,
                 label = "mainBlurRadius"
@@ -938,9 +943,9 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                     }
 
                     val livePreviewColor = if (showColorPicker) tempColor else customColor
-                    val dummyHabit = remember(habitName, habitDescription, habitColor, customColor, habitIconKey, completionsPerInterval, intervalUnit, notificationsEnabled, notificationTime, notificationDays, livePreviewColor) {
+                    val dummyHabit = remember(habitName, habitDescription, habitColor, customColor, habitIconKey, completionsPerInterval, intervalUnit, notificationsEnabled, notificationTime, notificationDays, livePreviewColor, isEditMode) {
                         Habit(
-                            id = "preview",
+                            id = if (isEditMode) habitToEdit!!.id else "preview",
                             name = habitName.ifBlank { "Habit Name" },
                             description = habitDescription.ifBlank { "Description" },
                             color = (livePreviewColor ?: habitColor).toArgb(),
@@ -987,6 +992,10 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                             disableAnimations = disableAnimations,
                             onComplete = { /* Do nothing in preview */ },
                             onClick = { /* Do nothing in preview */ },
+                            sharedTransitionScope = sharedTransitionScope,
+                            visible = showHabitSheet,
+                            transitionProgressProvider = { 1f - editSheetTransitionProgressState.value },
+                            detailBgColor = Color(dummyHabit.color).copy(alpha = 0.1f),
                             modifier = Modifier
                                 .sharedElementWithCallerManagedVisibility(
                                     rememberSharedContentState(key = previewKey),

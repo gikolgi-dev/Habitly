@@ -335,7 +335,8 @@ fun HabitItemCard(
     sharedTransitionScope: SharedTransitionScope? = null,
     visible: Boolean = true,
     transitionProgressProvider: () -> Float = { 0f },
-    theme: String = "system"
+    theme: String = "system",
+    detailBgColor: Color = Color.Unspecified
 ) {
     val targetCardBackgroundColor = if (useHabitColor) {
         lerp(Color(habit.color), MaterialTheme.colorScheme.surfaceVariant, 0.85f)
@@ -369,7 +370,11 @@ fun HabitItemCard(
         else -> androidx.compose.foundation.isSystemInDarkTheme()
     }
     val secondaryContainerAlpha = if (useDarkTheme) 0.25f else 1f
-    val detailBgColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = secondaryContainerAlpha)
+    val resolvedDetailBgColor = if (detailBgColor != Color.Unspecified) {
+        detailBgColor
+    } else {
+        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = secondaryContainerAlpha)
+    }
     val detailBorderColor = cardBorderColor
 
     Card(
@@ -416,7 +421,7 @@ fun HabitItemCard(
                         visible = visible,
                         transitionProgressProvider = transitionProgressProvider,
                         theme = theme,
-                        detailBgColor = detailBgColor,
+                        detailBgColor = resolvedDetailBgColor,
                         detailBorderColor = detailBorderColor
                     )
                 } else {
