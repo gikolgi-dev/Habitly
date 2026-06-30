@@ -267,6 +267,10 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
 
     var showHabitSheet by remember { mutableStateOf(false) }
     var habitToView by remember { mutableStateOf<HabitWithCompletions?>(null) }
+    var lastNonNullHabitToView by remember { mutableStateOf<HabitWithCompletions?>(null) }
+    if (habitToView != null) {
+        lastNonNullHabitToView = habitToView
+    }
     var habitToEdit by remember { mutableStateOf<Habit?>(null) }
     var showColorPicker by remember { mutableStateOf(false) }
     var customColor by remember { mutableStateOf<Color?>(null) }
@@ -709,7 +713,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                     enter = fadeIn(animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)),
                     exit = ExitTransition.None
                 ) {
-                    habitToView?.let { habitWithCompletions ->
+                    lastNonNullHabitToView?.let { habitWithCompletions ->
                         val habitState by remember(habitsUiState, habitWithCompletions) {
                             derivedStateOf {
                                 (habitsUiState as? HabitsUiState.Success)?.habits

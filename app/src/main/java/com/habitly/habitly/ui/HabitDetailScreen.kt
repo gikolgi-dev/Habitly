@@ -352,13 +352,29 @@ fun SharedTransitionScope.HabitDetailScreen(
                                     val index = (morphPercentage * 100).roundToInt().coerceIn(0, 100)
                                     val cachedPath = com.habitly.habitly.ui.precomputedMorphPaths[index]
 
+                                    val p = if (isCompletedToday) 1f else 0f
+                                    val tp = transitionProgressProvider()
+                                    val currentColor = animatedColorState.value
+
+                                    val bgAlpha = 0.1f + (1f - 0.1f) * p
+                                    val strokeAlpha = borderContrast + (1f - borderContrast) * p
+
+                                    val itemBgColor = currentColor.copy(alpha = bgAlpha)
+                                    val itemStrokeColor = currentColor.copy(alpha = strokeAlpha)
+
+                                    val targetBgColor = secondaryContainerColor.copy(alpha = secondaryContainerAlpha)
+                                    val targetBorderColor = cardBorderColor
+
+                                    val currentBgColor = lerp(itemBgColor, targetBgColor, tp)
+                                    val currentStrokeColor = lerp(itemStrokeColor, targetBorderColor, tp)
+
                                     scale(
                                         scaleX = size.width,
                                         scaleY = size.height,
                                         pivot = androidx.compose.ui.geometry.Offset.Zero
                                     ) {
-                                        drawPath(cachedPath, color = secondaryContainerColor.copy(alpha = secondaryContainerAlpha))
-                                        drawPath(cachedPath, color = cardBorderColor, style = Stroke(width = 1.dp.toPx() / size.width))
+                                        drawPath(cachedPath, color = currentBgColor)
+                                        drawPath(cachedPath, color = currentStrokeColor, style = Stroke(width = 1.dp.toPx() / size.width))
                                     }
                                 }
                                 .pointerInput(Unit) {
