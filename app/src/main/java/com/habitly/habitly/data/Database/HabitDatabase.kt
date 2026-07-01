@@ -166,19 +166,19 @@ abstract class HabitDatabase : RoomDatabase() {
 }
 
 val MIGRATION_5_6 = object : Migration(5, 6) {
-    override fun migrate(database: SupportSQLiteDatabase) {
-        database.execSQL("ALTER TABLE Completion ADD COLUMN timezoneOffsetInMinutes INTEGER NOT NULL DEFAULT 0")
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE Completion ADD COLUMN timezoneOffsetInMinutes INTEGER NOT NULL DEFAULT 0")
     }
 }
 val MIGRATION_6_7 = object : Migration(6, 7) {
-    override fun migrate(database: SupportSQLiteDatabase) {
-        database.execSQL("ALTER TABLE Completion ADD COLUMN amountOfCompletions INTEGER NOT NULL DEFAULT 1")
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE Completion ADD COLUMN amountOfCompletions INTEGER NOT NULL DEFAULT 1")
     }
 }
 val MIGRATION_8_9 = object : Migration(8, 9) {
-    override fun migrate(database: SupportSQLiteDatabase) {
+    override fun migrate(db: SupportSQLiteDatabase) {
         // Create a new table with the desired schema
-        database.execSQL("""
+        db.execSQL("""
             CREATE TABLE Habit_new (
                 id TEXT NOT NULL,
                 name TEXT NOT NULL,
@@ -197,36 +197,36 @@ val MIGRATION_8_9 = object : Migration(8, 9) {
         """.trimIndent())
 
         // Copy the data from the old table to the new table
-        database.execSQL("""
+        db.execSQL("""
             INSERT INTO Habit_new (id, name, description, icon, color, archived, orderIndex, createdAt, isInverse, emoji, completionsPerInterval, intervalUnit)
             SELECT id, name, description, icon, color, archived, orderIndex, createdAt, isInverse, emoji, completionsPerInterval, intervalUnit FROM Habit
         """.trimIndent())
 
         // Drop the old table
-        database.execSQL("DROP TABLE Habit")
+        db.execSQL("DROP TABLE Habit")
 
         // Rename the new table to the original table name
-        database.execSQL("ALTER TABLE Habit_new RENAME TO Habit")
+        db.execSQL("ALTER TABLE Habit_new RENAME TO Habit")
     }
 }
 
 val MIGRATION_9_10 = object : Migration(9, 10) {
-    override fun migrate(database: SupportSQLiteDatabase) {
-        database.execSQL("ALTER TABLE Habit ADD COLUMN notificationsEnabled INTEGER NOT NULL DEFAULT 0")
-        database.execSQL("ALTER TABLE Habit ADD COLUMN notificationTime TEXT")
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE Habit ADD COLUMN notificationsEnabled INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE Habit ADD COLUMN notificationTime TEXT")
     }
 }
 
 val MIGRATION_10_11 = object : Migration(10, 11) {
-    override fun migrate(database: SupportSQLiteDatabase) {
-        database.execSQL("ALTER TABLE Habit ADD COLUMN notificationDays TEXT")
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE Habit ADD COLUMN notificationDays TEXT")
     }
 }
 
 val MIGRATION_11_12 = object : Migration(11, 12) {
-    override fun migrate(database: SupportSQLiteDatabase) {
+    override fun migrate(db: SupportSQLiteDatabase) {
         // 1. Ensure Habit.notificationDays column exists
-        val habitCursor = database.query("PRAGMA table_info(Habit)")
+        val habitCursor = db.query("PRAGMA table_info(Habit)")
         var hasNotificationDays = false
         while (habitCursor.moveToNext()) {
             val nameIndex = habitCursor.getColumnIndex("name")
@@ -237,17 +237,17 @@ val MIGRATION_11_12 = object : Migration(11, 12) {
         }
         habitCursor.close()
         if (!hasNotificationDays) {
-            database.execSQL("ALTER TABLE Habit ADD COLUMN notificationDays TEXT")
+            db.execSQL("ALTER TABLE Habit ADD COLUMN notificationDays TEXT")
         }
 
         // 2. Ensure Completion index on habitId exists
-        database.execSQL("CREATE INDEX IF NOT EXISTS index_Completion_habitId ON Completion (habitId)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_Completion_habitId ON Completion (habitId)")
     }
 }
 
 val MIGRATION_12_13 = object : Migration(12, 13) {
-    override fun migrate(database: SupportSQLiteDatabase) {
-        database.execSQL("ALTER TABLE Habit ADD COLUMN statsLayout TEXT DEFAULT NULL")
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE Habit ADD COLUMN statsLayout TEXT DEFAULT NULL")
     }
 }
 

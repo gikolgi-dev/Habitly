@@ -567,7 +567,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                                         alpha = 0.38f
                                     )
                                 )
-                                if (notificationsSet && habit.notificationTime != null) {
+                                if (notificationsSet) {
                                     Spacer(modifier = Modifier.size(4.dp))
                                     Text(
                                         text = habit.notificationTime,
