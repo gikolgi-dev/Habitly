@@ -47,6 +47,8 @@ import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.habitly.habitly.ui.circleToSquareMorph
+import com.habitly.habitly.ui.MorphPolygonShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -493,12 +495,12 @@ private fun CloseButton(
                 scaleY = closeScale
             }
             .size(48.dp)
-            .clip(RoundedCornerShape(8.dp))
+            .clip(remember { MorphPolygonShape(circleToSquareMorph, 1f) })
             .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = secondaryContainerAlpha))
             .border(
                 1.dp,
                 MaterialTheme.colorScheme.outline.copy(alpha = borderContrast),
-                RoundedCornerShape(8.dp)
+                remember { MorphPolygonShape(circleToSquareMorph, 1f) }
             )
             .pointerInput(Unit) {
                 detectTapGestures(

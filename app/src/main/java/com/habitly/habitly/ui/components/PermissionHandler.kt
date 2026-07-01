@@ -23,6 +23,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -56,6 +60,7 @@ fun rememberNotificationPermissionHandler(
     onPermissionGranted: () -> Unit = {}
 ): NotificationPermissionHandler {
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     val settingsDataStore = remember { SettingsDataStore(context) }
     val scope = rememberCoroutineScope()
     val hasAskedPermissionState = settingsDataStore.hasAskedNotificationPermission.collectAsState(initial = false)
@@ -74,6 +79,24 @@ fun rememberNotificationPermissionHandler(
         )
     }
 
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                hasPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    ContextCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.POST_NOTIFICATIONS
+                    ) == PackageManager.PERMISSION_GRANTED
+                } else {
+                    true
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
     var showSettingsDialog by remember { mutableStateOf(false) }
 
     val launcher = rememberLauncherForActivityResult(

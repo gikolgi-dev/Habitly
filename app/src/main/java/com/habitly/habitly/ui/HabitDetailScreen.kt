@@ -7,11 +7,14 @@ package com.habitly.habitly.ui
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
+import kotlin.math.roundToInt
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -27,15 +30,19 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.habitly.habitly.ui.circleToSquareMorph
+import com.habitly.habitly.ui.MorphPolygonShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ShowChart
@@ -43,6 +50,8 @@ import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -55,6 +64,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -63,18 +73,30 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.PaintingStyle.Companion.Stroke
+import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.asAndroidPath
+import androidx.graphics.shapes.toPath
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.habitly.habitly.data.Database.Completion
 import com.habitly.habitly.data.Database.Habit
 import com.habitly.habitly.data.Database.HabitViewModel
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.unit.LayoutDirection
 import com.habitly.habitly.data.Database.HabitWithCompletions
 import com.habitly.habitly.notifications.NotificationScheduler
 import com.habitly.habitly.ui.components.RotatingHabitIcon
@@ -95,6 +117,9 @@ fun SharedTransitionScope.HabitDetailScreen(
     borderContrast: Float,
     showScrollBlur: Boolean,
     showYearLabels: Boolean,
+    heatmapNotificationDot: Boolean,
+    heatmapNotificationDotRange: String,
+    heatmapNotificationDotDetailOnly: Boolean,
     showYearDivider: Boolean,
     vibrationsEnabled: Boolean,
     showMonthLabels: Boolean,
@@ -106,7 +131,8 @@ fun SharedTransitionScope.HabitDetailScreen(
     heatmapWeeks: Int = 0,
     heatmapInfinite: Boolean = false,
     currentDateMillis: Long = System.currentTimeMillis(),
-    isEditSheetOpen: Boolean = false
+    isEditSheetOpen: Boolean = false,
+    transitionProgressProvider: () -> Float = { 1f }
 ) {
     val haptic = LocalHapticFeedback.current
     val context = LocalContext.current
@@ -114,10 +140,24 @@ fun SharedTransitionScope.HabitDetailScreen(
     var showDeleteConfirmation by remember { mutableStateOf(false) } // State for delete confirmation dialog
     val habit = habitWithCompletions.habit
     val completions = habitWithCompletions.completions
-    
-    val animatedColorState = animateColorAsState(targetValue = Color(habit.color), animationSpec = tween(durationMillis = 500))
-    
-    val streak = remember(habit, completions, currentDateMillis) { calculateStreak(habit, completions, currentDateMillis) }
+    val animatedColorState =
+        animateColorAsState(targetValue = Color(habit.color), animationSpec = tween(durationMillis = 500))
+    val isSharedVisible = !isEditSheetOpen && animatedVisibilityScope.transition.targetState == androidx.compose.animation.EnterExitState.Visible
+
+    val notificationDotAlpha by animatedVisibilityScope.transition.animateFloat(
+        transitionSpec = { tween(durationMillis = 300, easing = FastOutSlowInEasing) },
+        label = "notificationDotAlpha"
+    ) { state ->
+        if (heatmapNotificationDotDetailOnly) {
+            if (state == androidx.compose.animation.EnterExitState.Visible) 1f else 0f
+        } else {
+            1f
+        }
+    }
+
+
+    val streak =
+        remember(habit, completions, currentDateMillis) { calculateStreak(habit, completions, currentDateMillis) }
 
     val useDarkTheme = when (theme) {
         "light" -> false
@@ -133,7 +173,11 @@ fun SharedTransitionScope.HabitDetailScreen(
     }
 
     val cardBorderColor = if (useHabitColor) {
-        lerp(Color(habit.color), lerp(Color(habit.color), MaterialTheme.colorScheme.surfaceVariant, 0.85f), 1f - borderContrast)
+        lerp(
+            Color(habit.color),
+            lerp(Color(habit.color), MaterialTheme.colorScheme.surfaceVariant, 0.85f),
+            1f - borderContrast
+        )
     } else {
         MaterialTheme.colorScheme.outline.copy(alpha = borderContrast)
     }
@@ -213,7 +257,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                 }
                 .sharedElementWithCallerManagedVisibility(
                     rememberSharedContentState(key = "card-${habit.id}"),
-                    visible = !isEditSheetOpen,
+                    visible = isSharedVisible,
                     boundsTransform = { _, _ -> tween(durationMillis = 300, easing = FastOutSlowInEasing) }
                 )
                 .fillMaxWidth(0.9f)
@@ -257,53 +301,120 @@ fun SharedTransitionScope.HabitDetailScreen(
                         var isClosePressed by remember { mutableStateOf(false) }
                         val closeScale by animateFloatAsState(
                             targetValue = if (isClosePressed && !disableAnimations) 0.85f else 1f,
-                            animationSpec = if (isClosePressed) spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessLow) else spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+                            animationSpec = if (isClosePressed) spring(
+                                dampingRatio = 0.5f,
+                                stiffness = Spring.StiffnessLow
+                            ) else spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            ),
                             label = "button_scale"
                         )
+                        val todayStart = remember(currentDateMillis) {
+                            Calendar.getInstance().apply {
+                                timeInMillis = currentDateMillis
+                                set(Calendar.HOUR_OF_DAY, 0)
+                                set(Calendar.MINUTE, 0)
+                                set(Calendar.SECOND, 0)
+                                set(Calendar.MILLISECOND, 0)
+                            }.timeInMillis
+                        }
+                        val todayEnd = remember(currentDateMillis) {
+                            Calendar.getInstance().apply {
+                                timeInMillis = currentDateMillis
+                                set(Calendar.HOUR_OF_DAY, 23)
+                                set(Calendar.MINUTE, 59)
+                                set(Calendar.SECOND, 59)
+                                set(Calendar.MILLISECOND, 999)
+                            }.timeInMillis
+                        }
+                        val isCompletedToday = remember(completions, todayStart, todayEnd) {
+                            completions.any { it.date in todayStart..todayEnd }
+                        }
+                        
+                        val secondaryContainerColor = MaterialTheme.colorScheme.secondaryContainer
+
                         Box(
-                        modifier = Modifier
-                            .graphicsLayer {
-                                scaleX = closeScale
-                                scaleY = closeScale
-                            }
-                            .size(48.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = secondaryContainerAlpha))
-                            .border(
-                                1.dp,
-                                cardBorderColor,
-                                RoundedCornerShape(8.dp)
-                            )
-                            .pointerInput(Unit) {
-                                detectTapGestures(
-                                    onPress = {
-                                        isClosePressed = true
-                                        if (vibrationsEnabled) {
-                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                        }
-                                        try {
-                                            awaitRelease()
-                                        } finally {
-                                            isClosePressed = false
-                                        }
-                                    },
-                                    onTap = {
-                                        if (vibrationsEnabled) {
-                                            haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
-                                        }
-                                        onDismiss()
-                                    }
+                            modifier = Modifier
+                                .sharedElementWithCallerManagedVisibility(
+                                    rememberSharedContentState(key = "button-${habit.id}"),
+                                    visible = isSharedVisible,
+                                    boundsTransform = { _, _ -> tween(durationMillis = 300, easing = FastOutSlowInEasing) }
                                 )
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector =Icons.Default.Close,
-                            contentDescription = "Close",
-                            modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }}
+                                .graphicsLayer {
+                                    scaleX = closeScale
+                                    scaleY = closeScale
+                                }
+                                .size(48.dp)
+                                .drawBehind {
+                                    val startPercentage = if (isCompletedToday) 1f else 0f
+                                    val morphPercentage = startPercentage + (1f - startPercentage) * transitionProgressProvider()
+                                    val index = (morphPercentage * 100).roundToInt().coerceIn(0, 100)
+                                    val cachedPath = com.habitly.habitly.ui.precomputedMorphPaths[index]
+
+                                    val p = if (isCompletedToday) 1f else 0f
+                                    val tp = transitionProgressProvider()
+                                    val currentColor = animatedColorState.value
+
+                                    val bgAlpha = 0.1f + (1f - 0.1f) * p
+                                    val strokeAlpha = borderContrast + (1f - borderContrast) * p
+
+                                    val itemBgColor = currentColor.copy(alpha = bgAlpha)
+                                    val itemStrokeColor = currentColor.copy(alpha = strokeAlpha)
+
+                                    val targetBgColor = secondaryContainerColor.copy(alpha = secondaryContainerAlpha)
+                                    val targetBorderColor = cardBorderColor
+
+                                    val currentBgColor = lerp(itemBgColor, targetBgColor, tp)
+                                    val currentStrokeColor = lerp(itemStrokeColor, targetBorderColor, tp)
+
+                                    scale(
+                                        scaleX = size.width,
+                                        scaleY = size.height,
+                                        pivot = androidx.compose.ui.geometry.Offset.Zero
+                                    ) {
+                                        drawPath(cachedPath, color = currentBgColor)
+                                        drawPath(cachedPath, color = currentStrokeColor, style = Stroke(width = 1.dp.toPx() / size.width))
+                                    }
+                                }
+                                .pointerInput(Unit) {
+                                    detectTapGestures(
+                                        onPress = {
+                                            isClosePressed = true
+                                            if (vibrationsEnabled) {
+                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            }
+                                            try {
+                                                awaitRelease()
+                                            } finally {
+                                                isClosePressed = false
+                                            }
+                                        },
+                                        onTap = {
+                                            if (vibrationsEnabled) {
+                                                haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+                                            }
+                                            onDismiss()
+                                        }
+                                    )
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            val tp = transitionProgressProvider()
+                            val iconSize = 32.dp + (20.dp - 32.dp) * tp
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Close",
+                                modifier = Modifier
+                                    .size(iconSize)
+                                    .graphicsLayer {
+                                        rotationZ = if (isCompletedToday) 180f else 0f
+                                        alpha = if (isCompletedToday) 1f else tp
+                                    },
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
                 }
 
 
@@ -319,7 +430,11 @@ fun SharedTransitionScope.HabitDetailScreen(
                     showScrollBlur = showScrollBlur,
                     minWeeks = maxOf(30, heatmapWeeks), // Display a bit more heatmap columns even if they are empty
                     isInfinite = heatmapInfinite,
-                    currentDateMillis = currentDateMillis
+                    currentDateMillis = currentDateMillis,
+                    habit = habit,
+                    showNotificationDot = heatmapNotificationDot,
+                    notificationDotRange = heatmapNotificationDotRange,
+                    notificationDotAlpha = notificationDotAlpha
                 )
 
                 //Spacer(modifier = Modifier.height(4.dp))
@@ -426,6 +541,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                             "day" -> "Daily"
                             else -> "${habit.completionsPerInterval}/${habit.intervalUnit.replaceFirstChar { it.uppercase() }}"
                         }
+                        val notificationsSet = habit.notificationsEnabled && habit.notificationTime != null
                         Box(
                             modifier = Modifier
                                 .height(35.dp)
@@ -438,17 +554,34 @@ fun SharedTransitionScope.HabitDetailScreen(
                                 ),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = intervalText,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.padding(horizontal = 8.dp)
-                            )
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    imageVector = if (notificationsSet) Icons.Default.NotificationsActive else Icons.Default.Notifications,
+                                    contentDescription = "Notification Time",
+                                    modifier = Modifier.size(20.dp),
+                                    tint = if (notificationsSet) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(
+                                        alpha = 0.38f
+                                    )
+                                )
+                                if (notificationsSet) {
+                                    Spacer(modifier = Modifier.size(4.dp))
+                                    Text(
+                                        text = habit.notificationTime,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            }
                         }
                         Spacer(modifier = Modifier.size(8.dp))
                         Box(
                             modifier = Modifier
-                                .size(height = 35.dp, width = 64.dp)
+                                .wrapContentWidth()
+                                .height(35.dp)
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(Color(0xFFFC9920).copy(alpha = 0.4f))
                                 .border(
@@ -463,19 +596,32 @@ fun SharedTransitionScope.HabitDetailScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.Center
                             ) {
-                                Text("$streak", color = MaterialTheme.colorScheme.onSurface)
-                                Spacer(modifier = Modifier.size(2.dp))
                                 Icon(
                                     imageVector = Icons.Default.LocalFireDepartment,
                                     contentDescription = "Streak",
                                     modifier = Modifier.size(20.dp),
                                     tint = Color(0xFFFC9920)
                                 )
+                                Spacer(modifier = Modifier.size(2.dp))
+                                Text("$streak", color = MaterialTheme.colorScheme.onSurface)
+                                Spacer(modifier = Modifier.size(6.dp))
+                                VerticalDivider(
+                                    thickness = 1.dp,
+                                    color = Color(0xFFFC9920).copy(alpha = 0.12f),
+                                    modifier = Modifier.fillMaxHeight(0.75f)
+                                )
+                                Spacer(modifier = Modifier.size(6.dp))
+                                Text(
+                                    text = intervalText,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Spacer(modifier = Modifier.size(8.dp))
                             }
                         }
                     }
                 }
-                HorizontalDivider( thickness = 1.dp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
+                HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
                 MonthCalendar(
                     //modifier = Modifier.padding(horizontal = 8.dp),
                     completions = completions,
@@ -497,7 +643,7 @@ private fun calculateStreak(habit: Habit, completions: List<Completion>, current
     if (completions.isEmpty()) return 0
 
     val sortedDates = completions.map { it.date }.sortedDescending()
-    
+
     val today = Calendar.getInstance()
     today.timeInMillis = currentDateMillis
     today.set(Calendar.HOUR_OF_DAY, 0)
@@ -544,6 +690,7 @@ private fun calculateStreak(habit: Habit, completions: List<Completion>, current
             }
             currentStreak
         }
+
         "week" -> {
             val c = Calendar.getInstance()
             c.timeInMillis = currentDateMillis
@@ -551,16 +698,16 @@ private fun calculateStreak(habit: Habit, completions: List<Completion>, current
             c.set(Calendar.MINUTE, 0)
             c.set(Calendar.SECOND, 0)
             c.set(Calendar.MILLISECOND, 0)
-            
+
             val firstDayOfWeek = c.firstDayOfWeek
             val startOfCurrentWeek = c.clone() as Calendar
             while (startOfCurrentWeek.get(Calendar.DAY_OF_WEEK) != firstDayOfWeek) {
                 startOfCurrentWeek.add(Calendar.DAY_OF_YEAR, -1)
             }
-            
+
             val diffInMillis = c.timeInMillis - startOfCurrentWeek.timeInMillis
             val daysPassed = TimeUnit.MILLISECONDS.toDays(diffInMillis).toInt() + 1
-            
+
             var completionsInCurrentWeek = 0
             val tempC = startOfCurrentWeek.clone() as Calendar
             for (i in 0 until daysPassed) {
@@ -569,16 +716,16 @@ private fun calculateStreak(habit: Habit, completions: List<Completion>, current
                 }
                 tempC.add(Calendar.DAY_OF_YEAR, 1)
             }
-            
+
             val target = habit.completionsPerInterval
             val allowedMisses = 7 - target
             val currentMisses = daysPassed - completionsInCurrentWeek
-            
+
             if (currentMisses <= allowedMisses) {
                 var streak = completionsInCurrentWeek
                 val checkWeekStart = startOfCurrentWeek.clone() as Calendar
                 checkWeekStart.add(Calendar.WEEK_OF_YEAR, -1)
-                
+
                 while (true) {
                     var weekCompletions = 0
                     val dayIterator = checkWeekStart.clone() as Calendar
@@ -588,7 +735,7 @@ private fun calculateStreak(habit: Habit, completions: List<Completion>, current
                         }
                         dayIterator.add(Calendar.DAY_OF_YEAR, 1)
                     }
-                    
+
                     if (weekCompletions >= target) {
                         streak += weekCompletions
                         checkWeekStart.add(Calendar.WEEK_OF_YEAR, -1)
@@ -613,6 +760,7 @@ private fun calculateStreak(habit: Habit, completions: List<Completion>, current
                 tail
             }
         }
+
         "month" -> {
             val c = Calendar.getInstance()
             c.timeInMillis = currentDateMillis
@@ -620,10 +768,10 @@ private fun calculateStreak(habit: Habit, completions: List<Completion>, current
             c.set(Calendar.MINUTE, 0)
             c.set(Calendar.SECOND, 0)
             c.set(Calendar.MILLISECOND, 0)
-            
+
             val startOfCurrentMonth = c.clone() as Calendar
             startOfCurrentMonth.set(Calendar.DAY_OF_MONTH, 1)
-            
+
             val daysPassed = c.get(Calendar.DAY_OF_MONTH)
 
             var completionsInCurrentMonth = 0
@@ -634,17 +782,17 @@ private fun calculateStreak(habit: Habit, completions: List<Completion>, current
                 }
                 tempC.add(Calendar.DAY_OF_YEAR, 1)
             }
-            
+
             val daysInMonth = c.getActualMaximum(Calendar.DAY_OF_MONTH)
             val target = habit.completionsPerInterval
             val allowedMisses = daysInMonth - target
             val currentMisses = daysPassed - completionsInCurrentMonth
-            
+
             if (currentMisses <= allowedMisses) {
                 var streak = completionsInCurrentMonth
                 val checkMonthStart = startOfCurrentMonth.clone() as Calendar
                 checkMonthStart.add(Calendar.MONTH, -1)
-                
+
                 while (true) {
                     val prevMonthDays = checkMonthStart.getActualMaximum(Calendar.DAY_OF_MONTH)
                     var monthCompletions = 0
@@ -655,7 +803,7 @@ private fun calculateStreak(habit: Habit, completions: List<Completion>, current
                         }
                         dayIterator.add(Calendar.DAY_OF_YEAR, 1)
                     }
-                    
+
                     if (monthCompletions >= target) {
                         streak += monthCompletions
                         checkMonthStart.add(Calendar.MONTH, -1)
@@ -680,6 +828,7 @@ private fun calculateStreak(habit: Habit, completions: List<Completion>, current
                 tail
             }
         }
+
         else -> 0
     }
 }

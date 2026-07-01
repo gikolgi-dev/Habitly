@@ -39,7 +39,8 @@ data class HeatmapWeekData(
     val todayIndex: Int,              // 0-6 or -1
     val monthLabel: String?,
     val isStartOfYear: Boolean,
-    val yearDigits: String?
+    val yearDigits: String?,
+    val notificationDots: List<Boolean>
 )
 
 @Composable
@@ -51,7 +52,8 @@ fun HeatmapWeekColumn(
     horizontalSpacing: Dp,
     showMonthLabels: Boolean,
     showYearDivider: Boolean,
-    showYearLabels: Boolean
+    showYearLabels: Boolean,
+    notificationDotAlpha: Float = 1f
 ) {
     val onSurface = MaterialTheme.colorScheme.onSurface
     val surface = MaterialTheme.colorScheme.surface
@@ -142,6 +144,14 @@ fun HeatmapWeekColumn(
                             size = Size(cellSizePx - 1.dp.toPx(), cellSizePx - 1.dp.toPx()),
                             cornerRadius = CornerRadius(cornerRadiusPx, cornerRadiusPx),
                             style = Stroke(width = 1.dp.toPx())
+                        )
+                    }
+
+                    if (weekData.notificationDots[i]) {
+                        drawCircle(
+                            color = Color.White.copy(alpha = notificationDotAlpha),
+                            radius = 1.dp.toPx(),
+                            center = Offset(cellSizePx / 2f, top + cellSizePx / 2f)
                         )
                     }
                 }

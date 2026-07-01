@@ -13,6 +13,7 @@ import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -125,6 +126,7 @@ import com.habitly.habitly.ui.SaveHabitButton
 import com.habitly.habitly.ui.colors.habitColors
 import com.habitly.habitly.ui.components.CustomTimePickerDialog
 import com.habitly.habitly.ui.components.rememberNotificationPermissionHandler
+import com.habitly.habitly.ui.components.ProvideRotatingIconRotation
 import com.habitly.habitly.ui.defaultHabitIconKey
 import com.habitly.habitly.ui.screen.settings.SettingsScreen
 import com.habitly.habitly.ui.screen.settings.settingsEnterTransition
@@ -205,6 +207,9 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     val showMonthLabels by settingsDataStore.monthLabels.collectAsState(initial = null)
     val showYearDivider by settingsDataStore.yearDivider.collectAsState(initial = null)
     val showYearLabels by settingsDataStore.yearLabels.collectAsState(initial = null)
+    val heatmapNotificationDot by settingsDataStore.heatmapNotificationDot.collectAsState(initial = null)
+    val heatmapNotificationDotDetailOnly by settingsDataStore.heatmapNotificationDotDetailOnly.collectAsState(initial = null)
+    val heatmapNotificationDotRange by settingsDataStore.heatmapNotificationDotRange.collectAsState(initial = null)
     val showScrollBlur by settingsDataStore.showScrollBlur.collectAsState(initial = true)
     val scrollBlurTargets by settingsDataStore.scrollBlurTargets.collectAsState(initial = setOf("Heatmap", "Line Chart"))
     val heatmapVisibleDays by settingsDataStore.heatmapVisibleDays.collectAsState(initial = null)
@@ -228,6 +233,9 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     val useHabitColorForStatistics = useHabitColorForCard && "Statistic Screen" in habitColorTargets
 
     val areSettingsLoaded = borderContrast != null &&
+            heatmapNotificationDot != null &&
+            heatmapNotificationDotDetailOnly != null &&
+            heatmapNotificationDotRange != null &&
             showMonthLabels != null &&
             showYearDivider != null &&
             showYearLabels != null &&
@@ -260,6 +268,10 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
 
     var showHabitSheet by remember { mutableStateOf(false) }
     var habitToView by remember { mutableStateOf<HabitWithCompletions?>(null) }
+    var lastNonNullHabitToView by remember { mutableStateOf<HabitWithCompletions?>(null) }
+    if (habitToView != null) {
+        lastNonNullHabitToView = habitToView
+    }
     var habitToEdit by remember { mutableStateOf<Habit?>(null) }
     var showColorPicker by remember { mutableStateOf(false) }
     var customColor by remember { mutableStateOf<Color?>(null) }
@@ -409,8 +421,24 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
         )
     }
 
-    Box(Modifier.fillMaxSize()) {
+    ProvideRotatingIconRotation {
+        Box(Modifier.fillMaxSize()) {
         SharedTransitionLayout {
+            val sharedTransitionScope = this
+            val lastViewedHabitId = remember { mutableStateOf<String?>(null) }
+            if (habitToView != null) {
+                lastViewedHabitId.value = habitToView?.habit?.id
+            }
+            val detailTransitionProgressState = animateFloatAsState(
+                targetValue = if (habitToView != null) 1f else 0f,
+                animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+                label = "detailTransitionProgress"
+            )
+            val editSheetTransitionProgressState = animateFloatAsState(
+                targetValue = if (showHabitSheet) 1f else 0f,
+                animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+                label = "editSheetTransitionProgress"
+            )
             val mainBlurRadius by animateDpAsState(
                 targetValue = if ((isAnySheetOpen || isFabMenuExpanded) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) 16.dp else 0.dp,
                 label = "mainBlurRadius"
@@ -541,12 +569,15 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                         dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight!!,
                                                         showYearDivider = showYearDivider!!,
                                                         showYearLabels = showYearLabels!!,
+                                                        heatmapNotificationDot = heatmapNotificationDot!! && !heatmapNotificationDotDetailOnly!!,
+                                                        heatmapNotificationDotRange = heatmapNotificationDotRange!!,
                                                         showScrollBlur = showScrollBlur && "Heatmap" in scrollBlurTargets,
                                                         borderContrast = borderContrast!!,
                                                         heatmapScrollEnabled = heatmapScrolling,
                                                         heatmapWeeks = heatmapWeeks,
                                                         heatmapInfinite = heatmapInfinite,
                                                         useHabitColor = useHabitColorForItemCards,
+                                                        theme = theme,
                                                         disableAnimations = disableAnimations,
                                                         currentDateMillis = currentDateMillis,
                                                         onComplete = {
@@ -563,6 +594,13 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                         },
                                                         onClick = {
                                                             habitToView = habitWithCompletions
+                                                        },
+                                                        sharedTransitionScope = sharedTransitionScope,
+                                                        visible = !isViewingThis && !isEditingThis,
+                                                        transitionProgressProvider = { 
+                                                            if (isViewingThis || (habitToView == null && lastViewedHabitId.value == habitWithCompletions.habit.id)) 
+                                                                detailTransitionProgressState.value 
+                                                            else 0f 
                                                         }
                                                     )
                                                 }
@@ -620,6 +658,9 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                         showMonthLabels = showMonthLabels ?: false,
                         showYearDivider = showYearDivider ?: false,
                         showYearLabels = showYearLabels ?: false,
+                        heatmapNotificationDotDetailOnly = heatmapNotificationDotDetailOnly ?: false,
+                        heatmapNotificationDot = if (heatmapNotificationDotDetailOnly == true) false else heatmapNotificationDot ?: false,
+                        heatmapNotificationDotRange = heatmapNotificationDotRange ?: DefaultSettings.HEATMAP_NOTIFICATION_DOT_RANGE,
                         heatmapVisibleDays = heatmapVisibleDays ?: emptySet(),
                         dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight ?: false,
                         vibrationsEnabled = vibrationsEnabled,
@@ -679,7 +720,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                     enter = fadeIn(animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)),
                     exit = ExitTransition.None
                 ) {
-                    habitToView?.let { habitWithCompletions ->
+                    lastNonNullHabitToView?.let { habitWithCompletions ->
                         val habitState by remember(habitsUiState, habitWithCompletions) {
                             derivedStateOf {
                                 (habitsUiState as? HabitsUiState.Success)?.habits
@@ -715,6 +756,9 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                             borderContrast = borderContrast!!,
                             showScrollBlur = showScrollBlur && "Heatmap" in scrollBlurTargets,
                             showYearLabels = showYearLabels!!,
+                            heatmapNotificationDotDetailOnly = heatmapNotificationDotDetailOnly!!,
+                            heatmapNotificationDot = heatmapNotificationDot!!,
+                            heatmapNotificationDotRange = heatmapNotificationDotRange!!,
                             showYearDivider = showYearDivider!!,
                             vibrationsEnabled = vibrationsEnabled,
                             showMonthLabels = showMonthLabels!!,
@@ -726,7 +770,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                             heatmapWeeks = heatmapWeeks,
                             heatmapInfinite = heatmapInfinite,
                             currentDateMillis = currentDateMillis,
-                            isEditSheetOpen = showHabitSheet
+                            isEditSheetOpen = showHabitSheet,
+                            transitionProgressProvider = { detailTransitionProgressState.value }
                         )
                     }
                 }
@@ -898,9 +943,9 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                     }
 
                     val livePreviewColor = if (showColorPicker) tempColor else customColor
-                    val dummyHabit = remember(habitName, habitDescription, habitColor, customColor, habitIconKey, completionsPerInterval, intervalUnit, notificationsEnabled, notificationTime, notificationDays, livePreviewColor) {
+                    val dummyHabit = remember(habitName, habitDescription, habitColor, customColor, habitIconKey, completionsPerInterval, intervalUnit, notificationsEnabled, notificationTime, notificationDays, livePreviewColor, isEditMode) {
                         Habit(
-                            id = "preview",
+                            id = if (isEditMode) habitToEdit!!.id else "preview",
                             name = habitName.ifBlank { "Habit Name" },
                             description = habitDescription.ifBlank { "Description" },
                             color = (livePreviewColor ?: habitColor).toArgb(),
@@ -936,6 +981,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                             dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight!!,
                             showYearDivider = showYearDivider!!,
                             showYearLabels = showYearLabels!!,
+                            heatmapNotificationDot = heatmapNotificationDot!!,
+                            heatmapNotificationDotRange = heatmapNotificationDotRange!!,
                             showScrollBlur = false,
                             borderContrast = borderContrast!!,
                             heatmapScrollEnabled = false,
@@ -945,6 +992,10 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                             disableAnimations = disableAnimations,
                             onComplete = { /* Do nothing in preview */ },
                             onClick = { /* Do nothing in preview */ },
+                            sharedTransitionScope = sharedTransitionScope,
+                            visible = showHabitSheet,
+                            transitionProgressProvider = { 1f - editSheetTransitionProgressState.value },
+                            detailBgColor = Color(dummyHabit.color).copy(alpha = 0.1f),
                             modifier = Modifier
                                 .sharedElementWithCallerManagedVisibility(
                                     rememberSharedContentState(key = previewKey),
@@ -1184,6 +1235,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
             )
         }
     }
+}
 }
 
 @Composable

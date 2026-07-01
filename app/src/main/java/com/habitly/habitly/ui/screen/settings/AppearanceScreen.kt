@@ -30,7 +30,8 @@ fun AppearanceScreen(
     settingsDataStore: SettingsDataStore,
     onNavigateToScrollBlur: () -> Unit,
     onNavigateToHabitColor: () -> Unit,
-    onNavigateToReduceMovement: () -> Unit
+    onNavigateToReduceMovement: () -> Unit,
+    onNavigateToHeatmapNotificationDot: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
     val currentTheme by settingsDataStore.theme.collectAsState(initial = DefaultSettings.THEME)
@@ -39,6 +40,7 @@ fun AppearanceScreen(
     val showMonthLabels by settingsDataStore.monthLabels.collectAsState(initial = DefaultSettings.MONTH_LABELS)
     val showYearDivider by settingsDataStore.yearDivider.collectAsState(initial = DefaultSettings.YEAR_DIVIDER)
     val showYearLabels by settingsDataStore.yearLabels.collectAsState(initial = DefaultSettings.YEAR_LABELS)
+    val heatmapNotificationDot by settingsDataStore.heatmapNotificationDot.collectAsState(initial = DefaultSettings.HEATMAP_NOTIFICATION_DOT)
     val showScrollBlur by settingsDataStore.showScrollBlur.collectAsState(initial = DefaultSettings.SHOW_SCROLL_BLUR)
     val borderContrast by settingsDataStore.borders.collectAsState(initial = DefaultSettings.BORDERS)
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
@@ -71,11 +73,13 @@ fun AppearanceScreen(
                 showMonthLabels = showMonthLabels,
                 showYearDivider = showYearDivider,
                 showYearLabels = showYearLabels,
+                heatmapNotificationDot = heatmapNotificationDot,
                 borderContrast = borderContrast,
                 vibrationsEnabled = vibrationsEnabled,
                 settingsDataStore = settingsDataStore,
                 scope = scope,
-                haptic = haptic
+                haptic = haptic,
+                onNavigateToHeatmapNotificationDot = onNavigateToHeatmapNotificationDot
             )
 
             Spacer(modifier = Modifier.height(8.dp))

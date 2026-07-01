@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.habitly.habitly.data.Database.Completion
+import com.habitly.habitly.data.Database.Habit
 import com.habitly.habitly.ui.components.HeatmapWeekColumn
 import com.habitly.habitly.ui.components.HeatmapWeekData
 import java.text.SimpleDateFormat
@@ -69,7 +70,11 @@ fun Heatmap(
     showScrollBlur: Boolean,
     minWeeks: Int = 0,
     isInfinite: Boolean = false,
-    currentDateMillis: Long = System.currentTimeMillis()
+    currentDateMillis: Long = System.currentTimeMillis(),
+    habit: Habit? = null,
+    showNotificationDot: Boolean = false,
+    notificationDotRange: String = "today_and_future",
+    notificationDotAlpha: Float = 1f
 ) {
     val density = LocalDensity.current
 
@@ -188,7 +193,7 @@ fun Heatmap(
                 userScrollEnabled = isScrollable
             ) {
                 items(count = totalWeeks, key = { it }) { weekIndex ->
-                    val weekData = remember(weekIndex, currentMondayMillis, completionDates, todayDayIndex, showMonthLabels, tz, isScrollable, totalWeeks) {
+                    val weekData = remember(weekIndex, currentMondayMillis, completionDates, todayDayIndex, showMonthLabels, tz, isScrollable, totalWeeks, habit, showNotificationDot, notificationDotRange) {
                         val cal = Calendar.getInstance()
                         cal.firstDayOfWeek = Calendar.MONDAY
                         cal.timeInMillis = currentMondayMillis
@@ -214,8 +219,54 @@ fun Heatmap(
                         val yearEnd = cal.get(Calendar.YEAR)
                         cal.add(Calendar.WEEK_OF_YEAR, -1)
                         val yearPrev = cal.get(Calendar.YEAR)
-                        val isStartOfYear = yearEnd != yearPrev
-                        val yearDigits = if (isStartOfYear) yearEnd.toString() else null
+                        var isStartOfYear = yearEnd != yearPrev
+                        var yearDigits = if (isStartOfYear) yearEnd.toString() else null
+
+                        val dots = BooleanArray(7)
+                        val cal0 = Calendar.getInstance().apply { firstDayOfWeek = Calendar.MONDAY }
+                        cal0.timeInMillis = currentMondayMillis
+                        cal0.add(Calendar.DAY_OF_YEAR, 6)
+                        val yEnd0 = cal0.get(Calendar.YEAR)
+                        cal0.add(Calendar.WEEK_OF_YEAR, -1)
+                        val yPrev0 = cal0.get(Calendar.YEAR)
+                        val week0IsStartOfYear = yEnd0 != yPrev0
+                
+                        if (week0IsStartOfYear) {
+                            if (weekIndex == 0) {
+                                yearDigits = null
+                                isStartOfYear = false
+                            } else if (weekIndex == 1) {
+                                yearDigits = yEnd0.toString()
+                                isStartOfYear = true
+                            }
+                        }
+
+                        if (showNotificationDot && habit?.notificationsEnabled == true) {
+                            val habitDays = habit.notificationDays?.split(",")?.toSet() ?: emptySet()
+                            
+                            val currentWeekStartDayIndex = (currentMondayMillis + tz.getOffset(currentMondayMillis)) / 86400000L
+                            for (i in 0..6) {
+                                val dIndex = currentWeekStartDayIndex + i
+                                val shouldShow = when (notificationDotRange) {
+                                    "future" -> dIndex > todayDayIndex
+                                    "today_and_future" -> dIndex >= todayDayIndex
+                                    else -> true // "this_week"
+                                }
+                                
+                                if (shouldShow) {
+                                    val dayCal = Calendar.getInstance().apply { 
+                                        timeInMillis = currentMondayMillis
+                                        add(Calendar.DAY_OF_YEAR, i)
+                                    }
+                                    val dayName = SimpleDateFormat("EEE", Locale.ENGLISH).format(dayCal.time).uppercase()
+                                    if (habitDays.contains(dayName)) {
+                                        if (weekIndex == 0) {
+                                            dots[i] = true
+                                        }
+                                    }
+                                }
+                            }
+                        }
 
                         // Month label logic
                         var monthLabel: String? = null
@@ -238,11 +289,12 @@ fun Heatmap(
                             todayIdx,
                             monthLabel,
                             isStartOfYear,
-                            yearDigits
+                            yearDigits,
+                            dots.toList()
                         )
                     }
 
-                    HeatmapWeekColumn(weekData, habitColor, cellSize, verticalSpacing, horizontalSpacing, showMonthLabels, showYearDivider, showYearLabels)
+                    HeatmapWeekColumn(weekData, habitColor, cellSize, verticalSpacing, horizontalSpacing, showMonthLabels, showYearDivider, showYearLabels, notificationDotAlpha)
                 }
             }
         }

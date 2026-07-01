@@ -52,6 +52,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Check
@@ -163,7 +164,7 @@ private fun getModuleIcon(id: String): ImageVector = when (getBaseModuleId(id)) 
     "total_completions" -> Icons.Default.CheckCircle
     "best_day_of_week" -> Icons.Default.WbSunny
     "rate_last_30_days" -> Icons.Default.Speed
-    "monthly_chart" -> Icons.Default.ShowChart
+    "monthly_chart" -> Icons.AutoMirrored.Filled.ShowChart
     else -> Icons.Default.Star
 }
 
