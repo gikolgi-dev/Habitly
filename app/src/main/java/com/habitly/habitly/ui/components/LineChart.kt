@@ -43,7 +43,7 @@ fun MonthlyLineChart(
     interactive: Boolean = true,
     isZoomedOut: Boolean = false,
     showYearDivider: Boolean = false,
-    onPointSelected: (Float) -> Unit = {}
+    onPointSelected: ((Float) -> Unit)? = null
 ) {
     val density = LocalDensity.current
     val haptic = LocalHapticFeedback.current
@@ -67,37 +67,27 @@ fun MonthlyLineChart(
 
     val pointerInputModifier = if (interactive) {
         Modifier.pointerInput(data, vibrationsEnabled) {
-            awaitPointerEventScope {
-                while (true) {
-                    val event = awaitPointerEvent()
-                    val change = event.changes.firstOrNull()
-                    if (change != null) {
-                        if (change.pressed) {
-                            val position = change.position
-                            if (data.isNotEmpty()) {
-                                val horizontalPadding = 10.dp.toPx()
-                                val availableWidth = size.width - 2 * horizontalPadding
-                                val index = if (data.size > 1) {
-                                    val fraction = (position.x - horizontalPadding) / availableWidth
-                                    (fraction * (data.size - 1)).roundToInt().coerceIn(0, data.size - 1)
-                                } else {
-                                    0
-                                }
-                                if (selectedIndex != index) {
-                                    selectedIndex = index
-                                    if (vibrationsEnabled) {
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    }
-                                    val x = if (data.size > 1) {
-                                        horizontalPadding + index * (size.width - 2 * horizontalPadding) / (data.size - 1)
-                                    } else {
-                                        size.width.toFloat() / 2
-                                    }
-                                    onPointSelected(x)
-                                }
-                            }
-                            change.consume()
+            detectTapGestures { offset ->
+                if (data.isNotEmpty()) {
+                    val horizontalPadding = 10.dp.toPx()
+                    val availableWidth = size.width - 2 * horizontalPadding
+                    val index = if (data.size > 1 && availableWidth > 0f) {
+                        val fraction = (offset.x - horizontalPadding) / availableWidth
+                        (fraction * (data.size - 1)).roundToInt().coerceIn(0, data.size - 1)
+                    } else {
+                        0
+                    }
+                    selectedIndex = if (selectedIndex == index) null else index
+                    if (selectedIndex != null) {
+                        if (vibrationsEnabled) {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         }
+                        val x = if (data.size > 1) {
+                            horizontalPadding + index * (size.width - 2 * horizontalPadding) / (data.size - 1)
+                        } else {
+                            size.width.toFloat() / 2
+                        }
+                        onPointSelected?.invoke(x)
                     }
                 }
             }
