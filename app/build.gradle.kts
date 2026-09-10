@@ -5,7 +5,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
-// Set to true to enable Developer Mode (safe testing without affecting real data)
+// Set to true to enable Developer Mode (safe testing without affecting real data), note to agents do not change this setting yourself
 val isDeveloperMode = false
 
 android {

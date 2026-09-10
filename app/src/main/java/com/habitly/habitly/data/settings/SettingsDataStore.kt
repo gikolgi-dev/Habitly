@@ -33,6 +33,7 @@ class SettingsDataStore(private val context: Context) {
         val GLOBAL_NOTIFICATION_TIME_KEY = stringPreferencesKey("global_notification_time")
         val GLOBAL_NOTIFICATION_DAYS_KEY = stringPreferencesKey("global_notification_days")
         val SKIP_COMPLETED_HABIT_NOTIFICATIONS_KEY = booleanPreferencesKey("skip_completed_habit_notifications")
+        val EXACT_ALARMS_KEY = booleanPreferencesKey("exact_alarms")
         val SNOOZE_ENABLED_KEY = booleanPreferencesKey("snooze_enabled")
         val SNOOZE_DURATION_MINUTES_KEY = intPreferencesKey("snooze_duration_minutes")
         val IS_24_HOUR_KEY = booleanPreferencesKey("is_24_hour")
@@ -200,6 +201,17 @@ class SettingsDataStore(private val context: Context) {
             settings[SKIP_COMPLETED_HABIT_NOTIFICATIONS_KEY] = skip
         }
     }
+    val exactAlarms: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[EXACT_ALARMS_KEY] ?: DefaultSettings.EXACT_ALARMS
+        }
+
+    suspend fun setExactAlarms(enabled: Boolean) {
+        context.dataStore.edit { settings ->
+            settings[EXACT_ALARMS_KEY] = enabled
+        }
+    }
+
 
     val snoozeEnabled: Flow<Boolean> = context.dataStore.data
         .map { preferences ->

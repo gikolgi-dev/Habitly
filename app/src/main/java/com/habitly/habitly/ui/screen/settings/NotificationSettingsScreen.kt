@@ -3,6 +3,19 @@
 package com.habitly.habitly.ui.screen.settings
 
 import android.content.Intent
+import android.app.AlarmManager
+import android.content.Context
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.runtime.DisposableEffect
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -65,6 +78,7 @@ fun NotificationSettingsScreen(
     val globalNotificationTimeState = settingsDataStore.globalNotificationTime.collectAsState(initial = null)
     val globalNotificationDaysState = settingsDataStore.globalNotificationDays.collectAsState(initial = null)
 
+    val exactAlarmsState = settingsDataStore.exactAlarms.collectAsState(initial = null)
     val vibrationsEnabled = vibrationsEnabledState.value ?: return
     val skipCompleted = skipCompletedState.value ?: return
     val snoozeEnabled = snoozeEnabledState.value ?: return
@@ -73,6 +87,113 @@ fun NotificationSettingsScreen(
     val globalNotificationTime = globalNotificationTimeState.value ?: return
     val globalNotificationDays = globalNotificationDaysState.value ?: return
 
+    val exactAlarms = exactAlarmsState.value ?: return
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val alarmManager = remember { context.getSystemService(Context.ALARM_SERVICE) as AlarmManager }
+    var showExactAlarmPermissionDialog by remember { mutableStateOf(false) }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                if (exactAlarms) {
+                    scope.launch {
+                        notificationScheduler.rescheduleAll()
+                    }
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    fun handleExactAlarmsToggle(enabled: Boolean) {
+        if (enabled) {
+            val canSchedule = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                alarmManager.canScheduleExactAlarms()
+            } else {
+                true
+            }
+            scope.launch {
+                settingsDataStore.setExactAlarms(true)
+                notificationScheduler.rescheduleAll()
+            }
+            if (vibrationsEnabled) {
+                haptic.performHapticFeedback(HapticFeedbackType.ToggleOn)
+            }
+            if (!canSchedule) {
+                showExactAlarmPermissionDialog = true
+            }
+        } else {
+            scope.launch {
+                settingsDataStore.setExactAlarms(false)
+                notificationScheduler.rescheduleAll()
+            }
+            if (vibrationsEnabled) {
+                haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+            }
+        }
+    }
+
+    if (showExactAlarmPermissionDialog) {
+        AlertDialog(
+            onDismissRequest = { showExactAlarmPermissionDialog = false },
+            title = {
+                Text(
+                    text = "Exact Alarm Permission",
+                    style = MaterialTheme.typography.titleLarge
+                )
+            },
+            text = {
+                Text(
+                    text = "To deliver notifications at the exact specified time even when the device is in sleep or battery saver mode, Habitly needs the 'Alarms & reminders' permission. Please enable it in system settings.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showExactAlarmPermissionDialog = false
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                            try {
+                                val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+                                    data = Uri.parse("package:${context.packageName}")
+                                }
+                                context.startActivity(intent)
+                            } catch (e: Exception) {
+                                try {
+                                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                        data = Uri.parse("package:${context.packageName}")
+                                    }
+                                    context.startActivity(intent)
+                                } catch (e2: Exception) {
+                                    e2.printStackTrace()
+                                }
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                ) {
+                    Text("Open Settings")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { showExactAlarmPermissionDialog = false },
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                ) {
+                    Text("Cancel")
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            shape = RoundedCornerShape(24.dp)
+        )
+    }
     val notificationPermissionHandler = rememberNotificationPermissionHandler {
         scope.launch {
             settingsDataStore.setGlobalNotificationsEnabled(true)
@@ -298,6 +419,22 @@ fun NotificationSettingsScreen(
                         }
                     )
                 }
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+
+        SettingsGroup(
+            title = "Notification Timing",
+            settingsDataStore = settingsDataStore
+        ) {
+            SettingsSwitchItem(
+                text = "Exact alarms & reminders",
+                description = "Always trigger notifications at the exact scheduled time, even during battery saver or sleep mode. Consumes more battery.",
+                checked = exactAlarms,
+                settingsDataStore = settingsDataStore,
+                position = SettingsItemPosition.Alone
+            ) {
+                handleExactAlarmsToggle(it)
             }
         }
 
