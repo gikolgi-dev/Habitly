@@ -58,6 +58,9 @@ class SettingsDataStore(private val context: Context) {
         val HEATMAP_INFINITE_KEY = booleanPreferencesKey("heatmap_infinite")
         val HAS_ASKED_NOTIFICATION_PERMISSION_KEY = booleanPreferencesKey("has_asked_notification_permission")
         val FIRST_DAY_OF_WEEK_KEY = stringPreferencesKey("first_day_of_week")
+        val AUTO_SCROLL_TEXT_KEY = booleanPreferencesKey("auto_scroll_text")
+        val AUTO_SCROLL_TEXT_ELEMENTS_KEY = stringPreferencesKey("auto_scroll_text_elements")
+        val AUTO_SCROLL_TEXT_SCREENS_KEY = stringPreferencesKey("auto_scroll_text_screens")
     }
 
     val theme: Flow<String> = context.dataStore.data
@@ -455,6 +458,43 @@ class SettingsDataStore(private val context: Context) {
         }
     }
 
+    val autoScrollText: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[AUTO_SCROLL_TEXT_KEY] ?: DefaultSettings.AUTO_SCROLL_TEXT
+        }
+
+    suspend fun setAutoScrollText(enabled: Boolean) {
+        context.dataStore.edit { settings ->
+            settings[AUTO_SCROLL_TEXT_KEY] = enabled
+        }
+    }
+
+    val autoScrollTextElements: Flow<Set<String>> = context.dataStore.data
+        .map { preferences ->
+            val saved = preferences[AUTO_SCROLL_TEXT_ELEMENTS_KEY]
+            saved?.split(',')?.filter { it.isNotEmpty() }?.toSet()
+                ?: DefaultSettings.AUTO_SCROLL_TEXT_ELEMENTS.split(',').filter { it.isNotEmpty() }.toSet()
+        }
+
+    suspend fun setAutoScrollTextElements(elements: Set<String>) {
+        context.dataStore.edit { settings ->
+            settings[AUTO_SCROLL_TEXT_ELEMENTS_KEY] = elements.joinToString(",")
+        }
+    }
+
+    val autoScrollTextScreens: Flow<Set<String>> = context.dataStore.data
+        .map { preferences ->
+            val saved = preferences[AUTO_SCROLL_TEXT_SCREENS_KEY]
+            saved?.split(',')?.filter { it.isNotEmpty() }?.toSet()
+                ?: DefaultSettings.AUTO_SCROLL_TEXT_SCREENS.split(',').filter { it.isNotEmpty() }.toSet()
+        }
+
+    suspend fun setAutoScrollTextScreens(screens: Set<String>) {
+        context.dataStore.edit { settings ->
+            settings[AUTO_SCROLL_TEXT_SCREENS_KEY] = screens.joinToString(",")
+        }
+    }
+
 
     // Make the reset to default button only affect and be visible in the appearence settings
     suspend fun resetToDefault() {
@@ -476,6 +516,9 @@ class SettingsDataStore(private val context: Context) {
             settings[REDUCE_MOVEMENT_TARGETS_KEY] = DefaultSettings.REDUCE_MOVEMENT_TARGETS
             settings[USE_HABIT_COLOR_FOR_CARD_KEY] = false
             settings[HABIT_COLOR_TARGETS_KEY] = DefaultSettings.HABIT_COLOR_TARGETS
+            settings[AUTO_SCROLL_TEXT_KEY] = DefaultSettings.AUTO_SCROLL_TEXT
+            settings[AUTO_SCROLL_TEXT_ELEMENTS_KEY] = DefaultSettings.AUTO_SCROLL_TEXT_ELEMENTS
+            settings[AUTO_SCROLL_TEXT_SCREENS_KEY] = DefaultSettings.AUTO_SCROLL_TEXT_SCREENS
         }
     }
 
@@ -535,7 +578,10 @@ class SettingsDataStore(private val context: Context) {
             heatmapWeeks = preferences[HEATMAP_WEEKS_KEY] ?: DefaultSettings.HEATMAP_WEEKS,
             heatmapInfinite = preferences[HEATMAP_INFINITE_KEY] ?: DefaultSettings.HEATMAP_INFINITE,
             hasAskedNotificationPermission = preferences[HAS_ASKED_NOTIFICATION_PERMISSION_KEY] ?: DefaultSettings.HAS_ASKED_NOTIFICATION_PERMISSION,
-            firstDayOfWeek = preferences[FIRST_DAY_OF_WEEK_KEY] ?: DefaultSettings.FIRST_DAY_OF_WEEK
+            firstDayOfWeek = preferences[FIRST_DAY_OF_WEEK_KEY] ?: DefaultSettings.FIRST_DAY_OF_WEEK,
+            autoScrollText = preferences[AUTO_SCROLL_TEXT_KEY] ?: DefaultSettings.AUTO_SCROLL_TEXT,
+            autoScrollTextElements = preferences[AUTO_SCROLL_TEXT_ELEMENTS_KEY] ?: DefaultSettings.AUTO_SCROLL_TEXT_ELEMENTS,
+            autoScrollTextScreens = preferences[AUTO_SCROLL_TEXT_SCREENS_KEY] ?: DefaultSettings.AUTO_SCROLL_TEXT_SCREENS
         )
     }
 
@@ -573,6 +619,9 @@ class SettingsDataStore(private val context: Context) {
             preferences[HEATMAP_INFINITE_KEY] = settings.heatmapInfinite
             preferences[HAS_ASKED_NOTIFICATION_PERMISSION_KEY] = settings.hasAskedNotificationPermission
             preferences[FIRST_DAY_OF_WEEK_KEY] = settings.firstDayOfWeek
+            preferences[AUTO_SCROLL_TEXT_KEY] = settings.autoScrollText
+            preferences[AUTO_SCROLL_TEXT_ELEMENTS_KEY] = settings.autoScrollTextElements
+            preferences[AUTO_SCROLL_TEXT_SCREENS_KEY] = settings.autoScrollTextScreens
         }
     }
 }
@@ -610,5 +659,8 @@ data class ExportedSettings(
     val heatmapWeeks: Int = DefaultSettings.HEATMAP_WEEKS,
     val heatmapInfinite: Boolean = DefaultSettings.HEATMAP_INFINITE,
     val hasAskedNotificationPermission: Boolean = DefaultSettings.HAS_ASKED_NOTIFICATION_PERMISSION,
-    val firstDayOfWeek: String = DefaultSettings.FIRST_DAY_OF_WEEK
+    val firstDayOfWeek: String = DefaultSettings.FIRST_DAY_OF_WEEK,
+    val autoScrollText: Boolean = DefaultSettings.AUTO_SCROLL_TEXT,
+    val autoScrollTextElements: String = DefaultSettings.AUTO_SCROLL_TEXT_ELEMENTS,
+    val autoScrollTextScreens: String = DefaultSettings.AUTO_SCROLL_TEXT_SCREENS
 )

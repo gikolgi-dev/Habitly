@@ -31,7 +31,8 @@ fun AppearanceScreen(
     onNavigateToScrollBlur: () -> Unit,
     onNavigateToHabitColor: () -> Unit,
     onNavigateToReduceMovement: () -> Unit,
-    onNavigateToHeatmapNotificationDot: () -> Unit
+    onNavigateToHeatmapNotificationDot: () -> Unit,
+    onNavigateToAutoScroll: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
     val currentTheme by settingsDataStore.theme.collectAsState(initial = DefaultSettings.THEME)
@@ -45,6 +46,7 @@ fun AppearanceScreen(
     val borderContrast by settingsDataStore.borders.collectAsState(initial = DefaultSettings.BORDERS)
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
     val reduceMovement by settingsDataStore.reduceMovement.collectAsState(initial = DefaultSettings.REDUCE_MOVEMENT)
+    val autoScrollText by settingsDataStore.autoScrollText.collectAsState(initial = DefaultSettings.AUTO_SCROLL_TEXT)
 
     val haptic = LocalHapticFeedback.current
     val scrollState = rememberScrollState()
@@ -93,7 +95,9 @@ fun AppearanceScreen(
                 scope = scope,
                 haptic = haptic,
                 onNavigateToScrollBlur = onNavigateToScrollBlur,
-                onNavigateToReduceMovement = onNavigateToReduceMovement
+                onNavigateToReduceMovement = onNavigateToReduceMovement,
+                autoScrollText = autoScrollText,
+                onNavigateToAutoScroll = onNavigateToAutoScroll
             )
 
             Spacer(modifier = Modifier.height(24.dp).navigationBarsPadding())

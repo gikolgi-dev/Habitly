@@ -448,7 +448,10 @@ class HabitFeaturesTest {
             vibrations = false,
             globalNotificationsEnabled = true,
             globalNotificationTime = "08:30",
-            globalNotificationDays = "MON,WED,FRI"
+            globalNotificationDays = "MON,WED,FRI",
+            autoScrollText = true,
+            autoScrollTextElements = "Title",
+            autoScrollTextScreens = "Main Screen"
         )
         val exportData = ExportData(
             habits = emptyList(),
@@ -477,6 +480,9 @@ class HabitFeaturesTest {
         assertTrue(decoded.settings?.globalNotificationsEnabled ?: false)
         assertEquals("08:30", decoded.settings?.globalNotificationTime)
         assertEquals("MON,WED,FRI", decoded.settings?.globalNotificationDays)
+        assertTrue(decoded.settings?.autoScrollText ?: false)
+        assertEquals("Title", decoded.settings?.autoScrollTextElements)
+        assertEquals("Main Screen", decoded.settings?.autoScrollTextScreens)
     }
 
     @Test

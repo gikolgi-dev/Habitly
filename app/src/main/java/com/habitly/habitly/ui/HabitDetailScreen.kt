@@ -147,7 +147,10 @@ fun SharedTransitionScope.HabitDetailScreen(
     isEditSheetOpen: Boolean = false,
     transitionProgressProvider: () -> Float = { 1f },
     firstDayOfWeek: Int = Calendar.MONDAY,
-    is24Hour: Boolean = false
+    is24Hour: Boolean = false,
+    autoScrollText: Boolean = false,
+    autoScrollTextElements: Set<String> = emptySet(),
+    autoScrollTextScreens: Set<String> = emptySet()
 ) {
     val haptic = LocalHapticFeedback.current
     val context = LocalContext.current
@@ -312,7 +315,14 @@ fun SharedTransitionScope.HabitDetailScreen(
                         shouldAnimate = !disableAnimations
                     )
                     Spacer(modifier = Modifier.size(16.dp))
-                    HabitTitleAndDescription(habit = habit, isDetailView = true, modifier = Modifier.weight(1f))
+                    HabitTitleAndDescription(
+                        habit = habit,
+                        isDetailView = true,
+                        modifier = Modifier.weight(1f),
+                        autoScrollText = autoScrollText,
+                        autoScrollTextElements = autoScrollTextElements,
+                        autoScrollTextScreens = autoScrollTextScreens
+                    )
                     Box(
                         modifier = Modifier.size(64.dp),
                         contentAlignment = Alignment.Center

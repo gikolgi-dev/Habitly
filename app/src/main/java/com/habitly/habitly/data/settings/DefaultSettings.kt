@@ -35,5 +35,8 @@ object DefaultSettings {
     const val HEATMAP_INFINITE = false
     const val HAS_ASKED_NOTIFICATION_PERMISSION = false
     const val FIRST_DAY_OF_WEEK = "monday"
+    const val AUTO_SCROLL_TEXT = false
+    const val AUTO_SCROLL_TEXT_ELEMENTS = "Title,Description"
+    const val AUTO_SCROLL_TEXT_SCREENS = "Main Screen,Detail Screen"
 }
 

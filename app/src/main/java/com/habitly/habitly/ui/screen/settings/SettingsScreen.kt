@@ -373,7 +373,8 @@ fun SettingsScreen(
                     onNavigateToScrollBlur = { navController.navigate("scroll_blur") { launchSingleTop = true } },
                     onNavigateToHabitColor = { navController.navigate("habit_color") { launchSingleTop = true } },
                     onNavigateToReduceMovement = { navController.navigate("reduce_movement") { launchSingleTop = true } },
-                    onNavigateToHeatmapNotificationDot = { navController.navigate("heatmap_notification_dot") { launchSingleTop = true } }
+                    onNavigateToHeatmapNotificationDot = { navController.navigate("heatmap_notification_dot") { launchSingleTop = true } },
+                    onNavigateToAutoScroll = { navController.navigate("auto_scroll") { launchSingleTop = true } }
                 )
             }
         }
@@ -499,6 +500,24 @@ fun SettingsScreen(
                 borderContrast = borderContrast,
             ) { paddingValues ->
                 ReduceMovementSubScreen(
+                    settingsDataStore = settingsDataStore,
+                    modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
+                )
+            }
+        }
+
+        composable(
+            route = "auto_scroll"
+        ) {
+            SettingsScaffold(
+                title = "Auto-Scroll",
+                onBack = {
+                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+                    navController.popBackStack()
+                },
+                borderContrast = borderContrast,
+            ) { paddingValues ->
+                AutoScrollSubScreen(
                     settingsDataStore = settingsDataStore,
                     modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
                 )

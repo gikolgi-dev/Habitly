@@ -227,6 +227,13 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     val heatmapWeeks by settingsDataStore.heatmapWeeks.collectAsState(initial = DefaultSettings.HEATMAP_WEEKS)
     val heatmapInfinite by settingsDataStore.heatmapInfinite.collectAsState(initial = DefaultSettings.HEATMAP_INFINITE)
     val firstDayOfWeekCalendar by settingsDataStore.firstDayOfWeekCalendar.collectAsState(initial = java.util.Calendar.MONDAY)
+    val autoScrollText by settingsDataStore.autoScrollText.collectAsState(initial = DefaultSettings.AUTO_SCROLL_TEXT)
+    val autoScrollTextElements by settingsDataStore.autoScrollTextElements.collectAsState(
+        initial = DefaultSettings.AUTO_SCROLL_TEXT_ELEMENTS.split(',').filter { it.isNotEmpty() }.toSet()
+    )
+    val autoScrollTextScreens by settingsDataStore.autoScrollTextScreens.collectAsState(
+        initial = DefaultSettings.AUTO_SCROLL_TEXT_SCREENS.split(',').filter { it.isNotEmpty() }.toSet()
+    )
 
     // Additional settings for consistent Shared Element Transition colors/animations
     val reduceMovement by settingsDataStore.reduceMovement.collectAsState(initial = false)
@@ -634,6 +641,9 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                         disableAnimations = disableAnimations,
                                                         currentDateMillis = currentDateMillis,
                                                         firstDayOfWeek = firstDayOfWeekCalendar,
+                                                        autoScrollText = autoScrollText,
+                                                        autoScrollTextElements = autoScrollTextElements,
+                                                        autoScrollTextScreens = autoScrollTextScreens,
                                                         onComplete = {
                                                             if (vibrationsEnabled) {
                                                                 haptic.performHapticFeedback(
@@ -733,7 +743,10 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                         disableAnimations = disableAnimations,
                         heatmapWeeks = heatmapWeeks,
                         heatmapInfinite = heatmapInfinite,
-                        currentDateMillis = currentDateMillis
+                        currentDateMillis = currentDateMillis,
+                        autoScrollText = autoScrollText,
+                        autoScrollTextElements = autoScrollTextElements,
+                        autoScrollTextScreens = autoScrollTextScreens
                     )
                 }
 
@@ -840,7 +853,11 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                             currentDateMillis = currentDateMillis,
                             isEditSheetOpen = false,
                             transitionProgressProvider = { detailTransitionProgressState.value },
-                            firstDayOfWeek = firstDayOfWeekCalendar
+                            firstDayOfWeek = firstDayOfWeekCalendar,
+                            is24Hour = is24Hour,
+                            autoScrollText = autoScrollText,
+                            autoScrollTextElements = autoScrollTextElements,
+                            autoScrollTextScreens = autoScrollTextScreens
                         )
                     }
                 }
@@ -1196,7 +1213,10 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                         modifier = Modifier.padding(horizontal = 0.dp, vertical = 4.dp),
                                         currentDateMillis = currentDateMillis,
                                         animateTileChanges = true,
-                                        firstDayOfWeek = firstDayOfWeekCalendar
+                                        firstDayOfWeek = firstDayOfWeekCalendar,
+                                        autoScrollText = autoScrollText,
+                                        autoScrollTextElements = autoScrollTextElements,
+                                        autoScrollTextScreens = autoScrollTextScreens
                                     )
                                 },
                                 modifier = Modifier

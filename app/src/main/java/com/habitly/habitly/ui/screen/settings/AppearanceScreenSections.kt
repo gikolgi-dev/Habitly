@@ -236,7 +236,9 @@ fun AccessibilitySection(
     scope: CoroutineScope,
     haptic: HapticFeedback,
     onNavigateToScrollBlur: () -> Unit,
-    onNavigateToReduceMovement: () -> Unit
+    onNavigateToReduceMovement: () -> Unit,
+    autoScrollText: Boolean,
+    onNavigateToAutoScroll: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isDragged = interactionSource.collectIsDraggedAsState().value
@@ -335,7 +337,7 @@ fun AccessibilitySection(
             description = "Minimize the amount of animation and movement in the app",
             checked = reduceMovement,
             settingsDataStore = settingsDataStore,
-            position = SettingsItemPosition.Bottom,
+            position = SettingsItemPosition.Middle,
             onCheckedChange = {
                 scope.launch { settingsDataStore.setReduceMovement(it) }
                 if (vibrationsEnabled) {
@@ -343,6 +345,21 @@ fun AccessibilitySection(
                 }
             },
             onClick = onNavigateToReduceMovement
+        )
+
+        SettingsSwitchNavigationItem(
+            text = "Auto-scroll text",
+            description = "Scroll overflowing titles and descriptions horizontally",
+            checked = autoScrollText,
+            settingsDataStore = settingsDataStore,
+            position = SettingsItemPosition.Bottom,
+            onCheckedChange = {
+                scope.launch { settingsDataStore.setAutoScrollText(it) }
+                if (vibrationsEnabled) {
+                    haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+                }
+            },
+            onClick = onNavigateToAutoScroll
         )
     }
 }

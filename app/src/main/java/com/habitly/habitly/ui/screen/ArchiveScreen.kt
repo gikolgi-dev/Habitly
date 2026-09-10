@@ -71,7 +71,10 @@ fun ArchiveScreen(
     disableAnimations: Boolean,
     heatmapWeeks: Int = 0,
     heatmapInfinite: Boolean = false,
-    currentDateMillis: Long = System.currentTimeMillis()
+    currentDateMillis: Long = System.currentTimeMillis(),
+    autoScrollText: Boolean = false,
+    autoScrollTextElements: Set<String> = emptySet(),
+    autoScrollTextScreens: Set<String> = emptySet()
 ) {
     val scope = rememberCoroutineScope()
     var habitToDelete by remember { mutableStateOf<Habit?>(null) }
@@ -198,6 +201,9 @@ fun ArchiveScreen(
                                     heatmapWeeks = heatmapWeeks,
                                     heatmapInfinite = heatmapInfinite,
                                     currentDateMillis = currentDateMillis,
+                                    autoScrollText = autoScrollText,
+                                    autoScrollTextElements = autoScrollTextElements,
+                                    autoScrollTextScreens = autoScrollTextScreens,
                                     onComplete = { },
                                     onClick = { },
                                     onUnarchive = {

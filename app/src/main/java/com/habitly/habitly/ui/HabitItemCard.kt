@@ -22,6 +22,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
+import androidx.compose.foundation.MarqueeSpacing
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -98,8 +100,14 @@ val precomputedMorphPaths = Array(101) { i ->
 fun HabitTitleAndDescription(
     habit: Habit,
     isDetailView: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    autoScrollText: Boolean = false,
+    autoScrollTextElements: Set<String> = emptySet(),
+    autoScrollTextScreens: Set<String> = emptySet()
 ) {
+    val isScreenEnabled = if (isDetailView) "Detail Screen" in autoScrollTextScreens else "Main Screen" in autoScrollTextScreens
+    val shouldAutoScrollTitle = autoScrollText && isScreenEnabled && "Title" in autoScrollTextElements
+    val shouldAutoScrollDescription = autoScrollText && isScreenEnabled && "Description" in autoScrollTextElements
     Column(
         modifier = modifier
     ) {
@@ -109,43 +117,67 @@ fun HabitTitleAndDescription(
             color = MaterialTheme.colorScheme.onBackground,
             fontWeight = FontWeight.Bold,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            overflow = if (shouldAutoScrollTitle) TextOverflow.Clip else TextOverflow.Ellipsis,
+            modifier = if (shouldAutoScrollTitle) {
+                Modifier.basicMarquee(
+                    iterations = Int.MAX_VALUE,
+                    spacing = MarqueeSpacing(24.dp),
+                    velocity = 30.dp
+                )
+            } else {
+                Modifier
+            }
         )
         if (habit.description.isNotBlank()) {
             if (isDetailView) {
                 Spacer(modifier = Modifier.height(4.dp))
-                var isExpanded by remember { mutableStateOf(false) }
-                var isOverflowing by remember { mutableStateOf(false) }
-
-                val isClickable = (isOverflowing || isExpanded)
-                Column(
-                    modifier = Modifier
-                        .animateContentSize(animationSpec = tween(durationMillis = 300)) // Animate the size change of the Column
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            enabled = isClickable
-                        ) { isExpanded = !isExpanded }
-                ) {
+                if (shouldAutoScrollDescription) {
                     Text(
                         text = habit.description,
                         style = MaterialTheme.typography.bodyMedium,
-                        maxLines = if (isExpanded) Int.MAX_VALUE else 1,
-                        overflow = TextOverflow.Ellipsis,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                        onTextLayout = { textLayoutResult ->
-                            if (!isOverflowing && !isExpanded) {
-                                isOverflowing = textLayoutResult.hasVisualOverflow
-                            }
-                        }
-                    )
-                    if (isClickable) {
-                        Text(
-                            text = if (isExpanded) "Read less" else "Read more",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
+                        maxLines = 1,
+                        overflow = TextOverflow.Clip,
+                        modifier = Modifier.basicMarquee(
+                            iterations = Int.MAX_VALUE,
+                            spacing = MarqueeSpacing(24.dp),
+                            velocity = 30.dp
                         )
+                    )
+                } else {
+                    var isExpanded by remember { mutableStateOf(false) }
+                    var isOverflowing by remember { mutableStateOf(false) }
+
+                    val isClickable = (isOverflowing || isExpanded)
+                    Column(
+                        modifier = Modifier
+                            .animateContentSize(animationSpec = tween(durationMillis = 300)) // Animate the size change of the Column
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                enabled = isClickable
+                            ) { isExpanded = !isExpanded }
+                    ) {
+                        Text(
+                            text = habit.description,
+                            style = MaterialTheme.typography.bodyMedium,
+                            maxLines = if (isExpanded) Int.MAX_VALUE else 1,
+                            overflow = TextOverflow.Ellipsis,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                            onTextLayout = { textLayoutResult ->
+                                if (!isOverflowing && !isExpanded) {
+                                    isOverflowing = textLayoutResult.hasVisualOverflow
+                                }
+                            }
+                        )
+                        if (isClickable) {
+                            Text(
+                                text = if (isExpanded) "Read less" else "Read more",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
                     }
                 }
             } else {
@@ -155,7 +187,16 @@ fun HabitTitleAndDescription(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onBackground,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = if (shouldAutoScrollDescription) TextOverflow.Clip else TextOverflow.Ellipsis,
+                    modifier = if (shouldAutoScrollDescription) {
+                        Modifier.basicMarquee(
+                            iterations = Int.MAX_VALUE,
+                            spacing = MarqueeSpacing(24.dp),
+                            velocity = 30.dp
+                        )
+                    } else {
+                        Modifier
+                    }
                 )
             }
         }
@@ -405,7 +446,10 @@ fun HabitItemCard(
     theme: String = "system",
     detailBgColor: Color = Color.Unspecified,
     animateTileChanges: Boolean = false,
-    firstDayOfWeek: Int = Calendar.MONDAY
+    firstDayOfWeek: Int = Calendar.MONDAY,
+    autoScrollText: Boolean = false,
+    autoScrollTextElements: Set<String> = emptySet(),
+    autoScrollTextScreens: Set<String> = emptySet()
 ) {
     val targetCardBackgroundColor = if (useHabitColor) {
         lerp(Color(habit.color), MaterialTheme.colorScheme.surfaceVariant, 0.85f)
@@ -475,7 +519,14 @@ fun HabitItemCard(
 
                 Spacer(modifier = Modifier.size(16.dp))
 
-                HabitTitleAndDescription(habit = habit, isDetailView = false, modifier = Modifier.weight(1f))
+                HabitTitleAndDescription(
+                    habit = habit,
+                    isDetailView = false,
+                    modifier = Modifier.weight(1f),
+                    autoScrollText = autoScrollText,
+                    autoScrollTextElements = autoScrollTextElements,
+                    autoScrollTextScreens = autoScrollTextScreens,
+                )
 
                 Spacer(modifier = Modifier.size(16.dp))
                 if (showCheckbox) { // Conditionally display the checkbox
