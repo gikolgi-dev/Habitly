@@ -13,6 +13,8 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.Calendar
+import com.habitly.habitly.ui.formatNotificationTime
+import java.util.Locale
 
 class NotificationTest {
 
@@ -123,5 +125,33 @@ class NotificationTest {
 
         val calTomorrow = (calendar.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, 1) }
         assertFalse(calTomorrow.timeInMillis in startOfDay..endOfDay)
+    }
+
+    @Test
+    fun formatNotificationTime_24HourFormat() {
+        assertEquals("09:00", formatNotificationTime("09:00", is24Hour = true, locale = Locale.US))
+        assertEquals("14:30", formatNotificationTime("14:30", is24Hour = true, locale = Locale.US))
+        assertEquals("00:00", formatNotificationTime("00:00", is24Hour = true, locale = Locale.US))
+        assertEquals("23:59", formatNotificationTime("23:59", is24Hour = true, locale = Locale.US))
+        assertEquals("09:05", formatNotificationTime("9:5", is24Hour = true, locale = Locale.US))
+    }
+
+    @Test
+    fun formatNotificationTime_12HourFormat() {
+        assertEquals("9:00 AM", formatNotificationTime("09:00", is24Hour = false, locale = Locale.US))
+        assertEquals("2:30 PM", formatNotificationTime("14:30", is24Hour = false, locale = Locale.US))
+        assertEquals("12:00 AM", formatNotificationTime("00:00", is24Hour = false, locale = Locale.US))
+        assertEquals("12:00 PM", formatNotificationTime("12:00", is24Hour = false, locale = Locale.US))
+        assertEquals("11:59 PM", formatNotificationTime("23:59", is24Hour = false, locale = Locale.US))
+        assertEquals("9:05 AM", formatNotificationTime("9:5", is24Hour = false, locale = Locale.US))
+    }
+
+    @Test
+    fun formatNotificationTime_invalidOrNullInput() {
+        assertEquals("", formatNotificationTime(null, is24Hour = false))
+        assertEquals("", formatNotificationTime("", is24Hour = false))
+        assertEquals("invalid", formatNotificationTime("invalid", is24Hour = false))
+        assertEquals("25:00", formatNotificationTime("25:00", is24Hour = false))
+        assertEquals("12:60", formatNotificationTime("12:60", is24Hour = false))
     }
 }

@@ -113,6 +113,8 @@ import com.habitly.habitly.notifications.NotificationScheduler
 import com.habitly.habitly.ui.components.RotatingHabitIcon
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 
 @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -144,7 +146,8 @@ fun SharedTransitionScope.HabitDetailScreen(
     currentDateMillis: Long = System.currentTimeMillis(),
     isEditSheetOpen: Boolean = false,
     transitionProgressProvider: () -> Float = { 1f },
-    firstDayOfWeek: Int = Calendar.MONDAY
+    firstDayOfWeek: Int = Calendar.MONDAY,
+    is24Hour: Boolean = false
 ) {
     val haptic = LocalHapticFeedback.current
     val context = LocalContext.current
@@ -465,6 +468,9 @@ fun SharedTransitionScope.HabitDetailScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val notificationsSet = habit.notificationsEnabled && habit.notificationTime != null
+                    val formattedNotificationTime = remember(habit.notificationTime, is24Hour) {
+                        formatNotificationTime(habit.notificationTime, is24Hour)
+                    }
                     Box(
                         modifier = Modifier
                             .height(35.dp)
@@ -493,7 +499,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                             if (notificationsSet) {
                                 Spacer(modifier = Modifier.size(4.dp))
                                 Text(
-                                    text = habit.notificationTime,
+                                    text = formattedNotificationTime,
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
@@ -723,4 +729,24 @@ fun SharedTransitionScope.HabitDetailScreen(
 
 private fun calculateStreak(habit: Habit, completions: List<Completion>, currentDateMillis: Long, firstDayOfWeek: Int = Calendar.MONDAY): Int {
     return com.habitly.habitly.data.calculateCurrentStreak(habit, completions, currentDateMillis, firstDayOfWeek)
+}
+
+internal fun formatNotificationTime(
+    time: String?,
+    is24Hour: Boolean,
+    locale: Locale = Locale.getDefault()
+): String {
+    if (time.isNullOrBlank()) return ""
+    val parts = time.trim().split(":")
+    if (parts.size != 2) return time
+    val hour = parts[0].trim().toIntOrNull() ?: return time
+    val minute = parts[1].trim().toIntOrNull() ?: return time
+    if (hour !in 0..23 || minute !in 0..59) return time
+
+    val calendar = Calendar.getInstance().apply {
+        set(Calendar.HOUR_OF_DAY, hour)
+        set(Calendar.MINUTE, minute)
+    }
+    val pattern = if (is24Hour) "HH:mm" else "h:mm a"
+    return SimpleDateFormat(pattern, locale).format(calendar.time)
 }
