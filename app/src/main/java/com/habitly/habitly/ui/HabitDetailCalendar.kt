@@ -89,6 +89,7 @@ fun MonthCalendar(
     reduceGridReactions: Boolean = false,
     currentDateMillis: Long = System.currentTimeMillis(),
     habit: Habit? = null,
+    firstDayOfWeek: Int = Calendar.MONDAY,
     onDateClick: (Calendar, Boolean) -> Unit
 ) {
     val initialPage = 1200
@@ -110,16 +111,16 @@ fun MonthCalendar(
     }
 
     // Calculate number of rows for the current displayed month to handle dynamic height
-    val displayedMonthNumRows = remember(displayedMonth) {
+    val displayedMonthNumRows = remember(displayedMonth, firstDayOfWeek) {
         val currentMonth = displayedMonth.get(Calendar.MONTH)
         val currentYear = displayedMonth.get(Calendar.YEAR)
-        
+
         val firstDayOfMonthOffset = (Calendar.getInstance().apply {
             set(Calendar.DAY_OF_MONTH, 1)
             set(Calendar.YEAR, currentYear)
             set(Calendar.MONTH, currentMonth)
-        }.get(Calendar.DAY_OF_WEEK) - Calendar.MONDAY + 7) % 7
-        
+        }.get(Calendar.DAY_OF_WEEK) - firstDayOfWeek + 7) % 7
+
         val daysInMonth = displayedMonth.getActualMaximum(Calendar.DAY_OF_MONTH)
         (firstDayOfMonthOffset + daysInMonth + 6) / 7
     }
@@ -221,7 +222,11 @@ fun MonthCalendar(
         Row(
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            val days = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+            val days = if (firstDayOfWeek == Calendar.SUNDAY) {
+                listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+            } else {
+                listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+            }
             days.forEach { day ->
                 Text(
                     modifier = Modifier.weight(1f),
@@ -280,12 +285,12 @@ fun MonthCalendar(
             val currentMonth = month.get(Calendar.MONTH)
             val currentYear = month.get(Calendar.YEAR)
 
-            val firstDayOfMonthOffset = remember(month) {
+            val firstDayOfMonthOffset = remember(month, firstDayOfWeek) {
                 (Calendar.getInstance().apply {
                     set(Calendar.DAY_OF_MONTH, 1)
                     set(Calendar.YEAR, currentYear)
                     set(Calendar.MONTH, currentMonth)
-                }.get(Calendar.DAY_OF_WEEK) - Calendar.MONDAY + 7) % 7
+                }.get(Calendar.DAY_OF_WEEK) - firstDayOfWeek + 7) % 7
             }
 
             val daysInMonth = remember(month) {
@@ -366,7 +371,7 @@ fun MonthCalendar(
                                 animationSpec = spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessLow),
                                 label = "scale"
                             )
-                            
+
                             val boxZIndex by animateFloatAsState(
                                 targetValue = if (!reduceGridReactions && pressedCellIndex != null) (100f - distance).coerceAtLeast(0f) else 0f,
                                 animationSpec = spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessLow),
@@ -471,7 +476,7 @@ fun MonthCalendar(
                                                 modifier = Modifier
                                                     .padding(top = 1.5.dp)
                                                     .clip(CircleShape)
-                                                    .background(MaterialTheme.colorScheme.surface)
+                                                    .background(MaterialTheme.colorScheme.surfaceVariant)
                                                     .padding(horizontal = 4.5.dp, vertical = 0.5.dp),
                                                 contentAlignment = Alignment.Center
                                             ) {

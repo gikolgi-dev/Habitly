@@ -30,6 +30,33 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
+import com.habitly.habitly.data.settings.SettingsDataStore
+import java.util.Calendar
+
+fun getDaysAndDayValues(firstDayOfWeek: Int = Calendar.MONDAY): Pair<List<String>, List<String>> {
+    val daysList = mutableListOf<String>()
+    val valuesList = mutableListOf<String>()
+    for (i in 0..6) {
+        val calDay = (firstDayOfWeek - Calendar.SUNDAY + i) % 7 + Calendar.SUNDAY
+        val (shortLabel, value) = when (calDay) {
+            Calendar.SUNDAY -> "S" to "SUN"
+            Calendar.MONDAY -> "M" to "MON"
+            Calendar.TUESDAY -> "T" to "TUE"
+            Calendar.WEDNESDAY -> "W" to "WED"
+            Calendar.THURSDAY -> "T" to "THU"
+            Calendar.FRIDAY -> "F" to "FRI"
+            Calendar.SATURDAY -> "S" to "SAT"
+            else -> "M" to "MON"
+        }
+        daysList.add(shortLabel)
+        valuesList.add(value)
+    }
+    return daysList to valuesList
+}
 
 
 @Composable
@@ -40,15 +67,23 @@ fun DayOfWeekSelector(
     vibrationsEnabled: Boolean = true,
     borderAlpha: Float = 0.1f,
     horizontalPadding: Dp = 0.dp,
+    firstDayOfWeek: Int? = null,
+    modifier: Modifier = Modifier,
     onDisabledClick: () -> Unit = {}
 ) {
     val haptic = LocalHapticFeedback.current
-    val days = listOf("M", "T", "W", "T", "F", "S", "S")
-    val dayValues = listOf("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")
+    val context = LocalContext.current
+    val settingsDataStore = remember(context) { SettingsDataStore(context) }
+    val settingFirstDay by settingsDataStore.firstDayOfWeekCalendar.collectAsState(initial = Calendar.MONDAY)
+    val effectiveFirstDayOfWeek = firstDayOfWeek ?: settingFirstDay
+
+    val (days, dayValues) = remember(effectiveFirstDayOfWeek) {
+        getDaysAndDayValues(effectiveFirstDayOfWeek)
+    }
     val effectiveBorderAlpha = if (borderAlpha > 0.1f) borderAlpha else 0.1f
 
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = horizontalPadding, vertical = 0.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),

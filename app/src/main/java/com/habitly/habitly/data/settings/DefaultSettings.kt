@@ -34,5 +34,6 @@ object DefaultSettings {
     const val HEATMAP_WEEKS = 20
     const val HEATMAP_INFINITE = false
     const val HAS_ASKED_NOTIFICATION_PERMISSION = false
+    const val FIRST_DAY_OF_WEEK = "monday"
 }
 

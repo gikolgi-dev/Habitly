@@ -842,6 +842,10 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                                                             jsonString
                                                         )
                                                     habitsToInsert.addAll(exportedData.habits.map { exportedHabit ->
+                                                        val createdAtMillis = com.habitly.habitly.data.Database.parseDateToMillis(exportedHabit.createdAt)?.toString()
+                                                            ?: exportedHabit.createdAt
+                                                        val startDateMillis = com.habitly.habitly.data.Database.parseDateToMillis(exportedHabit.startDate)?.toString()
+                                                            ?: createdAtMillis
                                                         Habit(
                                                             id = exportedHabit.id,
                                                             name = exportedHabit.name,
@@ -850,7 +854,7 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                                                             color = exportedHabit.color,
                                                             archived = exportedHabit.archived,
                                                             orderIndex = exportedHabit.orderIndex,
-                                                            createdAt = exportedHabit.createdAt,
+                                                            createdAt = createdAtMillis,
                                                             isInverse = exportedHabit.isInverse,
                                                             emoji = exportedHabit.emoji,
                                                             completionsPerInterval = exportedHabit.completionsPerInterval,
@@ -859,7 +863,7 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                                                             notificationTime = exportedHabit.notificationTime,
                                                             notificationDays = exportedHabit.notificationDays,
                                                             statsLayout = exportedHabit.statsLayout,
-                                                            startDate = exportedHabit.startDate,
+                                                            startDate = startDateMillis,
                                                             completionsPerDay = exportedHabit.completionsPerDay
                                                         )
                                                     })

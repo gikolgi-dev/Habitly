@@ -84,6 +84,7 @@ import com.habitly.habitly.data.Database.Habit
 import com.habitly.habitly.data.Database.getDailyTarget
 import com.habitly.habitly.ui.colors.isBright
 import com.habitly.habitly.ui.components.RotatingHabitIcon
+import java.util.Calendar
 
 val circleToSquareMorph = Morph(MaterialShapes.Circle, MaterialShapes.Square)
 
@@ -402,7 +403,9 @@ fun HabitItemCard(
     visible: Boolean = true,
     transitionProgressProvider: () -> Float = { 0f },
     theme: String = "system",
-    detailBgColor: Color = Color.Unspecified
+    detailBgColor: Color = Color.Unspecified,
+    animateTileChanges: Boolean = false,
+    firstDayOfWeek: Int = Calendar.MONDAY
 ) {
     val targetCardBackgroundColor = if (useHabitColor) {
         lerp(Color(habit.color), MaterialTheme.colorScheme.surfaceVariant, 0.85f)
@@ -531,7 +534,9 @@ fun HabitItemCard(
                     currentDateMillis = currentDateMillis,
                     habit = habit,
                     showNotificationDot = heatmapNotificationDot,
-                    notificationDotRange = heatmapNotificationDotRange
+                    notificationDotRange = heatmapNotificationDotRange,
+                    animateTileChanges = animateTileChanges,
+                    firstDayOfWeek = firstDayOfWeek
                 )
             }
         }

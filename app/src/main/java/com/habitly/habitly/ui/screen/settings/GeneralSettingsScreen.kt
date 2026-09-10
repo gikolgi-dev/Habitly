@@ -38,6 +38,7 @@ fun GeneralSettingsScreen(
     val heroCardVisible by settingsDataStore.heroCardVisible.collectAsState(initial = DefaultSettings.HERO_CARD_VISIBLE)
     val heatmapScrolling by settingsDataStore.heatmapScrolling.collectAsState(initial = DefaultSettings.HEATMAP_SCROLLING)
     val skipCompleted by settingsDataStore.skipCompletedHabitNotifications.collectAsState(initial = DefaultSettings.SKIP_COMPLETED_HABIT_NOTIFICATIONS)
+    val firstDayOfWeek by settingsDataStore.firstDayOfWeek.collectAsState(initial = DefaultSettings.FIRST_DAY_OF_WEEK)
 
     val haptic = LocalHapticFeedback.current
     val scrollState = rememberScrollState()
@@ -95,7 +96,7 @@ fun GeneralSettingsScreen(
                 position = SettingsItemPosition.Middle,
                 onClick = onNavigateToHeatmapWeeks
             )
-            SettingsItemBox(settingsDataStore = settingsDataStore, position = SettingsItemPosition.Bottom) {
+            SettingsItemBox(settingsDataStore = settingsDataStore, position = SettingsItemPosition.Middle) {
                 Column(
                     Modifier
                         .fillMaxWidth()
@@ -115,6 +116,39 @@ fun GeneralSettingsScreen(
                             if (is24Hour != newValue) {
                                 scope.launch {
                                     settingsDataStore.setIs24Hour(newValue)
+                                }
+                                if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            }
+                        }
+                    )
+                }
+            }
+            SettingsItemBox(settingsDataStore = settingsDataStore, position = SettingsItemPosition.Bottom) {
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                ) {
+                    Text(
+                        text = "First day of the week",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "Affects weekly streak calculations and calendar week layout.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    SettingsSegmentedSelector(
+                        options = listOf("Monday", "Sunday"),
+                        selectedIndex = if (firstDayOfWeek.lowercase() == "sunday") 1 else 0,
+                        onSelectionChange = { index ->
+                            val newDay = if (index == 1) "sunday" else "monday"
+                            if (firstDayOfWeek != newDay) {
+                                scope.launch {
+                                    settingsDataStore.setFirstDayOfWeek(newDay)
                                 }
                                 if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             }

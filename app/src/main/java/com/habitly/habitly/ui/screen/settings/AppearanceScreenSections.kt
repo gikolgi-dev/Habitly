@@ -21,6 +21,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,6 +33,7 @@ import com.habitly.habitly.data.settings.SettingsDataStore
 import com.habitly.habitly.ui.components.DayOfWeekSelector
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import java.util.Calendar
 
 @Composable
 fun ThemeSection(
@@ -137,6 +139,7 @@ fun HeatmapSection(
     val heatmapVisibleDaysState = settingsDataStore.heatmapVisibleDays.collectAsState(initial = null)
     
     val heatmapVisibleDays = heatmapVisibleDaysState.value ?: return
+    val firstDayOfWeekCalendar by settingsDataStore.firstDayOfWeekCalendar.collectAsState(initial = Calendar.MONDAY)
 
     SettingsGroup(title = "Heatmap", settingsDataStore = settingsDataStore) {
         SettingsSwitchItem(
@@ -215,6 +218,7 @@ fun HeatmapSection(
                             haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
                         }
                     },
+                    firstDayOfWeek = firstDayOfWeekCalendar,
                     borderAlpha = borderContrast
                 )
             }

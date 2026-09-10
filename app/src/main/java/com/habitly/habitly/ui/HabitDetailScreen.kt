@@ -143,7 +143,8 @@ fun SharedTransitionScope.HabitDetailScreen(
     heatmapInfinite: Boolean = false,
     currentDateMillis: Long = System.currentTimeMillis(),
     isEditSheetOpen: Boolean = false,
-    transitionProgressProvider: () -> Float = { 1f }
+    transitionProgressProvider: () -> Float = { 1f },
+    firstDayOfWeek: Int = Calendar.MONDAY
 ) {
     val haptic = LocalHapticFeedback.current
     val context = LocalContext.current
@@ -168,7 +169,7 @@ fun SharedTransitionScope.HabitDetailScreen(
 
 
     val streak =
-        remember(habit, completions, currentDateMillis) { calculateStreak(habit, completions, currentDateMillis) }
+        remember(habit, completions, currentDateMillis, firstDayOfWeek) { calculateStreak(habit, completions, currentDateMillis, firstDayOfWeek) }
 
     val useDarkTheme = when (theme) {
         "light" -> false
@@ -451,7 +452,8 @@ fun SharedTransitionScope.HabitDetailScreen(
                     habit = habit,
                     showNotificationDot = heatmapNotificationDot,
                     notificationDotRange = heatmapNotificationDotRange,
-                    notificationDotAlpha = notificationDotAlpha
+                    notificationDotAlpha = notificationDotAlpha,
+                    firstDayOfWeek = firstDayOfWeek
                 )
 
                 //Spacer(modifier = Modifier.height(4.dp))
@@ -615,6 +617,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                     reduceGridReactions = disableAnimations,
                     currentDateMillis = currentDateMillis,
                     habit = habit,
+                    firstDayOfWeek = firstDayOfWeek,
                     onDateClick = { date, isCompleted ->
                         viewModel.toggleCompletion(habit, date)
                     }
@@ -718,6 +721,6 @@ fun SharedTransitionScope.HabitDetailScreen(
     }
 }
 
-private fun calculateStreak(habit: Habit, completions: List<Completion>, currentDateMillis: Long): Int {
-    return com.habitly.habitly.data.calculateCurrentStreak(habit, completions, currentDateMillis)
+private fun calculateStreak(habit: Habit, completions: List<Completion>, currentDateMillis: Long, firstDayOfWeek: Int = Calendar.MONDAY): Int {
+    return com.habitly.habitly.data.calculateCurrentStreak(habit, completions, currentDateMillis, firstDayOfWeek)
 }

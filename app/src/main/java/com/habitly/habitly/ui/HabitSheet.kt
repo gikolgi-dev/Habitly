@@ -585,12 +585,19 @@ fun HabitSheetContent(
     onClose: () -> Unit = {},
     previewContent: (@Composable () -> Unit)? = null,
     isInverse: Boolean = false,
-    onIsInverseChanged: (Boolean) -> Unit = {}
+    onIsInverseChanged: (Boolean) -> Unit = {},
+    showInvertOptions: Boolean = false,
+    invertCompletions: Boolean = true,
+    onInvertCompletionsChanged: (Boolean) -> Unit = {},
+    showTargetConversionOptions: Boolean = false,
+    targetConversionIsPercentage: Boolean = false,
+    onTargetConversionChanged: (Boolean) -> Unit = {}
 ) {
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
     val haptic = LocalHapticFeedback.current
     val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
     val is24Hour by settingsDataStore.is24Hour.collectAsState(initial = false)
+    val firstDayOfWeekCalendar by settingsDataStore.firstDayOfWeekCalendar.collectAsState(initial = Calendar.MONDAY)
     val reduceMovement by settingsDataStore.reduceMovement.collectAsState(initial = false)
     val reduceMovementTargets by settingsDataStore.reduceMovementTargets.collectAsState(initial = emptySet())
     val reduceGridReactions by remember { derivedStateOf { reduceMovement && "Grid Reactions" in reduceMovementTargets } }
@@ -758,6 +765,53 @@ fun HabitSheetContent(
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                         modifier = Modifier.padding(horizontal = 8.dp)
                     )
+
+                    AnimatedVisibility(visible = showInvertOptions) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "Past Completions",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            val invertOptions = listOf("Invert", "Keep History")
+                            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                                invertOptions.forEachIndexed { index, label ->
+                                    val selected = if (index == 0) invertCompletions else !invertCompletions
+                                    SegmentedButton(
+                                        selected = selected,
+                                        onClick = { onInvertCompletionsChanged(index == 0) },
+                                        shape = SegmentedButtonDefaults.itemShape(index = index, count = invertOptions.size),
+                                        colors = SegmentedButtonDefaults.colors(
+                                            activeContainerColor = MaterialTheme.colorScheme.primary,
+                                            activeContentColor = MaterialTheme.colorScheme.onPrimary,
+                                            activeBorderColor = MaterialTheme.colorScheme.primary,
+                                            inactiveContainerColor = MaterialTheme.colorScheme.surface,
+                                            inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            inactiveBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = borderContrast)
+                                        )
+                                    ) {
+                                        Text(label)
+                                    }
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = if (invertCompletions) {
+                                    "Inverts completions: previously completed days become missed/slips."
+                                } else {
+                                    "Preserves history: previously completed days remain completed."
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                modifier = Modifier.padding(horizontal = 8.dp)
+                            )
+                        }
+                    }
                 }
             }
 
@@ -875,7 +929,7 @@ fun HabitSheetContent(
                     Text(
                         text = if (isInverse) {
                             if (currentCount == 1) "Completed by default, binary slipped or completed "
-                            else "Completed by default,$currentCount max slips per day)"
+                            else "Completed by default,$currentCount max slips per day"
                         } else {
                             if (currentCount == 1) "Single completion per day"
                             else "Multiple completions required each day"
@@ -885,6 +939,53 @@ fun HabitSheetContent(
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(horizontal = 8.dp)
                     )
+
+                    AnimatedVisibility(visible = showTargetConversionOptions) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "Convert Existing Completions",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            val targetOptions = listOf("Absolute", "Percentage")
+                            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                                targetOptions.forEachIndexed { index, label ->
+                                    val selected = if (index == 0) !targetConversionIsPercentage else targetConversionIsPercentage
+                                    SegmentedButton(
+                                        selected = selected,
+                                        onClick = { onTargetConversionChanged(index == 1) },
+                                        shape = SegmentedButtonDefaults.itemShape(index = index, count = targetOptions.size),
+                                        colors = SegmentedButtonDefaults.colors(
+                                            activeContainerColor = MaterialTheme.colorScheme.primary,
+                                            activeContentColor = MaterialTheme.colorScheme.onPrimary,
+                                            activeBorderColor = MaterialTheme.colorScheme.primary,
+                                            inactiveContainerColor = MaterialTheme.colorScheme.surface,
+                                            inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            inactiveBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = borderContrast)
+                                        )
+                                    ) {
+                                        Text(label)
+                                    }
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = if (targetConversionIsPercentage) {
+                                    "Scales completion amounts proportionally to the new daily target. This transformation is inherently lossful, so make sure you know what you're doing and make backups."
+                                } else {
+                                    "Keeps exact completion values unchanged, for example 1 always stays 1."
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(horizontal = 8.dp)
+                            )
+                        }
+                    }
                 }
             }
             Card(
@@ -1133,7 +1234,8 @@ fun HabitSheetContent(
                                 isEnabled = notificationsEnabled && hasNotificationPermission,
                                 borderAlpha = borderContrast,
                                 is24Hour = is24Hour,
-                                vibrationsEnabled = vibrationsEnabled
+                                vibrationsEnabled = vibrationsEnabled,
+                                firstDayOfWeek = firstDayOfWeekCalendar
                             )
                         }
                     }

@@ -57,6 +57,7 @@ import com.habitly.habitly.ui.components.NotificationTimeSelectors
 import com.habitly.habitly.ui.components.rememberNotificationPermissionHandler
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.util.Calendar
 
 @Composable
 fun NotificationSettingsScreen(
@@ -68,6 +69,7 @@ fun NotificationSettingsScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
+    val firstDayOfWeekCalendar by settingsDataStore.firstDayOfWeekCalendar.collectAsState(initial = Calendar.MONDAY)
     val notificationScheduler = remember { NotificationScheduler(context) }
 
     val vibrationsEnabledState = settingsDataStore.vibrations.collectAsState(initial = null)
@@ -313,6 +315,7 @@ fun NotificationSettingsScreen(
                         borderAlpha = borderContrast,
                         is24Hour = is24Hour,
                         vibrationsEnabled = vibrationsEnabled,
+                        firstDayOfWeek = firstDayOfWeekCalendar,
                         modifier = Modifier
                     )
                 }

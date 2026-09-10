@@ -54,7 +54,8 @@ fun HeatmapWeekColumn(
     showMonthLabels: Boolean,
     showYearDivider: Boolean,
     showYearLabels: Boolean,
-    notificationDotAlpha: Float = 1f
+    notificationDotAlpha: Float = 1f,
+    animateTileChanges: Boolean = false
 ) {
     val onSurface = MaterialTheme.colorScheme.onSurface
     val surface = MaterialTheme.colorScheme.surface
@@ -65,6 +66,19 @@ fun HeatmapWeekColumn(
     val verticalSpacingPx = with(density) { verticalSpacing.toPx() }
     val horizontalSpacingPx = with(density) { horizontalSpacing.toPx() }
     val cornerRadiusPx = with(density) { 2.dp.toPx() }
+
+    val animatedRatios = (0..6).map { i ->
+        val targetRatio = weekData.completionRatios.getOrNull(i) ?: if (weekData.completedDays[i]) 1f else 0f
+        if (animateTileChanges) {
+            androidx.compose.animation.core.animateFloatAsState(
+                targetValue = targetRatio,
+                animationSpec = androidx.compose.animation.core.tween(durationMillis = 350),
+                label = "tileRatio_$i"
+            ).value
+        } else {
+            targetRatio
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -122,7 +136,7 @@ fun HeatmapWeekColumn(
                     val isFuture = weekData.futureDays[i]
                     val isToday = weekData.todayIndex == i
 
-                    val ratio = weekData.completionRatios.getOrNull(i) ?: if (isCompleted) 1f else 0f
+                    val ratio = animatedRatios.getOrElse(i) { weekData.completionRatios.getOrNull(i) ?: if (isCompleted) 1f else 0f }
                     val color = when {
                         isFuture -> onSurface.copy(alpha = 0.05f)
                         ratio >= 1f -> habitColor

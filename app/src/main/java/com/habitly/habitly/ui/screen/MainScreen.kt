@@ -121,6 +121,8 @@ import com.habitly.habitly.data.Database.HabitWithCompletions
 import com.habitly.habitly.data.Database.HabitsUiState
 import com.habitly.habitly.data.Database.getEffectiveStartDateMillis
 import com.habitly.habitly.data.Database.getDailyTarget
+import com.habitly.habitly.data.Database.normalizeToStartOfDay
+import com.habitly.habitly.data.Database.normalizeToEndOfDay
 import com.habitly.habitly.data.settings.DefaultSettings
 import com.habitly.habitly.data.settings.SettingsDataStore
 import com.habitly.habitly.notifications.NotificationScheduler
@@ -224,6 +226,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     val heatmapScrolling by settingsDataStore.heatmapScrolling.collectAsState(initial = false)
     val heatmapWeeks by settingsDataStore.heatmapWeeks.collectAsState(initial = DefaultSettings.HEATMAP_WEEKS)
     val heatmapInfinite by settingsDataStore.heatmapInfinite.collectAsState(initial = DefaultSettings.HEATMAP_INFINITE)
+    val firstDayOfWeekCalendar by settingsDataStore.firstDayOfWeekCalendar.collectAsState(initial = java.util.Calendar.MONDAY)
 
     // Additional settings for consistent Shared Element Transition colors/animations
     val reduceMovement by settingsDataStore.reduceMovement.collectAsState(initial = false)
@@ -307,7 +310,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     var notificationDays by remember { mutableStateOf(allDays) }
 
     var isInverse by remember { mutableStateOf(false) }
-
+    var invertCompletionsOnTypeChange by remember { mutableStateOf(true) }
+    var targetConversionIsPercentage by remember { mutableStateOf(false) }
     fun validateDaily(text: String) {
         val count = text.toIntOrNull()
         completionsPerDayError = if (count == null) {
@@ -447,6 +451,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
             containerColor = MaterialTheme.colorScheme.surface
         )
     }
+
 
     ProvideRotatingIconRotation {
         Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
@@ -628,6 +633,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                         theme = theme,
                                                         disableAnimations = disableAnimations,
                                                         currentDateMillis = currentDateMillis,
+                                                        firstDayOfWeek = firstDayOfWeekCalendar,
                                                         onComplete = {
                                                             if (vibrationsEnabled) {
                                                                 haptic.performHapticFeedback(
@@ -806,7 +812,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                 notificationDays = it.notificationDays?.split(',')?.toSet() ?: allDays
                                 customColor = null
                                 isInverse = it.isInverse
-
+                                invertCompletionsOnTypeChange = true
+                                targetConversionIsPercentage = false
                                 habitToEdit = it
                                 showHabitSheet = true
                             },
@@ -832,7 +839,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                             heatmapInfinite = heatmapInfinite,
                             currentDateMillis = currentDateMillis,
                             isEditSheetOpen = false,
-                            transitionProgressProvider = { detailTransitionProgressState.value }
+                            transitionProgressProvider = { detailTransitionProgressState.value },
+                            firstDayOfWeek = firstDayOfWeekCalendar
                         )
                     }
                 }
@@ -870,7 +878,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                         vibrationsEnabled = vibrationsEnabled,
                         showScrollBlur = showScrollBlur,
                         scrollBlurTargets = scrollBlurTargets,
-                        useHabitColor = useHabitColorForStatistics
+                        useHabitColor = useHabitColorForStatistics,
+                        firstDayOfWeek = firstDayOfWeekCalendar
                     )
                 }
 
@@ -922,9 +931,94 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                     val existingCompletionsForEdit = remember(habitToEdit, habitsForEdit) {
                         habitsForEdit.find { it.habit.id == habitToEdit?.id }?.completions ?: emptyList()
                     }
-                    val previewCompletions = remember(isEditMode, existingCompletionsForEdit, isInverse, completionsPerDay, completionsPerInterval, intervalUnit) {
-                        if (isEditMode) {
-                            existingCompletionsForEdit
+                    val previewCompletions = remember(
+                        isEditMode,
+                        existingCompletionsForEdit,
+                        isInverse,
+                        invertCompletionsOnTypeChange,
+                        targetConversionIsPercentage,
+                        completionsPerDay,
+                        completionsPerInterval,
+                        intervalUnit,
+                        habitToEdit
+                    ) {
+                        val editingHabit = habitToEdit
+                        if (isEditMode && editingHabit != null) {
+                            val isTypeChanged = editingHabit.isInverse != isInverse
+                            val oldTarget = editingHabit.getDailyTarget()
+                            val newTarget = completionsPerDay.toIntOrNull()?.coerceIn(1, 14) ?: 1
+                            val isTargetChanged = oldTarget != newTarget
+
+                            if (isTypeChanged && !invertCompletionsOnTypeChange) {
+                                // "Keep History": simulate converted completions in preview
+                                val oldHabit = editingHabit
+                                val startDate = normalizeToStartOfDay(oldHabit.getEffectiveStartDateMillis())
+                                val todayEnd = normalizeToEndOfDay(System.currentTimeMillis())
+
+                                val cal = Calendar.getInstance().apply { timeInMillis = startDate }
+                                val converted = mutableListOf<Completion>()
+                                while (cal.timeInMillis <= todayEnd) {
+                                    val dayStart = normalizeToStartOfDay(cal.timeInMillis)
+                                    val dayEnd = normalizeToEndOfDay(cal.timeInMillis)
+                                    val dbAmount = existingCompletionsForEdit
+                                        .filter { it.date in dayStart..dayEnd }
+                                        .sumOf { it.amountOfCompletions }
+                                    val oldEffective = if (oldHabit.isInverse) {
+                                        (oldTarget - dbAmount).coerceAtLeast(0)
+                                    } else {
+                                        dbAmount
+                                    }
+                                    val scaledOldEffective = if (targetConversionIsPercentage && isTargetChanged) {
+                                        Math.round(oldEffective.toFloat() * newTarget / oldTarget.toFloat())
+                                            .toInt()
+                                            .coerceIn(0, newTarget)
+                                    } else {
+                                        oldEffective
+                                    }
+                                    if (isInverse) {
+                                        val slips = (newTarget - scaledOldEffective).coerceAtLeast(0)
+                                        if (slips > 0) {
+                                            converted.add(
+                                                Completion(
+                                                    id = UUID.randomUUID().toString(),
+                                                    habitId = oldHabit.id,
+                                                    date = dayStart + 12 * 3600 * 1000L,
+                                                    timezoneOffsetInMinutes = 0,
+                                                    amountOfCompletions = slips
+                                                )
+                                            )
+                                        }
+                                    } else {
+                                        val completions = scaledOldEffective.coerceAtMost(newTarget)
+                                        if (completions > 0) {
+                                            converted.add(
+                                                Completion(
+                                                    id = UUID.randomUUID().toString(),
+                                                    habitId = oldHabit.id,
+                                                    date = dayStart + 12 * 3600 * 1000L,
+                                                    timezoneOffsetInMinutes = 0,
+                                                    amountOfCompletions = completions
+                                                )
+                                            )
+                                        }
+                                    }
+                                    cal.add(Calendar.DAY_OF_YEAR, 1)
+                                }
+                                converted
+                            } else if (isTargetChanged && targetConversionIsPercentage) {
+                                // Scale completions by percentage
+                                existingCompletionsForEdit.mapNotNull { comp ->
+                                    val newAmount = Math.round(comp.amountOfCompletions.toFloat() * newTarget / oldTarget.toFloat())
+                                        .toInt()
+                                        .coerceIn(0, newTarget)
+                                    if (newAmount > 0) {
+                                        comp.copy(amountOfCompletions = newAmount)
+                                    } else null
+                                }
+                            } else {
+                                // "Invert" or Absolute mode: preview uses the raw completions as-is
+                                existingCompletionsForEdit
+                            }
                         } else {
                             val list = mutableListOf<Completion>()
                             val cal = Calendar.getInstance()
@@ -1064,6 +1158,12 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                 hasNotificationPermission = notificationPermissionHandler.hasPermission,
                                 isInverse = isInverse,
                                 onIsInverseChanged = { isInverse = it },
+                                showInvertOptions = isEditMode && habitToEdit?.isInverse != isInverse,
+                                invertCompletions = invertCompletionsOnTypeChange,
+                                onInvertCompletionsChanged = { invertCompletionsOnTypeChange = it },
+                                showTargetConversionOptions = isEditMode && (habitToEdit?.getDailyTarget() != (completionsPerDay.toIntOrNull() ?: 1)),
+                                targetConversionIsPercentage = targetConversionIsPercentage,
+                                onTargetConversionChanged = { targetConversionIsPercentage = it },
                                 onClose = {
                                     showHabitSheet = false
                                 },
@@ -1094,7 +1194,9 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                         visible = true,
                                         detailBgColor = Color(dummyHabit.color).copy(alpha = 0.1f),
                                         modifier = Modifier.padding(horizontal = 0.dp, vertical = 4.dp),
-                                        currentDateMillis = currentDateMillis
+                                        currentDateMillis = currentDateMillis,
+                                        animateTileChanges = true,
+                                        firstDayOfWeek = firstDayOfWeekCalendar
                                     )
                                 },
                                 modifier = Modifier
@@ -1136,7 +1238,15 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                     ","
                                                 ) else null
                                             )
-                                            viewModel.updateHabitWithConversion(currentHabitToEdit, updatedHabit)
+                                            viewModel.updateHabitWithConversion(
+                                                currentHabitToEdit,
+                                                updatedHabit,
+                                                invertCompletions = invertCompletionsOnTypeChange,
+                                                targetConversionMode = if (targetConversionIsPercentage)
+                                                    com.habitly.habitly.data.Database.TargetConversionMode.PERCENTAGE
+                                                else
+                                                    com.habitly.habitly.data.Database.TargetConversionMode.ABSOLUTE
+                                            )
                                             if (updatedHabit.notificationsEnabled) {
                                                 notificationScheduler.scheduleNotification(updatedHabit)
                                             } else {
@@ -1223,6 +1333,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                     notificationDays = allDays
                     customColor = null
                     isInverse = false
+                    invertCompletionsOnTypeChange = true
 
                     habitToEdit = null
                     showHabitSheet = true

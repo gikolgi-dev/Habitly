@@ -13,6 +13,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import java.util.Calendar
 
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
@@ -54,6 +55,7 @@ class SettingsDataStore(private val context: Context) {
         val HEATMAP_WEEKS_KEY = intPreferencesKey("heatmap_weeks")
         val HEATMAP_INFINITE_KEY = booleanPreferencesKey("heatmap_infinite")
         val HAS_ASKED_NOTIFICATION_PERMISSION_KEY = booleanPreferencesKey("has_asked_notification_permission")
+        val FIRST_DAY_OF_WEEK_KEY = stringPreferencesKey("first_day_of_week")
     }
 
     val theme: Flow<String> = context.dataStore.data
@@ -435,6 +437,22 @@ class SettingsDataStore(private val context: Context) {
             settings[HAS_ASKED_NOTIFICATION_PERMISSION_KEY] = asked
         }
     }
+    val firstDayOfWeek: Flow<String> = context.dataStore.data
+        .map { preferences ->
+            preferences[FIRST_DAY_OF_WEEK_KEY] ?: DefaultSettings.FIRST_DAY_OF_WEEK
+        }
+
+    val firstDayOfWeekCalendar: Flow<Int> = firstDayOfWeek
+        .map { day ->
+            if (day.lowercase() == "sunday") Calendar.SUNDAY else Calendar.MONDAY
+        }
+
+    suspend fun setFirstDayOfWeek(day: String) {
+        context.dataStore.edit { settings ->
+            settings[FIRST_DAY_OF_WEEK_KEY] = day
+        }
+    }
+
 
     // Make the reset to default button only affect and be visible in the appearence settings
     suspend fun resetToDefault() {

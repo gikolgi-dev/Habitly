@@ -2,6 +2,7 @@
 
 package com.habitly.habitly.ui.screen
 
+import java.util.Calendar
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -191,7 +192,8 @@ fun StatisticScreen(
     vibrationsEnabled: Boolean,
     showScrollBlur: Boolean,
     scrollBlurTargets: Set<String>,
-    useHabitColor: Boolean
+    useHabitColor: Boolean,
+    firstDayOfWeek: Int = Calendar.MONDAY
 ) {
     val context = LocalContext.current
     val habitsUiState by viewModel.habitsUiState.collectAsState()
@@ -504,7 +506,8 @@ fun StatisticScreen(
                                 isEditMode = isEditMode && habit.habit.id == currentHabit?.habit?.id,
                                 activeModules = activeList,
                                 onRemoveModule = ::onRemoveModule,
-                                onReorderModules = ::onReorderModules
+                                onReorderModules = ::onReorderModules,
+                                firstDayOfWeek = firstDayOfWeek
                             )
                         }
                     }
@@ -657,6 +660,7 @@ fun StatisticScreen(
                                                          vibrationsEnabled = vibrationsEnabled,
                                                          borderContrast = borderContrast,
                                                          useHabitColorForCard = useHabitColor,
+                                                         firstDayOfWeek = firstDayOfWeek,
                                                          onAdd = { onAddModule(moduleId) }
                                                      )
                                                  }
@@ -802,10 +806,11 @@ fun InactiveModuleCard(
     vibrationsEnabled: Boolean,
     borderContrast: Float,
     useHabitColorForCard: Boolean,
+    firstDayOfWeek: Int = Calendar.MONDAY,
     onAdd: () -> Unit
 ) {
-            val statsState = androidx.compose.runtime.produceState<com.habitly.habitly.data.HabitStatistics?>(initialValue = null, key1 = habit) {
-                value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { com.habitly.habitly.data.calculateStatistics(habit) }
+            val statsState = androidx.compose.runtime.produceState<com.habitly.habitly.data.HabitStatistics?>(initialValue = null, key1 = habit, key2 = firstDayOfWeek) {
+                value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { com.habitly.habitly.data.calculateStatistics(habit, firstDayOfWeek) }
             }
             val monthlyStatsState = androidx.compose.runtime.produceState<List<com.habitly.habitly.data.MonthlyCompletion>?>(initialValue = null, key1 = habit) {
                 value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { com.habitly.habitly.data.calculateMonthlyStats(habit) }
@@ -851,7 +856,7 @@ fun InactiveModuleCard(
                 when (moduleId) {
                     "longest_streak" -> StatCard(
                         label = "Longest Streak",
-                        value = if (habit.habit.intervalUnit != "day" || habit.habit.completionsPerInterval > 1) "${stats.longestStreak}" else "${stats.longestStreak} days",
+                        value = "${stats.longestStreak} days",
                         secondaryValue = if (stats.daysSinceLongestStreak > 0) "${stats.daysSinceLongestStreak} days ago" else "Current",
                         accentColor = displayAccentColor,
                         borderContrast = borderContrast,
@@ -861,7 +866,7 @@ fun InactiveModuleCard(
 
                     "current_streak" -> StatCard(
                         label = "Current Streak",
-                        value = if (habit.habit.intervalUnit != "day" || habit.habit.completionsPerInterval > 1) "${stats.currentStreak}" else "${stats.currentStreak} days",
+                        value = "${stats.currentStreak} days",
                         accentColor = displayAccentColor,
                         borderContrast = borderContrast,
                         useHabitColorForCard = useHabitColorForCard,

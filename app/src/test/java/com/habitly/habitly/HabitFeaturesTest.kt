@@ -10,6 +10,7 @@ import com.habitly.habitly.data.Database.isDayCompleted
 import com.habitly.habitly.data.Database.normalizeToStartOfDay
 import com.habitly.habitly.data.Database.getDailyTarget
 import com.habitly.habitly.data.Database.normalizeToEndOfDay
+import com.habitly.habitly.data.Database.getEffectiveStartDateMillis
 import com.habitly.habitly.data.calculateStatistics
 import com.habitly.habitly.data.getCompletedDays
 import com.habitly.habitly.data.getTotalEffectiveCompletions
@@ -25,6 +26,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.Calendar
 import java.util.UUID
+import com.habitly.habitly.ui.components.getDaysAndDayValues
 
 class HabitFeaturesTest {
 
@@ -235,6 +237,66 @@ class HabitFeaturesTest {
     }
 
     @Test
+    fun testConversionBuildToQuit_invertingCompletionsKeepsRawStorage() {
+        val today = normalizeToStartOfDay(System.currentTimeMillis())
+        val threeDaysAgo = today - (2L * 24 * 3600 * 1000) // Day 0, Day 1, Day 2 (today)
+        val buildHabit = createHabit(isInverse = false, completionsPerInterval = 1, startDate = threeDaysAgo)
+
+        val day0 = threeDaysAgo
+        val day1 = threeDaysAgo + (24 * 3600 * 1000L)
+        val day2 = today
+
+        // Day 0 completed, Day 1 empty, Day 2 completed
+        val buildCompletions = listOf(
+            Completion("c0", buildHabit.id, day0 + 5000L, 0, 1),
+            Completion("c2", buildHabit.id, day2 + 5000L, 0, 1)
+        )
+
+        assertEquals(1, getEffectiveCompletionsForDay(buildHabit, buildCompletions, day0))
+        assertEquals(0, getEffectiveCompletionsForDay(buildHabit, buildCompletions, day1))
+        assertEquals(1, getEffectiveCompletionsForDay(buildHabit, buildCompletions, day2))
+
+        // When the user chooses "Invert completions":
+        // Backend does NOT rewrite completions. Existing raw completions remain as-is.
+        // Under Quit habit semantics, having a DB row is a slip (0 completions),
+        // and lack of DB row is a completion (1 completion).
+        val quitHabitInverted = buildHabit.copy(isInverse = true)
+        // The same completions list:
+        assertEquals(0, getEffectiveCompletionsForDay(quitHabitInverted, buildCompletions, day0)) // was completed, now slip (inverted)
+        assertEquals(1, getEffectiveCompletionsForDay(quitHabitInverted, buildCompletions, day1)) // was empty, now completed (inverted)
+        assertEquals(0, getEffectiveCompletionsForDay(quitHabitInverted, buildCompletions, day2)) // was completed, now slip (inverted)
+    }
+
+    @Test
+    fun testTargetConversion_absoluteVsPercentage() {
+        // Case 1: Simple habit 1 or 0 converted to target 3
+        val oldTarget1 = 1
+        val newTarget3 = 3
+        val completionAmount1 = 1
+
+        // Absolute: 1 stays 1
+        val absoluteVal = completionAmount1
+        assertEquals(1, absoluteVal)
+
+        // Percentage: 1/1 -> 100% of 3 = 3
+        val percentageVal = Math.round(completionAmount1.toFloat() * newTarget3 / oldTarget1.toFloat()).coerceIn(0, newTarget3)
+        assertEquals(3, percentageVal)
+
+        // Case 2: Arbitrary target (e.g. 6) converted to target 3 (or vice versa)
+        val oldTarget6 = 6
+        val newTarget6to3 = 3
+        val completionAmount4 = 4 // 4 out of 6 (66.7%)
+
+        // Absolute: 4 stays 4 (or clamped to newTarget)
+        val absoluteVal2 = completionAmount4
+        assertEquals(4, absoluteVal2)
+
+        // Percentage: 4 * 3 / 6 = 2 (66.7% of 3)
+        val percentageVal2 = Math.round(completionAmount4.toFloat() * newTarget6to3 / oldTarget6.toFloat()).coerceIn(0, newTarget6to3)
+        assertEquals(2, percentageVal2)
+    }
+
+    @Test
     fun testStreakAndStatistics_quitHabit() {
         val today = normalizeToStartOfDay(System.currentTimeMillis())
         val fiveDaysAgo = today - (4L * 24 * 3600 * 1000) // 5 consecutive days: 4, 3, 2, 1, 0 (today)
@@ -310,7 +372,7 @@ class HabitFeaturesTest {
     fun testIndependentCompletionsPerDay_andWeeklyStreakTarget() {
         val today = normalizeToStartOfDay(System.currentTimeMillis())
         val cal = Calendar.getInstance().apply { timeInMillis = today }
-        val firstDay = cal.firstDayOfWeek
+        val firstDay = Calendar.MONDAY
         while (cal.get(Calendar.DAY_OF_WEEK) != firstDay) {
             cal.add(Calendar.DAY_OF_YEAR, -1)
         }
@@ -353,9 +415,11 @@ class HabitFeaturesTest {
             )
         }
         val hwc5 = HabitWithCompletions(habit, fiveDaysCompletions)
-        val stats5 = calculateStatistics(hwc5)
-        assertEquals(10, stats5.currentStreak)
-        assertEquals(10, stats5.longestStreak)
+        val testNow = startOfWeek + (4 * 24 * 3600 * 1000L) + 5000L
+        val stats5 = calculateStatistics(hwc5, firstDay, testNow)
+        // 5 days completed -> streak is 5 days, not 10 completions
+        assertEquals(5, stats5.currentStreak)
+        assertEquals(5, stats5.longestStreak)
         assertEquals(10, stats5.totalCompletions)
     }
     @Test
@@ -454,5 +518,424 @@ class HabitFeaturesTest {
         // 4 slips -> 0 completions
         val fourSlips = listOf(Completion("s-4", habit.id, today + 1000L, 0, 4))
         assertEquals(0, getEffectiveCompletionsForDay(habit, fourSlips, today))
+    }
+
+    @Test
+    fun testIsoCreatedAt_effectiveStartDate_andCompletionsNotWiped() {
+        // Habit with ISO-8601 createdAt and null startDate (like in older backups / pre-migration app state)
+        val isoCreatedAt = "2023-11-16T17:16:39.139951Z"
+        val habit = Habit(
+            id = "yk-habit-id",
+            name = "YK",
+            description = "",
+            icon = "Spa",
+            color = -1416351,
+            archived = false,
+            orderIndex = 0,
+            createdAt = isoCreatedAt,
+            isInverse = false,
+            emoji = null,
+            completionsPerInterval = 1,
+            intervalUnit = "day",
+            startDate = null
+        )
+
+        val expectedMillis = java.time.Instant.parse(isoCreatedAt).toEpochMilli()
+        assertEquals(expectedMillis, habit.getEffectiveStartDateMillis())
+
+        // A completion from late 2023 (before today, but after habit creation)
+        val completionDate = expectedMillis + (10L * 24 * 3600 * 1000)
+        val completions = listOf(
+            Completion(
+                id = "c-1",
+                habitId = habit.id,
+                date = completionDate,
+                timezoneOffsetInMinutes = 60,
+                amountOfCompletions = 1
+            )
+        )
+
+        val effective = getEffectiveCompletionsForDay(habit, completions, completionDate)
+        assertEquals(1, effective)
+        assertTrue(isDayCompleted(habit, completions, completionDate))
+    }
+
+    @Test
+    fun testFirstDayOfWeek_weeklyStreakChangesWithFirstDayOfWeekSetting() {
+        // Setup a specific reference week starting Monday, Sep 7, 2026
+        val cal = Calendar.getInstance().apply {
+            clear()
+            set(2026, Calendar.SEPTEMBER, 7, 0, 0, 0)
+        }
+        val mondayStart = cal.timeInMillis // Sep 7, 2026 (Mon)
+        val sundayEndOfWeek = mondayStart + (6L * 24 * 3600 * 1000) // Sep 13, 2026 (Sun)
+        val nextMonday = mondayStart + (7L * 24 * 3600 * 1000) // Sep 14, 2026 (Mon)
+        val nextTuesday = mondayStart + (8L * 24 * 3600 * 1000) // Sep 15, 2026 (Tue)
+
+        // Habit: 3 completions per week
+        val habit = createHabit(
+            isInverse = false,
+            completionsPerInterval = 3,
+            intervalUnit = "week",
+            completionsPerDay = 1,
+            startDate = mondayStart
+        )
+
+        // Completions on: Sep 7 (Mon), Sep 8 (Tue), Sep 9 (Wed), Sep 13 (Sun), Sep 14 (Mon), Sep 15 (Tue)
+        val completions = listOf(
+            Completion("c-1", habit.id, mondayStart + 1000L, 0, 1),
+            Completion("c-2", habit.id, mondayStart + (1L * 24 * 3600 * 1000) + 1000L, 0, 1),
+            Completion("c-3", habit.id, mondayStart + (2L * 24 * 3600 * 1000) + 1000L, 0, 1),
+            Completion("c-4", habit.id, sundayEndOfWeek + 1000L, 0, 1),
+            Completion("c-5", habit.id, nextMonday + 1000L, 0, 1),
+            Completion("c-6", habit.id, nextTuesday + 1000L, 0, 1)
+        )
+
+        val hwc = HabitWithCompletions(habit, completions)
+        val evalTime = nextTuesday + 5000L
+
+        // Under firstDayOfWeek = MONDAY:
+        // Week 1 (Mon Sep 7 - Sun Sep 13) has 4 completions (Mon, Tue, Wed, Sun) >= 3 (Target met!).
+        // Week 2 (Mon Sep 14 - Sun Sep 20) has 2 completions (Mon, Tue) < 3.
+        val statsMonday = calculateStatistics(hwc, Calendar.MONDAY, evalTime)
+        // Week 1 had 4 completed days (all 4 count, not capped at 3), Week 2 has 2 completed days (in-progress/optimistic)
+        // Total current streak: 4 + 2 = 6 days
+        assertEquals(6, statsMonday.currentStreak)
+
+        // Under firstDayOfWeek = SUNDAY:
+        // Week 1 (Sun Aug 30 - Sat Sep 5) has 0 completions.
+        // Week 2 (Sun Sep 6 - Sat Sep 12) has 3 completions (Mon Sep 7, Tue Sep 8, Wed Sep 9) >= 3 (Target met!).
+        // Week 3 (Sun Sep 13 - Sat Sep 19) has 3 completions (Sun Sep 13, Mon Sep 14, Tue Sep 15) >= 3 (Target met!).
+        // Total current streak: 3 + 3 = 6
+        val statsSunday = calculateStatistics(hwc, Calendar.SUNDAY, evalTime)
+        assertEquals(6, statsSunday.currentStreak)
+    }
+
+    @Test
+    fun testStreak_todayCompletedToMaxLevelDoesNotExceedMax() {
+        val today = normalizeToStartOfDay(System.currentTimeMillis())
+        val threeDaysAgo = today - (2L * 24 * 3600 * 1000)
+        // Multiple completions: 5 per day (max level), streak target: 3
+        val habit = createHabit(isInverse = false, completionsPerInterval = 3, completionsPerDay = 5, startDate = threeDaysAgo)
+
+        // Yesterday completed with 4 completions (>= 3). Today has 0.
+        val completionsYesterday = listOf(
+            Completion("c-1", habit.id, today - (24 * 3600 * 1000) + 1000L, 0, 4)
+        )
+        val statsBeforeToday = calculateStatistics(HabitWithCompletions(habit, completionsYesterday), Calendar.MONDAY, today + 5000L)
+        // Streak has not failed today, counts yesterday = 1 day
+        assertEquals(1, statsBeforeToday.currentStreak)
+
+        // Today reaches streak target (3 completions)
+        val completionsTarget = listOf(
+            Completion("c-1", habit.id, today - (24 * 3600 * 1000) + 1000L, 0, 4),
+            Completion("c-2", habit.id, today + 1000L, 0, 3)
+        )
+        val statsTarget = calculateStatistics(HabitWithCompletions(habit, completionsTarget), Calendar.MONDAY, today + 5000L)
+        // Streak adds 1 day for today = 2 days
+        assertEquals(2, statsTarget.currentStreak)
+        assertEquals(2, statsTarget.longestStreak)
+        assertEquals(0L, statsTarget.daysSinceLongestStreak) // Active today
+
+        // Today completed to the MAX level (5 completions):
+        val completionsMaxLevel = listOf(
+            Completion("c-1", habit.id, today - (24 * 3600 * 1000) + 1000L, 0, 4),
+            Completion("c-2", habit.id, today + 1000L, 0, 5) // max level 5!
+        )
+        val statsMaxLevel = calculateStatistics(HabitWithCompletions(habit, completionsMaxLevel), Calendar.MONDAY, today + 5000L)
+        // Reaching max level should NOT add max completions or inflate streak: streak is STILL 2 days!
+        assertEquals(2, statsMaxLevel.currentStreak)
+        assertEquals(2, statsMaxLevel.longestStreak)
+        assertEquals(0L, statsMaxLevel.daysSinceLongestStreak) // Active today
+    }
+
+    @Test
+    fun testFirstDayOfWeek_calendarOffsetCalculation() {
+        // Test for a month where the 1st day is a Sunday (e.g. November 2026: Nov 1, 2026 is Sunday)
+        val cal = Calendar.getInstance().apply {
+            clear()
+            set(2026, Calendar.NOVEMBER, 1)
+        }
+        val dayOfWeek = cal.get(Calendar.DAY_OF_WEEK) // Calendar.SUNDAY = 1
+        assertEquals(Calendar.SUNDAY, dayOfWeek)
+
+        // If firstDayOfWeek is MONDAY (2):
+        // Sunday is 7th day of the week, so offset is 6
+        val offsetMonday = (dayOfWeek - Calendar.MONDAY + 7) % 7
+        assertEquals(6, offsetMonday)
+
+        // If firstDayOfWeek is SUNDAY (1):
+        // Sunday is 1st day of the week, so offset is 0
+        val offsetSunday = (dayOfWeek - Calendar.SUNDAY + 7) % 7
+        assertEquals(0, offsetSunday)
+    }
+
+    @Test
+    fun testFirstDayOfWeek_dayOfWeekSelector_mondayStart() {
+        val (days, dayValues) = getDaysAndDayValues(Calendar.MONDAY)
+        assertEquals(listOf("M", "T", "W", "T", "F", "S", "S"), days)
+        assertEquals(listOf("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"), dayValues)
+    }
+
+    @Test
+    fun testFirstDayOfWeek_dayOfWeekSelector_sundayStart() {
+        val (days, dayValues) = getDaysAndDayValues(Calendar.SUNDAY)
+        assertEquals(listOf("S", "M", "T", "W", "T", "F", "S"), days)
+        assertEquals(listOf("SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"), dayValues)
+    }
+
+    @Test
+    fun testFirstDayOfWeek_dayOfWeekSelector_saturdayStart() {
+        val (days, dayValues) = getDaysAndDayValues(Calendar.SATURDAY)
+        assertEquals(listOf("S", "S", "M", "T", "W", "T", "F"), days)
+        assertEquals(listOf("SAT", "SUN", "MON", "TUE", "WED", "THU", "FRI"), dayValues)
+    }
+
+    @Test
+    fun testStreak_countsDaysNotCompletions_weeklyHabit() {
+        val cal = Calendar.getInstance().apply {
+            clear()
+            set(2026, Calendar.SEPTEMBER, 7, 10, 0, 0) // Sep 7, 2026 is Monday
+        }
+        val mondayStart = normalizeToStartOfDay(cal.timeInMillis)
+        val habit = createHabit(
+            isInverse = false,
+            completionsPerInterval = 3,
+            intervalUnit = "week",
+            completionsPerDay = 1,
+            startDate = mondayStart
+        )
+
+        // Case 1: 3 completions in 3 days (Mon, Wed, Fri) -> target satisfied, streak is 3 days
+        val completions3Days = listOf(
+            Completion("c-1", habit.id, mondayStart + 1000L, 0, 1),
+            Completion("c-2", habit.id, mondayStart + (2L * 24 * 3600 * 1000) + 1000L, 0, 1),
+            Completion("c-3", habit.id, mondayStart + (4L * 24 * 3600 * 1000) + 1000L, 0, 1)
+        )
+        val endOfWeekEval = mondayStart + (6L * 24 * 3600 * 1000) + 5000L // Sunday
+        val stats3 = calculateStatistics(HabitWithCompletions(habit, completions3Days), Calendar.MONDAY, endOfWeekEval)
+        assertEquals(3, stats3.currentStreak)
+        assertEquals(3, stats3.longestStreak)
+
+        // Case 2 (Principle 2): Target is 3, but completions on all 7 days -> streak is 7 days, NOT capped at 3!
+        val completions7Days = (0..6).map { dayOffset ->
+            Completion("c-$dayOffset", habit.id, mondayStart + (dayOffset * 24 * 3600 * 1000L) + 1000L, 0, 1)
+        }
+        val stats7 = calculateStatistics(HabitWithCompletions(habit, completions7Days), Calendar.MONDAY, endOfWeekEval)
+        assertEquals(7, stats7.currentStreak)
+        assertEquals(7, stats7.longestStreak)
+    }
+
+    @Test
+    fun testStreak_optimisticAboutTheFuture_mondayMorningDoesNotFail() {
+        // Principle 3: "it should be optimistic about the future ie it shouldnt fail if the amount
+        // of completions was not possible to be achieved because you can do 1 completion per day need 3 per week and its only monday"
+        val cal = Calendar.getInstance().apply {
+            clear()
+            set(2026, Calendar.SEPTEMBER, 7, 10, 0, 0) // Sep 7, 2026 is Monday
+        }
+        val week1Monday = normalizeToStartOfDay(cal.timeInMillis)
+        val week2Monday = week1Monday + (7L * 24 * 3600 * 1000) // Sep 14, 2026 is Monday
+        val habit = createHabit(
+            isInverse = false,
+            completionsPerInterval = 3,
+            intervalUnit = "week",
+            completionsPerDay = 1,
+            startDate = week1Monday
+        )
+
+        // Week 1 has completions on all 7 days (7 days streak from week 1)
+        val week1Completions = (0..6).map { dayOffset ->
+            Completion("w1-$dayOffset", habit.id, week1Monday + (dayOffset * 24 * 3600 * 1000L) + 1000L, 0, 1)
+        }
+
+        // On Week 2 Monday MORNING (0 completions so far this week):
+        // Needs 3 per week, only Monday today, can do 1/day, impossible to have achieved 3 yet,
+        // but 7 days remain so goal CAN be achieved. Streak MUST NOT fail!
+        val mondayMorningEval = week2Monday + (8 * 3600 * 1000L) // 8:00 AM
+        val statsMondayMorning = calculateStatistics(HabitWithCompletions(habit, week1Completions), Calendar.MONDAY, mondayMorningEval)
+        assertEquals(7, statsMondayMorning.currentStreak)
+        assertEquals(7, statsMondayMorning.longestStreak)
+
+        // On Week 2 Monday EVENING: user completed Monday (1 completion)
+        val completionsWithMon = week1Completions + listOf(
+            Completion("w2-mon", habit.id, week2Monday + (18 * 3600 * 1000L), 0, 1)
+        )
+        val mondayEveningEval = week2Monday + (19 * 3600 * 1000L)
+        val statsMondayEvening = calculateStatistics(HabitWithCompletions(habit, completionsWithMon), Calendar.MONDAY, mondayEveningEval)
+        assertEquals(8, statsMondayEvening.currentStreak)
+        assertEquals(8, statsMondayEvening.longestStreak)
+
+        // On Week 2 Tuesday EVENING: user completed Tuesday (1 completion)
+        val week2Tuesday = week2Monday + (24 * 3600 * 1000L)
+        val completionsWithTue = completionsWithMon + listOf(
+            Completion("w2-tue", habit.id, week2Tuesday + (18 * 3600 * 1000L), 0, 1)
+        )
+        val tuesdayEveningEval = week2Tuesday + (19 * 3600 * 1000L)
+        val statsTuesdayEvening = calculateStatistics(HabitWithCompletions(habit, completionsWithTue), Calendar.MONDAY, tuesdayEveningEval)
+        assertEquals(9, statsTuesdayEvening.currentStreak)
+        assertEquals(9, statsTuesdayEvening.longestStreak)
+
+        // On Week 2 Wednesday EVENING: user completed Wednesday (3rd completion -> weekly target met!)
+        val week2Wednesday = week2Monday + (2L * 24 * 3600 * 1000L)
+        val completionsWithWed = completionsWithTue + listOf(
+            Completion("w2-wed", habit.id, week2Wednesday + (18 * 3600 * 1000L), 0, 1)
+        )
+        val wednesdayEveningEval = week2Wednesday + (19 * 3600 * 1000L)
+        val statsWednesdayEvening = calculateStatistics(HabitWithCompletions(habit, completionsWithWed), Calendar.MONDAY, wednesdayEveningEval)
+        assertEquals(10, statsWednesdayEvening.currentStreak)
+        assertEquals(10, statsWednesdayEvening.longestStreak)
+    }
+
+    @Test
+    fun testStreak_optimisticStreakBreaksWhenTargetBecomesImpossible() {
+        // Target is 3 completions per week, 1 per day.
+        // If user has only 1 completion by Sunday, max remaining is 1 (today).
+        // 1 + 1 = 2 < 3, so target is impossible. Streak MUST break.
+        val cal = Calendar.getInstance().apply {
+            clear()
+            set(2026, Calendar.SEPTEMBER, 7, 10, 0, 0) // Sep 7, 2026 is Monday
+        }
+        val week1Monday = normalizeToStartOfDay(cal.timeInMillis)
+        val week2Monday = week1Monday + (7L * 24 * 3600 * 1000) // Sep 14, 2026 is Monday
+        val habit = createHabit(
+            isInverse = false,
+            completionsPerInterval = 3,
+            intervalUnit = "week",
+            completionsPerDay = 1,
+            startDate = week1Monday
+        )
+
+        // Week 1 has 7 completed days
+        val week1Completions = (0..6).map { dayOffset ->
+            Completion("w1-$dayOffset", habit.id, week1Monday + (dayOffset * 24 * 3600 * 1000L) + 1000L, 0, 1)
+        }
+
+        // In Week 2, user only completed Monday:
+        val week2Completions = week1Completions + listOf(
+            Completion("w2-mon", habit.id, week2Monday + 1000L, 0, 1)
+        )
+
+        // On Saturday of Week 2 (Sep 19):
+        // 1 completion so far (Mon). Remaining days: Saturday (today) and Sunday (2 days).
+        // Max possible = 1 + (1 - 0) + 1 = 3 >= 3 -> Still possible! Streak is preserved (7 + 1 = 8)
+        val week2Saturday = week2Monday + (5L * 24 * 3600 * 1000L)
+        val statsSaturday = calculateStatistics(HabitWithCompletions(habit, week2Completions), Calendar.MONDAY, week2Saturday + 5000L)
+        assertEquals(8, statsSaturday.currentStreak)
+        assertEquals(8, statsSaturday.longestStreak)
+
+        // On Sunday of Week 2 (Sep 20):
+        // 1 completion so far (Mon). Remaining days: Sunday (today, 0 future days).
+        // Max possible = 1 + (1 - 0) + 0 = 2 < 3 -> Impossible! Streak breaks!
+        val week2Sunday = week2Monday + (6L * 24 * 3600 * 1000L)
+        val statsSunday = calculateStatistics(HabitWithCompletions(habit, week2Completions), Calendar.MONDAY, week2Sunday + 5000L)
+        assertEquals(0, statsSunday.currentStreak)
+        // Longest streak was Week 1 (7 days). Week 2 failed, so its incomplete day does not count as a satisfied streak.
+        assertEquals(7, statsSunday.longestStreak)
+        // Days since longest streak: longest streak ended on Week 1 Sunday (7 days ago from Sunday Sep 20)
+        assertEquals(7L, statsSunday.daysSinceLongestStreak)
+    }
+
+    @Test
+    fun testStreak_multiCompletionHabit_countsDaysNotCompletions() {
+        val today = normalizeToStartOfDay(System.currentTimeMillis())
+        val threeDaysAgo = today - (2L * 24 * 3600 * 1000)
+        // Daily habit with multiple completions: 5 max per day, streak target: 3
+        val habit = createHabit(isInverse = false, completionsPerInterval = 3, completionsPerDay = 5, startDate = threeDaysAgo)
+
+        // Day 1 (2 days ago): 5 completions
+        // Day 2 (yesterday): 4 completions
+        // Day 3 (today): 3 completions
+        val completions = listOf(
+            Completion("c-1", habit.id, threeDaysAgo + 1000L, 0, 5),
+            Completion("c-2", habit.id, today - (24 * 3600 * 1000) + 1000L, 0, 4),
+            Completion("c-3", habit.id, today + 1000L, 0, 3)
+        )
+        val stats = calculateStatistics(HabitWithCompletions(habit, completions), Calendar.MONDAY, today + 5000L)
+        // Total completions = 5 + 4 + 3 = 12.
+        // But streak MUST count days, not completions -> streak is 3 days!
+        assertEquals(3, stats.currentStreak)
+        assertEquals(3, stats.longestStreak)
+        assertEquals(12, stats.totalCompletions)
+    }
+
+    @Test
+    fun testStreak_multiCompletionWeeklyHabit() {
+        val cal = Calendar.getInstance().apply {
+            clear()
+            set(2026, Calendar.SEPTEMBER, 7, 10, 0, 0) // Sep 7, 2026 is Monday
+        }
+        val mondayStart = normalizeToStartOfDay(cal.timeInMillis)
+        // Weekly habit: 2 completions max per day, 6 completions required per week
+        val habit = createHabit(
+            isInverse = false,
+            completionsPerInterval = 6,
+            intervalUnit = "week",
+            completionsPerDay = 2,
+            startDate = mondayStart
+        )
+
+        // Case A: 3 days with 2 completions each (total 6 completions)
+        // Satisfies weekly target (6 >= 6). Counts 3 days, not 6 completions!
+        val completions3Days = listOf(
+            Completion("c-1", habit.id, mondayStart + 1000L, 0, 2),
+            Completion("c-2", habit.id, mondayStart + (2L * 24 * 3600 * 1000) + 1000L, 0, 2),
+            Completion("c-3", habit.id, mondayStart + (4L * 24 * 3600 * 1000) + 1000L, 0, 2)
+        )
+        val endOfWeekEval = mondayStart + (6L * 24 * 3600 * 1000) + 5000L
+        val stats3Days = calculateStatistics(HabitWithCompletions(habit, completions3Days), Calendar.MONDAY, endOfWeekEval)
+        assertEquals(3, stats3Days.currentStreak)
+        assertEquals(3, stats3Days.longestStreak)
+        assertEquals(6, stats3Days.totalCompletions)
+
+        // Case B: 7 days with 2 completions each (total 14 completions)
+        // Satisfies weekly target. All 7 days count to streak!
+        val completions7Days = (0..6).map { dayOffset ->
+            Completion("c-$dayOffset", habit.id, mondayStart + (dayOffset * 24 * 3600 * 1000L) + 1000L, 0, 2)
+        }
+        val stats7Days = calculateStatistics(HabitWithCompletions(habit, completions7Days), Calendar.MONDAY, endOfWeekEval)
+        assertEquals(7, stats7Days.currentStreak)
+        assertEquals(7, stats7Days.longestStreak)
+        assertEquals(14, stats7Days.totalCompletions)
+    }
+
+    @Test
+    fun testStreak_monthlyHabit_countsDaysAndOptimistic() {
+        val cal = Calendar.getInstance().apply {
+            clear()
+            set(2026, Calendar.JANUARY, 1, 10, 0, 0) // Jan 1, 2026
+        }
+        val jan1 = normalizeToStartOfDay(cal.timeInMillis)
+        // Monthly habit: 10 completions per month, 1 per day
+        val habit = createHabit(
+            isInverse = false,
+            completionsPerInterval = 10,
+            intervalUnit = "month",
+            completionsPerDay = 1,
+            startDate = jan1
+        )
+
+        // January: 15 completed days (Jan 1 to Jan 15)
+        val janCompletions = (0..14).map { dayOffset ->
+            Completion("jan-$dayOffset", habit.id, jan1 + (dayOffset * 24 * 3600 * 1000L) + 1000L, 0, 1)
+        }
+        val janEndEval = jan1 + (30L * 24 * 3600 * 1000L) + 5000L // Jan 31
+        val janStats = calculateStatistics(HabitWithCompletions(habit, janCompletions), Calendar.MONDAY, janEndEval)
+        // 15 days completed >= 10 target -> all 15 days count!
+        assertEquals(15, janStats.currentStreak)
+        assertEquals(15, janStats.longestStreak)
+
+        // February 2: user completed Feb 1 and Feb 2 (2 completions)
+        cal.set(2026, Calendar.FEBRUARY, 1)
+        val feb1 = normalizeToStartOfDay(cal.timeInMillis)
+        val febCompletions = janCompletions + listOf(
+            Completion("feb-0", habit.id, feb1 + 1000L, 0, 1),
+            Completion("feb-1", habit.id, feb1 + (24 * 3600 * 1000L) + 1000L, 0, 1)
+        )
+        val feb2Eval = feb1 + (24 * 3600 * 1000L) + 5000L
+        val febStats = calculateStatistics(HabitWithCompletions(habit, febCompletions), Calendar.MONDAY, feb2Eval)
+        // Optimistic! Streak continues: 15 (Jan) + 2 (Feb) = 17 days
+        assertEquals(17, febStats.currentStreak)
+        assertEquals(17, febStats.longestStreak)
     }
 }

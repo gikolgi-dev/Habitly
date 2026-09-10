@@ -37,6 +37,7 @@ import com.habitly.habitly.data.Database.getEffectiveStartDateMillis
 import com.habitly.habitly.data.Database.getDailyTarget
 import com.habitly.habitly.ui.components.HeatmapWeekColumn
 import com.habitly.habitly.ui.components.HeatmapWeekData
+import com.habitly.habitly.ui.components.getDaysAndDayValues
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -76,7 +77,9 @@ fun Heatmap(
     habit: Habit? = null,
     showNotificationDot: Boolean = false,
     notificationDotRange: String = "today_and_future",
-    notificationDotAlpha: Float = 1f
+    notificationDotAlpha: Float = 1f,
+    animateTileChanges: Boolean = false,
+    firstDayOfWeek: Int = Calendar.MONDAY
 ) {
     val density = LocalDensity.current
 
@@ -108,11 +111,11 @@ fun Heatmap(
         }
     }
 
-    val dayOfWeekLabels = remember {
+    val dayOfWeekLabels = remember(firstDayOfWeek) {
         val format = SimpleDateFormat("E", Locale.getDefault())
         val cal = Calendar.getInstance()
-        cal.firstDayOfWeek = Calendar.MONDAY
-        cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
+        cal.firstDayOfWeek = firstDayOfWeek
+        cal.set(Calendar.DAY_OF_WEEK, firstDayOfWeek)
         (0..6).map {
             val day = format.format(cal.time)
             cal.add(Calendar.DAY_OF_YEAR, 1)
@@ -130,7 +133,7 @@ fun Heatmap(
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         if (visibleDayLabels.isNotEmpty() && !dayOfWeekLabelsOnRight) {
-            DayOfWeekLabels(dayOfWeekLabels, visibleDayLabels, showMonthLabels, cellSize, verticalSpacing)
+            DayOfWeekLabels(dayOfWeekLabels, visibleDayLabels, showMonthLabels, cellSize, verticalSpacing, firstDayOfWeek)
         }
 
         BoxWithConstraints(modifier = Modifier.weight(1f).graphicsLayer(clip = false)) {
@@ -144,32 +147,32 @@ fun Heatmap(
                 with(density) { (remainingSpacePx.toFloat() / (numWeeksOnScreen - 1)).toDp() }
             } else minHorizontalSpacing
 
-            val totalWeeks = remember(completions, numWeeksOnScreen, isScrollable, minWeeks, isInfinite, currentDateMillis, habit) {
+            val totalWeeks = remember(completions, numWeeksOnScreen, isScrollable, minWeeks, isInfinite, currentDateMillis, habit, firstDayOfWeek) {
                 val oldestDate = listOfNotNull(
                     habit?.getEffectiveStartDateMillis(),
                     if (completions.isNotEmpty()) completions.minOf { it.date } else null
                 ).minOrNull()
                 val weeksDiff = if (oldestDate == null) 0 else {
-                    val cal = Calendar.getInstance().apply { firstDayOfWeek = Calendar.MONDAY }
+                    val cal = Calendar.getInstance().apply { this.firstDayOfWeek = firstDayOfWeek }
 
                     cal.timeInMillis = oldestDate
-                    cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
+                    cal.set(Calendar.DAY_OF_WEEK, firstDayOfWeek)
                     cal.set(Calendar.HOUR_OF_DAY, 0)
                     cal.set(Calendar.MINUTE, 0)
                     cal.set(Calendar.SECOND, 0)
                     cal.set(Calendar.MILLISECOND, 0)
-                    val oldestMon = cal.timeInMillis
+                    val oldestWeekStart = cal.timeInMillis
 
                     cal.timeInMillis = currentDateMillis
-                    cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
+                    cal.set(Calendar.DAY_OF_WEEK, firstDayOfWeek)
                     if (cal.timeInMillis > currentDateMillis) cal.add(Calendar.WEEK_OF_YEAR, -1)
                     cal.set(Calendar.HOUR_OF_DAY, 0)
                     cal.set(Calendar.MINUTE, 0)
                     cal.set(Calendar.SECOND, 0)
                     cal.set(Calendar.MILLISECOND, 0)
-                    val currentMon = cal.timeInMillis
+                    val currentWeekStart = cal.timeInMillis
 
-                    ((currentMon - oldestMon) / (1000L * 60 * 60 * 24 * 7)).toInt() + 1
+                    ((currentWeekStart - oldestWeekStart) / (1000L * 60 * 60 * 24 * 7)).toInt() + 1
                 }
                 if (isScrollable) {
                     if (isInfinite) {
@@ -188,15 +191,15 @@ fun Heatmap(
             LaunchedEffect(isScrollable) { lazyListState.scrollToItem(0) }
 
             val monthFormat = remember { SimpleDateFormat("MMM", Locale.getDefault()) }
-            val currentMondayMillis = remember(currentDateMillis) {
+            val currentFirstDayOfWeekMillis = remember(currentDateMillis, firstDayOfWeek) {
                 val cal = Calendar.getInstance().apply {
-                    firstDayOfWeek = Calendar.MONDAY
+                    this.firstDayOfWeek = firstDayOfWeek
                     timeInMillis = currentDateMillis
                     set(Calendar.HOUR_OF_DAY, 0)
                     set(Calendar.MINUTE, 0)
                     set(Calendar.SECOND, 0)
                     set(Calendar.MILLISECOND, 0)
-                    set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
+                    set(Calendar.DAY_OF_WEEK, firstDayOfWeek)
                     if (timeInMillis > currentDateMillis) add(Calendar.WEEK_OF_YEAR, -1)
                 }
                 cal.timeInMillis
@@ -211,10 +214,10 @@ fun Heatmap(
                 userScrollEnabled = isScrollable
             ) {
                 items(count = totalWeeks, key = { it }) { weekIndex ->
-                    val weekData = remember(weekIndex, currentMondayMillis, completionAmounts, todayDayIndex, showMonthLabels, tz, isScrollable, totalWeeks, habit, habitStartDayIndex, showNotificationDot, notificationDotRange) {
+                    val weekData = remember(weekIndex, currentFirstDayOfWeekMillis, completionAmounts, todayDayIndex, showMonthLabels, tz, isScrollable, totalWeeks, habit, habitStartDayIndex, showNotificationDot, notificationDotRange, firstDayOfWeek) {
                         val cal = Calendar.getInstance()
-                        cal.firstDayOfWeek = Calendar.MONDAY
-                        cal.timeInMillis = currentMondayMillis
+                        cal.firstDayOfWeek = firstDayOfWeek
+                        cal.timeInMillis = currentFirstDayOfWeekMillis
                         cal.add(Calendar.WEEK_OF_YEAR, -weekIndex)
                         val weekStartMillis = cal.timeInMillis
 
@@ -259,8 +262,8 @@ fun Heatmap(
                         var yearDigits = if (isStartOfYear) yearEnd.toString() else null
 
                         val dots = BooleanArray(7)
-                        val cal0 = Calendar.getInstance().apply { firstDayOfWeek = Calendar.MONDAY }
-                        cal0.timeInMillis = currentMondayMillis
+                        val cal0 = Calendar.getInstance().apply { this.firstDayOfWeek = firstDayOfWeek }
+                        cal0.timeInMillis = currentFirstDayOfWeekMillis
                         cal0.add(Calendar.DAY_OF_YEAR, 6)
                         val yEnd0 = cal0.get(Calendar.YEAR)
                         cal0.add(Calendar.WEEK_OF_YEAR, -1)
@@ -280,7 +283,7 @@ fun Heatmap(
                         if (showNotificationDot && habit?.notificationsEnabled == true) {
                             val habitDays = habit.notificationDays?.split(",")?.toSet() ?: emptySet()
                             
-                            val currentWeekStartDayIndex = (currentMondayMillis + tz.getOffset(currentMondayMillis)) / 86400000L
+                            val currentWeekStartDayIndex = (currentFirstDayOfWeekMillis + tz.getOffset(currentFirstDayOfWeekMillis)) / 86400000L
                             for (i in 0..6) {
                                 val dIndex = currentWeekStartDayIndex + i
                                 val shouldShow = when (notificationDotRange) {
@@ -291,7 +294,7 @@ fun Heatmap(
                                 
                                 if (shouldShow) {
                                     val dayCal = Calendar.getInstance().apply { 
-                                        timeInMillis = currentMondayMillis
+                                        timeInMillis = currentFirstDayOfWeekMillis
                                         add(Calendar.DAY_OF_YEAR, i)
                                     }
                                     val dayName = SimpleDateFormat("EEE", Locale.ENGLISH).format(dayCal.time).uppercase()
@@ -331,13 +334,13 @@ fun Heatmap(
                         )
                     }
 
-                    HeatmapWeekColumn(weekData, habitColor, cellSize, verticalSpacing, horizontalSpacing, showMonthLabels, showYearDivider, showYearLabels, notificationDotAlpha)
+                    HeatmapWeekColumn(weekData, habitColor, cellSize, verticalSpacing, horizontalSpacing, showMonthLabels, showYearDivider, showYearLabels, notificationDotAlpha, animateTileChanges)
                 }
             }
         }
 
         if (visibleDayLabels.isNotEmpty() && dayOfWeekLabelsOnRight) {
-            DayOfWeekLabels(dayOfWeekLabels, visibleDayLabels, showMonthLabels, cellSize, verticalSpacing)
+            DayOfWeekLabels(dayOfWeekLabels, visibleDayLabels, showMonthLabels, cellSize, verticalSpacing, firstDayOfWeek)
         }
     }
 }
@@ -348,9 +351,10 @@ private fun DayOfWeekLabels(
     visibleDayLabels: Set<String>,
     showMonthLabels: Boolean,
     cellSize: Dp,
-    minSpacing: Dp
+    minSpacing: Dp,
+    firstDayOfWeek: Int = Calendar.MONDAY
 ) {
-    val dayValues = listOf("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")
+    val dayValues = getDaysAndDayValues(firstDayOfWeek).second
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         if (showMonthLabels) {
             Box(Modifier.height(20.dp))

@@ -84,6 +84,7 @@ import com.habitly.habitly.data.HabitStatistics
 import com.habitly.habitly.data.MonthlyCompletion
 import com.habitly.habitly.data.calculateMonthlyStats
 import com.habitly.habitly.data.calculateStatistics
+import java.util.Calendar
 import com.habitly.habitly.ui.fadingEdge
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -243,7 +244,8 @@ fun HabitStatisticsContent(
     isEditMode: Boolean = false,
     activeModules: List<String> = emptyList(),
     onRemoveModule: (String) -> Unit = {},
-    onReorderModules: (List<String>) -> Unit = {}
+    onReorderModules: (List<String>) -> Unit = {},
+    firstDayOfWeek: Int = Calendar.MONDAY
 ) {
     var selectedModuleForResize by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(isEditMode) {
@@ -307,8 +309,8 @@ fun HabitStatisticsContent(
         onReorderModules(newList)
     }
 
-    val statsState = produceState<HabitStatistics?>(initialValue = null, key1 = habit) {
-        value = withContext(Dispatchers.Default) { calculateStatistics(habit) }
+    val statsState = produceState<HabitStatistics?>(initialValue = null, key1 = habit, key2 = firstDayOfWeek) {
+        value = withContext(Dispatchers.Default) { calculateStatistics(habit, firstDayOfWeek) }
     }
     val monthlyStatsState = produceState<List<MonthlyCompletion>?>(initialValue = null, key1 = habit) {
         value = withContext(Dispatchers.Default) { calculateMonthlyStats(habit) }

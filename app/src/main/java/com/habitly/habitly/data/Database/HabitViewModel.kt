@@ -18,6 +18,10 @@ import kotlinx.coroutines.launch
 import java.util.Calendar
 import java.util.UUID
 import java.util.concurrent.TimeUnit
+enum class TargetConversionMode {
+    ABSOLUTE,
+    PERCENTAGE
+}
 
 sealed interface HabitsUiState {
     data object Loading : HabitsUiState
@@ -145,17 +149,63 @@ class HabitViewModel(private val habitDao: HabitDao) : ViewModel() {
         }
     }
 
-    fun updateHabitWithConversion(oldHabit: Habit, updatedHabit: Habit) {
+    fun updateHabitWithConversion(
+        oldHabit: Habit,
+        updatedHabit: Habit,
+        invertCompletions: Boolean = true,
+        targetConversionMode: TargetConversionMode = TargetConversionMode.ABSOLUTE
+    ) {
         viewModelScope.launch {
-            if (oldHabit.isInverse != updatedHabit.isInverse) {
-                convertHabitCompletions(oldHabit, updatedHabit)
+            val isTypeChanged = oldHabit.isInverse != updatedHabit.isInverse
+            val isTargetChanged = oldHabit.getDailyTarget() != updatedHabit.getDailyTarget()
+
+            if (isTypeChanged) {
+                if (invertCompletions) {
+                    if (isTargetChanged && targetConversionMode == TargetConversionMode.PERCENTAGE) {
+                        // First convert target under old type, then invert type
+                        convertTargetCompletions(oldHabit, updatedHabit)
+                    } else {
+                        habitDao.updateHabit(updatedHabit)
+                    }
+                } else {
+                    // Preserving the visual completion status: convert DB entries
+                    convertHabitCompletions(oldHabit, updatedHabit, targetConversionMode)
+                }
+            } else if (isTargetChanged && targetConversionMode == TargetConversionMode.PERCENTAGE) {
+                convertTargetCompletions(oldHabit, updatedHabit)
             } else {
                 habitDao.updateHabit(updatedHabit)
             }
         }
     }
 
-    private suspend fun convertHabitCompletions(oldHabit: Habit, newHabit: Habit) {
+    private suspend fun convertTargetCompletions(oldHabit: Habit, newHabit: Habit) {
+        val habitId = oldHabit.id
+        val oldTarget = oldHabit.getDailyTarget()
+        val newTarget = newHabit.getDailyTarget()
+        val existingCompletions = habitDao.getCompletionsForHabitSnapshot(habitId)
+
+        val newCompletions = existingCompletions.mapNotNull { comp ->
+            val newAmount = Math.round(comp.amountOfCompletions.toFloat() * newTarget / oldTarget.toFloat())
+                .toInt()
+                .coerceIn(0, newTarget)
+            if (newAmount > 0) {
+                comp.copy(amountOfCompletions = newAmount)
+            } else null
+        }
+
+        habitDao.deleteCompletionsForHabit(habitId)
+        if (newCompletions.isNotEmpty()) {
+            habitDao.insertCompletions(newCompletions)
+        }
+        habitDao.updateHabit(newHabit)
+    }
+
+    private suspend fun convertHabitCompletions(
+        oldHabit: Habit,
+        newHabit: Habit,
+        targetConversionMode: TargetConversionMode = TargetConversionMode.ABSOLUTE
+    ) {
         val habitId = oldHabit.id
         val oldTarget = oldHabit.getDailyTarget()
         val newTarget = newHabit.getDailyTarget()
@@ -184,8 +234,16 @@ class HabitViewModel(private val habitDao: HabitDao) : ViewModel() {
                 dbAmount
             }
 
+            val scaledOldEffective = if (targetConversionMode == TargetConversionMode.PERCENTAGE && oldTarget != newTarget) {
+                Math.round(oldEffective.toFloat() * newTarget / oldTarget.toFloat())
+                    .toInt()
+                    .coerceIn(0, newTarget)
+            } else {
+                oldEffective
+            }
+
             if (newHabit.isInverse) {
-                val slips = (newTarget - oldEffective).coerceAtLeast(0)
+                val slips = (newTarget - scaledOldEffective).coerceAtLeast(0)
                 if (slips > 0) {
                     newCompletions.add(
                         Completion(
@@ -198,7 +256,7 @@ class HabitViewModel(private val habitDao: HabitDao) : ViewModel() {
                     )
                 }
             } else {
-                val completions = oldEffective.coerceAtMost(newTarget)
+                val completions = scaledOldEffective.coerceAtMost(newTarget)
                 if (completions > 0) {
                     newCompletions.add(
                         Completion(
