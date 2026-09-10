@@ -44,6 +44,7 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -82,11 +83,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
@@ -329,11 +332,6 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
         validate(completionsPerInterval)
     }
 
-    LaunchedEffect(showHabitSheet) {
-        if (!showHabitSheet) {
-            habitToEdit = null
-        }
-    }
 
     val isAnySheetOpen = showHabitSheet || showSettingsScreen || habitToView != null || showArchiveSheet || showReorderSheet || showStatisticScreen
 
@@ -342,6 +340,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
         if (showStatisticScreen) { showStatisticScreen = false; initialHabitIdForStats = null; return@BackHandler }
         if (showHabitSheet) {
             showHabitSheet = false
+            habitToEdit = null
             return@BackHandler
         }
         if (showSettingsScreen) { showSettingsScreen = false; return@BackHandler }
@@ -422,7 +421,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     }
 
     ProvideRotatingIconRotation {
-        Box(Modifier.fillMaxSize()) {
+        Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         SharedTransitionLayout {
             val sharedTransitionScope = this
             val lastViewedHabitId = remember { mutableStateOf<String?>(null) }
@@ -434,13 +433,18 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing),
                 label = "detailTransitionProgress"
             )
-            val editSheetTransitionProgressState = animateFloatAsState(
+            val editParallaxProgress by animateFloatAsState(
                 targetValue = if (showHabitSheet) 1f else 0f,
-                animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing),
-                label = "editSheetTransitionProgress"
+                animationSpec = tween(durationMillis = 350, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+                label = "editParallaxProgress"
             )
+            val parallaxTranslationY = with(LocalDensity.current) { (-36).dp.toPx() } * editParallaxProgress
+            val parallaxScale = 1f - 0.08f * editParallaxProgress
+            val parallaxCornerRadius = 24.dp * editParallaxProgress
+            val parallaxDim = 0.25f * editParallaxProgress
+
             val mainBlurRadius by animateDpAsState(
-                targetValue = if ((isAnySheetOpen || isFabMenuExpanded) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) 16.dp else 0.dp,
+                targetValue = if (((habitToView != null || (isAnySheetOpen && !showHabitSheet)) || isFabMenuExpanded) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) 16.dp else 0.dp,
                 label = "mainBlurRadius"
             )
 
@@ -464,8 +468,25 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
             Box(Modifier
                 .fillMaxSize()
                 .then(timePickerBlurModifier)) {
-                Scaffold(
-                    contentWindowInsets = WindowInsets.safeDrawing,
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            translationY = parallaxTranslationY
+                            scaleX = parallaxScale
+                            scaleY = parallaxScale
+                            shape = RoundedCornerShape(parallaxCornerRadius)
+                            clip = editParallaxProgress > 0f
+                        }
+                        .drawWithContent {
+                            drawContent()
+                            if (parallaxDim > 0f) {
+                                drawRect(Color.Black.copy(alpha = parallaxDim))
+                            }
+                        }
+                ) {
+                    Scaffold(
+                        contentWindowInsets = WindowInsets.safeDrawing,
                     floatingActionButton = {
                         // Empty: FAB is hoisted to the parent Box to render on top of the shared element transition
                     },
@@ -540,13 +561,12 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                 key = { it.habit.id }
                                             ) { habitWithCompletions ->
                                                 val isCompleted = habitWithCompletions.completions.any { it.date in startOfDay..endOfDay }
-                                                val isEditingThis = isEditMode && habitToEdit?.id == habitWithCompletions.habit.id
                                                 val isViewingThis = habitToView?.habit?.id == habitWithCompletions.habit.id
 
                                                 val shadowColor = MaterialTheme.colorScheme.surfaceVariant.copy(/*alpha = 0.15f*/)
 
                                                 Box {
-                                                    if (isViewingThis || isEditingThis) {
+                                                    if (isViewingThis) {
                                                         Box(
                                                             modifier = Modifier
                                                                 .matchParentSize()
@@ -557,7 +577,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                     HabitItemCard(
                                                         modifier = Modifier.sharedElementWithCallerManagedVisibility(
                                                             rememberSharedContentState(key = "card-${habitWithCompletions.habit.id}"),
-                                                            visible = !isViewingThis && !isEditingThis,
+                                                            visible = !isViewingThis,
                                                             boundsTransform = { _, _ -> tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing) }
                                                         ),
                                                         habit = habitWithCompletions.habit,
@@ -596,11 +616,11 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                             habitToView = habitWithCompletions
                                                         },
                                                         sharedTransitionScope = sharedTransitionScope,
-                                                        visible = !isViewingThis && !isEditingThis,
-                                                        transitionProgressProvider = { 
-                                                            if (isViewingThis || (habitToView == null && lastViewedHabitId.value == habitWithCompletions.habit.id)) 
-                                                                detailTransitionProgressState.value 
-                                                            else 0f 
+                                                        visible = !isViewingThis,
+                                                        transitionProgressProvider = {
+                                                            if (isViewingThis || (habitToView == null && lastViewedHabitId.value == habitWithCompletions.habit.id))
+                                                                detailTransitionProgressState.value
+                                                            else 0f
                                                         }
                                                     )
                                                 }
@@ -770,7 +790,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                             heatmapWeeks = heatmapWeeks,
                             heatmapInfinite = heatmapInfinite,
                             currentDateMillis = currentDateMillis,
-                            isEditSheetOpen = showHabitSheet,
+                            isEditSheetOpen = false,
                             transitionProgressProvider = { detailTransitionProgressState.value }
                         )
                     }
@@ -843,75 +863,20 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                     )
                 }
 
-                AnimatedVisibility(
-                    visible = showHabitSheet,
-                    enter = fadeIn(),
-                    exit = fadeOut()
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.5f))
-                            .clickable {
-                                showHabitSheet = false
-                            }
-                    )
-                }
-
-                val sheetOffsetY = remember { Animatable(0f) }
-                LaunchedEffect(showHabitSheet) {
-                    if (showHabitSheet) sheetOffsetY.snapTo(0f)
-                }
+                } // End of parallax Box
 
                 AnimatedVisibility(
                     visible = showHabitSheet,
-                    modifier = Modifier.align(Alignment.BottomCenter),
+                    modifier = Modifier.fillMaxSize(),
                     enter = slideInVertically(
                         initialOffsetY = { it },
-                        animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)
-                    ) + fadeIn(animationSpec = tween(durationMillis = 300)),
+                        animationSpec = tween(durationMillis = 350, easing = androidx.compose.animation.core.FastOutSlowInEasing)
+                    ),
                     exit = slideOutVertically(
                         targetOffsetY = { it },
-                        animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)
-                    ) + fadeOut(animationSpec = tween(durationMillis = 300))
+                        animationSpec = tween(durationMillis = 350, easing = androidx.compose.animation.core.FastOutSlowInEasing)
+                    )
                 ) {
-                    val dismissThresholdPx = with(LocalDensity.current) { 175.dp.toPx() }
-                    val scrollState = rememberScrollState()
-                    val nestedScrollConnection = remember {
-                        object : NestedScrollConnection {
-                            // Fixed signature: added 'source' parameter
-                            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                                val delta = available.y
-                                return if (delta > 0 && sheetOffsetY.value > 0) {
-                                    scope.launch { sheetOffsetY.snapTo(sheetOffsetY.value + delta) }
-                                    Offset(0f, delta)
-                                } else Offset.Zero
-                            }
-
-                            // Fixed signature: added 'consumed' and 'source' parameters
-                            override fun onPostScroll(
-                                consumed: Offset,
-                                available: Offset,
-                                source: NestedScrollSource
-                            ): Offset {
-                                val delta = available.y
-                                if (delta > 0) scope.launch { sheetOffsetY.snapTo(sheetOffsetY.value + delta) }
-                                return Offset.Zero
-                            }
-
-                            override suspend fun onPreFling(available: Velocity): Velocity {
-                                if (sheetOffsetY.value > 0) {
-                                    if (sheetOffsetY.value > dismissThresholdPx) {
-                                        showHabitSheet = false
-                                    }
-                                    else sheetOffsetY.animateTo(0f, spring())
-                                    return available
-                                }
-                                return super.onPreFling(available)
-                            }
-                        }
-                    }
-
                     val habitsForEdit = (habitsUiState as? HabitsUiState.Success)?.habits ?: emptyList()
                     val existingCompletionsForEdit = remember(habitToEdit, habitsForEdit) {
                         habitsForEdit.find { it.habit.id == habitToEdit?.id }?.completions ?: emptyList()
@@ -945,7 +910,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                     val livePreviewColor = if (showColorPicker) tempColor else customColor
                     val dummyHabit = remember(habitName, habitDescription, habitColor, customColor, habitIconKey, completionsPerInterval, intervalUnit, notificationsEnabled, notificationTime, notificationDays, livePreviewColor, isEditMode) {
                         Habit(
-                            id = if (isEditMode) habitToEdit!!.id else "preview",
+                            id = habitToEdit?.id ?: "preview",
                             name = habitName.ifBlank { "Habit Name" },
                             description = habitDescription.ifBlank { "Description" },
                             color = (livePreviewColor ?: habitColor).toArgb(),
@@ -963,216 +928,165 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                         )
                     }
 
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .fillMaxHeight(0.9f)
-                            .offset { IntOffset(0, sheetOffsetY.value.roundToInt()) }
-                            .nestedScroll(nestedScrollConnection)
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.surface
                     ) {
-                        val previewKey = if (isEditMode) "card-${habitToEdit!!.id}" else "card-preview"
-                        HabitItemCard(
-                            habit = dummyHabit,
-                            isCompleted = false,
-                            completions = previewCompletions,
-                            showCheckbox = true,
-                            showMonthLabels = showMonthLabels!!,
-                            visibleDayLabels = heatmapVisibleDays!!,
-                            dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight!!,
-                            showYearDivider = showYearDivider!!,
-                            showYearLabels = showYearLabels!!,
-                            heatmapNotificationDot = heatmapNotificationDot!!,
-                            heatmapNotificationDotRange = heatmapNotificationDotRange!!,
-                            showScrollBlur = false,
-                            borderContrast = borderContrast!!,
-                            heatmapScrollEnabled = false,
-                            heatmapWeeks = heatmapWeeks,
-                            heatmapInfinite = heatmapInfinite,
-                            useHabitColor = useHabitColorForItemCards,
-                            disableAnimations = disableAnimations,
-                            onComplete = { /* Do nothing in preview */ },
-                            onClick = { /* Do nothing in preview */ },
-                            sharedTransitionScope = sharedTransitionScope,
-                            visible = showHabitSheet,
-                            transitionProgressProvider = { 1f - editSheetTransitionProgressState.value },
-                            detailBgColor = Color(dummyHabit.color).copy(alpha = 0.1f),
-                            modifier = Modifier
-                                .sharedElementWithCallerManagedVisibility(
-                                    rememberSharedContentState(key = previewKey),
-                                    visible = showHabitSheet,
-                                    boundsTransform = { _, _ -> tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing) }
-                                )
-                                .padding(horizontal = 8.dp, vertical = 8.dp),
-                            currentDateMillis = currentDateMillis
-                        )
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            val scrollState = rememberScrollState()
+                            HabitSheetContent(
+                                title = title,
+                                habitName = habitName,
+                                onHabitNameChanged = { habitName = it },
+                                habitDescription = habitDescription,
+                                onHabitDescriptionChanged = { habitDescription = it },
+                                completionsPerInterval = completionsPerInterval,
+                                onCompletionsPerIntervalChanged = { completionsPerInterval = it },
+                                intervalUnit = intervalUnit,
+                                onIntervalUnitChanged = { intervalUnit = it },
+                                completionsError = completionsError,
+                                habitIconKey = habitIconKey,
+                                onHabitIconKeyChanged = { habitIconKey = it },
+                                habitColor = habitColor,
+                                onHabitColorChanged = { habitColor = it },
+                                customColor = customColor,
+                                onShowColorPicker = { show, color ->
+                                    showColorPicker = show
+                                    if (show) {
+                                        tempColor = color
+                                    }
+                                },
+                                onClearCustomColor = { customColor = null },
+                                livePreviewColor = if (showColorPicker) tempColor else customColor,
+                                scrollState = scrollState,
+                                settingsDataStore = settingsDataStore,
+                                notificationsEnabled = notificationsEnabled,
+                                onNotificationsEnabledChanged = {
+                                    if (notificationPermissionHandler.hasPermission) {
+                                        notificationsEnabled = it
+                                    } else {
+                                        notificationPermissionHandler.requestPermission()
+                                    }
+                                },
+                                notificationTime = notificationTime,
+                                onTimePickerClick = {
+                                    if (notificationPermissionHandler.hasPermission) {
+                                        showTimePicker = true
+                                    } else {
+                                        notificationPermissionHandler.requestPermission()
+                                    }
+                                },
+                                notificationDays = notificationDays,
+                                onNotificationDaySelected = { day ->
+                                    notificationDays = if (notificationDays.contains(day)) {
+                                        notificationDays - day
+                                    } else {
+                                        notificationDays + day
+                                    }
+                                },
+                                hasNotificationPermission = notificationPermissionHandler.hasPermission,
+                                onClose = {
+                                    showHabitSheet = false
+                                    habitToEdit = null
+                                },
+                                previewContent = {
+                                    HabitItemCard(
+                                        habit = dummyHabit,
+                                        isCompleted = false,
+                                        completions = previewCompletions,
+                                        showCheckbox = true,
+                                        showMonthLabels = showMonthLabels!!,
+                                        visibleDayLabels = heatmapVisibleDays!!,
+                                        dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight!!,
+                                        showYearDivider = showYearDivider!!,
+                                        showYearLabels = showYearLabels!!,
+                                        heatmapNotificationDot = heatmapNotificationDot!!,
+                                        heatmapNotificationDotRange = heatmapNotificationDotRange!!,
+                                        showScrollBlur = false,
+                                        borderContrast = borderContrast!!,
+                                        heatmapScrollEnabled = false,
+                                        heatmapWeeks = heatmapWeeks,
+                                        heatmapInfinite = heatmapInfinite,
+                                        useHabitColor = useHabitColorForItemCards,
+                                        disableAnimations = disableAnimations,
+                                        onComplete = { /* Do nothing in preview */ },
+                                        onClick = { /* Do nothing in preview */ },
+                                        sharedTransitionScope = null,
+                                        visible = true,
+                                        detailBgColor = Color(dummyHabit.color).copy(alpha = 0.1f),
+                                        modifier = Modifier.padding(horizontal = 0.dp, vertical = 4.dp),
+                                        currentDateMillis = currentDateMillis
+                                    )
+                                },
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .statusBarsPadding()
+                            )
 
-                        Surface(
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
-                            color = MaterialTheme.colorScheme.surface
-                        ) {
-                            val headerModifier = Modifier.pointerInput(Unit) {
-                                detectVerticalDragGestures(
-                                    onVerticalDrag = { _, dragAmount ->
-                                        if (dragAmount > 0 || sheetOffsetY.value > 0) {
-                                            scope.launch { sheetOffsetY.snapTo((sheetOffsetY.value + dragAmount).coerceAtLeast(0f)) }
-                                        }
-                                    },
-                                    onDragEnd = {
-                                        scope.launch {
-                                            if (sheetOffsetY.value > dismissThresholdPx) {
-                                                showHabitSheet = false
+                            val habits = (habitsUiState as? HabitsUiState.Success)?.habits ?: emptyList()
+                            SaveHabitButton(
+                                buttonText = buttonText,
+                                isEnabled = habitName.trim().isNotBlank() && completionsError == null,
+                                settingsDataStore = settingsDataStore,
+                                modifier = Modifier.align(Alignment.BottomCenter)
+                            ) {
+                                val trimmedName = habitName.trim()
+                                if (trimmedName.isNotBlank()) {
+                                    val currentHabitToEdit = habitToEdit
+                                    scope.launch {
+                                        if (currentHabitToEdit != null) {
+                                            val updatedHabit = currentHabitToEdit.copy(
+                                                name = trimmedName,
+                                                description = habitDescription,
+                                                icon = habitIconKey,
+                                                color = (customColor ?: habitColor).toArgb(),
+                                                completionsPerInterval = completionsPerInterval.toIntOrNull()
+                                                    ?: 1,
+                                                intervalUnit = intervalUnit,
+                                                notificationsEnabled = notificationsEnabled,
+                                                notificationTime = if (notificationsEnabled) notificationTime else null,
+                                                notificationDays = if (notificationsEnabled) notificationDays.joinToString(
+                                                    ","
+                                                ) else null
+                                            )
+                                            habitDao.updateHabit(updatedHabit)
+                                            if (updatedHabit.notificationsEnabled) {
+                                                notificationScheduler.scheduleNotification(updatedHabit)
                                             } else {
-                                                sheetOffsetY.animateTo(0f, spring())
+                                                notificationScheduler.cancelNotification(updatedHabit)
+                                            }
+                                            habitToView = habitToView?.copy(habit = updatedHabit)
+                                                ?: habits.find { it.habit.id == updatedHabit.id }
+                                        } else {
+                                            val newHabit = Habit(
+                                                id = UUID.randomUUID().toString(),
+                                                name = trimmedName,
+                                                description = habitDescription,
+                                                icon = habitIconKey,
+                                                color = (customColor ?: habitColor).toArgb(),
+                                                archived = false,
+                                                orderIndex = habits.size,
+                                                createdAt = System.currentTimeMillis().toString(),
+                                                isInverse = false,
+                                                emoji = null,
+                                                completionsPerInterval = completionsPerInterval.toIntOrNull()
+                                                    ?: 1,
+                                                intervalUnit = intervalUnit,
+                                                notificationsEnabled = notificationsEnabled,
+                                                notificationTime = if (notificationsEnabled) notificationTime else null,
+                                                notificationDays = if (notificationsEnabled) notificationDays.joinToString(
+                                                    ","
+                                                ) else null
+                                            )
+                                            habitDao.insertHabit(newHabit)
+                                            if (newHabit.notificationsEnabled) {
+                                                notificationScheduler.scheduleNotification(newHabit)
                                             }
                                         }
-                                    }
-                                )
-                            }
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Box(
-                                    modifier = headerModifier
-                                        .padding(vertical = 10.dp)
-                                        .fillMaxWidth(0.15f)
-                                        .height(4.dp)
-                                        .background(
-                                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                                            shape = CircleShape
-                                        )
-                                )
-                                HabitSheetContent(
-                                    title = title,
-                                    habitName = habitName,
-                                    onHabitNameChanged = { habitName = it },
-                                    habitDescription = habitDescription,
-                                    onHabitDescriptionChanged = { habitDescription = it },
-                                    completionsPerInterval = completionsPerInterval,
-                                    onCompletionsPerIntervalChanged = { completionsPerInterval = it },
-                                    intervalUnit = intervalUnit,
-                                    onIntervalUnitChanged = { intervalUnit = it },
-                                    completionsError = completionsError,
-                                    habitIconKey = habitIconKey,
-                                    onHabitIconKeyChanged = { habitIconKey = it },
-                                    habitColor = habitColor,
-                                    onHabitColorChanged = { habitColor = it },
-                                    customColor = customColor,
-                                    onShowColorPicker = { show, color ->
-                                        showColorPicker = show
-                                        if (show) {
-                                            tempColor = color
-                                        }
-                                    },
-                                    onClearCustomColor = { customColor = null },
-                                    livePreviewColor = if (showColorPicker) tempColor else customColor,
-                                    scrollState = scrollState,
-                                    settingsDataStore = settingsDataStore,
-                                    notificationsEnabled = notificationsEnabled,
-                                    onNotificationsEnabledChanged = {
-                                        if (notificationPermissionHandler.hasPermission) {
-                                            notificationsEnabled = it
-                                        } else {
-                                            notificationPermissionHandler.requestPermission()
-                                        }
-                                    },
-                                    notificationTime = notificationTime,
-                                    onTimePickerClick = {
-                                        if (notificationPermissionHandler.hasPermission) {
-                                            showTimePicker = true
-                                        } else {
-                                            notificationPermissionHandler.requestPermission()
-                                        }
-                                    },
-                                    notificationDays = notificationDays,
-                                    onNotificationDaySelected = { day ->
-                                        notificationDays = if (notificationDays.contains(day)) {
-                                            notificationDays - day
-                                        } else {
-                                            notificationDays + day
-                                        }
-                                    },
-                                    hasNotificationPermission = notificationPermissionHandler.hasPermission,
-                                    headerModifier = headerModifier,
-                                    onClose = {
                                         showHabitSheet = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
-
-                AnimatedVisibility(
-                    visible = showHabitSheet,
-                    enter = slideInVertically(
-                        initialOffsetY = { it },
-                        animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)
-                    ) + fadeIn(animationSpec = tween(durationMillis = 300)),
-                    exit = slideOutVertically(
-                        targetOffsetY = { it },
-                        animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)
-                    ) + fadeOut(animationSpec = tween(durationMillis = 300)),
-                    modifier = Modifier.align(Alignment.BottomCenter)
-                ) {
-                    val habits = (habitsUiState as? HabitsUiState.Success)?.habits ?: emptyList()
-                    SaveHabitButton(
-                        buttonText = buttonText,
-                        isEnabled = habitName.trim().isNotBlank() && completionsError == null,
-                        settingsDataStore = settingsDataStore
-                    ) {
-                        val trimmedName = habitName.trim()
-                        if (trimmedName.isNotBlank()) {
-                            scope.launch {
-                                if (isEditMode) {
-                                    val updatedHabit = habitToEdit!!.copy(
-                                        name = trimmedName,
-                                        description = habitDescription,
-                                        icon = habitIconKey,
-                                        color = (customColor ?: habitColor).toArgb(),
-                                        completionsPerInterval = completionsPerInterval.toIntOrNull()
-                                            ?: 1,
-                                        intervalUnit = intervalUnit,
-                                        notificationsEnabled = notificationsEnabled,
-                                        notificationTime = if (notificationsEnabled) notificationTime else null,
-                                        notificationDays = if (notificationsEnabled) notificationDays.joinToString(
-                                            ","
-                                        ) else null
-                                    )
-                                    habitDao.updateHabit(updatedHabit)
-                                    if (updatedHabit.notificationsEnabled) {
-                                        notificationScheduler.scheduleNotification(updatedHabit)
-                                    } else {
-                                        notificationScheduler.cancelNotification(updatedHabit)
-                                    }
-                                    habitToView = habits.find { it.habit.id == updatedHabit.id }
-                                } else {
-                                    val newHabit = Habit(
-                                        id = UUID.randomUUID().toString(),
-                                        name = trimmedName,
-                                        description = habitDescription,
-                                        icon = habitIconKey,
-                                        color = (customColor ?: habitColor).toArgb(),
-                                        archived = false,
-                                        orderIndex = habits.size,
-                                        createdAt = System.currentTimeMillis().toString(),
-                                        isInverse = false,
-                                        emoji = null,
-                                        completionsPerInterval = completionsPerInterval.toIntOrNull()
-                                            ?: 1,
-                                        intervalUnit = intervalUnit,
-                                        notificationsEnabled = notificationsEnabled,
-                                        notificationTime = if (notificationsEnabled) notificationTime else null,
-                                        notificationDays = if (notificationsEnabled) notificationDays.joinToString(
-                                            ","
-                                        ) else null
-                                    )
-                                    habitDao.insertHabit(newHabit)
-                                    if (newHabit.notificationsEnabled) {
-                                        notificationScheduler.scheduleNotification(newHabit)
+                                        habitToEdit = null
                                     }
                                 }
-                                showHabitSheet = false
-                                // We purposefully do NOT clear habitToEdit instantly
-                                // to ensure the exit animation transitions cleanly
                             }
                         }
                     }

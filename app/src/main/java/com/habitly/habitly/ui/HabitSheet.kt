@@ -10,7 +10,7 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.EaseInOutQuint
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -43,6 +43,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -565,7 +566,8 @@ fun HabitSheetContent(
     notificationDays: Set<String>,
     onNotificationDaySelected: (String) -> Unit,
     headerModifier: Modifier = Modifier,
-    onClose: () -> Unit = {}
+    onClose: () -> Unit = {},
+    previewContent: (@Composable () -> Unit)? = null
 ) {
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
     val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
@@ -582,7 +584,7 @@ fun HabitSheetContent(
 
     var isInitial by remember { mutableStateOf(true) }
 
-    // Scroll to bottom when notifications are enabled to follow expansion
+    // Follow expansion and collapse to scroll smoothly with notification changes
     LaunchedEffect(notificationsEnabled, hasNotificationPermission) {
         if (isInitial) {
             isInitial = false
@@ -592,6 +594,14 @@ fun HabitSheetContent(
             withTimeoutOrNull(600) {
                 snapshotFlow { scrollState.maxValue }.collect { max ->
                     scrollState.scrollTo(max)
+                }
+            }
+        } else {
+            withTimeoutOrNull(600) {
+                snapshotFlow { scrollState.maxValue }.collect { max ->
+                    if (scrollState.value > max) {
+                        scrollState.scrollTo(max)
+                    }
                 }
             }
         }
@@ -618,15 +628,18 @@ fun HabitSheetContent(
                     )
                 }
             }
-            HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp).alpha(dividerAlpha), color = Color.Gray.copy(alpha = 0.2f))
         }
+
+        previewContent?.invoke()
+
+        HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 0.dp).alpha(dividerAlpha), color = Color.Gray.copy(alpha = 0.35f))
 
         Column(
             modifier = Modifier
+                .weight(1f, fill = false)
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp)
+                .padding(horizontal = 12.dp)
                 .verticalScroll(scrollState, enabled = scrollState.maxValue > 0),
-            horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Card(
@@ -702,8 +715,14 @@ fun HabitSheetContent(
 
                     AnimatedVisibility(
                         visible = intervalUnit != "day",
-                        enter = fadeIn(animationSpec = tween(300)) + expandVertically(animationSpec = tween(400, easing = EaseInOutQuint)),
-                        exit = fadeOut(animationSpec = tween(300)) + shrinkVertically(animationSpec = tween(400, easing = EaseInOutQuint))
+                        enter = fadeIn(animationSpec = tween(300)) + expandVertically(
+                            animationSpec = tween(400, easing = FastOutSlowInEasing),
+                            expandFrom = Alignment.Top
+                        ),
+                        exit = fadeOut(animationSpec = tween(300)) + shrinkVertically(
+                            animationSpec = tween(400, easing = FastOutSlowInEasing),
+                            shrinkTowards = Alignment.Top
+                        )
                     ) {
                         Column(modifier = Modifier.fillMaxWidth()) {
                             Spacer(modifier = Modifier.height(8.dp))
@@ -870,9 +889,16 @@ fun HabitSheetContent(
                             enabled = hasNotificationPermission
                         )
                     }
-                    AnimatedVisibility(visible = notificationsEnabled && hasNotificationPermission,
-                        enter = fadeIn(animationSpec = tween(300)) + expandVertically(animationSpec = tween(400, easing = EaseInOutQuint)),
-                        exit = fadeOut(animationSpec = tween(300)) + shrinkVertically(animationSpec = tween(400, easing = EaseInOutQuint))
+                    AnimatedVisibility(
+                        visible = notificationsEnabled && hasNotificationPermission,
+                        enter = fadeIn(animationSpec = tween(300)) + expandVertically(
+                            animationSpec = tween(400, easing = FastOutSlowInEasing),
+                            expandFrom = Alignment.Top
+                        ),
+                        exit = fadeOut(animationSpec = tween(300)) + shrinkVertically(
+                            animationSpec = tween(400, easing = FastOutSlowInEasing),
+                            shrinkTowards = Alignment.Top
+                        )
                     ) {
                         Box(modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 8.dp)) {
                             NotificationTimeSelectors(
@@ -900,12 +926,13 @@ fun SaveHabitButton(
     buttonText: String,
     isEnabled: Boolean,
     settingsDataStore: SettingsDataStore,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
     val haptic = LocalHapticFeedback.current
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
     val isKeyboardOpen by rememberUpdatedState(WindowInsets.isImeVisible)
-    val padding by animateDpAsState(targetValue = if (isKeyboardOpen) 8.dp else 20.dp, label = "buttonPadding")
+    val verticalPadding by animateDpAsState(targetValue = if (isKeyboardOpen) 4.dp else 6.dp, label = "buttonPadding")
 
     Button(
         onClick = {
@@ -915,10 +942,11 @@ fun SaveHabitButton(
             onClick()
         },
         enabled = isEnabled,
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .padding(padding)
-            .imePadding(),
+            .navigationBarsPadding()
+            .imePadding()
+            .padding(horizontal = 16.dp, vertical = verticalPadding),
         shape = RoundedCornerShape(20.dp),
         elevation = ButtonDefaults.buttonElevation(defaultElevation = 24.dp),
         colors = ButtonDefaults.buttonColors(

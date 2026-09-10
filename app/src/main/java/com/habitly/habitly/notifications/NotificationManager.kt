@@ -65,7 +65,13 @@ class NotificationScheduler(private val context: Context) {
         )
 
         // Parse "HH:mm" time format safely
-        val (hour, minute) = habit.notificationTime.split(":").map { it.toInt() }
+        val timeParts = habit.notificationTime.split(":")
+        val hour = timeParts.getOrNull(0)?.toIntOrNull()
+        val minute = timeParts.getOrNull(1)?.toIntOrNull()
+        if (hour == null || minute == null || hour !in 0..23 || minute !in 0..59) {
+            cancelNotification(habit)
+            return
+        }
 
         val timeInMillis = getNextAlarmTime(hour, minute, days)
 
@@ -115,7 +121,13 @@ class NotificationScheduler(private val context: Context) {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val (hour, minute) = time.split(":").map { it.toInt() }
+        val timeParts = time.split(":")
+        val hour = timeParts.getOrNull(0)?.toIntOrNull()
+        val minute = timeParts.getOrNull(1)?.toIntOrNull()
+        if (hour == null || minute == null || hour !in 0..23 || minute !in 0..59) {
+            cancelGeneralNotification()
+            return
+        }
 
         // Find the next occurrence matching the selected days of the week
         val nextAlarmTime = getNextAlarmTime(hour, minute, days) ?: return
@@ -539,7 +551,12 @@ class NotificationReceiver : BroadcastReceiver() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val (hour, minute) = notificationTime.split(":").map { it.toInt() }
+        val timeParts = notificationTime.split(":")
+        val hour = timeParts.getOrNull(0)?.toIntOrNull()
+        val minute = timeParts.getOrNull(1)?.toIntOrNull()
+        if (hour == null || minute == null || hour !in 0..23 || minute !in 0..59) {
+            return
+        }
 
         val timeInMillis = getNextAlarmTime(hour, minute, days)
 
@@ -564,7 +581,12 @@ class NotificationReceiver : BroadcastReceiver() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val (hour, minute) = time.split(":").map { it.toInt() }
+        val timeParts = time.split(":")
+        val hour = timeParts.getOrNull(0)?.toIntOrNull()
+        val minute = timeParts.getOrNull(1)?.toIntOrNull()
+        if (hour == null || minute == null || hour !in 0..23 || minute !in 0..59) {
+            return
+        }
 
         val nextAlarmTime = getNextAlarmTime(hour, minute, days) ?: return
 
