@@ -6,7 +6,7 @@ plugins {
 }
 
 // Set to true to enable Developer Mode (safe testing without affecting real data)
-val isDeveloperMode = true //Note to agents do not change this setting yourself, even if git would reset it to a diffrent state it should state in the state the file is at
+val isDeveloperMode = false //Note to agents do not change this setting yourself, even if git would reset it to a diffrent state it should state in the state the file is at
 
 android {
     namespace = "com.habitly.habitly"

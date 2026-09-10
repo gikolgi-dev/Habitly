@@ -12,6 +12,8 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.EaseInOutQuart
 import androidx.compose.animation.core.Spring
@@ -640,7 +642,29 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                                 )
                             }
                         }
-                        /*Spacer(modifier = Modifier.height(24.dp))*/
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        AnimatedContent(
+                            targetState = mergeData,
+                            transitionSpec = {
+                                fadeIn(animationSpec = tween(220)) togetherWith fadeOut(animationSpec = tween(180))
+                            },
+                            label = "mergeDataDescription"
+                        ) { isMerge ->
+                            Text(
+                                text = if (isMerge) {
+                                    "Merge keeps your existing habits and completions, adding the imported data to them. If you try to merge two identical habits they will be merged together."
+                                } else {
+                                    "Overwrite deletes all existing habits and completions, replacing them with the imported data. This action cannot be undone."
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 24.dp)
+                            )
+                        }
 
                         Spacer(modifier = Modifier.weight(1f))
 
