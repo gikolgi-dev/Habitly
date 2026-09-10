@@ -938,4 +938,75 @@ class HabitFeaturesTest {
         assertEquals(17, febStats.currentStreak)
         assertEquals(17, febStats.longestStreak)
     }
+
+    @Test
+    fun testLongestStreak_multipleEqualLongestStreaks_picksMostRecent() {
+        val cal = Calendar.getInstance().apply {
+            clear()
+            set(2026, Calendar.JANUARY, 1, 10, 0, 0)
+        }
+        val start = normalizeToStartOfDay(cal.timeInMillis)
+        val habit = createHabit(isInverse = false, completionsPerInterval = 1, startDate = start)
+
+        // Streak 1: Jan 1, 2, 3 (3 days)
+        // Break: Jan 4, 5 (missed)
+        // Streak 2: Jan 6, 7, 8 (3 days)
+        // Eval time: Jan 10
+        val completions = listOf(
+            Completion("c-1", habit.id, start + 1000L, 0, 1),
+            Completion("c-2", habit.id, start + (24 * 3600 * 1000L) + 1000L, 0, 1),
+            Completion("c-3", habit.id, start + (2L * 24 * 3600 * 1000L) + 1000L, 0, 1),
+            Completion("c-4", habit.id, start + (5L * 24 * 3600 * 1000L) + 1000L, 0, 1),
+            Completion("c-5", habit.id, start + (6L * 24 * 3600 * 1000L) + 1000L, 0, 1),
+            Completion("c-6", habit.id, start + (7L * 24 * 3600 * 1000L) + 1000L, 0, 1)
+        )
+
+        val evalTime = start + (9L * 24 * 3600 * 1000L) + 5000L // Jan 10
+        val stats = calculateStatistics(HabitWithCompletions(habit, completions), Calendar.MONDAY, evalTime)
+
+        assertEquals(0, stats.currentStreak)
+        assertEquals(3, stats.longestStreak)
+        // Streak 1 ended on Jan 3 (7 days before Jan 10)
+        // Streak 2 ended on Jan 8 (2 days before Jan 10)
+        // It MUST pick Streak 2 (most recent longest streak) -> 2 days ago!
+        assertEquals(2L, stats.daysSinceLongestStreak)
+    }
+
+    @Test
+    fun testLongestStreak_weeklyHabit_multipleEqualLongestStreaks_picksMostRecent() {
+        val cal = Calendar.getInstance().apply {
+            clear()
+            set(2026, Calendar.SEPTEMBER, 7, 10, 0, 0) // Sep 7, 2026 is Monday
+        }
+        val week1Monday = normalizeToStartOfDay(cal.timeInMillis)
+        val habit = createHabit(
+            isInverse = false,
+            completionsPerInterval = 2,
+            intervalUnit = "week",
+            completionsPerDay = 1,
+            startDate = week1Monday
+        )
+
+        // Week 1 (Sep 7..Sep 13): Mon, Tue completed (2 days)
+        // Week 2 (Sep 14..Sep 20): 0 completed (break)
+        // Week 3 (Sep 21..Sep 27): Mon, Tue completed (2 days)
+        // Week 4 (Sep 28..Oct 4): 0 completed. Eval on Sunday of Week 4 (Oct 4).
+        val week3Monday = week1Monday + (14L * 24 * 3600 * 1000)
+        val completions = listOf(
+            Completion("w1-mon", habit.id, week1Monday + 1000L, 0, 1),
+            Completion("w1-tue", habit.id, week1Monday + (24 * 3600 * 1000L) + 1000L, 0, 1),
+            Completion("w3-mon", habit.id, week3Monday + 1000L, 0, 1),
+            Completion("w3-tue", habit.id, week3Monday + (24 * 3600 * 1000L) + 1000L, 0, 1)
+        )
+
+        val week4Sunday = week1Monday + (27L * 24 * 3600 * 1000) + 5000L // Oct 4
+        val stats = calculateStatistics(HabitWithCompletions(habit, completions), Calendar.MONDAY, week4Sunday)
+
+        assertEquals(0, stats.currentStreak)
+        assertEquals(2, stats.longestStreak)
+        // Longest streak should be Week 3, not Week 1!
+        // Week 3 Tue was Sep 22 (12 days before Oct 4)
+        // If it picked Week 1 Tue (Sep 8), it would be 26 days ago.
+        assertTrue(stats.daysSinceLongestStreak <= 13L)
+    }
 }
