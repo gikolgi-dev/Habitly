@@ -48,6 +48,7 @@ import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import com.habitly.habitly.ui.circleToSquareMorph
 import com.habitly.habitly.ui.MorphPolygonShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -55,9 +56,18 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Bedtime
+import androidx.compose.ui.res.painterResource
+import com.habitly.habitly.R
+import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.BikeScooter
 import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.DateRange
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Dining
 import androidx.compose.material.icons.filled.Edit
@@ -96,6 +106,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -124,6 +135,8 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.habitly.habitly.data.settings.SettingsDataStore
 import com.habitly.habitly.ui.colors.habitColors
@@ -545,6 +558,9 @@ fun HabitSheetContent(
     completionsPerInterval: String,
     onCompletionsPerIntervalChanged: (String) -> Unit,
     modifier: Modifier = Modifier,
+    completionsPerDay: String = "1",
+    onCompletionsPerDayChanged: (String) -> Unit = {},
+    completionsPerDayError: String? = null,
     intervalUnit: String = "day",
     onIntervalUnitChanged: (String) -> Unit,
     completionsError: String?,
@@ -567,9 +583,12 @@ fun HabitSheetContent(
     onNotificationDaySelected: (String) -> Unit,
     headerModifier: Modifier = Modifier,
     onClose: () -> Unit = {},
-    previewContent: (@Composable () -> Unit)? = null
+    previewContent: (@Composable () -> Unit)? = null,
+    isInverse: Boolean = false,
+    onIsInverseChanged: (Boolean) -> Unit = {}
 ) {
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
+    val haptic = LocalHapticFeedback.current
     val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
     val is24Hour by settingsDataStore.is24Hour.collectAsState(initial = false)
     val reduceMovement by settingsDataStore.reduceMovement.collectAsState(initial = false)
@@ -688,6 +707,195 @@ fun HabitSheetContent(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    Text("Habit Type", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurface)
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    val typeOptions = listOf("Build Habit", "Quit Habit")
+                    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                        typeOptions.forEachIndexed { index, label ->
+                            val selected = if (index == 0) !isInverse else isInverse
+                            SegmentedButton(
+                                selected = selected,
+                                onClick = { onIsInverseChanged(index == 1) },
+                                shape = SegmentedButtonDefaults.itemShape(index = index, count = typeOptions.size),
+                                icon = {
+                                    if (index == 0) {
+                                        Icon(
+                                            painter = painterResource(R.drawable.ic_sentiment_calm),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(SegmentedButtonDefaults.IconSize)
+                                        )
+                                    } else {
+                                        Icon(
+                                            imageVector = Icons.Default.Block,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(SegmentedButtonDefaults.IconSize)
+                                        )
+                                    }
+                                },
+                                colors = SegmentedButtonDefaults.colors(
+                                    activeContainerColor = MaterialTheme.colorScheme.primary,
+                                    activeContentColor = MaterialTheme.colorScheme.onPrimary,
+                                    activeBorderColor = MaterialTheme.colorScheme.primary,
+                                    inactiveContainerColor = MaterialTheme.colorScheme.surface,
+                                    inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    inactiveBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = borderContrast)
+                                )
+                            ) {
+                                Text(label)
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = if (isInverse) {
+                            "Quit a habit. Completed by default each day you abstain; uncomplete to log a slip."
+                        } else {
+                            "Build a habit. Starts uncompleted each day; complete as you perform it."
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    )
+                }
+            }
+
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                colors = cardColors(MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Completions per Day",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    val currentCount = completionsPerDay.toIntOrNull() ?: 1
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        IconButton(
+                            onClick = {
+                                if (currentCount > 1) {
+                                    if (vibrationsEnabled) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    }
+                                    onCompletionsPerDayChanged((currentCount - 1).toString())
+                                }
+                            },
+                            enabled = currentCount > 1,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (currentCount > 1)
+                                         MaterialTheme.colorScheme.primaryContainer
+                                    else
+                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+                                )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Remove,
+                                contentDescription = "Decrease completions per day",
+                                tint = if (currentCount > 1)
+                                    MaterialTheme.colorScheme.onPrimaryContainer
+                                else
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                            )
+                        }
+
+                        AnimatedContent(
+                            targetState = currentCount,
+                            transitionSpec = {
+                                if (targetState > initialState) {
+                                    (slideInVertically { -it } + fadeIn()).togetherWith(slideOutVertically { it } + fadeOut())
+                                } else {
+                                    (slideInVertically { it } + fadeIn()).togetherWith(slideOutVertically { -it } + fadeOut())
+                                }
+                            },
+                            label = "completionsPerDayNumber",
+                            modifier = Modifier.weight(1f),
+                            contentAlignment = Alignment.Center
+                        ) { count ->
+                            Text(
+                                text = count.toString(),
+                                style = MaterialTheme.typography.displaySmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+
+                        IconButton(
+                            onClick = {
+                                if (currentCount < 14) {
+                                    if (vibrationsEnabled) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    }
+                                    onCompletionsPerDayChanged((currentCount + 1).toString())
+                                }
+                            },
+                            enabled = currentCount < 14,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (currentCount < 14)
+                                        MaterialTheme.colorScheme.primaryContainer
+                                    else
+                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+                                )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "Increase completions per day",
+                                tint = if (currentCount < 14)
+                                    MaterialTheme.colorScheme.onPrimaryContainer
+                                else
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Text(
+                        text = if (isInverse) {
+                            if (currentCount == 1) "Completed by default, binary slipped or completed "
+                            else "Completed by default,$currentCount max slips per day)"
+                        } else {
+                            if (currentCount == 1) "Single completion per day"
+                            else "Multiple completions required each day"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    )
+                }
+            }
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                colors = cardColors(MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
                     Text("Streak interval", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurface)
                     Spacer(modifier = Modifier.height(8.dp))
 
@@ -713,8 +921,11 @@ fun HabitSheetContent(
                         }
                     }
 
+                    val dailyCount = completionsPerDay.toIntOrNull() ?: 1
+                    val showStreakTargetInput = intervalUnit != "day" || dailyCount > 1
+
                     AnimatedVisibility(
-                        visible = intervalUnit != "day",
+                        visible = showStreakTargetInput,
                         enter = fadeIn(animationSpec = tween(300)) + expandVertically(
                             animationSpec = tween(400, easing = FastOutSlowInEasing),
                             expandFrom = Alignment.Top
@@ -729,18 +940,31 @@ fun HabitSheetContent(
                             OutlinedTextField(
                                 value = completionsPerInterval,
                                 onValueChange = onCompletionsPerIntervalChanged,
-                                label = { Text("Completions per ${intervalUnit.replaceFirstChar { it.uppercase() }}") },
+                                label = {
+                                    Text(
+                                        if (intervalUnit == "day") "Streak target per Day"
+                                        else "Streak target per ${intervalUnit.replaceFirstChar { it.uppercase() }}"
+                                    )
+                                },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 isError = completionsError != null,
                                 singleLine = true,
-                                supportingText = { if (completionsError != null) Text(completionsError) },
+                                supportingText = {
+                                    if (completionsError != null) {
+                                        Text(completionsError)
+                                    } else if (intervalUnit == "day") {
+                                        Text("Daily completions needed to maintain streak up to $dailyCount")
+                                    } else {
+                                        val maxInPeriod = if (intervalUnit == "week") 7 * dailyCount else 31 * dailyCount
+                                        Text("Required completions per $intervalUnit up to $maxInPeriod")
+                                    }
+                                },
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
                     }
                 }
             }
-
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),

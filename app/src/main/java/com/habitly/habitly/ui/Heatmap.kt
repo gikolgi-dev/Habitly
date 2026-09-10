@@ -33,6 +33,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.habitly.habitly.data.Database.Completion
 import com.habitly.habitly.data.Database.Habit
+import com.habitly.habitly.data.Database.getEffectiveStartDateMillis
+import com.habitly.habitly.data.Database.getDailyTarget
 import com.habitly.habitly.ui.components.HeatmapWeekColumn
 import com.habitly.habitly.ui.components.HeatmapWeekData
 import java.text.SimpleDateFormat
@@ -85,12 +87,25 @@ fun Heatmap(
         (currentDateMillis + offset) / 86400000L
     }
 
-    // Normalized completed dates for fast O(1) lookup using pure math
-    val completionDates = remember(completions, tz) {
-        completions.map {
+    // Map of dayIndex to sum of amountOfCompletions
+    val completionAmounts = remember(completions, tz) {
+        val map = mutableMapOf<Long, Int>()
+        completions.forEach {
             val offset = tz.getOffset(it.date)
-            (it.date + offset) / 86400000L
-        }.toSet()
+            val dayIndex = (it.date + offset) / 86400000L
+            map[dayIndex] = (map[dayIndex] ?: 0) + it.amountOfCompletions
+        }
+        map
+    }
+
+    val habitStartDayIndex = remember(habit, tz) {
+        if (habit != null) {
+            val startMillis = habit.getEffectiveStartDateMillis()
+            val offset = tz.getOffset(startMillis)
+            (startMillis + offset) / 86400000L
+        } else {
+            null
+        }
     }
 
     val dayOfWeekLabels = remember {
@@ -129,12 +144,15 @@ fun Heatmap(
                 with(density) { (remainingSpacePx.toFloat() / (numWeeksOnScreen - 1)).toDp() }
             } else minHorizontalSpacing
 
-            val totalWeeks = remember(completions, numWeeksOnScreen, isScrollable, minWeeks, isInfinite, currentDateMillis) {
-                val oldestCompletion = if (completions.isNotEmpty()) completions.minOf { it.date } else null
-                val weeksDiff = if (oldestCompletion == null) 0 else {
+            val totalWeeks = remember(completions, numWeeksOnScreen, isScrollable, minWeeks, isInfinite, currentDateMillis, habit) {
+                val oldestDate = listOfNotNull(
+                    habit?.getEffectiveStartDateMillis(),
+                    if (completions.isNotEmpty()) completions.minOf { it.date } else null
+                ).minOrNull()
+                val weeksDiff = if (oldestDate == null) 0 else {
                     val cal = Calendar.getInstance().apply { firstDayOfWeek = Calendar.MONDAY }
 
-                    cal.timeInMillis = oldestCompletion
+                    cal.timeInMillis = oldestDate
                     cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
                     cal.set(Calendar.HOUR_OF_DAY, 0)
                     cal.set(Calendar.MINUTE, 0)
@@ -193,7 +211,7 @@ fun Heatmap(
                 userScrollEnabled = isScrollable
             ) {
                 items(count = totalWeeks, key = { it }) { weekIndex ->
-                    val weekData = remember(weekIndex, currentMondayMillis, completionDates, todayDayIndex, showMonthLabels, tz, isScrollable, totalWeeks, habit, showNotificationDot, notificationDotRange) {
+                    val weekData = remember(weekIndex, currentMondayMillis, completionAmounts, todayDayIndex, showMonthLabels, tz, isScrollable, totalWeeks, habit, habitStartDayIndex, showNotificationDot, notificationDotRange) {
                         val cal = Calendar.getInstance()
                         cal.firstDayOfWeek = Calendar.MONDAY
                         cal.timeInMillis = currentMondayMillis
@@ -205,13 +223,31 @@ fun Heatmap(
 
                         val completed = BooleanArray(7)
                         val future = BooleanArray(7)
+                        val ratios = FloatArray(7)
                         var todayIdx = -1
+
+                        val target = habit?.getDailyTarget() ?: 1
 
                         for (i in 0..6) {
                             val dayIndex = weekStartDayIndex + i
-                            completed[i] = completionDates.contains(dayIndex)
-                            future[i] = dayIndex > todayDayIndex
+                            val isFuture = dayIndex > todayDayIndex
+                            future[i] = isFuture
                             if (dayIndex == todayDayIndex) todayIdx = i
+
+                            if (isFuture || (habitStartDayIndex != null && dayIndex < habitStartDayIndex)) {
+                                completed[i] = false
+                                ratios[i] = 0f
+                            } else {
+                                val dbAmount = completionAmounts[dayIndex] ?: 0
+                                val effective = if (habit?.isInverse == true) {
+                                    (target - dbAmount).coerceAtLeast(0)
+                                } else {
+                                    dbAmount
+                                }
+                                val ratio = (effective.toFloat() / target).coerceIn(0f, 1f)
+                                completed[i] = ratio >= 1f
+                                ratios[i] = ratio
+                            }
                         }
 
                         // Year transition check
@@ -290,7 +326,8 @@ fun Heatmap(
                             monthLabel,
                             isStartOfYear,
                             yearDigits,
-                            dots.toList()
+                            dots.toList(),
+                            ratios.toList()
                         )
                     }
 

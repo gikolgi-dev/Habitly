@@ -26,6 +26,8 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -57,6 +59,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.habitly.habitly.data.Database.Completion
+import com.habitly.habitly.data.Database.Habit
+import com.habitly.habitly.data.Database.getEffectiveCompletionsForDay
+import com.habitly.habitly.data.Database.isDayCompleted
+import com.habitly.habitly.data.Database.getEffectiveStartDateMillis
+import com.habitly.habitly.data.Database.normalizeToStartOfDay
+import com.habitly.habitly.data.Database.getDailyTarget
+import androidx.compose.ui.unit.sp
 import com.habitly.habitly.ui.colors.isBright
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -79,6 +88,7 @@ fun MonthCalendar(
     vibrationsEnabled: Boolean = true,
     reduceGridReactions: Boolean = false,
     currentDateMillis: Long = System.currentTimeMillis(),
+    habit: Habit? = null,
     onDateClick: (Calendar, Boolean) -> Unit
 ) {
     val initialPage = 1200
@@ -315,13 +325,25 @@ fun MonthCalendar(
                             }
 
                             val dayStartMillis = day.timeInMillis
-                            val isCompleted = completionDates.contains(dayStartMillis)
+                            val target = habit?.getDailyTarget() ?: 1
+                            val effectiveCount = if (habit != null) {
+                                getEffectiveCompletionsForDay(habit, completions, dayStartMillis, currentDateMillis)
+                            } else {
+                                if (completionDates.contains(dayStartMillis)) 1 else 0
+                            }
+                            val isCompleted = if (habit != null) {
+                                isDayCompleted(habit, completions, dayStartMillis, currentDateMillis)
+                            } else {
+                                completionDates.contains(dayStartMillis)
+                            }
+                            val ratio = (effectiveCount.toFloat() / target).coerceIn(0f, 1f)
                             val isInCurrentMonth = day.get(Calendar.MONTH) == currentMonth
                             val isToday = dayStartMillis == today.timeInMillis
                             val isAfterToday = day.after(today)
 
                             val targetCellColor = when {
                                 isCompleted -> habitColor.copy(alpha = if (isInCurrentMonth) 1f else 0.6f)
+                                ratio > 0f -> habitColor.copy(alpha = if (isInCurrentMonth) 0.35f + 0.35f * ratio else 0.25f)
                                 else -> Color.Transparent
                             }
                             val cellColor by animateColorAsState(
@@ -422,11 +444,48 @@ fun MonthCalendar(
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(
-                                    text = "${day.get(Calendar.DAY_OF_MONTH)}",
-                                    color = textColor,
-                                    style = MaterialTheme.typography.bodySmall
-                                )
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        text = "${day.get(Calendar.DAY_OF_MONTH)}",
+                                        color = textColor,
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                    if (target > 1 && !isCompleted && !isAfterToday && (habit == null || dayStartMillis >= normalizeToStartOfDay(habit.getEffectiveStartDateMillis()))) {
+                                        if (effectiveCount in 1..6) {
+                                            Row(
+                                                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.padding(top = 2.dp)
+                                            ) {
+                                                repeat(effectiveCount) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(3.dp)
+                                                            .clip(CircleShape)
+                                                            .background(habitColor)
+                                                    )
+                                                }
+                                            }
+                                        } else if (effectiveCount > 6) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .padding(top = 1.5.dp)
+                                                    .clip(CircleShape)
+                                                    .background(MaterialTheme.colorScheme.surface)
+                                                    .padding(horizontal = 4.5.dp, vertical = 0.5.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = "$effectiveCount",
+                                                    color = habitColor,
+                                                    fontSize = 8.5.sp,
+                                                    lineHeight = 9.sp,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }

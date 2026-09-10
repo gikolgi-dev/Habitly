@@ -40,7 +40,8 @@ data class HeatmapWeekData(
     val monthLabel: String?,
     val isStartOfYear: Boolean,
     val yearDigits: String?,
-    val notificationDots: List<Boolean>
+    val notificationDots: List<Boolean>,
+    val completionRatios: List<Float> = completedDays.map { if (it) 1f else 0f }
 )
 
 @Composable
@@ -121,9 +122,11 @@ fun HeatmapWeekColumn(
                     val isFuture = weekData.futureDays[i]
                     val isToday = weekData.todayIndex == i
 
+                    val ratio = weekData.completionRatios.getOrNull(i) ?: if (isCompleted) 1f else 0f
                     val color = when {
-                        isCompleted -> habitColor
                         isFuture -> onSurface.copy(alpha = 0.05f)
+                        ratio >= 1f -> habitColor
+                        ratio > 0f -> androidx.compose.ui.graphics.lerp(habitColor.copy(alpha = 0.35f), habitColor, ratio)
                         else -> habitColor.copy(alpha = 0.15f)
                     }
 

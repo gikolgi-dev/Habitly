@@ -4,7 +4,13 @@
 
 package com.habitly.habitly.ui
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import kotlin.math.roundToInt
@@ -47,6 +53,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.filled.Archive
+import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LocalFireDepartment
@@ -65,6 +72,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
+import androidx.compose.ui.zIndex
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -95,6 +103,9 @@ import androidx.compose.ui.unit.dp
 import com.habitly.habitly.data.Database.Completion
 import com.habitly.habitly.data.Database.Habit
 import com.habitly.habitly.data.Database.HabitViewModel
+import androidx.compose.ui.res.painterResource
+import com.habitly.habitly.R
+import com.habitly.habitly.data.Database.isQuit
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.unit.LayoutDirection
 import com.habitly.habitly.data.Database.HabitWithCompletions
@@ -249,18 +260,24 @@ fun SharedTransitionScope.HabitDetailScreen(
             .padding(bottom = 16.dp),
         contentAlignment = Alignment.TopCenter
     ) {
-        Card(
+        Column(
             modifier = Modifier
                 .graphicsLayer {
                     scaleX = animatedScaleState.value
                     scaleY = animatedScaleState.value
                 }
-                .sharedElementWithCallerManagedVisibility(
-                    rememberSharedContentState(key = "card-${habit.id}"),
-                    visible = isSharedVisible,
-                    boundsTransform = { _, _ -> tween(durationMillis = 300, easing = FastOutSlowInEasing) }
-                )
-                .fillMaxWidth(0.9f)
+                .fillMaxWidth(0.9f),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Card(
+                modifier = Modifier
+                    .zIndex(1f)
+                    .sharedElementWithCallerManagedVisibility(
+                        rememberSharedContentState(key = "card-${habit.id}"),
+                        visible = isSharedVisible,
+                        boundsTransform = { _, _ -> tween(durationMillis = 300, easing = FastOutSlowInEasing) }
+                    )
+                    .fillMaxWidth()
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null
@@ -328,8 +345,8 @@ fun SharedTransitionScope.HabitDetailScreen(
                                 set(Calendar.MILLISECOND, 999)
                             }.timeInMillis
                         }
-                        val isCompletedToday = remember(completions, todayStart, todayEnd) {
-                            completions.any { it.date in todayStart..todayEnd }
+                        val isCompletedToday = remember(habit, completions, todayStart, currentDateMillis) {
+                            com.habitly.habitly.data.Database.isDayCompleted(habit, completions, todayStart, currentDateMillis)
                         }
                         
                         val secondaryContainerColor = MaterialTheme.colorScheme.secondaryContainer
@@ -445,103 +462,48 @@ fun SharedTransitionScope.HabitDetailScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) { // Group left-aligned buttons
-                        // Edit button in a box
-                        Box(
-                            modifier = Modifier
-                                .size(35.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = secondaryContainerAlpha))
-                                .border(
-                                    1.dp,
-                                    cardBorderColor,
-                                    RoundedCornerShape(8.dp)
-                                )
-                                .clickable {
-                                    if (vibrationsEnabled) {
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    }
-                                    onEditHabit(habit)
-                                },
-                            contentAlignment = Alignment.Center
+                    val notificationsSet = habit.notificationsEnabled && habit.notificationTime != null
+                    Box(
+                        modifier = Modifier
+                            .height(35.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = secondaryContainerAlpha))
+                            .border(
+                                1.dp,
+                                cardBorderColor,
+                                RoundedCornerShape(8.dp)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = "Edit Habit",
+                                imageVector = if (notificationsSet) Icons.Default.NotificationsActive else Icons.Default.Notifications,
+                                contentDescription = "Notification Time",
                                 modifier = Modifier.size(20.dp),
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                        Spacer(modifier = Modifier.size(6.dp)) // Space between edit and statistics
-
-                        // Statistics button in a box
-                        Box(
-                            modifier = Modifier
-                                .size(35.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = secondaryContainerAlpha))
-                                .border(
-                                    1.dp,
-                                    cardBorderColor,
-                                    RoundedCornerShape(8.dp)
+                                tint = if (notificationsSet) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(
+                                    alpha = 0.38f
                                 )
-                                .clickable {
-                                    if (vibrationsEnabled) {
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    }
-                                    onShowStatistics(habit)
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ShowChart,
-                                contentDescription = "Show Statistics",
-                                modifier = Modifier.size(20.dp),
-                                tint = MaterialTheme.colorScheme.onSurface
                             )
-                        }
-
-                        Spacer(modifier = Modifier.size(6.dp)) // Space between statistics and archive/unarchive
-
-                        // Archive/Unarchive button in a box
-                        val archiveIcon = if (isArchivedView) Icons.Default.Restore else Icons.Default.Archive
-                        val archiveContentDescription = if (isArchivedView) "Un-archive Habit" else "Archive Habit"
-                        Box(
-                            modifier = Modifier
-                                .size(35.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = secondaryContainerAlpha))
-                                .border(
-                                    1.dp,
-                                    cardBorderColor,
-                                    RoundedCornerShape(8.dp)
+                            if (notificationsSet) {
+                                Spacer(modifier = Modifier.size(4.dp))
+                                Text(
+                                    text = habit.notificationTime,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
-                                .clickable {
-                                    if (vibrationsEnabled) {
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    }
-                                    val updatedHabit = habit.copy(archived = !isArchivedView)
-                                    viewModel.updateHabit(updatedHabit)
-                                    notificationScheduler.scheduleNotification(updatedHabit)
-                                    onDismiss()
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = archiveIcon,
-                                contentDescription = archiveContentDescription,
-                                modifier = Modifier.size(20.dp),
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
+                            }
                         }
                     }
 
+                    val intervalText = when (habit.intervalUnit) {
+                        "day" -> if (habit.completionsPerInterval > 1) "${habit.completionsPerInterval}/Day" else "Daily"
+                        else -> "${habit.completionsPerInterval}/${habit.intervalUnit.replaceFirstChar { it.uppercase() }}"
+                    }
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        val intervalText = when (habit.intervalUnit) {
-                            "day" -> "Daily"
-                            else -> "${habit.completionsPerInterval}/${habit.intervalUnit.replaceFirstChar { it.uppercase() }}"
-                        }
-                        val notificationsSet = habit.notificationsEnabled && habit.notificationTime != null
                         Box(
                             modifier = Modifier
                                 .height(35.dp)
@@ -559,18 +521,29 @@ fun SharedTransitionScope.HabitDetailScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.Center
                             ) {
-                                Icon(
-                                    imageVector = if (notificationsSet) Icons.Default.NotificationsActive else Icons.Default.Notifications,
-                                    contentDescription = "Notification Time",
-                                    modifier = Modifier.size(20.dp),
-                                    tint = if (notificationsSet) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(
-                                        alpha = 0.38f
+                                if (habit.isQuit) {
+                                    Icon(
+                                        imageVector = Icons.Default.Block,
+                                        contentDescription = "Quit Habit",
+                                        modifier = Modifier.size(18.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
-                                )
-                                if (notificationsSet) {
                                     Spacer(modifier = Modifier.size(4.dp))
                                     Text(
-                                        text = habit.notificationTime,
+                                        text = "Quit",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                } else {
+                                    Icon(
+                                        painter = painterResource(R.drawable.ic_sentiment_calm),
+                                        contentDescription = "Build Habit",
+                                        modifier = Modifier.size(18.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Spacer(modifier = Modifier.size(4.dp))
+                                    Text(
+                                        text = "Build",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
@@ -603,7 +576,19 @@ fun SharedTransitionScope.HabitDetailScreen(
                                     tint = Color(0xFFFC9920)
                                 )
                                 Spacer(modifier = Modifier.size(2.dp))
-                                Text("$streak", color = MaterialTheme.colorScheme.onSurface)
+                                AnimatedContent(
+                                    targetState = streak,
+                                    transitionSpec = {
+                                        if (targetState > initialState) {
+                                            (slideInVertically { it } + fadeIn()).togetherWith(slideOutVertically { -it } + fadeOut())
+                                        } else {
+                                            (slideInVertically { -it } + fadeIn()).togetherWith(slideOutVertically { it } + fadeOut())
+                                        }
+                                    },
+                                    label = "streak_wheel_animation"
+                                ) { targetStreak ->
+                                    Text("$targetStreak", color = MaterialTheme.colorScheme.onSurface)
+                                }
                                 Spacer(modifier = Modifier.size(6.dp))
                                 VerticalDivider(
                                     thickness = 1.dp,
@@ -629,206 +614,110 @@ fun SharedTransitionScope.HabitDetailScreen(
                     vibrationsEnabled = vibrationsEnabled,
                     reduceGridReactions = disableAnimations,
                     currentDateMillis = currentDateMillis,
+                    habit = habit,
                     onDateClick = { date, isCompleted ->
-                        // Haptic moved to MonthCalendar to ensure it happens on press
-                        viewModel.toggleCompletion(habit, date, isCompleted)
+                        viewModel.toggleCompletion(habit, date)
                     }
                 )
+            }
+        }
+            val buttonsProgress = transitionProgressProvider()
+            val buttonSlideProgress = ((1f - buttonsProgress) / 0.5f).coerceIn(0f, 1f)
+            val buttonAlpha = ((buttonsProgress - 0.5f) / 0.5f).coerceIn(0f, 1f)
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier
+                    .zIndex(0f)
+                    .fillMaxWidth()
+                    .graphicsLayer {
+                        // Slide up under the card and fade in/out
+                        translationY = -(64.dp.toPx()) * buttonSlideProgress
+                        alpha = buttonAlpha
+                    },
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Edit button
+                Button(
+                    onClick = {
+                        if (vibrationsEnabled) {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        }
+                        onEditHabit(habit)
+                    },
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = cardBackgroundColor,
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    ),
+                    border = BorderStroke(1.dp, cardBorderColor)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Edit Habit",
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+
+                // Statistics button
+                Button(
+                    onClick = {
+                        if (vibrationsEnabled) {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        }
+                        onShowStatistics(habit)
+                    },
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = cardBackgroundColor,
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    ),
+                    border = BorderStroke(1.dp, cardBorderColor)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ShowChart,
+                        contentDescription = "Show Statistics",
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+
+                // Archive/Unarchive button
+                val archiveIcon = if (isArchivedView) Icons.Default.Restore else Icons.Default.Archive
+                val archiveContentDescription = if (isArchivedView) "Un-archive Habit" else "Archive Habit"
+                Button(
+                    onClick = {
+                        if (vibrationsEnabled) {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        }
+                        val updatedHabit = habit.copy(archived = !isArchivedView)
+                        viewModel.updateHabit(updatedHabit)
+                        notificationScheduler.scheduleNotification(updatedHabit)
+                        onDismiss()
+                    },
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = cardBackgroundColor,
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    ),
+                    border = BorderStroke(1.dp, cardBorderColor)
+                ) {
+                    Icon(
+                        imageVector = archiveIcon,
+                        contentDescription = archiveContentDescription,
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
             }
         }
     }
 }
 
 private fun calculateStreak(habit: Habit, completions: List<Completion>, currentDateMillis: Long): Int {
-    if (completions.isEmpty()) return 0
-
-    val sortedDates = completions.map { it.date }.sortedDescending()
-
-    val today = Calendar.getInstance()
-    today.timeInMillis = currentDateMillis
-    today.set(Calendar.HOUR_OF_DAY, 0)
-    today.set(Calendar.MINUTE, 0)
-    today.set(Calendar.SECOND, 0)
-    today.set(Calendar.MILLISECOND, 0)
-
-    val completedDays = sortedDates.map { date ->
-        val c = Calendar.getInstance().apply { timeInMillis = date }
-        c.set(Calendar.HOUR_OF_DAY, 0)
-        c.set(Calendar.MINUTE, 0)
-        c.set(Calendar.SECOND, 0)
-        c.set(Calendar.MILLISECOND, 0)
-        c.timeInMillis
-    }.toSet()
-
-    return when (habit.intervalUnit) {
-        "day" -> {
-            var currentStreak = 0
-            val checkC = today.clone() as Calendar
-
-            // Check today
-            if (completedDays.contains(checkC.timeInMillis)) {
-                currentStreak++
-            }
-
-            // Move to yesterday
-            checkC.add(Calendar.DAY_OF_YEAR, -1)
-
-            if (currentStreak == 0) {
-                // If today was not completed, we give a chance to yesterday
-                if (completedDays.contains(checkC.timeInMillis)) {
-                    currentStreak++
-                    checkC.add(Calendar.DAY_OF_YEAR, -1)
-                } else {
-                    return 0
-                }
-            }
-
-            // Count consecutive past days
-            while (completedDays.contains(checkC.timeInMillis)) {
-                currentStreak++
-                checkC.add(Calendar.DAY_OF_YEAR, -1)
-            }
-            currentStreak
-        }
-
-        "week" -> {
-            val c = Calendar.getInstance()
-            c.timeInMillis = currentDateMillis
-            c.set(Calendar.HOUR_OF_DAY, 0)
-            c.set(Calendar.MINUTE, 0)
-            c.set(Calendar.SECOND, 0)
-            c.set(Calendar.MILLISECOND, 0)
-
-            val firstDayOfWeek = c.firstDayOfWeek
-            val startOfCurrentWeek = c.clone() as Calendar
-            while (startOfCurrentWeek.get(Calendar.DAY_OF_WEEK) != firstDayOfWeek) {
-                startOfCurrentWeek.add(Calendar.DAY_OF_YEAR, -1)
-            }
-
-            val diffInMillis = c.timeInMillis - startOfCurrentWeek.timeInMillis
-            val daysPassed = TimeUnit.MILLISECONDS.toDays(diffInMillis).toInt() + 1
-
-            var completionsInCurrentWeek = 0
-            val tempC = startOfCurrentWeek.clone() as Calendar
-            for (i in 0 until daysPassed) {
-                if (completedDays.contains(tempC.timeInMillis)) {
-                    completionsInCurrentWeek++
-                }
-                tempC.add(Calendar.DAY_OF_YEAR, 1)
-            }
-
-            val target = habit.completionsPerInterval
-            val allowedMisses = 7 - target
-            val currentMisses = daysPassed - completionsInCurrentWeek
-
-            if (currentMisses <= allowedMisses) {
-                var streak = completionsInCurrentWeek
-                val checkWeekStart = startOfCurrentWeek.clone() as Calendar
-                checkWeekStart.add(Calendar.WEEK_OF_YEAR, -1)
-
-                while (true) {
-                    var weekCompletions = 0
-                    val dayIterator = checkWeekStart.clone() as Calendar
-                    for (i in 0 until 7) {
-                        if (completedDays.contains(dayIterator.timeInMillis)) {
-                            weekCompletions++
-                        }
-                        dayIterator.add(Calendar.DAY_OF_YEAR, 1)
-                    }
-
-                    if (weekCompletions >= target) {
-                        streak += weekCompletions
-                        checkWeekStart.add(Calendar.WEEK_OF_YEAR, -1)
-                    } else {
-                        break
-                    }
-                }
-                streak
-            } else {
-                var tail = 0
-                val scanC = c.clone() as Calendar
-                var counting = false
-                while (scanC.timeInMillis >= startOfCurrentWeek.timeInMillis) {
-                    if (completedDays.contains(scanC.timeInMillis)) {
-                        counting = true
-                        tail++
-                    } else {
-                        if (counting) break
-                    }
-                    scanC.add(Calendar.DAY_OF_YEAR, -1)
-                }
-                tail
-            }
-        }
-
-        "month" -> {
-            val c = Calendar.getInstance()
-            c.timeInMillis = currentDateMillis
-            c.set(Calendar.HOUR_OF_DAY, 0)
-            c.set(Calendar.MINUTE, 0)
-            c.set(Calendar.SECOND, 0)
-            c.set(Calendar.MILLISECOND, 0)
-
-            val startOfCurrentMonth = c.clone() as Calendar
-            startOfCurrentMonth.set(Calendar.DAY_OF_MONTH, 1)
-
-            val daysPassed = c.get(Calendar.DAY_OF_MONTH)
-
-            var completionsInCurrentMonth = 0
-            val tempC = startOfCurrentMonth.clone() as Calendar
-            for (i in 0 until daysPassed) {
-                if (completedDays.contains(tempC.timeInMillis)) {
-                    completionsInCurrentMonth++
-                }
-                tempC.add(Calendar.DAY_OF_YEAR, 1)
-            }
-
-            val daysInMonth = c.getActualMaximum(Calendar.DAY_OF_MONTH)
-            val target = habit.completionsPerInterval
-            val allowedMisses = daysInMonth - target
-            val currentMisses = daysPassed - completionsInCurrentMonth
-
-            if (currentMisses <= allowedMisses) {
-                var streak = completionsInCurrentMonth
-                val checkMonthStart = startOfCurrentMonth.clone() as Calendar
-                checkMonthStart.add(Calendar.MONTH, -1)
-
-                while (true) {
-                    val prevMonthDays = checkMonthStart.getActualMaximum(Calendar.DAY_OF_MONTH)
-                    var monthCompletions = 0
-                    val dayIterator = checkMonthStart.clone() as Calendar
-                    for (i in 0 until prevMonthDays) {
-                        if (completedDays.contains(dayIterator.timeInMillis)) {
-                            monthCompletions++
-                        }
-                        dayIterator.add(Calendar.DAY_OF_YEAR, 1)
-                    }
-
-                    if (monthCompletions >= target) {
-                        streak += monthCompletions
-                        checkMonthStart.add(Calendar.MONTH, -1)
-                    } else {
-                        break
-                    }
-                }
-                streak
-            } else {
-                var tail = 0
-                val scanC = c.clone() as Calendar
-                var counting = false
-                while (scanC.timeInMillis >= startOfCurrentMonth.timeInMillis) {
-                    if (completedDays.contains(scanC.timeInMillis)) {
-                        counting = true
-                        tail++
-                    } else {
-                        if (counting) break
-                    }
-                    scanC.add(Calendar.DAY_OF_YEAR, -1)
-                }
-                tail
-            }
-        }
-
-        else -> 0
-    }
+    return com.habitly.habitly.data.calculateCurrentStreak(habit, completions, currentDateMillis)
 }

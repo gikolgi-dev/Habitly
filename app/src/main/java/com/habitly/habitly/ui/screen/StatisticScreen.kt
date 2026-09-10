@@ -851,7 +851,7 @@ fun InactiveModuleCard(
                 when (moduleId) {
                     "longest_streak" -> StatCard(
                         label = "Longest Streak",
-                        value = "${stats.longestStreak} days",
+                        value = if (habit.habit.intervalUnit != "day" || habit.habit.completionsPerInterval > 1) "${stats.longestStreak}" else "${stats.longestStreak} days",
                         secondaryValue = if (stats.daysSinceLongestStreak > 0) "${stats.daysSinceLongestStreak} days ago" else "Current",
                         accentColor = displayAccentColor,
                         borderContrast = borderContrast,
@@ -861,7 +861,7 @@ fun InactiveModuleCard(
 
                     "current_streak" -> StatCard(
                         label = "Current Streak",
-                        value = "${stats.currentStreak} days",
+                        value = if (habit.habit.intervalUnit != "day" || habit.habit.completionsPerInterval > 1) "${stats.currentStreak}" else "${stats.currentStreak} days",
                         accentColor = displayAccentColor,
                         borderContrast = borderContrast,
                         useHabitColorForCard = useHabitColorForCard,

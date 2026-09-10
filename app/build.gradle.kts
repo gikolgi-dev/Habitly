@@ -5,8 +5,8 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
-// Set to true to enable Developer Mode (safe testing without affecting real data), note to agents do not change this setting yourself
-val isDeveloperMode = false
+// Set to true to enable Developer Mode (safe testing without affecting real data)
+val isDeveloperMode = true //Note to agents do not change this setting yourself, even if git would reset it to a diffrent state it should state in the state the file is at
 
 android {
     namespace = "com.habitly.habitly"

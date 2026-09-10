@@ -73,6 +73,7 @@ import androidx.compose.ui.unit.dp
 import com.habitly.habitly.data.Database.Completion
 import com.habitly.habitly.data.Database.Habit
 import com.habitly.habitly.data.Database.HabitDatabase
+import com.habitly.habitly.data.Database.getDailyTarget
 import com.habitly.habitly.data.settings.SettingsDataStore
 import com.habitly.habitly.notifications.NotificationScheduler
 import com.habitly.habitly.ui.colors.predefinedColors
@@ -113,6 +114,8 @@ data class ExportedHabit(
     val notificationTime: String?,
     val notificationDays: String?,
     val statsLayout: String? = null,
+    val startDate: String? = null,
+    val completionsPerDay: Int = 1,
     val completions: List<ExportedCompletion>
 )
 
@@ -128,16 +131,33 @@ data class ExportedCompletion(
 @Serializable
 data class ExportData(
     val appOrigin: String = "habitly",
+    val version: Int = 2,
+    val formatVersion: Int = 2,
     val habits: List<ExportedHabit>
 )
 
 // HabitKit Data Classes
 @Serializable
 data class HabitKitExport(
+    val formatVersion: Int? = null,
     val habits: List<HabitKitHabit> = emptyList(),
     val completions: List<HabitKitCompletion> = emptyList(),
-    // Intervals are ignored as requested by the user
+    val intervals: List<HabitKitInterval> = emptyList(),
     val reminders: List<HabitKitReminder> = emptyList()
+)
+
+@Serializable
+data class HabitKitInterval(
+    val id: String? = null,
+    val habitId: String,
+    val startDate: String? = null,
+    val endDate: String? = null,
+    val type: String? = null,
+    val requiredNumberOfCompletions: Int? = null,
+    val requiredNumberOfCompletionsPerDay: Int? = null,
+    val unitType: String? = null,
+    val streakType: String? = null,
+    val allowExceedingGoal: Boolean? = null
 )
 
 @Serializable
@@ -145,13 +165,14 @@ data class HabitKitHabit(
     val id: String,
     val name: String,
     val description: String? = "",
-    val icon: String,
-    val color: String,
-    val archived: Boolean,
-    val orderIndex: Int,
+    val icon: String? = "default_icon",
+    val color: String? = "gray",
+    val archived: Boolean = false,
+    val orderIndex: Int = 0,
     val createdAt: String,
-    val isInverse: Boolean,
-    val emoji: String?
+    val isInverse: Boolean = false,
+    val inverseStartDate: String? = null,
+    val emoji: String? = null
 )
 
 @Serializable
@@ -260,6 +281,8 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                                     notificationTime = habitWithCompletions.habit.notificationTime,
                                     notificationDays = habitWithCompletions.habit.notificationDays,
                                     statsLayout = habitWithCompletions.habit.statsLayout,
+                                    startDate = habitWithCompletions.habit.startDate,
+                                    completionsPerDay = habitWithCompletions.habit.getDailyTarget(),
                                     completions = habitWithCompletions.completions.map { completion ->
                                         ExportedCompletion(
                                             id = completion.id,
@@ -678,6 +701,8 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                                                     habitKitData.habits.forEach { kitHabit ->
                                                         val reminder =
                                                             habitKitData.reminders.find { it.habitId == kitHabit.id }
+                                                        val interval =
+                                                            habitKitData.intervals.find { it.habitId == kitHabit.id }
 
                                                         val notificationsEnabled = reminder != null
                                                         val notificationTime =
@@ -700,22 +725,55 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                                                             reminder?.weekdayIndices?.mapNotNull { dayMap[it] }
                                                                 ?.joinToString(",")
 
+                                                        val dailyCompletions = interval?.requiredNumberOfCompletionsPerDay ?: 1
+                                                        val completionsPerInterval = interval?.requiredNumberOfCompletions
+                                                            ?: dailyCompletions
+                                                        val intervalUnit = when (interval?.streakType?.lowercase()) {
+                                                            "week" -> "week"
+                                                            "month" -> "month"
+                                                            else -> "day"
+                                                        }
+
+                                                        val createdAtMillis = try {
+                                                            Instant.parse(kitHabit.createdAt).toEpochMilli().toString()
+                                                        } catch (_: Exception) {
+                                                            kitHabit.createdAt.toLongOrNull()?.toString()
+                                                                ?: System.currentTimeMillis().toString()
+                                                        }
+
+                                                        val startDateMillis = if (kitHabit.isInverse && !kitHabit.inverseStartDate.isNullOrBlank()) {
+                                                            try {
+                                                                LocalDate.parse(kitHabit.inverseStartDate).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli().toString()
+                                                            } catch (_: Exception) {
+                                                                try {
+                                                                    Instant.parse(kitHabit.inverseStartDate).toEpochMilli().toString()
+                                                                } catch (_: Exception) {
+                                                                    createdAtMillis
+                                                                }
+                                                            }
+                                                        } else {
+                                                            createdAtMillis
+                                                        }
+
+                                                        val habitColorKey = (kitHabit.color ?: "gray").lowercase()
                                                         val habit = Habit(
                                                             id = kitHabit.id,
                                                             name = kitHabit.name,
                                                             description = kitHabit.description
                                                                 ?: "",
-                                                            icon = "default_icon", // Default icon as requested
-                                                            color = habitColorMap[kitHabit.color.lowercase()]
+                                                            icon = kitHabit.icon ?: "default_icon",
+                                                            color = habitColorMap[habitColorKey]
                                                                 ?: Color.GRAY,
                                                             archived = kitHabit.archived,
                                                             orderIndex = kitHabit.orderIndex,
-                                                            createdAt = kitHabit.createdAt,
+                                                            createdAt = createdAtMillis,
+                                                            startDate = startDateMillis,
                                                             isInverse = kitHabit.isInverse,
                                                             emoji = kitHabit.emoji,
-                                                            completionsPerInterval = 1, // Default value
-                                                            intervalUnit = "day",      // Default value
+                                                            completionsPerInterval = completionsPerInterval,
+                                                            intervalUnit = intervalUnit,
                                                             notificationsEnabled = notificationsEnabled,
+                                                            completionsPerDay = dailyCompletions,
                                                             notificationTime = notificationTime,
                                                             notificationDays = notificationDays
                                                         )
@@ -800,7 +858,9 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                                                             notificationsEnabled = exportedHabit.notificationsEnabled,
                                                             notificationTime = exportedHabit.notificationTime,
                                                             notificationDays = exportedHabit.notificationDays,
-                                                            statsLayout = exportedHabit.statsLayout
+                                                            statsLayout = exportedHabit.statsLayout,
+                                                            startDate = exportedHabit.startDate,
+                                                            completionsPerDay = exportedHabit.completionsPerDay
                                                         )
                                                     })
                                                     completionsToInsert.addAll(exportedData.habits.flatMap { exportedHabit ->

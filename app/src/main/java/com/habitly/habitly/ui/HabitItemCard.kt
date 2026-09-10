@@ -7,6 +7,9 @@ package com.habitly.habitly.ui
 import android.annotation.SuppressLint
 import kotlin.math.roundToInt
 import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.Crossfade
@@ -78,6 +81,7 @@ import androidx.graphics.shapes.Morph
 import androidx.graphics.shapes.toPath
 import com.habitly.habitly.data.Database.Completion
 import com.habitly.habitly.data.Database.Habit
+import com.habitly.habitly.data.Database.getDailyTarget
 import com.habitly.habitly.ui.colors.isBright
 import com.habitly.habitly.ui.components.RotatingHabitIcon
 
@@ -171,17 +175,24 @@ fun HabitCompletionButton(
     transitionProgressProvider: () -> Float = { 0f },
     theme: String = "system",
     detailBgColor: Color = Color.Unspecified,
-    detailBorderColor: Color = Color.Unspecified
+    detailBorderColor: Color = Color.Unspecified,
+    currentCompletions: Int = if (isCompleted) habit.getDailyTarget() else 0,
+    onDecrement: (() -> Unit)? = null
 ) {
+    val target = habit.getDailyTarget()
     val color = Color(habit.color)
-    val transition = updateTransition(targetState = isCompleted, label = "CompletionTransition")
+    val targetProgress = if (isCompleted) 1f else 0f
+    val progressState = animateFloatAsState(
+        targetValue = targetProgress,
+        animationSpec = tween(300),
+        label = "MorphProgress"
+    )
 
-    val progressState = transition.animateFloat(
-        label = "MorphProgress",
-        transitionSpec = { tween(300) }
-    ) { state ->
-        if (state) 1f else 0f
-    }
+    val animatedCompletions = animateFloatAsState(
+        targetValue = currentCompletions.toFloat(),
+        animationSpec = tween(300),
+        label = "animatedCompletions"
+    )
 
     val animatedHabitColorState =
         animateColorAsState(targetValue = color, animationSpec = tween(300), label = "habitColor")
@@ -244,16 +255,65 @@ fun HabitCompletionButton(
                 val currentBgColor = lerp(itemBgColor, targetBgColor, tp)
                 val currentStrokeColor = lerp(itemStrokeColor, targetBorderColor, tp)
                 
-                scale(
-                    scaleX = size.width,
-                    scaleY = size.height,
-                    pivot = androidx.compose.ui.geometry.Offset.Zero
-                ) {
-                    drawPath(cachedPath, color = currentBgColor)
-                    drawPath(cachedPath, color = currentStrokeColor, style = Stroke(width = 1.dp.toPx() / size.width))
+                val innerSize = if (target > 1) (44.dp.toPx() + (size.width - 44.dp.toPx()) * morphPercentage) else size.width
+                val offset = (size.width - innerSize) / 2f
+
+                translate(left = offset, top = offset) {
+                    scale(
+                        scaleX = innerSize,
+                        scaleY = innerSize,
+                        pivot = Offset.Zero
+                    ) {
+                        drawPath(cachedPath, color = currentBgColor)
+                        drawPath(cachedPath, color = currentStrokeColor, style = Stroke(width = 1.dp.toPx() / innerSize))
+                    }
+                }
+
+                if (target > 1) {
+                    val chunksAlpha = ((1f - p) * (1f - tp)).coerceIn(0f, 1f)
+                    if (chunksAlpha > 0f) {
+                        val count = target.coerceIn(2, 14)
+                        val segmentAngle = 360f / count
+                        val gapAngle = ((360f / count) * 0.28f).coerceIn(6f, 16f)
+                        val sweepAngle = segmentAngle - gapAngle
+                        val ringRadiusPx = (27.5.dp - 3.5.dp * p).toPx()
+                        val strokeWidthPx = (3.dp * (1f - 0.4f * p)).toPx()
+                        val comp = animatedCompletions.value
+                        val trackAlpha = lerp(0.15f, 0.3f, borderContrast) * chunksAlpha
+                        val filledAlpha = chunksAlpha
+
+                        for (i in 0 until count) {
+                            val startAngle = -90f + i * segmentAngle + (gapAngle / 2f)
+                            drawArc(
+                                color = currentColor.copy(alpha = trackAlpha),
+                                startAngle = startAngle,
+                                sweepAngle = sweepAngle,
+                                useCenter = false,
+                                topLeft = Offset(center.x - ringRadiusPx, center.y - ringRadiusPx),
+                                size = Size(ringRadiusPx * 2f, ringRadiusPx * 2f),
+                                style = Stroke(width = strokeWidthPx, cap = StrokeCap.Round)
+                            )
+
+                            if (comp > i) {
+                                val fillFraction = (comp - i).coerceIn(0f, 1f)
+                                val fillSweep = sweepAngle * fillFraction
+                                if (fillSweep > 0f) {
+                                    drawArc(
+                                        color = currentColor.copy(alpha = filledAlpha),
+                                        startAngle = startAngle,
+                                        sweepAngle = fillSweep,
+                                        useCenter = false,
+                                        topLeft = Offset(center.x - ringRadiusPx, center.y - ringRadiusPx),
+                                        size = Size(ringRadiusPx * 2f, ringRadiusPx * 2f),
+                                        style = Stroke(width = strokeWidthPx, cap = StrokeCap.Round)
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
-            .pointerInput(isCompleted, disablePressAnimation) {
+            .pointerInput(isCompleted, currentCompletions, disablePressAnimation) {
                 detectTapGestures(
                     onPress = {
                         if (!disablePressAnimation) {
@@ -264,6 +324,9 @@ fun HabitCompletionButton(
                         } finally {
                             isPressed = false
                         }
+                    },
+                    onLongPress = {
+                        onDecrement?.invoke()
                     },
                     onTap = {
                         onComplete()
@@ -279,7 +342,9 @@ fun HabitCompletionButton(
             animatedHabitColor
         }
         val tp = transitionProgressProvider()
-        val iconSize = 32.dp + (20.dp - 32.dp) * tp
+        val baseIconSize = if (target > 1) 22.dp else 32.dp
+        val targetIconSize = if (target > 1) baseIconSize + (32.dp - baseIconSize) * progressState.value else 32.dp
+        val iconSize = targetIconSize + (20.dp - targetIconSize) * tp
         val delayStart = if (isCompleted) 0f else 0.4f
         val fadeProgress = if (tp < delayStart) 0f else (tp - delayStart) / (1f - delayStart)
         val iconAlpha = (1f - fadeProgress).coerceIn(0f, 1f)
@@ -323,6 +388,7 @@ fun HabitItemCard(
     useHabitColor: Boolean,
     disableAnimations: Boolean,
     onComplete: () -> Unit,
+    onDecrement: (() -> Unit)? = null,
     onClick: () -> Unit,
     onUnarchive: (() -> Unit)? = null,
     onDelete: (() -> Unit)? = null,
@@ -410,13 +476,21 @@ fun HabitItemCard(
 
                 Spacer(modifier = Modifier.size(16.dp))
                 if (showCheckbox) { // Conditionally display the checkbox
+                    val effectiveCount = remember(habit, completions, currentDateMillis) {
+                        com.habitly.habitly.data.Database.getEffectiveCompletionsForDay(habit, completions, currentDateMillis, currentDateMillis)
+                    }
+                    val isReallyCompleted = remember(habit, completions, currentDateMillis) {
+                        com.habitly.habitly.data.Database.isDayCompleted(habit, completions, currentDateMillis, currentDateMillis)
+                    }
                     HabitCompletionButton(
                         habit = habit,
-                        isCompleted = isCompleted,
+                        isCompleted = isReallyCompleted,
+                        currentCompletions = effectiveCount,
                         borderContrast = borderContrast,
                         disableAnimations = disableAnimations,
                         disablePressAnimation = isPreview,
                         onComplete = onComplete,
+                        onDecrement = onDecrement,
                         sharedTransitionScope = sharedTransitionScope,
                         visible = visible,
                         transitionProgressProvider = transitionProgressProvider,

@@ -119,6 +119,8 @@ import com.habitly.habitly.data.Database.HabitDatabase
 import com.habitly.habitly.data.Database.HabitViewModel
 import com.habitly.habitly.data.Database.HabitWithCompletions
 import com.habitly.habitly.data.Database.HabitsUiState
+import com.habitly.habitly.data.Database.getEffectiveStartDateMillis
+import com.habitly.habitly.data.Database.getDailyTarget
 import com.habitly.habitly.data.settings.DefaultSettings
 import com.habitly.habitly.data.settings.SettingsDataStore
 import com.habitly.habitly.notifications.NotificationScheduler
@@ -293,45 +295,72 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     var habitDescription by remember { mutableStateOf("") }
     var habitColor by remember { mutableStateOf(habitColors.first()) }
     var habitIconKey by remember { mutableStateOf(defaultHabitIconKey) }
+    var completionsPerDay by remember { mutableStateOf("1") }
     var completionsPerInterval by remember { mutableStateOf("1") }
     var intervalUnit by remember { mutableStateOf("day") }
     var completionsError by remember { mutableStateOf<String?>(null) }
+    var completionsPerDayError by remember { mutableStateOf<String?>(null) }
     var notificationsEnabled by remember { mutableStateOf(false) }
     var notificationTime by remember { mutableStateOf<String?>("09:00") }
 
     val allDays = remember { setOf("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN") }
     var notificationDays by remember { mutableStateOf(allDays) }
 
-    fun validate(completionsText: String) {
-        if (intervalUnit == "day") {
-            completionsError = null
-            return
-        }
-        val completions = completionsText.toIntOrNull()
-        completionsError = if (completions == null) {
+    var isInverse by remember { mutableStateOf(false) }
+
+    fun validateDaily(text: String) {
+        val count = text.toIntOrNull()
+        completionsPerDayError = if (count == null) {
             "Must be a number"
-        } else if (completions <= 0) {
+        } else if (count <= 0) {
             "Must be > 0"
-        } else if (completions > 7 && intervalUnit == "week") {
-            "Must be ≤ 7"
-        } else if (completions > 28 && intervalUnit == "month") {
-            "Must be ≤ 28"
-        }else {
+        } else if (count > 14) {
+            "Must be ≤ 14"
+        } else {
             null
         }
     }
 
-    LaunchedEffect(intervalUnit) {
+    fun validateInterval(intervalText: String, dailyText: String) {
+        val daily = dailyText.toIntOrNull() ?: 1
         if (intervalUnit == "day") {
-            completionsPerInterval = "1"
+            if (daily > 1) {
+                val completions = intervalText.toIntOrNull()
+                completionsError = if (completions == null) {
+                    "Must be a number"
+                } else if (completions <= 0) {
+                    "Must be > 0"
+                } else if (completions > daily) {
+                    "Must be ≤ $daily completions/day"
+                } else {
+                    null
+                }
+            } else {
+                completionsError = null
+            }
+            return
         }
-        validate(completionsPerInterval)
+        val completions = intervalText.toIntOrNull()
+        val maxTarget = if (intervalUnit == "week") 7 * daily else 31 * daily
+        completionsError = if (completions == null) {
+            "Must be a number"
+        } else if (completions <= 0) {
+            "Must be > 0"
+        } else if (completions > maxTarget) {
+            "Must be ≤ $maxTarget (${if (intervalUnit == "week") 7 else 31} days × $daily/day)"
+        } else {
+            null
+        }
+    }
+
+    LaunchedEffect(completionsPerDay) {
+        validateDaily(completionsPerDay)
+        validateInterval(completionsPerInterval, completionsPerDay)
     }
 
     LaunchedEffect(completionsPerInterval, intervalUnit) {
-        validate(completionsPerInterval)
+        validateInterval(completionsPerInterval, completionsPerDay)
     }
-
 
     val isAnySheetOpen = showHabitSheet || showSettingsScreen || habitToView != null || showArchiveSheet || showReorderSheet || showStatisticScreen
 
@@ -340,7 +369,6 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
         if (showStatisticScreen) { showStatisticScreen = false; initialHabitIdForStats = null; return@BackHandler }
         if (showHabitSheet) {
             showHabitSheet = false
-            habitToEdit = null
             return@BackHandler
         }
         if (showSettingsScreen) { showSettingsScreen = false; return@BackHandler }
@@ -560,7 +588,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                 items = habitsWithCompletions,
                                                 key = { it.habit.id }
                                             ) { habitWithCompletions ->
-                                                val isCompleted = habitWithCompletions.completions.any { it.date in startOfDay..endOfDay }
+                                                val isCompleted = com.habitly.habitly.data.Database.isDayCompleted(habitWithCompletions.habit, habitWithCompletions.completions, currentDateMillis, currentDateMillis)
                                                 val isViewingThis = habitToView?.habit?.id == habitWithCompletions.habit.id
 
                                                 val shadowColor = MaterialTheme.colorScheme.surfaceVariant.copy(/*alpha = 0.15f*/)
@@ -608,8 +636,19 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                             }
                                                             viewModel.toggleCompletion(
                                                                 habitWithCompletions.habit,
+                                                                Calendar.getInstance().apply { timeInMillis = currentDateMillis }
+                                                            )
+                                                        },
+                                                        onDecrement = {
+                                                            if (vibrationsEnabled) {
+                                                                haptic.performHapticFeedback(
+                                                                    HapticFeedbackType.TextHandleMove
+                                                                )
+                                                            }
+                                                            viewModel.toggleCompletion(
+                                                                habitWithCompletions.habit,
                                                                 Calendar.getInstance().apply { timeInMillis = currentDateMillis },
-                                                                isCompleted
+                                                                decrement = true
                                                             )
                                                         },
                                                         onClick = {
@@ -759,12 +798,14 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                 habitDescription = it.description
                                 habitColor = Color(it.color)
                                 habitIconKey = it.icon
+                                completionsPerDay = it.getDailyTarget().toString()
                                 completionsPerInterval = it.completionsPerInterval.toString()
                                 intervalUnit = it.intervalUnit
                                 notificationsEnabled = it.notificationsEnabled
                                 notificationTime = it.notificationTime ?: "09:00"
                                 notificationDays = it.notificationDays?.split(',')?.toSet() ?: allDays
                                 customColor = null
+                                isInverse = it.isInverse
 
                                 habitToEdit = it
                                 showHabitSheet = true
@@ -881,23 +922,45 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                     val existingCompletionsForEdit = remember(habitToEdit, habitsForEdit) {
                         habitsForEdit.find { it.habit.id == habitToEdit?.id }?.completions ?: emptyList()
                     }
-                    val previewCompletions = remember(isEditMode, existingCompletionsForEdit) {
+                    val previewCompletions = remember(isEditMode, existingCompletionsForEdit, isInverse, completionsPerDay, completionsPerInterval, intervalUnit) {
                         if (isEditMode) {
                             existingCompletionsForEdit
                         } else {
                             val list = mutableListOf<Completion>()
                             val cal = Calendar.getInstance()
                             cal.add(Calendar.DAY_OF_YEAR, -60)
-                            val random = java.util.Random(42) // Fixed seed for stable "random"
-                            for (_i in 0..60) {
-                                if (random.nextBoolean()) {
+                            val random = java.util.Random(42) // Fixed seed for stable preview
+                            val dailyTarget = completionsPerDay.toIntOrNull()?.coerceIn(1, 14) ?: 1
+
+                            for (i in 0..60) {
+                                val dayMillis = cal.timeInMillis
+                                val isToday = (i == 60)
+
+                                val isActive = if (isToday) {
+                                    false
+                                } else {
+                                    random.nextFloat() < 0.65f
+                                }
+                                val amount = if (!isActive) {
+                                    0
+                                } else if (dailyTarget == 1) {
+                                    1
+                                } else {
+                                    if (random.nextFloat() < 0.60f) {
+                                        dailyTarget
+                                    } else {
+                                        1 + random.nextInt(dailyTarget)
+                                    }
+                                }
+
+                                if (amount > 0) {
                                     list.add(
                                         Completion(
                                             id = UUID.randomUUID().toString(),
                                             habitId = "preview",
-                                            date = cal.timeInMillis,
+                                            date = dayMillis,
                                             timezoneOffsetInMinutes = 0,
-                                            amountOfCompletions = 1
+                                            amountOfCompletions = amount
                                         )
                                     )
                                 }
@@ -908,7 +971,16 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                     }
 
                     val livePreviewColor = if (showColorPicker) tempColor else customColor
-                    val dummyHabit = remember(habitName, habitDescription, habitColor, customColor, habitIconKey, completionsPerInterval, intervalUnit, notificationsEnabled, notificationTime, notificationDays, livePreviewColor, isEditMode) {
+                    val dummyHabit = remember(habitName, habitDescription, habitColor, customColor, habitIconKey, completionsPerInterval, completionsPerDay, intervalUnit, notificationsEnabled, notificationTime, notificationDays, livePreviewColor, isEditMode, isInverse, habitToEdit) {
+                        val defaultCreated = (System.currentTimeMillis() - 60L * 24 * 3600 * 1000).toString()
+                        val created = habitToEdit?.createdAt ?: if (isEditMode) System.currentTimeMillis().toString() else defaultCreated
+                        val start = habitToEdit?.startDate ?: created
+                        val daily = completionsPerDay.toIntOrNull() ?: 1
+                        val intervalTarget = if (intervalUnit == "day") {
+                            if (daily > 1) (completionsPerInterval.toIntOrNull()?.coerceIn(1, daily) ?: daily) else 1
+                        } else {
+                            (completionsPerInterval.toIntOrNull() ?: 1)
+                        }
                         Habit(
                             id = habitToEdit?.id ?: "preview",
                             name = habitName.ifBlank { "Habit Name" },
@@ -916,15 +988,17 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                             color = (livePreviewColor ?: habitColor).toArgb(),
                             icon = habitIconKey,
                             orderIndex = 0,
-                            createdAt = System.currentTimeMillis().toString(),
-                            isInverse = false,
+                            createdAt = created,
+                            isInverse = isInverse,
+                            startDate = start,
                             archived = false,
                             emoji = null,
-                            completionsPerInterval = completionsPerInterval.toIntOrNull() ?: 1,
+                            completionsPerInterval = intervalTarget,
                             intervalUnit = intervalUnit,
                             notificationsEnabled = notificationsEnabled,
                             notificationTime = notificationTime,
-                            notificationDays = notificationDays.joinToString(",")
+                            notificationDays = notificationDays.joinToString(","),
+                            completionsPerDay = daily
                         )
                     }
 
@@ -940,6 +1014,9 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                 onHabitNameChanged = { habitName = it },
                                 habitDescription = habitDescription,
                                 onHabitDescriptionChanged = { habitDescription = it },
+                                completionsPerDay = completionsPerDay,
+                                onCompletionsPerDayChanged = { completionsPerDay = it },
+                                completionsPerDayError = completionsPerDayError,
                                 completionsPerInterval = completionsPerInterval,
                                 onCompletionsPerIntervalChanged = { completionsPerInterval = it },
                                 intervalUnit = intervalUnit,
@@ -985,9 +1062,10 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                     }
                                 },
                                 hasNotificationPermission = notificationPermissionHandler.hasPermission,
+                                isInverse = isInverse,
+                                onIsInverseChanged = { isInverse = it },
                                 onClose = {
                                     showHabitSheet = false
-                                    habitToEdit = null
                                 },
                                 previewContent = {
                                     HabitItemCard(
@@ -1009,6 +1087,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                         heatmapInfinite = heatmapInfinite,
                                         useHabitColor = useHabitColorForItemCards,
                                         disableAnimations = disableAnimations,
+                                        isPreview = true,
                                         onComplete = { /* Do nothing in preview */ },
                                         onClick = { /* Do nothing in preview */ },
                                         sharedTransitionScope = null,
@@ -1026,13 +1105,19 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                             val habits = (habitsUiState as? HabitsUiState.Success)?.habits ?: emptyList()
                             SaveHabitButton(
                                 buttonText = buttonText,
-                                isEnabled = habitName.trim().isNotBlank() && completionsError == null,
+                                isEnabled = habitName.trim().isNotBlank() && completionsError == null && completionsPerDayError == null,
                                 settingsDataStore = settingsDataStore,
                                 modifier = Modifier.align(Alignment.BottomCenter)
                             ) {
                                 val trimmedName = habitName.trim()
                                 if (trimmedName.isNotBlank()) {
                                     val currentHabitToEdit = habitToEdit
+                                    val daily = completionsPerDay.toIntOrNull() ?: 1
+                                    val intervalTarget = if (intervalUnit == "day") {
+                                        if (daily > 1) (completionsPerInterval.toIntOrNull()?.coerceIn(1, daily) ?: daily) else 1
+                                    } else {
+                                        (completionsPerInterval.toIntOrNull() ?: 1)
+                                    }
                                     scope.launch {
                                         if (currentHabitToEdit != null) {
                                             val updatedHabit = currentHabitToEdit.copy(
@@ -1040,16 +1125,18 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                 description = habitDescription,
                                                 icon = habitIconKey,
                                                 color = (customColor ?: habitColor).toArgb(),
-                                                completionsPerInterval = completionsPerInterval.toIntOrNull()
-                                                    ?: 1,
+                                                isInverse = isInverse,
+                                                startDate = currentHabitToEdit.startDate ?: currentHabitToEdit.createdAt,
+                                                completionsPerInterval = intervalTarget,
                                                 intervalUnit = intervalUnit,
+                                                completionsPerDay = daily,
                                                 notificationsEnabled = notificationsEnabled,
                                                 notificationTime = if (notificationsEnabled) notificationTime else null,
                                                 notificationDays = if (notificationsEnabled) notificationDays.joinToString(
                                                     ","
                                                 ) else null
                                             )
-                                            habitDao.updateHabit(updatedHabit)
+                                            viewModel.updateHabitWithConversion(currentHabitToEdit, updatedHabit)
                                             if (updatedHabit.notificationsEnabled) {
                                                 notificationScheduler.scheduleNotification(updatedHabit)
                                             } else {
@@ -1067,11 +1154,12 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                 archived = false,
                                                 orderIndex = habits.size,
                                                 createdAt = System.currentTimeMillis().toString(),
-                                                isInverse = false,
+                                                startDate = System.currentTimeMillis().toString(),
+                                                isInverse = isInverse,
                                                 emoji = null,
-                                                completionsPerInterval = completionsPerInterval.toIntOrNull()
-                                                    ?: 1,
+                                                completionsPerInterval = intervalTarget,
                                                 intervalUnit = intervalUnit,
+                                                completionsPerDay = daily,
                                                 notificationsEnabled = notificationsEnabled,
                                                 notificationTime = if (notificationsEnabled) notificationTime else null,
                                                 notificationDays = if (notificationsEnabled) notificationDays.joinToString(
@@ -1084,7 +1172,6 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                             }
                                         }
                                         showHabitSheet = false
-                                        habitToEdit = null
                                     }
                                 }
                             }
@@ -1128,12 +1215,14 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                     habitDescription = ""
                     habitColor = habitColors.first()
                     habitIconKey = defaultHabitIconKey
+                    completionsPerDay = "1"
                     completionsPerInterval = "1"
                     intervalUnit = "day"
                     notificationsEnabled = false
                     notificationTime = "09:00"
                     notificationDays = allDays
                     customColor = null
+                    isInverse = false
 
                     habitToEdit = null
                     showHabitSheet = true
