@@ -568,58 +568,60 @@ fun SharedTransitionScope.HabitDetailScreen(
                                 }
                             }
                         }
-                        Spacer(modifier = Modifier.size(8.dp))
-                        Box(
-                            modifier = Modifier
-                                .wrapContentWidth()
-                                .height(35.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(Color(0xFFFC9920).copy(alpha = 0.4f))
-                                .border(
-                                    1.dp,
-                                    Color(0xFFFC9920).copy(alpha = borderContrast * 2),
-                                    RoundedCornerShape(8.dp)
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
+                        if (!habit.streakCountingDisabled) {
+                            Spacer(modifier = Modifier.size(8.dp))
+                            Box(
+                                modifier = Modifier
+                                    .wrapContentWidth()
+                                    .height(35.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color(0xFFFC9920).copy(alpha = 0.4f))
+                                    .border(
+                                        1.dp,
+                                        Color(0xFFFC9920).copy(alpha = borderContrast * 2),
+                                        RoundedCornerShape(8.dp)
+                                    ),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.LocalFireDepartment,
-                                    contentDescription = "Streak",
-                                    modifier = Modifier.size(20.dp),
-                                    tint = Color(0xFFFC9920)
-                                )
-                                Spacer(modifier = Modifier.size(2.dp))
-                                AnimatedContent(
-                                    targetState = streak,
-                                    transitionSpec = {
-                                        if (targetState > initialState) {
-                                            (slideInVertically { it } + fadeIn()).togetherWith(slideOutVertically { -it } + fadeOut())
-                                        } else {
-                                            (slideInVertically { -it } + fadeIn()).togetherWith(slideOutVertically { it } + fadeOut())
-                                        }
-                                    },
-                                    label = "streak_wheel_animation"
-                                ) { targetStreak ->
-                                    Text("$targetStreak", color = MaterialTheme.colorScheme.onSurface)
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.LocalFireDepartment,
+                                        contentDescription = "Streak",
+                                        modifier = Modifier.size(20.dp),
+                                        tint = Color(0xFFFC9920)
+                                    )
+                                    Spacer(modifier = Modifier.size(2.dp))
+                                    AnimatedContent(
+                                        targetState = streak,
+                                        transitionSpec = {
+                                            if (targetState > initialState) {
+                                                (slideInVertically { it } + fadeIn()).togetherWith(slideOutVertically { -it } + fadeOut())
+                                            } else {
+                                                (slideInVertically { -it } + fadeIn()).togetherWith(slideOutVertically { it } + fadeOut())
+                                            }
+                                        },
+                                        label = "streak_wheel_animation"
+                                    ) { targetStreak ->
+                                        Text("$targetStreak", color = MaterialTheme.colorScheme.onSurface)
+                                    }
+                                    Spacer(modifier = Modifier.size(6.dp))
+                                    VerticalDivider(
+                                        thickness = 1.dp,
+                                        color = Color(0xFFFC9920).copy(alpha = 0.12f),
+                                        modifier = Modifier.fillMaxHeight(0.75f)
+                                    )
+                                    Spacer(modifier = Modifier.size(6.dp))
+                                    Text(
+                                        text = intervalText,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Spacer(modifier = Modifier.size(8.dp))
                                 }
-                                Spacer(modifier = Modifier.size(6.dp))
-                                VerticalDivider(
-                                    thickness = 1.dp,
-                                    color = Color(0xFFFC9920).copy(alpha = 0.12f),
-                                    modifier = Modifier.fillMaxHeight(0.75f)
-                                )
-                                Spacer(modifier = Modifier.size(6.dp))
-                                Text(
-                                    text = intervalText,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Spacer(modifier = Modifier.size(8.dp))
                             }
                         }
                     }

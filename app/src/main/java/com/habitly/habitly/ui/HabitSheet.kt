@@ -591,7 +591,9 @@ fun HabitSheetContent(
     onInvertCompletionsChanged: (Boolean) -> Unit = {},
     showTargetConversionOptions: Boolean = false,
     targetConversionIsPercentage: Boolean = false,
-    onTargetConversionChanged: (Boolean) -> Unit = {}
+    onTargetConversionChanged: (Boolean) -> Unit = {},
+    streakCountingDisabled: Boolean = false,
+    onStreakCountingDisabledChanged: (Boolean) -> Unit = {}
 ) {
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
     val haptic = LocalHapticFeedback.current
@@ -994,12 +996,40 @@ fun HabitSheetContent(
                 colors = cardColors(MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 Column(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
                 ) {
-                    Text("Streak interval", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurface)
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                onStreakCountingDisabledChanged(!streakCountingDisabled)
+                            },
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Streak interval", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurface)
+                        Switch(
+                            checked = !streakCountingDisabled,
+                            onCheckedChange = null
+                        )
+                    }
 
+                    AnimatedVisibility(
+                        visible = !streakCountingDisabled,
+                        enter = fadeIn(animationSpec = tween(300)) + expandVertically(
+                            animationSpec = tween(400, easing = FastOutSlowInEasing),
+                            expandFrom = Alignment.Top
+                        ),
+                        exit = fadeOut(animationSpec = tween(300)) + shrinkVertically(
+                            animationSpec = tween(400, easing = FastOutSlowInEasing),
+                            shrinkTowards = Alignment.Top
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Spacer(modifier = Modifier.height(8.dp))
                     val items = listOf("Daily", "Weekly", "Monthly")
                     val intervalValues = listOf("day", "week", "month")
                     SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
@@ -1062,6 +1092,8 @@ fun HabitSheetContent(
                                 },
                                 modifier = Modifier.fillMaxWidth()
                             )
+                        }
+                    }
                         }
                     }
                 }

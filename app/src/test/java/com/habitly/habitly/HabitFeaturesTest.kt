@@ -1107,4 +1107,13 @@ class HabitFeaturesTest {
         // If it picked Week 1 Tue (Sep 8), it would be 26 days ago.
         assertTrue(stats.daysSinceLongestStreak <= 13L)
     }
+
+    @Test
+    fun testHabit_streakCountingDisabled_defaultIsFalse() {
+        val habit = createHabit()
+        assertFalse(habit.streakCountingDisabled)
+
+        val disabledHabit = habit.copy(streakCountingDisabled = true)
+        assertTrue(disabledHabit.streakCountingDisabled)
+    }
 }

@@ -154,8 +154,12 @@ private val defaultLayout = listOf(
     "monthly_chart"
 )
 
-private fun getBaseModuleId(id: String): String = if (id.endsWith("_full")) id.removeSuffix("_full") else id
+private fun isStreakModule(id: String): Boolean = when (getBaseModuleId(id)) {
+    "longest_streak", "current_streak" -> true
+    else -> false
+}
 
+private fun getBaseModuleId(id: String): String = if (id.endsWith("_full")) id.removeSuffix("_full") else id
 private fun getModuleIcon(id: String): ImageVector = when (getBaseModuleId(id)) {
     "longest_streak" -> Icons.Default.Star
     "current_streak" -> Icons.Default.FlashOn
@@ -279,19 +283,23 @@ fun StatisticScreen(
 
     fun enterEditMode() {
         val statsLayout = currentHabit?.habit?.statsLayout
+        val isStreakDisabled = currentHabit?.habit?.streakCountingDisabled == true
+        val baseDefaultLayout = if (isStreakDisabled) defaultLayout.filter { !isStreakModule(it) } else defaultLayout
         val currentLayout = if (statsLayout == null) {
-            defaultLayout
+            baseDefaultLayout
         } else {
-            statsLayout.split(",").filter { it.isNotEmpty() }
+            val raw = statsLayout.split(",").filter { it.isNotEmpty() }
+            if (isStreakDisabled) raw.filter { !isStreakModule(it) } else raw
         }
         val sanitized = sanitizeStaticModuleList(currentLayout)
-        savedLayout = sanitized
         localActiveModules = sanitized
         isEditMode = true
     }
 
     fun resetToDefault() {
-        localActiveModules = sanitizeStaticModuleList(defaultLayout)
+        val isStreakDisabled = currentHabit?.habit?.streakCountingDisabled == true
+        val baseDefault = if (isStreakDisabled) defaultLayout.filter { !isStreakModule(it) } else defaultLayout
+        localActiveModules = sanitizeStaticModuleList(baseDefault)
         if (vibrationsEnabled) {
             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
         }
@@ -315,9 +323,11 @@ fun StatisticScreen(
         isEditMode = false
     }
 
-    val inactiveModules = remember(localActiveModules) {
+    val inactiveModules = remember(localActiveModules, currentHabit) {
         val activeBases = localActiveModules.map { getBaseModuleId(it) }
-        ALL_STAT_MODULES.filter { it !in activeBases }.sortedBy { getModuleDisplayName(it) }
+        val isStreakDisabled = currentHabit?.habit?.streakCountingDisabled == true
+        val available = if (isStreakDisabled) ALL_STAT_MODULES.filter { !isStreakModule(it) } else ALL_STAT_MODULES
+        available.filter { it !in activeBases }.sortedBy { getModuleDisplayName(it) }
     }
 
     fun onRemoveModule(moduleId: String) {
@@ -475,23 +485,29 @@ fun StatisticScreen(
                         if (habit != null) {
                             val habitColor = Color(habit.habit.color)
 
-                            val pageLayout = remember(habit.habit.statsLayout) {
+                            val pageLayout = remember(habit.habit.statsLayout, habit.habit.streakCountingDisabled) {
                                 val layout = habit.habit.statsLayout
+                                val isStreakDisabled = habit.habit.streakCountingDisabled
+                                val baseDefault = if (isStreakDisabled) defaultLayout.filter { !isStreakModule(it) } else defaultLayout
                                 val rawList = if (layout == null) {
-                                    defaultLayout
+                                    baseDefault
                                 } else {
-                                    layout.split(",").filter { it.isNotEmpty() }
+                                    val raw = layout.split(",").filter { it.isNotEmpty() }
+                                    if (isStreakDisabled) raw.filter { !isStreakModule(it) } else raw
                                 }
                                 sanitizeStaticModuleList(rawList)
                             }
 
                             val activeList =
                                 if (isEditMode && habit.habit.id == currentHabit?.habit?.id) {
-                                    localActiveModules
+                                    if (habit.habit.streakCountingDisabled) localActiveModules.filter { !isStreakModule(it) } else localActiveModules
                                 } else {
                                     val saved = lastSavedLayouts[habit.habit.id]
-                                    if (saved != null && pageLayout != saved) {
-                                        saved
+                                    val effectiveSaved = if (saved != null && habit.habit.streakCountingDisabled) {
+                                        saved.filter { !isStreakModule(it) }
+                                    } else saved
+                                    if (effectiveSaved != null && pageLayout != effectiveSaved) {
+                                        effectiveSaved
                                     } else {
                                         pageLayout
                                     }

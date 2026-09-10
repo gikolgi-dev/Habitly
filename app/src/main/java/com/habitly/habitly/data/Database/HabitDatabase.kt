@@ -40,7 +40,8 @@ data class Habit(
     val notificationDays: String? = null,
     val statsLayout: String? = null,
     val startDate: String? = null,
-    val completionsPerDay: Int = 1
+    val completionsPerDay: Int = 1,
+    val streakCountingDisabled: Boolean = false
 )
 
 val Habit.isQuit: Boolean get() = isInverse
@@ -174,7 +175,7 @@ interface HabitDao {
     suspend fun clearCompletions()
 }
 
-@Database(entities = [Habit::class, Completion::class], version = 16, exportSchema = false)
+@Database(entities = [Habit::class, Completion::class], version = 17, exportSchema = false)
 abstract class HabitDatabase : RoomDatabase() {
     abstract fun habitDao(): HabitDao
 
@@ -198,7 +199,8 @@ abstract class HabitDatabase : RoomDatabase() {
                     MIGRATION_12_13,
                     MIGRATION_13_14,
                     MIGRATION_14_15,
-                    MIGRATION_15_16
+                    MIGRATION_15_16,
+                    MIGRATION_16_17
                 ).build()
                 INSTANCE = instance
                 instance
@@ -322,6 +324,12 @@ val MIGRATION_15_16 = object : Migration(15, 16) {
         updates.forEach { (id, created, start) ->
             db.execSQL("UPDATE Habit SET createdAt = ?, startDate = ? WHERE id = ?", arrayOf(created, start, id))
         }
+    }
+}
+
+val MIGRATION_16_17 = object : Migration(16, 17) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE Habit ADD COLUMN streakCountingDisabled INTEGER NOT NULL DEFAULT 0")
     }
 }
 

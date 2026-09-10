@@ -121,6 +121,7 @@ data class ExportedHabit(
     val statsLayout: String? = null,
     val startDate: String? = null,
     val completionsPerDay: Int = 1,
+    val streakCountingDisabled: Boolean = false,
     val completions: List<ExportedCompletion>
 )
 
@@ -293,6 +294,7 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                                     statsLayout = habitWithCompletions.habit.statsLayout,
                                     startDate = habitWithCompletions.habit.startDate,
                                     completionsPerDay = habitWithCompletions.habit.getDailyTarget(),
+                                    streakCountingDisabled = habitWithCompletions.habit.streakCountingDisabled,
                                     completions = habitWithCompletions.completions.map { completion ->
                                         ExportedCompletion(
                                             id = completion.id,
@@ -1029,7 +1031,8 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                                                             notificationDays = exportedHabit.notificationDays,
                                                             statsLayout = exportedHabit.statsLayout,
                                                             startDate = startDateMillis,
-                                                            completionsPerDay = exportedHabit.completionsPerDay
+                                                            completionsPerDay = exportedHabit.completionsPerDay,
+                                                            streakCountingDisabled = exportedHabit.streakCountingDisabled
                                                         )
                                                     })
                                                     completionsToInsert.addAll(exportedData.habits.flatMap { exportedHabit ->

@@ -320,6 +320,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     var isInverse by remember { mutableStateOf(false) }
     var invertCompletionsOnTypeChange by remember { mutableStateOf(true) }
     var targetConversionIsPercentage by remember { mutableStateOf(false) }
+    var streakCountingDisabled by remember { mutableStateOf(false) }
     fun validateDaily(text: String) {
         val count = text.toIntOrNull()
         completionsPerDayError = if (count == null) {
@@ -828,6 +829,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                 isInverse = it.isInverse
                                 invertCompletionsOnTypeChange = true
                                 targetConversionIsPercentage = false
+                                streakCountingDisabled = it.streakCountingDisabled
                                 habitToEdit = it
                                 showHabitSheet = true
                             },
@@ -1084,7 +1086,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                     }
 
                     val livePreviewColor = if (showColorPicker) tempColor else customColor
-                    val dummyHabit = remember(habitName, habitDescription, habitColor, customColor, habitIconKey, completionsPerInterval, completionsPerDay, intervalUnit, notificationsEnabled, notificationTime, notificationDays, livePreviewColor, isEditMode, isInverse, habitToEdit) {
+                    val dummyHabit = remember(habitName, habitDescription, habitColor, customColor, habitIconKey, completionsPerInterval, completionsPerDay, intervalUnit, notificationsEnabled, notificationTime, notificationDays, livePreviewColor, isEditMode, isInverse, habitToEdit, streakCountingDisabled) {
                         val defaultCreated = (System.currentTimeMillis() - 60L * 24 * 3600 * 1000).toString()
                         val created = habitToEdit?.createdAt ?: if (isEditMode) System.currentTimeMillis().toString() else defaultCreated
                         val start = habitToEdit?.startDate ?: created
@@ -1111,7 +1113,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                             notificationsEnabled = notificationsEnabled,
                             notificationTime = notificationTime,
                             notificationDays = notificationDays.joinToString(","),
-                            completionsPerDay = daily
+                            completionsPerDay = daily,
+                            streakCountingDisabled = streakCountingDisabled
                         )
                     }
 
@@ -1186,6 +1189,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                 onClose = {
                                     showHabitSheet = false
                                 },
+                                streakCountingDisabled = streakCountingDisabled,
+                                onStreakCountingDisabledChanged = { streakCountingDisabled = it },
                                 previewContent = {
                                     HabitItemCard(
                                         habit = dummyHabit,
@@ -1258,7 +1263,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                 notificationTime = if (notificationsEnabled) notificationTime else null,
                                                 notificationDays = if (notificationsEnabled) notificationDays.joinToString(
                                                     ","
-                                                ) else null
+                                                ) else null,
+                                                streakCountingDisabled = streakCountingDisabled
                                             )
                                             viewModel.updateHabitWithConversion(
                                                 currentHabitToEdit,
@@ -1296,7 +1302,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                 notificationTime = if (notificationsEnabled) notificationTime else null,
                                                 notificationDays = if (notificationsEnabled) notificationDays.joinToString(
                                                     ","
-                                                ) else null
+                                                ) else null,
+                                                streakCountingDisabled = streakCountingDisabled
                                             )
                                             habitDao.insertHabit(newHabit)
                                             if (newHabit.notificationsEnabled) {
@@ -1357,6 +1364,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                     isInverse = false
                     invertCompletionsOnTypeChange = true
 
+                    streakCountingDisabled = false
                     habitToEdit = null
                     showHabitSheet = true
                 },
