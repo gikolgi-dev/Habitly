@@ -138,6 +138,7 @@ private fun RenderStatCard(
     useHabitColorForCard: Boolean,
     vibrationsEnabled: Boolean,
     showScrollBlur: Boolean,
+    showYearDivider: Boolean,
     isEditMode: Boolean
 ) {
     if (moduleId.startsWith("spacer_")) {
@@ -228,6 +229,7 @@ private fun RenderStatCard(
             borderContrast = borderContrast,
             useHabitColorForCard = useHabitColorForCard,
             habitColor = accentColor,
+            showYearDivider = showYearDivider,
             interactive = !isEditMode
         )
     }
@@ -245,7 +247,8 @@ fun HabitStatisticsContent(
     activeModules: List<String> = emptyList(),
     onRemoveModule: (String) -> Unit = {},
     onReorderModules: (List<String>) -> Unit = {},
-    firstDayOfWeek: Int = Calendar.MONDAY
+    firstDayOfWeek: Int = Calendar.MONDAY,
+    showYearDivider: Boolean = false
 ) {
     var selectedModuleForResize by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(isEditMode) {
@@ -678,6 +681,7 @@ fun HabitStatisticsContent(
                         useHabitColorForCard = useHabitColorForCard,
                         vibrationsEnabled = vibrationsEnabled,
                         showScrollBlur = showScrollBlur,
+                        showYearDivider = showYearDivider,
                         isEditMode = isEditMode
                     )
                     
@@ -1097,6 +1101,7 @@ fun MonthlyCompletionGraph(
     borderContrast: Float,
     useHabitColorForCard: Boolean = false,
     habitColor: Color = Color.Transparent,
+    showYearDivider: Boolean = false,
     interactive: Boolean = true
 ) {
     var isZoomedOut by remember { mutableStateOf(false) }
@@ -1166,7 +1171,9 @@ fun MonthlyCompletionGraph(
                         showLabels = true,
                         lineColor = accentColor,
                         vibrationsEnabled = vibrationsEnabled,
-                        interactive = interactive
+                        interactive = interactive,
+                        isZoomedOut = true,
+                        showYearDivider = showYearDivider
                     )
                 } else {
                     val minWidthPerItem = 44.dp
@@ -1211,8 +1218,9 @@ fun MonthlyCompletionGraph(
                             lineColor = accentColor,
                             vibrationsEnabled = vibrationsEnabled,
                             interactive = interactive,
+                            isZoomedOut = false,
+                            showYearDivider = showYearDivider,
                             onPointSelected = { x ->
-                                if (interactive) {
                                     coroutineScope.launch {
                                         val viewportWidth = scrollState.viewportSize
                                         if (viewportWidth > 0) {
@@ -1226,7 +1234,6 @@ fun MonthlyCompletionGraph(
                                         }
                                     }
                                 }
-                            }
                         )
                     }
                 }

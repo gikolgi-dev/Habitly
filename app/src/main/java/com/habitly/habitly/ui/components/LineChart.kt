@@ -41,6 +41,8 @@ fun MonthlyLineChart(
     showLabels: Boolean = true,
     vibrationsEnabled: Boolean = true,
     interactive: Boolean = true,
+    isZoomedOut: Boolean = false,
+    showYearDivider: Boolean = false,
     onPointSelected: (Float) -> Unit = {}
 ) {
     val density = LocalDensity.current
@@ -114,6 +116,24 @@ fun MonthlyLineChart(
         val maxPercentage = 100f
         val horizontalPadding = 10.dp.toPx()
         
+        if (showYearDivider && data.size > 1) {
+            val dividerColor = Color.Gray.copy(alpha = 0.5f)
+            val dashEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 6f), 0f)
+            for (i in 1 until data.size) {
+                if (data[i].year != data[i - 1].year) {
+                    val x1 = horizontalPadding + (i - 1) * (size.width - 2 * horizontalPadding) / (data.size - 1)
+                    val x2 = horizontalPadding + i * (size.width - 2 * horizontalPadding) / (data.size - 1)
+                    val dividerX = (x1 + x2) / 2f
+                    drawLine(
+                        color = dividerColor,
+                        start = Offset(dividerX, 0f),
+                        end = Offset(dividerX, xAxisY),
+                        strokeWidth = 1.dp.toPx(),
+                        pathEffect = dashEffect
+                    )
+                }
+            }
+        }
         val path = Path()
         val fillPath = Path()
         var previousPoint = Offset.Zero
@@ -167,7 +187,21 @@ fun MonthlyLineChart(
                 cap = StrokeCap.Round
             )
         )
-        
+        val labelStep = if (showLabels && data.size > 1) {
+            val maxLabelWidth = data.maxOfOrNull { textPaint.measureText(it.monthLabel) } ?: 0f
+            val minSpacing = 8.dp.toPx()
+            val requiredWidthPerLabel = maxLabelWidth + minSpacing
+            val availableWidth = size.width - 2 * horizontalPadding
+            if (availableWidth > 0f && requiredWidthPerLabel > 0f) {
+                val maxLabelsFit = (availableWidth / requiredWidthPerLabel).toInt().coerceAtLeast(1)
+                kotlin.math.ceil((data.size - 1).toFloat() / maxLabelsFit.toFloat()).toInt().coerceAtLeast(1)
+            } else {
+                1
+            }
+        } else {
+            1
+        }
+
         data.forEachIndexed { i, item ->
             val x = if (data.size > 1) {
                 horizontalPadding + i * (size.width - 2 * horizontalPadding) / (data.size - 1)
@@ -188,14 +222,14 @@ fun MonthlyLineChart(
                 )
                 drawCircle(
                     color = lineColor.copy(alpha = 0.3f),
-                    radius = 8.dp.toPx(),
+                    radius = if (isZoomedOut) 5.dp.toPx() else 8.dp.toPx(),
                     center = Offset(x, y)
                 )
             }
 
             drawCircle(
                 color = lineColor,
-                radius = 4.dp.toPx(),
+                radius = if (isZoomedOut) 2.5.dp.toPx() else 4.dp.toPx(),
                 center = Offset(x, y)
             )
             
@@ -226,12 +260,20 @@ fun MonthlyLineChart(
             }
             
             if (showLabels) {
-                drawContext.canvas.nativeCanvas.drawText(
-                    item.monthLabel,
-                    x,
-                    size.height - 5.dp.toPx(), 
-                    textPaint
-                )
+                val shouldDrawLabel = if (labelStep <= 1) {
+                    true
+                } else {
+                    (data.size - 1 - i) % labelStep == 0
+                }
+                
+                if (shouldDrawLabel) {
+                    drawContext.canvas.nativeCanvas.drawText(
+                        item.monthLabel,
+                        x,
+                        size.height - 5.dp.toPx(), 
+                        textPaint
+                    )
+                }
             }
         }
     }

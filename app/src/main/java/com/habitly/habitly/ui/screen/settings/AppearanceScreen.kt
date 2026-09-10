@@ -40,6 +40,7 @@ fun AppearanceScreen(
     val useHabitColorForCard by settingsDataStore.useHabitColorForCard.collectAsState(initial = DefaultSettings.USE_HABIT_COLOR_FOR_CARD)
     val showMonthLabels by settingsDataStore.monthLabels.collectAsState(initial = DefaultSettings.MONTH_LABELS)
     val showYearDivider by settingsDataStore.yearDivider.collectAsState(initial = DefaultSettings.YEAR_DIVIDER)
+    val lineChartYearDivider by settingsDataStore.lineChartYearDivider.collectAsState(initial = DefaultSettings.LINE_CHART_YEAR_DIVIDER)
     val showYearLabels by settingsDataStore.yearLabels.collectAsState(initial = DefaultSettings.YEAR_LABELS)
     val heatmapNotificationDot by settingsDataStore.heatmapNotificationDot.collectAsState(initial = DefaultSettings.HEATMAP_NOTIFICATION_DOT)
     val showScrollBlur by settingsDataStore.showScrollBlur.collectAsState(initial = DefaultSettings.SHOW_SCROLL_BLUR)
@@ -83,9 +84,17 @@ fun AppearanceScreen(
                 haptic = haptic,
                 onNavigateToHeatmapNotificationDot = onNavigateToHeatmapNotificationDot
             )
-
             Spacer(modifier = Modifier.height(8.dp))
 
+            LineChartSection(
+                lineChartYearDivider = lineChartYearDivider,
+                vibrationsEnabled = vibrationsEnabled,
+                settingsDataStore = settingsDataStore,
+                scope = scope,
+                haptic = haptic
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
             AccessibilitySection(
                 borderContrast = borderContrast,
                 showScrollBlur = showScrollBlur,

@@ -227,6 +227,30 @@ fun HeatmapSection(
 }
 
 @Composable
+fun LineChartSection(
+    lineChartYearDivider: Boolean,
+    vibrationsEnabled: Boolean,
+    settingsDataStore: SettingsDataStore,
+    scope: CoroutineScope,
+    haptic: HapticFeedback
+) {
+    SettingsGroup(title = "Line Chart", settingsDataStore = settingsDataStore) {
+        SettingsSwitchItem(
+            text = "Year divider",
+            description = "Show dotted lines between different years",
+            checked = lineChartYearDivider,
+            settingsDataStore = settingsDataStore,
+            position = SettingsItemPosition.Alone
+        ) {
+            scope.launch { settingsDataStore.setLineChartYearDivider(it) }
+            if (vibrationsEnabled) {
+                haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+            }
+        }
+    }
+}
+
+@Composable
 fun AccessibilitySection(
     borderContrast: Float,
     showScrollBlur: Boolean,

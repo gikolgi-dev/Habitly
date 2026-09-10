@@ -42,6 +42,7 @@ class SettingsDataStore(private val context: Context) {
         val IS_24_HOUR_KEY = booleanPreferencesKey("is_24_hour")
         val HERO_CARD_VISIBLE_KEY = booleanPreferencesKey("hero_card_visible")
         val YEAR_DIVIDER_KEY = booleanPreferencesKey("year_divider")
+        val LINE_CHART_YEAR_DIVIDER_KEY = booleanPreferencesKey("line_chart_year_divider")
         val YEAR_LABELS_KEY = booleanPreferencesKey("year_labels")
         val HEATMAP_NOTIFICATION_DOT_KEY = booleanPreferencesKey("heatmap_notification_dot")
         val HEATMAP_NOTIFICATION_DOT_RANGE_KEY = stringPreferencesKey("heatmap_notification_dot_range")
@@ -272,6 +273,17 @@ class SettingsDataStore(private val context: Context) {
     suspend fun setYearDivider(show: Boolean) {
         context.dataStore.edit { settings ->
             settings[YEAR_DIVIDER_KEY] = show
+        }
+    }
+
+    val lineChartYearDivider: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[LINE_CHART_YEAR_DIVIDER_KEY] ?: DefaultSettings.LINE_CHART_YEAR_DIVIDER
+        }
+
+    suspend fun setLineChartYearDivider(show: Boolean) {
+        context.dataStore.edit { settings ->
+            settings[LINE_CHART_YEAR_DIVIDER_KEY] = show
         }
     }
 
@@ -509,6 +521,7 @@ class SettingsDataStore(private val context: Context) {
             settings[SHOW_ALL_DAY_OF_WEEK_LABELS_KEY] = true
             settings[HEATMAP_VISIBLE_DAYS_KEY] = DefaultSettings.HEATMAP_VISIBLE_DAYS
             settings[YEAR_DIVIDER_KEY] = false
+            settings[LINE_CHART_YEAR_DIVIDER_KEY] = DefaultSettings.LINE_CHART_YEAR_DIVIDER
             settings[YEAR_LABELS_KEY] = false
             settings[SHOW_SCROLL_BLUR_KEY] = true
             settings[SCROLL_BLUR_TARGETS_KEY] = DefaultSettings.SCROLL_BLUR_TARGETS
@@ -564,6 +577,7 @@ class SettingsDataStore(private val context: Context) {
             is24Hour = preferences[IS_24_HOUR_KEY] ?: DefaultSettings.IS_24_HOUR,
             heroCardVisible = preferences[HERO_CARD_VISIBLE_KEY] ?: DefaultSettings.HERO_CARD_VISIBLE,
             yearDivider = preferences[YEAR_DIVIDER_KEY] ?: DefaultSettings.YEAR_DIVIDER,
+            lineChartYearDivider = preferences[LINE_CHART_YEAR_DIVIDER_KEY] ?: DefaultSettings.LINE_CHART_YEAR_DIVIDER,
             yearLabels = preferences[YEAR_LABELS_KEY] ?: DefaultSettings.YEAR_LABELS,
             heatmapNotificationDot = preferences[HEATMAP_NOTIFICATION_DOT_KEY] ?: DefaultSettings.HEATMAP_NOTIFICATION_DOT,
             heatmapNotificationDotRange = preferences[HEATMAP_NOTIFICATION_DOT_RANGE_KEY] ?: DefaultSettings.HEATMAP_NOTIFICATION_DOT_RANGE,
@@ -604,6 +618,7 @@ class SettingsDataStore(private val context: Context) {
             preferences[IS_24_HOUR_KEY] = settings.is24Hour
             preferences[HERO_CARD_VISIBLE_KEY] = settings.heroCardVisible
             preferences[YEAR_DIVIDER_KEY] = settings.yearDivider
+            preferences[LINE_CHART_YEAR_DIVIDER_KEY] = settings.lineChartYearDivider
             preferences[YEAR_LABELS_KEY] = settings.yearLabels
             preferences[HEATMAP_NOTIFICATION_DOT_KEY] = settings.heatmapNotificationDot
             preferences[HEATMAP_NOTIFICATION_DOT_RANGE_KEY] = settings.heatmapNotificationDotRange
@@ -645,6 +660,7 @@ data class ExportedSettings(
     val is24Hour: Boolean = DefaultSettings.IS_24_HOUR,
     val heroCardVisible: Boolean = DefaultSettings.HERO_CARD_VISIBLE,
     val yearDivider: Boolean = DefaultSettings.YEAR_DIVIDER,
+    val lineChartYearDivider: Boolean = DefaultSettings.LINE_CHART_YEAR_DIVIDER,
     val yearLabels: Boolean = DefaultSettings.YEAR_LABELS,
     val heatmapNotificationDot: Boolean = DefaultSettings.HEATMAP_NOTIFICATION_DOT,
     val heatmapNotificationDotRange: String = DefaultSettings.HEATMAP_NOTIFICATION_DOT_RANGE,

@@ -213,6 +213,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     val borderContrast by settingsDataStore.borders.collectAsState(initial = null)
     val showMonthLabels by settingsDataStore.monthLabels.collectAsState(initial = null)
     val showYearDivider by settingsDataStore.yearDivider.collectAsState(initial = null)
+    val lineChartYearDivider by settingsDataStore.lineChartYearDivider.collectAsState(initial = DefaultSettings.LINE_CHART_YEAR_DIVIDER)
     val showYearLabels by settingsDataStore.yearLabels.collectAsState(initial = null)
     val heatmapNotificationDot by settingsDataStore.heatmapNotificationDot.collectAsState(initial = null)
     val heatmapNotificationDotDetailOnly by settingsDataStore.heatmapNotificationDotDetailOnly.collectAsState(initial = null)
@@ -896,7 +897,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                         showScrollBlur = showScrollBlur,
                         scrollBlurTargets = scrollBlurTargets,
                         useHabitColor = useHabitColorForStatistics,
-                        firstDayOfWeek = firstDayOfWeekCalendar
+                        firstDayOfWeek = firstDayOfWeekCalendar,
+                        showYearDivider = lineChartYearDivider
                     )
                 }
 

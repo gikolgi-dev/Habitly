@@ -193,7 +193,8 @@ fun StatisticScreen(
     showScrollBlur: Boolean,
     scrollBlurTargets: Set<String>,
     useHabitColor: Boolean,
-    firstDayOfWeek: Int = Calendar.MONDAY
+    firstDayOfWeek: Int = Calendar.MONDAY,
+    showYearDivider: Boolean = false
 ) {
     val context = LocalContext.current
     val habitsUiState by viewModel.habitsUiState.collectAsState()
@@ -507,7 +508,8 @@ fun StatisticScreen(
                                 activeModules = activeList,
                                 onRemoveModule = ::onRemoveModule,
                                 onReorderModules = ::onReorderModules,
-                                firstDayOfWeek = firstDayOfWeek
+                                firstDayOfWeek = firstDayOfWeek,
+                                showYearDivider = showYearDivider
                             )
                         }
                     }
@@ -661,6 +663,7 @@ fun StatisticScreen(
                                                          borderContrast = borderContrast,
                                                          useHabitColorForCard = useHabitColor,
                                                          firstDayOfWeek = firstDayOfWeek,
+                                                         showYearDivider = showYearDivider,
                                                          onAdd = { onAddModule(moduleId) }
                                                      )
                                                  }
@@ -807,6 +810,7 @@ fun InactiveModuleCard(
     borderContrast: Float,
     useHabitColorForCard: Boolean,
     firstDayOfWeek: Int = Calendar.MONDAY,
+    showYearDivider: Boolean = false,
     onAdd: () -> Unit
 ) {
             val statsState = androidx.compose.runtime.produceState<com.habitly.habitly.data.HabitStatistics?>(initialValue = null, key1 = habit, key2 = firstDayOfWeek) {
@@ -935,6 +939,7 @@ fun InactiveModuleCard(
                         borderContrast = borderContrast,
                         useHabitColorForCard = useHabitColorForCard,
                         habitColor = accentColor,
+                        showYearDivider = showYearDivider,
                         interactive = false
                     )
                 }

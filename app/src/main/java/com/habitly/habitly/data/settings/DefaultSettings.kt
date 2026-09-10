@@ -19,6 +19,7 @@ object DefaultSettings {
     const val IS_24_HOUR = false
     const val HERO_CARD_VISIBLE = true
     const val YEAR_DIVIDER = false
+    const val LINE_CHART_YEAR_DIVIDER = false
     const val YEAR_LABELS = false
     const val HEATMAP_NOTIFICATION_DOT = false
     const val HEATMAP_NOTIFICATION_DOT_RANGE = "today_and_future"
