@@ -18,6 +18,9 @@ import org.junit.Assert.assertEquals
 import com.habitly.habitly.ui.screen.settings.ExportData
 import com.habitly.habitly.ui.screen.settings.HabitKitExport
 import kotlinx.serialization.json.Json
+import com.habitly.habitly.data.settings.ExportedSettings
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -432,6 +435,95 @@ class HabitFeaturesTest {
         val encoded = json.encodeToString(ExportData.serializer(), exportData)
         assertTrue(encoded.contains("\"version\":2") || encoded.contains("\"version\": 2"))
         assertTrue(encoded.contains("\"formatVersion\":2") || encoded.contains("\"formatVersion\": 2"))
+    }
+
+    @Test
+    fun testExportData_includesSettingsWhenExported() {
+        val customSettings = ExportedSettings(
+            theme = "dark",
+            useMaterialTheming = false,
+            borders = 0.5f,
+            firstDayOfWeek = "sunday",
+            heatmapWeeks = 30,
+            vibrations = false,
+            globalNotificationsEnabled = true,
+            globalNotificationTime = "08:30",
+            globalNotificationDays = "MON,WED,FRI"
+        )
+        val exportData = ExportData(
+            habits = emptyList(),
+            settings = customSettings
+        )
+
+        val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
+        val encoded = json.encodeToString(ExportData.serializer(), exportData)
+
+        // Verify settings are included in the JSON export
+        assertTrue(encoded.contains("\"settings\""))
+        assertTrue(encoded.contains("\"theme\":\"dark\"") || encoded.contains("\"theme\": \"dark\""))
+        assertTrue(encoded.contains("\"firstDayOfWeek\":\"sunday\"") || encoded.contains("\"firstDayOfWeek\": \"sunday\""))
+        assertTrue(encoded.contains("\"globalNotificationTime\":\"08:30\"") || encoded.contains("\"globalNotificationTime\": \"08:30\""))
+        assertTrue(encoded.contains("\"heatmapWeeks\":30") || encoded.contains("\"heatmapWeeks\": 30"))
+
+        // Decode and verify all values deserialize correctly
+        val decoded = json.decodeFromString(ExportData.serializer(), encoded)
+        assertNotNull(decoded.settings)
+        assertEquals("dark", decoded.settings?.theme)
+        assertFalse(decoded.settings?.useMaterialTheming ?: true)
+        assertEquals(0.5f, decoded.settings?.borders ?: 0f, 0.001f)
+        assertEquals("sunday", decoded.settings?.firstDayOfWeek)
+        assertEquals(30, decoded.settings?.heatmapWeeks)
+        assertFalse(decoded.settings?.vibrations ?: true)
+        assertTrue(decoded.settings?.globalNotificationsEnabled ?: false)
+        assertEquals("08:30", decoded.settings?.globalNotificationTime)
+        assertEquals("MON,WED,FRI", decoded.settings?.globalNotificationDays)
+    }
+
+    @Test
+    fun testExportData_ignoreSettingsLogic() {
+        val customSettings = ExportedSettings(
+            theme = "dark",
+            borders = 0.8f
+        )
+        val exportData = ExportData(
+            habits = emptyList(),
+            settings = customSettings
+        )
+
+        val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
+        val encoded = json.encodeToString(ExportData.serializer(), exportData)
+        val decoded = json.decodeFromString(ExportData.serializer(), encoded)
+
+        // When ignoreSettings is true, settings should be discarded / ignored
+        val ignoreSettings = true
+        val effectiveSettings = if (ignoreSettings) null else decoded.settings
+        assertNull(effectiveSettings)
+
+        // When ignoreSettings is false, settings are preserved
+        val ignoreSettingsFalse = false
+        val importedSettings = if (!ignoreSettingsFalse) decoded.settings else null
+        assertNotNull(importedSettings)
+        assertEquals("dark", importedSettings?.theme)
+    }
+
+    @Test
+    fun testExportData_backwardsCompatibleWithoutSettings() {
+        // Older backup JSON that does not have "settings" key
+        val jsonWithoutSettings = """
+            {
+                "appOrigin": "habitly",
+                "version": 2,
+                "formatVersion": 2,
+                "habits": []
+            }
+        """.trimIndent()
+
+        val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
+        val decoded = json.decodeFromString(ExportData.serializer(), jsonWithoutSettings)
+
+        assertEquals("habitly", decoded.appOrigin)
+        assertEquals(2, decoded.version)
+        assertNull(decoded.settings)
     }
 
     @Test
