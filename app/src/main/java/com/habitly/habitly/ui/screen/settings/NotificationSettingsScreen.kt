@@ -186,7 +186,16 @@ fun NotificationSettingsScreen(
             },
             dismissButton = {
                 OutlinedButton(
-                    onClick = { showExactAlarmPermissionDialog = false },
+                    onClick = {
+                        showExactAlarmPermissionDialog = false
+                        scope.launch {
+                            settingsDataStore.setExactAlarms(false)
+                            notificationScheduler.rescheduleAll()
+                        }
+                        if (vibrationsEnabled) {
+                            haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+                        }
+                    },
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                 ) {
                     Text("Cancel")
