@@ -56,177 +56,148 @@ fun AccessibilityScreen(
     val haptic = LocalHapticFeedback.current
     val scrollState = rememberScrollState()
 
+    val interactionSource = remember { MutableInteractionSource() }
+    val isDragged = interactionSource.collectIsDraggedAsState().value
+
+    val sliderState = remember {
+        SliderState(
+            value = currentBorderContrast,
+            steps = 19,
+            trackRange = 0f..1f
+        )
+    }
+
+    LaunchedEffect(currentBorderContrast) {
+        if (!isDragged) {
+            sliderState.value = currentBorderContrast
+        }
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(scrollState, enabled = scrollState.maxValue > 0),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        AccessibilitySection(
-            borderContrast = currentBorderContrast,
-            showScrollBlur = currentShowScrollBlur,
-            reduceMovement = currentReduceMovement,
-            vibrationsEnabled = vibr,
-            settingsDataStore = settingsDataStore,
-            scope = scope,
-            haptic = haptic,
-            onNavigateToScrollBlur = onNavigateToScrollBlur,
-            onNavigateToReduceMovement = onNavigateToReduceMovement,
-            autoScrollText = currentAutoScrollText,
-            onNavigateToAutoScroll = onNavigateToAutoScroll
-        )
+        SettingsGroup(title = "", settingsDataStore = settingsDataStore) {
+            SettingsItemBox(settingsDataStore = settingsDataStore, position = SettingsItemPosition.Top) {
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    Text(
+                        text = "Set border contrast",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Slider(
+                        state = sliderState,
+                        onValueChange = { newValue ->
+                            sliderState.value = newValue
+                            scope.launch {
+                                settingsDataStore.setBorders(newValue)
+                            }
+                        },
+                        interactionSource = interactionSource,
+                        colors = SliderDefaults.colors(
+                            activeTickColor = MaterialTheme.colorScheme.onSurface.copy(alpha = .5f),
+                            inactiveTickColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+                        ),
+                        thumb = { thumbState ->
+                            Layout(
+                                content = {
+                                    if (isDragged) {
+                                        Surface(
+                                            shape = RoundedCornerShape(4.dp),
+                                            color = MaterialTheme.colorScheme.primary,
+                                        ) {
+                                            Text(
+                                                text = "%.2f".format(thumbState.value),
+                                                modifier = Modifier.padding(4.dp),
+                                                color = MaterialTheme.colorScheme.onPrimary,
+                                                style = MaterialTheme.typography.bodySmall
+                                            )
+                                        }
+                                    }
+                                    SliderDefaults.Thumb(
+                                        interactionSource = interactionSource,
+                                        colors = SliderDefaults.colors(),
+                                        enabled = true
+                                    )
+                                }
+                            ) { measurables, constraints ->
+                                val thumbPlaceable = measurables.last().measure(constraints)
+                                val indicatorPlaceable = if (isDragged) {
+                                    measurables.first().measure(constraints.copy(minWidth = 0, minHeight = 0))
+                                } else {
+                                    null
+                                }
+
+                                layout(thumbPlaceable.width, thumbPlaceable.height) {
+                                    thumbPlaceable.placeRelative(0, 0)
+                                    indicatorPlaceable?.let {
+                                        val indicatorY = (thumbPlaceable.height - it.height) / 2
+                                        val indicatorX = if (thumbState.value > 0.5f) {
+                                            -it.width - 8.dp.roundToPx()
+                                        } else {
+                                            thumbPlaceable.width + 8.dp.roundToPx()
+                                        }
+                                        it.placeRelative(indicatorX, indicatorY)
+                                    }
+                                }
+                            }
+                        }
+                    )
+                }
+            }
+
+            SettingsSwitchNavigationItem(
+                text = "Scroll blur",
+                description = "Apply a blur effect to the top and bottom of scrolling lists",
+                checked = currentShowScrollBlur,
+                settingsDataStore = settingsDataStore,
+                position = SettingsItemPosition.Middle,
+                onCheckedChange = {
+                    scope.launch { settingsDataStore.setshowScrollBlur(it) }
+                    if (vibr) {
+                        haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+                    }
+                },
+                onClick = onNavigateToScrollBlur
+            )
+
+            SettingsSwitchNavigationItem(
+                text = "Reduce movement",
+                description = "Minimize the amount of animation and movement in the app",
+                checked = currentReduceMovement,
+                settingsDataStore = settingsDataStore,
+                position = SettingsItemPosition.Middle,
+                onCheckedChange = {
+                    scope.launch { settingsDataStore.setReduceMovement(it) }
+                    if (vibr) {
+                        haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+                    }
+                },
+                onClick = onNavigateToReduceMovement
+            )
+
+            SettingsSwitchNavigationItem(
+                text = "Auto-scroll text",
+                description = "Scroll overflowing titles and descriptions horizontally",
+                checked = currentAutoScrollText,
+                settingsDataStore = settingsDataStore,
+                position = SettingsItemPosition.Bottom,
+                onCheckedChange = {
+                    scope.launch { settingsDataStore.setAutoScrollText(it) }
+                    if (vibr) {
+                        haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+                    }
+                },
+                onClick = onNavigateToAutoScroll
+            )
+        }
 
         Spacer(modifier = Modifier.height(24.dp).navigationBarsPadding())
-    }
-}
-
-@Composable
-fun AccessibilitySection(
-    borderContrast: Float,
-    showScrollBlur: Boolean,
-    reduceMovement: Boolean,
-    vibrationsEnabled: Boolean,
-    settingsDataStore: SettingsDataStore,
-    scope: CoroutineScope,
-    haptic: HapticFeedback,
-    onNavigateToScrollBlur: () -> Unit,
-    onNavigateToReduceMovement: () -> Unit,
-    autoScrollText: Boolean,
-    onNavigateToAutoScroll: () -> Unit
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isDragged = interactionSource.collectIsDraggedAsState().value
-
-    val sliderState = remember {
-        SliderState(
-            value = borderContrast,
-            steps = 19,
-            trackRange = 0f..1f
-        )
-    }
-
-    LaunchedEffect(borderContrast) {
-        if (!isDragged) {
-            sliderState.value = borderContrast
-        }
-    }
-
-    SettingsGroup(title = "", settingsDataStore = settingsDataStore) {
-        SettingsItemBox(settingsDataStore = settingsDataStore, position = SettingsItemPosition.Top) {
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-            ) {
-                Text(
-                    text = "Set border contrast",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Slider(
-                    state = sliderState,
-                    onValueChange = { newValue ->
-                        sliderState.value = newValue
-                        scope.launch {
-                            settingsDataStore.setBorders(newValue)
-                        }
-                    },
-                    interactionSource = interactionSource,
-                    colors = SliderDefaults.colors(
-                        activeTickColor = MaterialTheme.colorScheme.onSurface.copy(alpha = .5f),
-                        inactiveTickColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
-                    ),
-                    thumb = { thumbState ->
-                        Layout(
-                            content = {
-                                if (isDragged) {
-                                    Surface(
-                                        shape = RoundedCornerShape(4.dp),
-                                        color = MaterialTheme.colorScheme.primary,
-                                    ) {
-                                        Text(
-                                            text = "%.2f".format(thumbState.value),
-                                            modifier = Modifier.padding(4.dp),
-                                            color = MaterialTheme.colorScheme.onPrimary,
-                                            style = MaterialTheme.typography.bodySmall
-                                        )
-                                    }
-                                }
-                                SliderDefaults.Thumb(
-                                    interactionSource = interactionSource,
-                                    colors = SliderDefaults.colors(),
-                                    enabled = true
-                                )
-                            }
-                        ) { measurables, constraints ->
-                            val thumbPlaceable = measurables.last().measure(constraints)
-                            val indicatorPlaceable = if (isDragged) {
-                                measurables.first().measure(constraints.copy(minWidth = 0, minHeight = 0))
-                            } else {
-                                null
-                            }
-
-                            layout(thumbPlaceable.width, thumbPlaceable.height) {
-                                thumbPlaceable.placeRelative(0, 0)
-                                indicatorPlaceable?.let {
-                                    val indicatorY = (thumbPlaceable.height - it.height) / 2
-                                    val indicatorX = if (thumbState.value > 0.5f) {
-                                        -it.width - 8.dp.roundToPx()
-                                    } else {
-                                        thumbPlaceable.width + 8.dp.roundToPx()
-                                    }
-                                    it.placeRelative(indicatorX, indicatorY)
-                                }
-                            }
-                        }
-                    }
-                )
-            }
-        }
-
-        SettingsSwitchNavigationItem(
-            text = "Scroll blur",
-            description = "Apply a blur effect to the top and bottom of scrolling lists",
-            checked = showScrollBlur,
-            settingsDataStore = settingsDataStore,
-            position = SettingsItemPosition.Middle,
-            onCheckedChange = {
-                scope.launch { settingsDataStore.setshowScrollBlur(it) }
-                if (vibrationsEnabled) {
-                    haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
-                }
-            },
-            onClick = onNavigateToScrollBlur
-        )
-
-        SettingsSwitchNavigationItem(
-            text = "Reduce movement",
-            description = "Minimize the amount of animation and movement in the app",
-            checked = reduceMovement,
-            settingsDataStore = settingsDataStore,
-            position = SettingsItemPosition.Middle,
-            onCheckedChange = {
-                scope.launch { settingsDataStore.setReduceMovement(it) }
-                if (vibrationsEnabled) {
-                    haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
-                }
-            },
-            onClick = onNavigateToReduceMovement
-        )
-
-        SettingsSwitchNavigationItem(
-            text = "Auto-scroll text",
-            description = "Scroll overflowing titles and descriptions horizontally",
-            checked = autoScrollText,
-            settingsDataStore = settingsDataStore,
-            position = SettingsItemPosition.Bottom,
-            onCheckedChange = {
-                scope.launch { settingsDataStore.setAutoScrollText(it) }
-                if (vibrationsEnabled) {
-                    haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
-                }
-            },
-            onClick = onNavigateToAutoScroll
-        )
     }
 }

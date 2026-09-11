@@ -664,60 +664,6 @@ fun GroupedSettingsItem(
 }
 
 
-@Composable
-fun ModernSettingsItem(
-    title: String,
-    subtitle: String? = null,
-    icon: ImageVector,
-    iconBackgroundColor: Color,
-    iconColor: Color,
-    settingsDataStore: SettingsDataStore,
-    position: SettingsItemPosition = SettingsItemPosition.Alone,
-    onClick: () -> Unit
-) {
-    val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
-    val shape = getSettingsItemShape(position)
-    Card(
-        onClick = onClick,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 0.dp),
-            border = BorderStroke(
-                1.dp,
-                MaterialTheme.colorScheme.outline.copy(alpha = borderContrast)
-            ),
-        shape = shape,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            RotatingCookie(
-                icon = icon,
-                iconBackgroundColor = iconBackgroundColor,
-                iconColor = iconColor,
-                settingsDataStore = settingsDataStore,
-                contentDescription = title
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                subtitle?.let {
-                    Text(
-                        text = it,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
-    }
-}
 
 @Composable
 fun SettingsSegmentedSelector(

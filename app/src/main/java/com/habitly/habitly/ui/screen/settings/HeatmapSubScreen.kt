@@ -14,7 +14,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import com.habitly.habitly.ui.components.DayOfWeekSelector
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -209,22 +214,123 @@ fun HeatmapSubScreen(
                 .fillMaxWidth()
                 .verticalScroll(scrollState, enabled = scrollState.maxValue > 0)
         ) {
-            HeatmapSection(
-                showMonthLabels = showMonthLabels,
-                showYearDivider = showYearDivider,
-                showYearLabels = showYearLabels,
-                heatmapNotificationDot = heatmapNotificationDot,
-                borderContrast = borderContrast,
-                useHabitColorForCard = useHabitColorForCard,
-                vibrationsEnabled = vibrationsEnabled,
-                settingsDataStore = settingsDataStore,
-                scope = scope,
-                haptic = haptic,
-                onNavigateToHeatmapNotificationDot = onNavigateToHeatmapNotificationDot,
-                onNavigateToHabitColor = onNavigateToHabitColor,
-                title = null,
-                heatmapScrolling = heatmapScrolling
-            )
+            SettingsGroup(settingsDataStore = settingsDataStore) {
+                SettingsSwitchNavigationItem(
+                    text = "Habit color accents",
+                    description = "Add color accents to habit related elements",
+                    checked = useHabitColorForCard,
+                    settingsDataStore = settingsDataStore,
+                    position = SettingsItemPosition.Top,
+                    onCheckedChange = {
+                        scope.launch { settingsDataStore.setUseHabitColorForCard(it) }
+                        if (vibrationsEnabled) {
+                            haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+                        }
+                    },
+                    onClick = onNavigateToHabitColor
+                )
+                SettingsSwitchItem(
+                    text = "Month labels",
+                    description = "Show the names of months above the heatmap",
+                    checked = showMonthLabels,
+                    settingsDataStore = settingsDataStore,
+                    position = SettingsItemPosition.Middle
+                ) {
+                    scope.launch { settingsDataStore.setMonthLabels(it) }
+                    if (vibrationsEnabled) {
+                        haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+                    }
+                }
+
+                SettingsSwitchItem(
+                    text = "Year divider",
+                    description = "Add a visual gap between different years",
+                    checked = showYearDivider,
+                    settingsDataStore = settingsDataStore,
+                    position = SettingsItemPosition.Middle
+                ) {
+                    scope.launch { settingsDataStore.setYearDivider(it) }
+                    if (vibrationsEnabled) {
+                        haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+                    }
+                }
+
+                SettingsSwitchItem(
+                    text = "Year labels",
+                    description = "Display the year next to the heatmap",
+                    checked = showYearLabels,
+                    settingsDataStore = settingsDataStore,
+                    position = SettingsItemPosition.Middle
+                ) {
+                    scope.launch { settingsDataStore.setYearLabels(it) }
+                    if (vibrationsEnabled) {
+                        haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+                    }
+                }
+
+                SettingsSwitchNavigationItem(
+                    text = "Notification indicator",
+                    description = "Show a dot on days with scheduled notifications",
+                    checked = heatmapNotificationDot,
+                    settingsDataStore = settingsDataStore,
+                    position = SettingsItemPosition.Middle,
+                    onCheckedChange = {
+                        scope.launch { settingsDataStore.setHeatmapNotificationDot(it) }
+                        if (vibrationsEnabled) {
+                            haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+                        }
+                    },
+                    onClick = onNavigateToHeatmapNotificationDot
+                )
+
+                SettingsSwitchItem(
+                    text = "Heatmap scrolling",
+                    description = "Allow horizontal scrolling on the heatmap",
+                    checked = heatmapScrolling,
+                    settingsDataStore = settingsDataStore,
+                    position = SettingsItemPosition.Middle
+                ) {
+                    scope.launch { settingsDataStore.setHeatmapScrolling(it) }
+                    if (vibrationsEnabled) {
+                        haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+                    }
+                }
+
+                SettingsItemBox(settingsDataStore = settingsDataStore, position = SettingsItemPosition.Bottom) {
+                    Column(
+                        modifier = Modifier.padding(
+                            start = 16.dp,
+                            end = 16.dp,
+                            top = 10.dp,
+                            bottom = 16.dp
+                        )
+                    ) {
+                        Text(
+                            text = "Visible day labels",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Toggle which days are shown on the heatmap's side labels.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = 6.dp)
+                        )
+                        DayOfWeekSelector(
+                            selectedDays = heatmapVisibleDays,
+                            onDaySelected = { day ->
+                                val newDays = if (heatmapVisibleDays.contains(day)) heatmapVisibleDays - day else heatmapVisibleDays + day
+                                scope.launch { settingsDataStore.setHeatmapVisibleDays(newDays) }
+                                if (vibrationsEnabled) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                }
+                            },
+                            firstDayOfWeek = firstDayOfWeekCalendar,
+                            borderAlpha = borderContrast
+                        )
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(24.dp).navigationBarsPadding())
         }
