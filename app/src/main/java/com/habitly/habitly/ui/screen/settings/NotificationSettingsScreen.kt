@@ -266,12 +266,12 @@ fun NotificationSettingsScreen(
         }
     }
 
-    val scrollState = rememberScrollState()
+    val (scrollState, scrollEnabled) = rememberSettingsScrollState()
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .verticalScroll(scrollState, enabled = scrollState.maxValue > 0),
+            .verticalScroll(scrollState, enabled = scrollEnabled),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         SettingsGroup(

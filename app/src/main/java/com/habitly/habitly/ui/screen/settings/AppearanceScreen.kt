@@ -44,12 +44,12 @@ fun AppearanceScreen(
 
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
-    val scrollState = rememberScrollState()
+    val (scrollState, scrollEnabled) = rememberSettingsScrollState()
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .verticalScroll(scrollState, enabled = scrollState.maxValue > 0),
+            .verticalScroll(scrollState, enabled = scrollEnabled),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {

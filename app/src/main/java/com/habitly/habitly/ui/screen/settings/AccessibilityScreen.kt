@@ -54,7 +54,7 @@ fun AccessibilityScreen(
 
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
-    val scrollState = rememberScrollState()
+    val (scrollState, scrollEnabled) = rememberSettingsScrollState()
 
     val interactionSource = remember { MutableInteractionSource() }
     val isDragged = interactionSource.collectIsDraggedAsState().value
@@ -76,7 +76,7 @@ fun AccessibilityScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .verticalScroll(scrollState, enabled = scrollState.maxValue > 0),
+            .verticalScroll(scrollState, enabled = scrollEnabled),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         SettingsGroup(title = "", settingsDataStore = settingsDataStore) {

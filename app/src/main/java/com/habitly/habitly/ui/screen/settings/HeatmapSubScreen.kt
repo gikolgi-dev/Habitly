@@ -152,7 +152,7 @@ fun HeatmapSubScreen(
         isDayCompleted(imaginedHabit, imaginedCompletions, imaginedCurrentDateMillis, imaginedCurrentDateMillis)
     }
 
-    val scrollState = rememberScrollState()
+    val (scrollState, scrollEnabled) = rememberSettingsScrollState()
     val isScrolled by remember { derivedStateOf { scrollState.value > 0 } }
     val dividerAlpha by animateFloatAsState(targetValue = if (isScrolled) 1f else 0f, label = "dividerAlpha")
 
@@ -212,7 +212,7 @@ fun HeatmapSubScreen(
             modifier = Modifier
                 .weight(1f, fill = false)
                 .fillMaxWidth()
-                .verticalScroll(scrollState, enabled = scrollState.maxValue > 0)
+                .verticalScroll(scrollState, enabled = scrollEnabled)
         ) {
             SettingsGroup(settingsDataStore = settingsDataStore) {
                 SettingsSwitchNavigationItem(

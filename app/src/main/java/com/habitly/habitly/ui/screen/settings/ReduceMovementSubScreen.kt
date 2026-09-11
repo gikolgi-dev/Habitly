@@ -35,12 +35,12 @@ fun ReduceMovementSubScreen(
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
     
     val haptic = LocalHapticFeedback.current
-    val scrollState = rememberScrollState()
+    val (scrollState, scrollEnabled) = rememberSettingsScrollState()
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .verticalScroll(scrollState, enabled = scrollState.maxValue > 0)
+            .verticalScroll(scrollState, enabled = scrollEnabled)
     ) {
         Text(
             text = "Minimize the amount of animation and movement in the app. This can be helpful if you are sensitive to motion or want a more static experience.",

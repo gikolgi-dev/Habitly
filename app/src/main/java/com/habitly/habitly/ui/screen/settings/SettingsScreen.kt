@@ -22,8 +22,11 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -66,6 +69,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
@@ -251,9 +255,11 @@ fun SettingsScreen(
                 isRoot = true,
             ) { paddingValues ->
                 val listState = rememberLazyListState()
+                val isTopBarCollapsed = LocalSettingsTopBarCollapsed.current
+                val scrollEnabled = listState.canScrollForward || listState.canScrollBackward || isTopBarCollapsed
                 LazyColumn(
                     state = listState,
-                    userScrollEnabled = listState.canScrollForward || listState.canScrollBackward,
+                    userScrollEnabled = scrollEnabled,
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = PaddingValues(
                         top = paddingValues.calculateTopPadding() + 8.dp,
@@ -699,116 +705,146 @@ fun AnimatedVisibilityScope.SettingsScaffold(
         if (state == EnterExitState.Visible) 0f else 0.2f
     }
 
-    Scaffold(
-        modifier = modifier
-            .nestedScroll(scrollBehavior.nestedScrollConnection)
-            .graphicsLayer {
-                shape = RoundedCornerShape(cornerRadius)
-                clip = true
-            }
-            .drawWithContent {
-                drawContent()
-                if (dimAlpha > 0f) {
-                    drawRect(Color.Black.copy(alpha = dimAlpha))
+    val isTopBarCollapsed = scrollBehavior.state.heightOffset < -0.5f
+
+    CompositionLocalProvider(LocalSettingsTopBarCollapsed provides isTopBarCollapsed) {
+        Scaffold(
+            modifier = modifier
+                .nestedScroll(scrollBehavior.nestedScrollConnection)
+                .graphicsLayer {
+                    shape = RoundedCornerShape(cornerRadius)
+                    clip = true
+                }
+                .drawWithContent {
+                    drawContent()
+                    if (dimAlpha > 0f) {
+                        drawRect(Color.Black.copy(alpha = dimAlpha))
+                    }
+                },
+            topBar = {
+                val currentHeight = maxHeight + with(density) { scrollBehavior.state.heightOffset.toDp() }
+                val coroutineScope = rememberCoroutineScope()
+                val appBarDragModifier = Modifier.draggable(
+                    orientation = Orientation.Vertical,
+                    enabled = isTopBarCollapsed,
+                    state = rememberDraggableState { delta ->
+                        scrollBehavior.state.heightOffset += delta
+                    },
+                    onDragStopped = { velocity ->
+                        coroutineScope.launch {
+                            val limit = scrollBehavior.state.heightOffsetLimit
+                            if (limit < 0f) {
+                                val target = if (velocity > 300f) 0f
+                                else if (velocity < -300f) limit
+                                else if (scrollBehavior.state.heightOffset > limit / 2) 0f
+                                else limit
+                                Animatable(scrollBehavior.state.heightOffset).animateTo(
+                                    targetValue = target,
+                                    animationSpec = tween(durationMillis = 200)
+                                ) {
+                                    scrollBehavior.state.heightOffset = value
+                                }
+                            }
+                        }
+                    }
+                )
+
+                Surface(
+                    color = if (collapsedFraction > 0.9f) MaterialTheme.colorScheme.background else Color.Transparent,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(currentHeight)
+                        .then(appBarDragModifier)
+                ) {
+                    Box(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
+                        // Back button stays at the top
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .height(72.dp)
+                                .padding(start = 4.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            AppBackButton(onBack = onBack, borderContrast = borderContrast, isRoot = isRoot)
+                        }
+
+                        // Actions stay at the top
+                        Row(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .height(72.dp)
+                                .padding(end = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            content = actions
+                        )
+
+                        // Morphing Title
+                        val expandedFontSize = remember(title) {
+                            val words = title.split(" ")
+                            val longestWord = words.maxByOrNull { it.length }?.length ?: 0
+                            val baseSize = 56
+                            if (longestWord > 6) {
+                                (baseSize * (6.5f / longestWord)).coerceAtLeast(30f).sp
+                            } else {
+                                baseSize.sp
+                            }
+                        }
+                        val collapsedFontSize = 22.sp
+                        val fontSize = (expandedFontSize.value - (expandedFontSize.value - collapsedFontSize.value) * collapsedFraction).sp
+
+                        val titleStartPadding = (20 + (72 - 20) * collapsedFraction).dp
+
+                        // Use newlines to force stacking for multi-word titles when expanded
+                        val displayTitle = remember(title, collapsedFraction) {
+                            if (collapsedFraction < 0.5f && title.contains(" ")) {
+                                title.replace(" ", "\n")
+                            } else {
+                                title
+                            }
+                        }
+
+                        Text(
+                            text = displayTitle,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontSize = fontSize,
+                            lineHeight = (fontSize.value * 0.95f).sp,
+                            softWrap = false,
+                            maxLines = 2,
+                            overflow = TextOverflow.Clip,
+                            fontFamily = FontFamily(
+                                Font(
+                                    resId = R.font.gflex_variable,
+                                    variationSettings = FontVariation.Settings(
+                                        FontVariation.weight((636 - 36 * collapsedFraction).toInt()),
+                                        FontVariation.width(152f - 22f * collapsedFraction),
+                                        FontVariation.Setting("ROND", 50f),
+                                        FontVariation.Setting("XTRA", 520f - 70f * collapsedFraction),
+                                        FontVariation.Setting("YOPQ", 90f),
+                                        FontVariation.Setting("YTLC", 505f)
+                                    )
+                                )
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .align(Alignment.BottomStart)
+                                .padding(
+                                    start = titleStartPadding,
+                                    top = 3.dp + (32.dp *(1-collapsedFraction)),
+                                    bottom = 0.dp,
+                                    end = 16.dp
+                                )
+                                .heightIn(min = 72.dp)
+                                .wrapContentHeight(Alignment.CenterVertically)
+                        )
+                    }
                 }
             },
-        topBar = {
-            val currentHeight = maxHeight + with(density) { scrollBehavior.state.heightOffset.toDp() }
-
-            Surface(
-                color = if (collapsedFraction > 0.9f) MaterialTheme.colorScheme.background else Color.Transparent,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(currentHeight)
-            ) {
-                Box(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
-                    // Back button stays at the top
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .height(72.dp)
-                            .padding(start = 4.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        AppBackButton(onBack = onBack, borderContrast = borderContrast, isRoot = isRoot)
-                    }
-
-                    // Actions stay at the top
-                    Row(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .height(72.dp)
-                            .padding(end = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        content = actions
-                    )
-
-                    // Morphing Title
-                    val expandedFontSize = remember(title) {
-                        val words = title.split(" ")
-                        val longestWord = words.maxByOrNull { it.length }?.length ?: 0
-                        val baseSize = 56
-                        if (longestWord > 6) {
-                            (baseSize * (6.5f / longestWord)).coerceAtLeast(30f).sp
-                        } else {
-                            baseSize.sp
-                        }
-                    }
-                    val collapsedFontSize = 22.sp
-                    val fontSize = (expandedFontSize.value - (expandedFontSize.value - collapsedFontSize.value) * collapsedFraction).sp
-
-                    val titleStartPadding = (20 + (72 - 20) * collapsedFraction).dp
-
-                    // Use newlines to force stacking for multi-word titles when expanded
-                    val displayTitle = remember(title, collapsedFraction) {
-                        if (collapsedFraction < 0.5f && title.contains(" ")) {
-                            title.replace(" ", "\n")
-                        } else {
-                            title
-                        }
-                    }
-
-                    Text(
-                        text = displayTitle,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontSize = fontSize,
-                        lineHeight = (fontSize.value * 0.95f).sp,
-                        softWrap = false,
-                        maxLines = 2,
-                        overflow = TextOverflow.Clip,
-                        fontFamily = FontFamily(
-                            Font(
-                                resId = R.font.gflex_variable,
-                                variationSettings = FontVariation.Settings(
-                                    FontVariation.weight((636 - 36 * collapsedFraction).toInt()),
-                                    FontVariation.width(152f - 22f * collapsedFraction),
-                                    FontVariation.Setting("ROND", 50f),
-                                    FontVariation.Setting("XTRA", 520f - 70f * collapsedFraction),
-                                    FontVariation.Setting("YOPQ", 90f),
-                                    FontVariation.Setting("YTLC", 505f)
-                                )
-                            )
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .align(Alignment.BottomStart)
-                            .padding(
-                                start = titleStartPadding,
-                                top = 3.dp + (32.dp *(1-collapsedFraction)),
-                                bottom = 0.dp,
-                                end = 16.dp
-                            )
-                            .heightIn(min = 72.dp)
-                            .wrapContentHeight(Alignment.CenterVertically)
-                    )
-                }
-            }
-        },
-        containerColor = MaterialTheme.colorScheme.surface,
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        content = content
-    )
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
+            content = content
+        )
+    }
 }
 
 private enum class ClearState {

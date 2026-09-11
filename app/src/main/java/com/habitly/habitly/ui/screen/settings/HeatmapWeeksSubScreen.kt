@@ -45,7 +45,7 @@ fun HeatmapWeeksSubScreen(
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
     
     val haptic = LocalHapticFeedback.current
-    val scrollState = rememberScrollState()
+    val (scrollState, scrollEnabled) = rememberSettingsScrollState()
 
     var textValue by remember(heatmapWeeks) { mutableStateOf(heatmapWeeks.toString()) }
 
@@ -58,7 +58,7 @@ fun HeatmapWeeksSubScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .verticalScroll(scrollState, enabled = scrollState.maxValue > 0)
+            .verticalScroll(scrollState, enabled = scrollEnabled)
     ) {
         Text(
             text = "Adjust the number of weeks displayed in the habit heatmap. High values may impact performance.",

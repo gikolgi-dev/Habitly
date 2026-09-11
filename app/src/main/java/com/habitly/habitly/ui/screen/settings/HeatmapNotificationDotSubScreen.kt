@@ -36,12 +36,12 @@ fun HeatmapNotificationDotSubScreen(
     val heatmapNotificationDotDetailOnly by settingsDataStore.heatmapNotificationDotDetailOnly.collectAsState(initial = DefaultSettings.HEATMAP_NOTIFICATION_DOT_DETAIL_ONLY)
 
     val haptic = LocalHapticFeedback.current
-    val scrollState = rememberScrollState()
+    val (scrollState, scrollEnabled) = rememberSettingsScrollState()
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .verticalScroll(scrollState, enabled = scrollState.maxValue > 0)
+            .verticalScroll(scrollState, enabled = scrollEnabled)
     ) {
         Text(
             text = "Show a white dot on the heatmap to indicate days when a notification is scheduled.",

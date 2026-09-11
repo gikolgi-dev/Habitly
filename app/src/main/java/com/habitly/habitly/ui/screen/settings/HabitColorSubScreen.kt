@@ -35,12 +35,12 @@ fun HabitColorSubScreen(
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
     
     val haptic = LocalHapticFeedback.current
-    val scrollState = rememberScrollState()
+    val (scrollState, scrollEnabled) = rememberSettingsScrollState()
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .verticalScroll(scrollState, enabled = scrollState.maxValue > 0)
+            .verticalScroll(scrollState, enabled = scrollEnabled)
     ) {
         Text(
             text = "Apply the habit's color to specific components to improve identification and aesthetics.",

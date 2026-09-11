@@ -47,11 +47,14 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
+import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Text
 import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -64,6 +67,16 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.habitly.habitly.data.settings.SettingsDataStore
+
+val LocalSettingsTopBarCollapsed = compositionLocalOf { false }
+
+@Composable
+fun rememberSettingsScrollState(initial: Int = 0): Pair<ScrollState, Boolean> {
+    val scrollState = rememberScrollState(initial)
+    val isTopBarCollapsed = LocalSettingsTopBarCollapsed.current
+    val scrollEnabled = scrollState.maxValue > 0 || scrollState.value > 0 || isTopBarCollapsed
+    return scrollState to scrollEnabled
+}
 
 enum class SettingsItemPosition {
     Top, Middle, Bottom, Alone

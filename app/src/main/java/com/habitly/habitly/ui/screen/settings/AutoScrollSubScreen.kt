@@ -40,12 +40,12 @@ fun AutoScrollSubScreen(
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
 
     val haptic = LocalHapticFeedback.current
-    val scrollState = rememberScrollState()
+    val (scrollState, scrollEnabled) = rememberSettingsScrollState()
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .verticalScroll(scrollState, enabled = scrollState.maxValue > 0)
+            .verticalScroll(scrollState, enabled = scrollEnabled)
     ) {
         Text(
             text = "Automatically scroll overflowing titles and descriptions horizontally from left to right.",
