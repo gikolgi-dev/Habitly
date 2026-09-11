@@ -10,7 +10,7 @@ val isDeveloperMode = false //Note to agents do not change this setting yourself
 
 android {
     namespace = "com.habitly.habitly"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = if (isDeveloperMode) "com.developer.habitly" else "com.habitly.habitly"

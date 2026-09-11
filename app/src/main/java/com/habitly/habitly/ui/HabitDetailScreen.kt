@@ -1,7 +1,5 @@
 /* Habitly - Licensed under GNU GPL v3.0 or later. See <https://www.gnu.org/licenses/gpl-3.0.html> */
 
-@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
-
 package com.habitly.habitly.ui
 
 import androidx.compose.animation.AnimatedContent
@@ -65,7 +63,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -117,7 +114,7 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 
 
-@OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun SharedTransitionScope.HabitDetailScreen(
     habitWithCompletions: HabitWithCompletions,

@@ -1,7 +1,5 @@
 /* Habitly - Licensed under GNU GPL v3.0 or later. See <https://www.gnu.org/licenses/gpl-3.0.html> */
 
-@file:OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalTextApi::class)
-
 package com.habitly.habitly.ui.screen.settings
 
 import android.annotation.SuppressLint
@@ -59,8 +57,6 @@ import androidx.compose.material.icons.filled.ImportExport
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -163,7 +159,6 @@ fun settingsExitTransition() =
     )
 
 @SuppressLint("DefaultLocale")
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     onDismiss: () -> Unit,
@@ -652,7 +647,6 @@ fun SettingsScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnimatedVisibilityScope.SettingsScaffold(
     modifier: Modifier = Modifier,

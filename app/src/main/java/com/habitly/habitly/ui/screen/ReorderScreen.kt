@@ -1,7 +1,5 @@
 /* Habitly - Licensed under GNU GPL v3.0 or later. See <https://www.gnu.org/licenses/gpl-3.0.html> */
 
-@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
-
 package com.habitly.habitly.ui.screen
 
 import androidx.compose.foundation.BorderStroke
@@ -22,8 +20,6 @@ import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -58,7 +54,6 @@ import com.habitly.habitly.data.Database.HabitsUiState
 import com.habitly.habitly.ui.AppBackButton
 import com.habitly.habitly.ui.components.RotatingHabitIcon
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReorderScreen(
     habitViewModel: HabitViewModel,

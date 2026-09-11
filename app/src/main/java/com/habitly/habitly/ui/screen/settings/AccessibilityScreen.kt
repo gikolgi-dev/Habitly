@@ -1,7 +1,5 @@
 /* Habitly - Licensed under GNU GPL v3.0 or later. See <https://www.gnu.org/licenses/gpl-3.0.html> */
 
-@file:OptIn(ExperimentalMaterial3Api::class)
-
 package com.habitly.habitly.ui.screen.settings
 
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -16,13 +14,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.SliderState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -98,6 +97,20 @@ fun AccessibilitySection(
     val interactionSource = remember { MutableInteractionSource() }
     val isDragged = interactionSource.collectIsDraggedAsState().value
 
+    val sliderState = remember {
+        SliderState(
+            value = borderContrast,
+            steps = 19,
+            trackRange = 0f..1f
+        )
+    }
+
+    LaunchedEffect(borderContrast) {
+        if (!isDragged) {
+            sliderState.value = borderContrast
+        }
+    }
+
     SettingsGroup(title = "", settingsDataStore = settingsDataStore) {
         SettingsItemBox(settingsDataStore = settingsDataStore, position = SettingsItemPosition.Top) {
             Column(
@@ -111,20 +124,19 @@ fun AccessibilitySection(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Slider(
-                    value = borderContrast,
-                    onValueChange = {
+                    state = sliderState,
+                    onValueChange = { newValue ->
+                        sliderState.value = newValue
                         scope.launch {
-                            settingsDataStore.setBorders(it)
+                            settingsDataStore.setBorders(newValue)
                         }
                     },
-                    valueRange = 0f..1f,
-                    steps = 19,
                     interactionSource = interactionSource,
                     colors = SliderDefaults.colors(
                         activeTickColor = MaterialTheme.colorScheme.onSurface.copy(alpha = .5f),
                         inactiveTickColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
                     ),
-                    thumb = {
+                    thumb = { thumbState ->
                         Layout(
                             content = {
                                 if (isDragged) {
@@ -133,7 +145,7 @@ fun AccessibilitySection(
                                         color = MaterialTheme.colorScheme.primary,
                                     ) {
                                         Text(
-                                            text = "%.2f".format(borderContrast),
+                                            text = "%.2f".format(thumbState.value),
                                             modifier = Modifier.padding(4.dp),
                                             color = MaterialTheme.colorScheme.onPrimary,
                                             style = MaterialTheme.typography.bodySmall
@@ -158,7 +170,7 @@ fun AccessibilitySection(
                                 thumbPlaceable.placeRelative(0, 0)
                                 indicatorPlaceable?.let {
                                     val indicatorY = (thumbPlaceable.height - it.height) / 2
-                                    val indicatorX = if (borderContrast > 0.5f) {
+                                    val indicatorX = if (thumbState.value > 0.5f) {
                                         -it.width - 8.dp.roundToPx()
                                     } else {
                                         thumbPlaceable.width + 8.dp.roundToPx()
