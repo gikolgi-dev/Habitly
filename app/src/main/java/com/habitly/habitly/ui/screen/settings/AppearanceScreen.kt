@@ -29,17 +29,12 @@ fun AppearanceScreen(
     modifier: Modifier = Modifier,
     settingsDataStore: SettingsDataStore,
     onNavigateToHabitColor: () -> Unit,
-    onNavigateToHeatmapNotificationDot: () -> Unit
+    onNavigateToHeatmap: () -> Unit
 ) {
     val currentTheme by settingsDataStore.theme.collectAsState(initial = DefaultSettings.THEME)
     val useMaterialTheming by settingsDataStore.useMaterialTheming.collectAsState(initial = DefaultSettings.USE_MATERIAL_THEMING)
     val useHabitColorForCard by settingsDataStore.useHabitColorForCard.collectAsState(initial = DefaultSettings.USE_HABIT_COLOR_FOR_CARD)
-    val showMonthLabels by settingsDataStore.monthLabels.collectAsState(initial = DefaultSettings.MONTH_LABELS)
-    val showYearDivider by settingsDataStore.yearDivider.collectAsState(initial = DefaultSettings.YEAR_DIVIDER)
     val lineChartYearDivider by settingsDataStore.lineChartYearDivider.collectAsState(initial = DefaultSettings.LINE_CHART_YEAR_DIVIDER)
-    val showYearLabels by settingsDataStore.yearLabels.collectAsState(initial = DefaultSettings.YEAR_LABELS)
-    val heatmapNotificationDot by settingsDataStore.heatmapNotificationDot.collectAsState(initial = DefaultSettings.HEATMAP_NOTIFICATION_DOT)
-    val borderContrast by settingsDataStore.borders.collectAsState(initial = DefaultSettings.BORDERS)
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
 
     val haptic = LocalHapticFeedback.current
@@ -65,18 +60,18 @@ fun AppearanceScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            HeatmapSection(
-                showMonthLabels = showMonthLabels,
-                showYearDivider = showYearDivider,
-                showYearLabels = showYearLabels,
-                heatmapNotificationDot = heatmapNotificationDot,
-                borderContrast = borderContrast,
-                vibrationsEnabled = vibrationsEnabled,
-                settingsDataStore = settingsDataStore,
-                scope = rememberCoroutineScope(),
-                haptic = haptic,
-                onNavigateToHeatmapNotificationDot = onNavigateToHeatmapNotificationDot
-            )
+            SettingsGroup(
+                settingsDataStore = settingsDataStore
+            ) {
+                SettingsNavigationItem(
+                    text = "Heatmap",
+                    description = "Customize heatmap appearance and visible labels",
+                    settingsDataStore = settingsDataStore,
+                    position = SettingsItemPosition.Alone,
+                    onClick = onNavigateToHeatmap
+                )
+            }
+
             Spacer(modifier = Modifier.height(8.dp))
 
             LineChartSection(

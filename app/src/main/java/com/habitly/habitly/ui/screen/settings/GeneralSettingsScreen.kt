@@ -36,7 +36,6 @@ fun GeneralSettingsScreen(
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
     val is24Hour by settingsDataStore.is24Hour.collectAsState(initial = DefaultSettings.IS_24_HOUR)
     val heroCardVisible by settingsDataStore.heroCardVisible.collectAsState(initial = DefaultSettings.HERO_CARD_VISIBLE)
-    val heatmapScrolling by settingsDataStore.heatmapScrolling.collectAsState(initial = DefaultSettings.HEATMAP_SCROLLING)
     val skipCompleted by settingsDataStore.skipCompletedHabitNotifications.collectAsState(initial = DefaultSettings.SKIP_COMPLETED_HABIT_NOTIFICATIONS)
     val firstDayOfWeek by settingsDataStore.firstDayOfWeek.collectAsState(initial = DefaultSettings.FIRST_DAY_OF_WEEK)
 
@@ -74,18 +73,6 @@ fun GeneralSettingsScreen(
             ) {
                 scope.launch {
                     settingsDataStore.setHeroCardVisible(it)
-                }
-                if (vibrationsEnabled) haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
-            }
-            SettingsSwitchItem(
-                text = "Heatmap scrolling",
-                description = "Allow horizontal scrolling on the main heatmap",
-                checked = heatmapScrolling,
-                settingsDataStore = settingsDataStore,
-                position = SettingsItemPosition.Middle
-            ) {
-                scope.launch {
-                    settingsDataStore.setHeatmapScrolling(it)
                 }
                 if (vibrationsEnabled) haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
             }

@@ -8,11 +8,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -23,10 +28,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.layout.layout
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -51,21 +58,36 @@ fun HeatmapWeekColumn(
     cellSize: Dp,
     verticalSpacing: Dp,
     horizontalSpacing: Dp,
-    showMonthLabels: Boolean,
-    showYearDivider: Boolean,
-    showYearLabels: Boolean,
+    monthLabelAlpha: Float,
+    monthTopSpacerHeight: Dp = 0.dp,
+    monthRowHeight: Dp = 14.dp,
+    monthSpacerHeight: Dp = 2.dp,
+    yearDividerAlpha: Float,
+    yearLabelsAlpha: Float,
     notificationDotAlpha: Float = 1f,
-    animateTileChanges: Boolean = false
+    animateTileChanges: Boolean = false,
+    modifier: Modifier = Modifier
 ) {
     val onSurface = MaterialTheme.colorScheme.onSurface
     val surface = MaterialTheme.colorScheme.surface
-    val lineColor = onSurface.copy(alpha = 0.5f)
     val density = LocalDensity.current
     
     val cellSizePx = with(density) { cellSize.toPx() }
     val verticalSpacingPx = with(density) { verticalSpacing.toPx() }
     val horizontalSpacingPx = with(density) { horizontalSpacing.toPx() }
     val cornerRadiusPx = with(density) { 2.dp.toPx() }
+
+    val hasDots = weekData.notificationDots.any { it }
+    val animatedDotAlphas = if (hasDots) {
+        (0..6).map { i ->
+            val targetDotAlpha = if (weekData.notificationDots.getOrElse(i) { false }) notificationDotAlpha else 0f
+            androidx.compose.animation.core.animateFloatAsState(
+                targetValue = targetDotAlpha,
+                animationSpec = androidx.compose.animation.core.tween(300),
+                label = "notificationDotAlpha_$i"
+            ).value
+        }
+    } else emptyList()
 
     val animatedRatios = (0..6).map { i ->
         val targetRatio = weekData.completionRatios.getOrNull(i) ?: if (weekData.completedDays[i]) 1f else 0f
@@ -81,49 +103,57 @@ fun HeatmapWeekColumn(
     }
 
     Column(
-        modifier = Modifier
-            .layout { measurable, constraints ->
-                val placeable = measurable.measure(constraints)
-                val cellWidthPx = cellSize.roundToPx()
-                layout(cellWidthPx, placeable.height) {
-                    val x = (cellWidthPx - placeable.width) / 2
-                    placeable.placeRelative(x, 0)
-                }
-            }
-            .drawBehind {
-                if (weekData.isStartOfYear && showYearDivider) {
-                    val startY = if (showMonthLabels) 24.dp.toPx() else 0.dp.toPx()
-                    val xOffset = if (showMonthLabels) (horizontalSpacingPx / 2) - 1 else (horizontalSpacingPx / 2) - 12
-
-                    drawLine(
-                        color = lineColor,
-                        start = Offset(xOffset, startY),
-                        end = Offset(xOffset, size.height),
-                        strokeWidth = 0.75.dp.toPx()
-                    )
-                }
-            },
+        modifier = modifier.width(cellSize),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        if (showMonthLabels) {
+        if (monthTopSpacerHeight > 0.dp) {
+            Spacer(modifier = Modifier.height(monthTopSpacerHeight))
+        }
+        if (monthRowHeight > 0.dp) {
             Box(
-                modifier = Modifier.height(20.dp),
+                modifier = Modifier
+                    .width(cellSize)
+                    .height(monthRowHeight),
                 contentAlignment = Alignment.BottomCenter
             ) {
-                weekData.monthLabel?.let {
-                    Text(
-                        text = it,
-                        fontSize = 10.sp,
-                        color = onSurface.copy(alpha = 0.6f),
-                        maxLines = 1,
-                        softWrap = false,
-                    )
+                if (monthLabelAlpha > 0f) {
+                    weekData.monthLabel?.let {
+                        Text(
+                            text = it,
+                            fontSize = 10.sp,
+                            color = onSurface.copy(alpha = 0.6f * monthLabelAlpha),
+                            maxLines = 1,
+                            softWrap = false,
+                            style = LocalTextStyle.current.copy(
+                                platformStyle = PlatformTextStyle(includeFontPadding = false),
+                                lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.Both)
+                            ),
+                            modifier = Modifier.wrapContentSize(unbounded = true)
+                        )
+                    }
                 }
             }
-            Spacer(modifier = Modifier.height(4.dp))
+        }
+        if (monthSpacerHeight > 0.dp) {
+            Spacer(modifier = Modifier.height(monthSpacerHeight))
         }
 
-        Box(contentAlignment = Alignment.TopStart) {
+        Box(
+            modifier = Modifier
+                .size(width = cellSize, height = (cellSize * 7) + (verticalSpacing * 6))
+                .drawBehind {
+                    if (weekData.isStartOfYear && yearDividerAlpha > 0f) {
+                        val x = -(horizontalSpacingPx / 2f)
+                        drawLine(
+                            color = onSurface.copy(alpha = yearDividerAlpha),
+                            start = Offset(x, 0f),
+                            end = Offset(x, size.height),
+                            strokeWidth = 0.75.dp.toPx()
+                        )
+                    }
+                },
+            contentAlignment = Alignment.TopStart
+        ) {
             // Draw all cells in a single Canvas for performance
             Canvas(
                 modifier = Modifier.size(
@@ -164,9 +194,10 @@ fun HeatmapWeekColumn(
                         )
                     }
 
-                    if (weekData.notificationDots[i]) {
+                    val dotAlpha = animatedDotAlphas.getOrElse(i) { 0f }
+                    if (dotAlpha > 0f) {
                         drawCircle(
-                            color = Color.White.copy(alpha = notificationDotAlpha),
+                            color = Color.White.copy(alpha = dotAlpha),
                             radius = 1.dp.toPx(),
                             center = Offset(cellSizePx / 2f, top + cellSizePx / 2f)
                         )
@@ -175,9 +206,11 @@ fun HeatmapWeekColumn(
             }
 
             // Overlay Year Labels if needed
-            if (showYearLabels && weekData.isStartOfYear) {
+            if (weekData.isStartOfYear && yearLabelsAlpha > 0f) {
                 Column(
-                    modifier = Modifier.height((cellSize * 7) + (verticalSpacing * 6)),
+                    modifier = Modifier
+                        .height((cellSize * 7) + (verticalSpacing * 6))
+                        .graphicsLayer { alpha = yearLabelsAlpha },
                     verticalArrangement = Arrangement.spacedBy(verticalSpacing)
                 ) {
                     for (i in 0..3) {

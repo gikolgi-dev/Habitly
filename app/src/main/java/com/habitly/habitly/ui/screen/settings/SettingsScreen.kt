@@ -72,11 +72,14 @@ import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import com.habitly.habitly.data.settings.DefaultSettings
+import java.util.Calendar
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -196,6 +199,33 @@ fun SettingsScreen(
             "Unknown"
         }
     }
+
+    val showMonthLabels by settingsDataStore.monthLabels.collectAsState(initial = DefaultSettings.MONTH_LABELS)
+    val showYearDivider by settingsDataStore.yearDivider.collectAsState(initial = DefaultSettings.YEAR_DIVIDER)
+    val showYearLabels by settingsDataStore.yearLabels.collectAsState(initial = DefaultSettings.YEAR_LABELS)
+    val heatmapNotificationDot by settingsDataStore.heatmapNotificationDot.collectAsState(initial = DefaultSettings.HEATMAP_NOTIFICATION_DOT)
+    val heatmapNotificationDotRange by settingsDataStore.heatmapNotificationDotRange.collectAsState(initial = DefaultSettings.HEATMAP_NOTIFICATION_DOT_RANGE)
+    val heatmapScrolling by settingsDataStore.heatmapScrolling.collectAsState(initial = DefaultSettings.HEATMAP_SCROLLING)
+    val heatmapVisibleDays by settingsDataStore.heatmapVisibleDays.collectAsState(initial = emptySet())
+    val dayOfWeekLabelsOnRight by settingsDataStore.dayOfWeekLabelsOnRight.collectAsState(initial = false)
+    val firstDayOfWeekCalendar by settingsDataStore.firstDayOfWeekCalendar.collectAsState(initial = Calendar.MONDAY)
+    val heatmapWeeks by settingsDataStore.heatmapWeeks.collectAsState(initial = DefaultSettings.HEATMAP_WEEKS)
+    val heatmapInfinite by settingsDataStore.heatmapInfinite.collectAsState(initial = DefaultSettings.HEATMAP_INFINITE)
+    val useHabitColorForCard by settingsDataStore.useHabitColorForCard.collectAsState(initial = DefaultSettings.USE_HABIT_COLOR_FOR_CARD)
+    val habitColorTargets by settingsDataStore.habitColorTargets.collectAsState(
+        initial = DefaultSettings.HABIT_COLOR_TARGETS.split(',').filter { it.isNotEmpty() }.toSet()
+    )
+    val reduceMovement by settingsDataStore.reduceMovement.collectAsState(initial = DefaultSettings.REDUCE_MOVEMENT)
+    val reduceMovementTargets by settingsDataStore.reduceMovementTargets.collectAsState(
+        initial = DefaultSettings.REDUCE_MOVEMENT_TARGETS.split(',').filter { it.isNotEmpty() }.toSet()
+    )
+    val autoScrollText by settingsDataStore.autoScrollText.collectAsState(initial = DefaultSettings.AUTO_SCROLL_TEXT)
+    val autoScrollTextElements by settingsDataStore.autoScrollTextElements.collectAsState(
+        initial = DefaultSettings.AUTO_SCROLL_TEXT_ELEMENTS.split(',').filter { it.isNotEmpty() }.toSet()
+    )
+    val autoScrollTextScreens by settingsDataStore.autoScrollTextScreens.collectAsState(
+        initial = DefaultSettings.AUTO_SCROLL_TEXT_SCREENS.split(',').filter { it.isNotEmpty() }.toSet()
+    )
 
     val blurModifier = Modifier
 
@@ -322,15 +352,6 @@ fun SettingsScreen(
                                 settingsDataStore = settingsDataStore,
                                 position = SettingsItemPosition.Alone
                             ) { uriHandler.openUri("https://github.com/gikolgi-dev/Habitly") }
-                            /* GroupedSettingsItem(
-                                title = "License",
-                                subtitle = "This app is licensed under GNU GPL v3.0",
-                                icon = Icons.Default.Description,
-                                iconBackgroundColor = MaterialTheme.colorScheme.secondaryContainer,
-                                iconColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                                settingsDataStore = settingsDataStore,
-                                position = SettingsItemPosition.Bottom
-                            ) { uriHandler.openUri("https://www.gnu.org/licenses/gpl-3.0.html") } */
                         }
                     }
 
@@ -338,7 +359,7 @@ fun SettingsScreen(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 12.dp),
+                                .padding(top = 2.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
                         ) {
@@ -417,7 +438,49 @@ fun SettingsScreen(
                     modifier = Modifier.padding(top = paddingValues.calculateTopPadding()),
                     settingsDataStore = settingsDataStore,
                     onNavigateToHabitColor = { navController.navigate("habit_color") { launchSingleTop = true } },
-                    onNavigateToHeatmapNotificationDot = { navController.navigate("heatmap_notification_dot") { launchSingleTop = true } }
+                    onNavigateToHeatmap = { navController.navigate("heatmap") { launchSingleTop = true } }
+                )
+            }
+        }
+
+        composable(
+            route = "heatmap"
+        ) {
+            SettingsScaffold(
+                title = "Heatmap",
+                onBack = {
+                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+                    navController.popBackStack()
+                },
+                borderContrast = borderContrast,
+            ) { paddingValues ->
+                HeatmapSubScreen(
+                    settingsDataStore = settingsDataStore,
+                    db = db,
+                    showMonthLabels = showMonthLabels,
+                    showYearDivider = showYearDivider,
+                    showYearLabels = showYearLabels,
+                    heatmapNotificationDot = heatmapNotificationDot,
+                    heatmapNotificationDotRange = heatmapNotificationDotRange,
+                    heatmapScrolling = heatmapScrolling,
+                    heatmapVisibleDays = heatmapVisibleDays,
+                    dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight,
+                    borderContrast = borderContrast,
+                    vibrationsEnabled = vibrationsEnabled,
+                    firstDayOfWeekCalendar = firstDayOfWeekCalendar,
+                    heatmapWeeks = heatmapWeeks,
+                    heatmapInfinite = heatmapInfinite,
+                    useHabitColorForCard = useHabitColorForCard,
+                    habitColorTargets = habitColorTargets,
+                    reduceMovement = reduceMovement,
+                    reduceMovementTargets = reduceMovementTargets,
+                    autoScrollText = autoScrollText,
+                    autoScrollTextElements = autoScrollTextElements,
+                    autoScrollTextScreens = autoScrollTextScreens,
+                    theme = theme,
+                    onNavigateToHeatmapNotificationDot = { navController.navigate("heatmap_notification_dot") { launchSingleTop = true } },
+                    onNavigateToHabitColor = { navController.navigate("habit_color") { launchSingleTop = true } },
+                    modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
                 )
             }
         }

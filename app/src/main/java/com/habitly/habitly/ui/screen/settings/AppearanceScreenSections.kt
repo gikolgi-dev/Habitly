@@ -40,7 +40,7 @@ fun ThemeSection(
     onNavigateToHabitColor: () -> Unit
 ) {
     SettingsGroup(
-        title = "Theme",
+        title = "Styling",
         settingsDataStore = settingsDataStore
     ) {
         SettingsItemBox(settingsDataStore = settingsDataStore, position = SettingsItemPosition.Top) {
@@ -85,7 +85,7 @@ fun ThemeSection(
                 }
             }
         }
-        
+
         SettingsSwitchItem(
             text = "Use material theming",
             description = "Match the background colors with your system's dynamic color theme",
@@ -98,7 +98,7 @@ fun ThemeSection(
                 haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
             }
         }
-        
+
         SettingsSwitchNavigationItem(
             text = "Habit color accents",
             description = "Add color accents to habit related elements",
@@ -127,20 +127,36 @@ fun HeatmapSection(
     settingsDataStore: SettingsDataStore,
     scope: CoroutineScope,
     haptic: HapticFeedback,
-    onNavigateToHeatmapNotificationDot: () -> Unit
+    useHabitColorForCard: Boolean,
+    onNavigateToHeatmapNotificationDot: () -> Unit,
+    onNavigateToHabitColor: () -> Unit,
+    title: String? = "Heatmap",
+    heatmapScrolling: Boolean = false
 ) {
-    val heatmapVisibleDaysState = settingsDataStore.heatmapVisibleDays.collectAsState(initial = null)
-
-    val heatmapVisibleDays = heatmapVisibleDaysState.value ?: return
+    val heatmapVisibleDays by settingsDataStore.heatmapVisibleDays.collectAsState(initial = emptySet())
     val firstDayOfWeekCalendar by settingsDataStore.firstDayOfWeekCalendar.collectAsState(initial = Calendar.MONDAY)
 
-    SettingsGroup(title = "Heatmap", settingsDataStore = settingsDataStore) {
+    SettingsGroup(title = title, settingsDataStore = settingsDataStore) {
+        SettingsSwitchNavigationItem(
+            text = "Habit color accents",
+            description = "Add color accents to habit related elements",
+            checked = useHabitColorForCard,
+            settingsDataStore = settingsDataStore,
+            position = SettingsItemPosition.Top,
+            onCheckedChange = {
+                scope.launch { settingsDataStore.setUseHabitColorForCard(it) }
+                if (vibrationsEnabled) {
+                    haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+                }
+            },
+            onClick = onNavigateToHabitColor
+        )
         SettingsSwitchItem(
             text = "Month labels",
             description = "Show the names of months above the heatmap",
             checked = showMonthLabels,
             settingsDataStore = settingsDataStore,
-            position = SettingsItemPosition.Top
+            position = SettingsItemPosition.Middle
         ) {
             scope.launch { settingsDataStore.setMonthLabels(it) }
             if (vibrationsEnabled) {
@@ -189,8 +205,28 @@ fun HeatmapSection(
             onClick = onNavigateToHeatmapNotificationDot
         )
 
+        SettingsSwitchItem(
+            text = "Heatmap scrolling",
+            description = "Allow horizontal scrolling on the heatmap",
+            checked = heatmapScrolling,
+            settingsDataStore = settingsDataStore,
+            position = SettingsItemPosition.Middle
+        ) {
+            scope.launch { settingsDataStore.setHeatmapScrolling(it) }
+            if (vibrationsEnabled) {
+                haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+            }
+        }
+
         SettingsItemBox(settingsDataStore = settingsDataStore, position = SettingsItemPosition.Bottom) {
-            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+            Column(
+                modifier = Modifier.padding(
+                    start = 16.dp,
+                    end = 16.dp,
+                    top = 10.dp,
+                    bottom = 16.dp
+                )
+            ) {
                 Text(
                     text = "Visible day labels",
                     style = MaterialTheme.typography.bodyLarge,
@@ -200,7 +236,7 @@ fun HeatmapSection(
                     text = "Toggle which days are shown on the heatmap's side labels.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 4.dp)
+                    modifier = Modifier.padding(bottom = 6.dp)
                 )
                 DayOfWeekSelector(
                     selectedDays = heatmapVisibleDays,

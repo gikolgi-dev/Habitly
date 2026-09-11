@@ -356,26 +356,28 @@ fun HabitCompletionButton(
                     }
                 }
             }
-            .pointerInput(isCompleted, currentCompletions, disablePressAnimation) {
-                detectTapGestures(
-                    onPress = {
-                        if (!disablePressAnimation) {
-                            isPressed = true
-                        }
-                        try {
-                            awaitRelease()
-                        } finally {
-                            isPressed = false
-                        }
-                    },
-                    onLongPress = {
-                        onDecrement?.invoke()
-                    },
-                    onTap = {
-                        onComplete()
+            .then(
+                if (!disablePressAnimation) {
+                    Modifier.pointerInput(isCompleted, currentCompletions) {
+                        detectTapGestures(
+                            onPress = {
+                                isPressed = true
+                                try {
+                                    awaitRelease()
+                                } finally {
+                                    isPressed = false
+                                }
+                            },
+                            onLongPress = {
+                                onDecrement?.invoke()
+                            },
+                            onTap = {
+                                onComplete()
+                            }
+                        )
                     }
-                )
-            },
+                } else Modifier
+            ),
         contentAlignment = Alignment.Center
     ) {
         val animatedHabitColor = animatedHabitColorState.value
@@ -497,7 +499,7 @@ fun HabitItemCard(
             .padding(horizontal = 12.dp, vertical = 0.dp)
             .then(modifier)
             .clip(MaterialTheme.shapes.medium)
-            .clickable(onClick = onClick),
+            .then(if (!isPreview) Modifier.clickable(onClick = onClick) else Modifier),
         colors = CardDefaults.cardColors(
             containerColor = cardBackgroundColor,
             contentColor = MaterialTheme.colorScheme.onSurface
@@ -569,7 +571,6 @@ fun HabitItemCard(
                 }
             }
             if (showCheckbox) {
-                Spacer(modifier = Modifier.height(if (showMonthLabels) 0.dp else 8.dp))
                 Heatmap(
                     completions = completions,
                     habitColor = Color(habit.color),

@@ -37,6 +37,9 @@ import androidx.compose.ui.platform.LocalContext
 import com.habitly.habitly.data.settings.SettingsDataStore
 import java.util.Calendar
 
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Shape
+
 fun getDaysAndDayValues(firstDayOfWeek: Int = Calendar.MONDAY): Pair<List<String>, List<String>> {
     val daysList = mutableListOf<String>()
     val valuesList = mutableListOf<String>()
