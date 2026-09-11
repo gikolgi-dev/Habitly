@@ -28,13 +28,9 @@ import com.habitly.habitly.data.settings.SettingsDataStore
 fun AppearanceScreen(
     modifier: Modifier = Modifier,
     settingsDataStore: SettingsDataStore,
-    onNavigateToScrollBlur: () -> Unit,
     onNavigateToHabitColor: () -> Unit,
-    onNavigateToReduceMovement: () -> Unit,
-    onNavigateToHeatmapNotificationDot: () -> Unit,
-    onNavigateToAutoScroll: () -> Unit
+    onNavigateToHeatmapNotificationDot: () -> Unit
 ) {
-    val scope = rememberCoroutineScope()
     val currentTheme by settingsDataStore.theme.collectAsState(initial = DefaultSettings.THEME)
     val useMaterialTheming by settingsDataStore.useMaterialTheming.collectAsState(initial = DefaultSettings.USE_MATERIAL_THEMING)
     val useHabitColorForCard by settingsDataStore.useHabitColorForCard.collectAsState(initial = DefaultSettings.USE_HABIT_COLOR_FOR_CARD)
@@ -43,11 +39,8 @@ fun AppearanceScreen(
     val lineChartYearDivider by settingsDataStore.lineChartYearDivider.collectAsState(initial = DefaultSettings.LINE_CHART_YEAR_DIVIDER)
     val showYearLabels by settingsDataStore.yearLabels.collectAsState(initial = DefaultSettings.YEAR_LABELS)
     val heatmapNotificationDot by settingsDataStore.heatmapNotificationDot.collectAsState(initial = DefaultSettings.HEATMAP_NOTIFICATION_DOT)
-    val showScrollBlur by settingsDataStore.showScrollBlur.collectAsState(initial = DefaultSettings.SHOW_SCROLL_BLUR)
     val borderContrast by settingsDataStore.borders.collectAsState(initial = DefaultSettings.BORDERS)
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
-    val reduceMovement by settingsDataStore.reduceMovement.collectAsState(initial = DefaultSettings.REDUCE_MOVEMENT)
-    val autoScrollText by settingsDataStore.autoScrollText.collectAsState(initial = DefaultSettings.AUTO_SCROLL_TEXT)
 
     val haptic = LocalHapticFeedback.current
     val scrollState = rememberScrollState()
@@ -65,7 +58,7 @@ fun AppearanceScreen(
                 useHabitColorForCard = useHabitColorForCard,
                 vibrationsEnabled = vibrationsEnabled,
                 settingsDataStore = settingsDataStore,
-                scope = scope,
+                scope = rememberCoroutineScope(),
                 haptic = haptic,
                 onNavigateToHabitColor = onNavigateToHabitColor
             )
@@ -80,7 +73,7 @@ fun AppearanceScreen(
                 borderContrast = borderContrast,
                 vibrationsEnabled = vibrationsEnabled,
                 settingsDataStore = settingsDataStore,
-                scope = scope,
+                scope = rememberCoroutineScope(),
                 haptic = haptic,
                 onNavigateToHeatmapNotificationDot = onNavigateToHeatmapNotificationDot
             )
@@ -90,23 +83,8 @@ fun AppearanceScreen(
                 lineChartYearDivider = lineChartYearDivider,
                 vibrationsEnabled = vibrationsEnabled,
                 settingsDataStore = settingsDataStore,
-                scope = scope,
+                scope = rememberCoroutineScope(),
                 haptic = haptic
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-            AccessibilitySection(
-                borderContrast = borderContrast,
-                showScrollBlur = showScrollBlur,
-                reduceMovement = reduceMovement,
-                vibrationsEnabled = vibrationsEnabled,
-                settingsDataStore = settingsDataStore,
-                scope = scope,
-                haptic = haptic,
-                onNavigateToScrollBlur = onNavigateToScrollBlur,
-                onNavigateToReduceMovement = onNavigateToReduceMovement,
-                autoScrollText = autoScrollText,
-                onNavigateToAutoScroll = onNavigateToAutoScroll
             )
 
             Spacer(modifier = Modifier.height(24.dp).navigationBarsPadding())

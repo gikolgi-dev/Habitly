@@ -275,66 +275,7 @@ fun NotificationSettingsScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         SettingsGroup(
-            title = "Daily Notifications",
-            settingsDataStore = settingsDataStore
-        ) {
-            SettingsSwitchItem(
-                text = "Daily reminder",
-                description = "Remind you to add completions every day",
-                checked = globalNotificationsEnabled && notificationPermissionHandler.hasPermission,
-                settingsDataStore = settingsDataStore,
-                position = SettingsItemPosition.Top
-            ) {
-                handleNotificationToggle(it)
-            }
-
-            SettingsItemBox(settingsDataStore = settingsDataStore, position = SettingsItemPosition.Bottom) {
-                val isEnabled = globalNotificationsEnabled && notificationPermissionHandler.hasPermission
-                Column(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-                ) {
-                    NotificationTimeSelectors(
-                        notificationTime = globalNotificationTime,
-                        selectedDays = globalNotificationDays,
-                        onTimeClick = { showTimePicker = true },
-                        onDaySelected = { day ->
-                            scope.launch {
-                                val newDays = if (globalNotificationDays.contains(day)) {
-                                    globalNotificationDays - day
-                                } else {
-                                    globalNotificationDays + day
-                                }
-                                settingsDataStore.setGlobalNotificationDays(newDays)
-                                if (globalNotificationsEnabled) {
-                                    notificationScheduler.scheduleGeneralNotification(
-                                        globalNotificationTime,
-                                        newDays
-                                    )
-                                }
-                            }
-                        },
-                        onDisabledClick = {
-                            if (!notificationPermissionHandler.hasPermission) {
-                                notificationPermissionHandler.requestPermission()
-                            } else {
-                                handleNotificationToggle(true)
-                            }
-                        },
-                        isEnabled = isEnabled,
-                        borderAlpha = borderContrast,
-                        is24Hour = is24Hour,
-                        vibrationsEnabled = vibrationsEnabled,
-                        firstDayOfWeek = firstDayOfWeekCalendar,
-                        modifier = Modifier
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        SettingsGroup(
-            title = "Habit Notifications",
+            title = "General",
             settingsDataStore = settingsDataStore
         ) {
             SettingsSwitchItem(
@@ -349,7 +290,7 @@ fun NotificationSettingsScreen(
                 }
                 if (vibrationsEnabled) haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
             }
-            SettingsSwitchItem(
+            /* SettingsSwitchItem(
                 text = "Snooze enabled",
                 description = "Allow snoozing notifications",
                 checked = snoozeEnabled,
@@ -360,8 +301,8 @@ fun NotificationSettingsScreen(
                     settingsDataStore.setSnoozeEnabled(it)
                 }
                 if (vibrationsEnabled) haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
-            }
-            SettingsItemBox(settingsDataStore = settingsDataStore, position = SettingsItemPosition.Bottom) {
+            } */
+            SettingsItemBox(settingsDataStore = settingsDataStore, position = SettingsItemPosition.Middle) {
                 val snoozeDurationAlpha by animateFloatAsState(
                     targetValue = if (snoozeEnabled) 1f else 0.5f,
                     label = "SnoozeDurationAlpha"
@@ -432,23 +373,77 @@ fun NotificationSettingsScreen(
                     )
                 }
             }
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-
-        SettingsGroup(
-            title = "Notification Timing",
-            settingsDataStore = settingsDataStore
-        ) {
             SettingsSwitchItem(
                 text = "Exact alarms & reminders",
-                description = "Always trigger notifications at the exact scheduled time, even during battery saver or sleep mode. Consumes more battery.",
+                description = "Improve notification accuracy. Consumes more battery.",
                 checked = exactAlarms,
                 settingsDataStore = settingsDataStore,
-                position = SettingsItemPosition.Alone
+                position = SettingsItemPosition.Bottom
             ) {
                 handleExactAlarmsToggle(it)
             }
         }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        SettingsGroup(
+            title = "Daily Notifications",
+            settingsDataStore = settingsDataStore
+        ) {
+            SettingsSwitchItem(
+                text = "Daily reminder",
+                description = "Remind you to add completions every day",
+                checked = globalNotificationsEnabled && notificationPermissionHandler.hasPermission,
+                settingsDataStore = settingsDataStore,
+                position = SettingsItemPosition.Top
+            ) {
+                handleNotificationToggle(it)
+            }
+
+            SettingsItemBox(settingsDataStore = settingsDataStore, position = SettingsItemPosition.Bottom) {
+                val isEnabled = globalNotificationsEnabled && notificationPermissionHandler.hasPermission
+                Column(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                ) {
+                    NotificationTimeSelectors(
+                        notificationTime = globalNotificationTime,
+                        selectedDays = globalNotificationDays,
+                        onTimeClick = { showTimePicker = true },
+                        onDaySelected = { day ->
+                            scope.launch {
+                                val newDays = if (globalNotificationDays.contains(day)) {
+                                    globalNotificationDays - day
+                                } else {
+                                    globalNotificationDays + day
+                                }
+                                settingsDataStore.setGlobalNotificationDays(newDays)
+                                if (globalNotificationsEnabled) {
+                                    notificationScheduler.scheduleGeneralNotification(
+                                        globalNotificationTime,
+                                        newDays
+                                    )
+                                }
+                            }
+                        },
+                        onDisabledClick = {
+                            if (!notificationPermissionHandler.hasPermission) {
+                                notificationPermissionHandler.requestPermission()
+                            } else {
+                                handleNotificationToggle(true)
+                            }
+                        },
+                        isEnabled = isEnabled,
+                        borderAlpha = borderContrast,
+                        is24Hour = is24Hour,
+                        vibrationsEnabled = vibrationsEnabled,
+                        firstDayOfWeek = firstDayOfWeekCalendar,
+                        modifier = Modifier
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
 
         if (BuildConfig.IS_DEVELOPER_MODE) {
             Spacer(modifier = Modifier.height(8.dp))

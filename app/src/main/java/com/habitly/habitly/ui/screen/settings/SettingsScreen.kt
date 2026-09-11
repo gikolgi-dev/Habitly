@@ -23,6 +23,7 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -50,6 +51,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Accessibility
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
@@ -77,6 +79,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Size
@@ -97,6 +100,7 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -250,20 +254,27 @@ fun SettingsScreen(
                                 iconBackgroundColor = MaterialTheme.colorScheme.secondaryContainer,
                                 iconColor = MaterialTheme.colorScheme.onSecondaryContainer,
                                 settingsDataStore = settingsDataStore,
-                                position = SettingsItemPosition.Bottom
+                                position = SettingsItemPosition.Middle
                             ) { navController.navigate("appearance") { launchSingleTop = true } }
+                            GroupedSettingsItem(
+                                title = "Accessibility",
+                                subtitle = "Configure accessibility features",
+                                icon = Icons.Default.Accessibility,
+                                iconBackgroundColor = MaterialTheme.colorScheme.primaryContainer,
+                                iconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                settingsDataStore = settingsDataStore,
+                                position = SettingsItemPosition.Middle
+                            ) { navController.navigate("accessibility") { launchSingleTop = true } }
+                            GroupedSettingsItem(
+                                title = "Notifications",
+                                subtitle = "Manage daily and habit notifications",
+                                icon = Icons.Default.Notifications,
+                                iconBackgroundColor = MaterialTheme.colorScheme.tertiary,
+                                iconColor = MaterialTheme.colorScheme.onTertiary,
+                                settingsDataStore = settingsDataStore,
+                                position = SettingsItemPosition.Bottom
+                            ) { navController.navigate("notifications") { launchSingleTop = true } }
                         }
-                    }
-                    item {
-                        ModernSettingsItem(
-                            title = "Notifications",
-                            subtitle = "Manage daily and habit notifications",
-                            icon = Icons.Default.Notifications,
-                            iconBackgroundColor = MaterialTheme.colorScheme.tertiary,
-                            iconColor = MaterialTheme.colorScheme.onTertiary,
-                            settingsDataStore = settingsDataStore,
-                            position = SettingsItemPosition.Alone
-                        ) { navController.navigate("notifications") { launchSingleTop = true } }
                     }
                     item {
                         SettingsGroup(settingsDataStore = settingsDataStore) {
@@ -309,9 +320,9 @@ fun SettingsScreen(
                                 iconBackgroundColor = Color.Gray.copy(alpha = if (useDarkTheme) 0.5f else 0.15f),
                                 iconColor = MaterialTheme.colorScheme.onSurface,
                                 settingsDataStore = settingsDataStore,
-                                position = SettingsItemPosition.Top
+                                position = SettingsItemPosition.Alone
                             ) { uriHandler.openUri("https://github.com/gikolgi-dev/Habitly") }
-                            GroupedSettingsItem(
+                            /* GroupedSettingsItem(
                                 title = "License",
                                 subtitle = "This app is licensed under GNU GPL v3.0",
                                 icon = Icons.Default.Description,
@@ -319,7 +330,7 @@ fun SettingsScreen(
                                 iconColor = MaterialTheme.colorScheme.onSecondaryContainer,
                                 settingsDataStore = settingsDataStore,
                                 position = SettingsItemPosition.Bottom
-                            ) { uriHandler.openUri("https://www.gnu.org/licenses/gpl-3.0.html") }
+                            ) { uriHandler.openUri("https://www.gnu.org/licenses/gpl-3.0.html") } */
                         }
                     }
 
@@ -331,6 +342,20 @@ fun SettingsScreen(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
                         ) {
+                            Text(
+                                text = "Licensed under GNU GPL v3.0",
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    textDecoration = TextDecoration.Underline
+                                ),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .clickable {
+                                        uriHandler.openUri("https://www.gnu.org/licenses/gpl-3.0.html")
+                                    }
+                                    .padding(horizontal = 4.dp, vertical = 2.dp)
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = "Made with ❤️",
                                 style = MaterialTheme.typography.bodySmall,
@@ -352,6 +377,27 @@ fun SettingsScreen(
 
         // Sub Screens
         composable(
+            route = "accessibility"
+        ) {
+            SettingsScaffold(
+                title = "Accessibility",
+                onBack = {
+                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+                    navController.popBackStack()
+                },
+                borderContrast = borderContrast,
+            ) { paddingValues ->
+                AccessibilityScreen(
+                    modifier = Modifier.padding(top = paddingValues.calculateTopPadding()),
+                    settingsDataStore = settingsDataStore,
+                    onNavigateToScrollBlur = { navController.navigate("scroll_blur") { launchSingleTop = true } },
+                    onNavigateToReduceMovement = { navController.navigate("reduce_movement") { launchSingleTop = true } },
+                    onNavigateToAutoScroll = { navController.navigate("auto_scroll") { launchSingleTop = true } }
+                )
+            }
+        }
+
+        composable(
             route = "appearance"
         ) {
             SettingsScaffold(
@@ -370,11 +416,8 @@ fun SettingsScreen(
                 AppearanceScreen(
                     modifier = Modifier.padding(top = paddingValues.calculateTopPadding()),
                     settingsDataStore = settingsDataStore,
-                    onNavigateToScrollBlur = { navController.navigate("scroll_blur") { launchSingleTop = true } },
                     onNavigateToHabitColor = { navController.navigate("habit_color") { launchSingleTop = true } },
-                    onNavigateToReduceMovement = { navController.navigate("reduce_movement") { launchSingleTop = true } },
-                    onNavigateToHeatmapNotificationDot = { navController.navigate("heatmap_notification_dot") { launchSingleTop = true } },
-                    onNavigateToAutoScroll = { navController.navigate("auto_scroll") { launchSingleTop = true } }
+                    onNavigateToHeatmapNotificationDot = { navController.navigate("heatmap_notification_dot") { launchSingleTop = true } }
                 )
             }
         }
