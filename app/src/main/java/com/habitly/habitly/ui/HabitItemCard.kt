@@ -257,6 +257,9 @@ fun HabitCompletionButton(
         label = "button_scale"
     )
 
+    val transformedPath = remember { Path() }
+    val transformMatrix = remember { android.graphics.Matrix() }
+
     val buttonModifier = if (sharedTransitionScope != null) {
         with(sharedTransitionScope) {
             Modifier.sharedElementWithCallerManagedVisibility(
@@ -300,16 +303,14 @@ fun HabitCompletionButton(
                 val innerSize = if (target > 1) (44.dp.toPx() + (size.width - 44.dp.toPx()) * morphPercentage) else size.width
                 val offset = (size.width - innerSize) / 2f
 
-                translate(left = offset, top = offset) {
-                    scale(
-                        scaleX = innerSize,
-                        scaleY = innerSize,
-                        pivot = Offset.Zero
-                    ) {
-                        drawPath(cachedPath, color = currentBgColor)
-                        drawPath(cachedPath, color = currentStrokeColor, style = Stroke(width = 1.dp.toPx() / innerSize))
-                    }
-                }
+                transformMatrix.reset()
+                transformMatrix.setScale(innerSize, innerSize)
+                transformMatrix.postTranslate(offset, offset)
+                transformedPath.asAndroidPath().rewind()
+                cachedPath.asAndroidPath().transform(transformMatrix, transformedPath.asAndroidPath())
+
+                drawPath(transformedPath, color = currentBgColor)
+                drawPath(transformedPath, color = currentStrokeColor, style = Stroke(width = 1.dp.toPx()))
 
                 if (target > 1) {
                     val chunksAlpha = ((1f - p) * (1f - tp)).coerceIn(0f, 1f)

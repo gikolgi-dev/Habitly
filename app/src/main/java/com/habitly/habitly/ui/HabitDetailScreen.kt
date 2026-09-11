@@ -364,6 +364,8 @@ fun SharedTransitionScope.HabitDetailScreen(
                         }
                         
                         val secondaryContainerColor = MaterialTheme.colorScheme.secondaryContainer
+                        val transformedPath = remember { Path() }
+                        val transformMatrix = remember { android.graphics.Matrix() }
 
                         Box(
                             modifier = Modifier
@@ -399,14 +401,13 @@ fun SharedTransitionScope.HabitDetailScreen(
                                     val currentBgColor = lerp(itemBgColor, targetBgColor, tp)
                                     val currentStrokeColor = lerp(itemStrokeColor, targetBorderColor, tp)
 
-                                    scale(
-                                        scaleX = size.width,
-                                        scaleY = size.height,
-                                        pivot = androidx.compose.ui.geometry.Offset.Zero
-                                    ) {
-                                        drawPath(cachedPath, color = currentBgColor)
-                                        drawPath(cachedPath, color = currentStrokeColor, style = Stroke(width = 1.dp.toPx() / size.width))
-                                    }
+                                    transformMatrix.reset()
+                                    transformMatrix.setScale(size.width, size.height)
+                                    transformedPath.asAndroidPath().rewind()
+                                    cachedPath.asAndroidPath().transform(transformMatrix, transformedPath.asAndroidPath())
+
+                                    drawPath(transformedPath, color = currentBgColor)
+                                    drawPath(transformedPath, color = currentStrokeColor, style = Stroke(width = 1.dp.toPx()))
                                 }
                                 .pointerInput(Unit) {
                                     detectTapGestures(
