@@ -1,6 +1,6 @@
 # Habitly
 
-A simple and modern app to help you build and maintain good habits. Track your daily progress, visualize your consistency with heatmaps, and set reminders to stay on track.
+A simple and modern app to help you build and maintain good and quit bad ones. Track your daily progress, visualize your consistency with heatmaps, and set reminders to stay on track.
 
 ## ⚠️ Important Notes
 
@@ -13,10 +13,13 @@ Please be aware that this app uses **Material 3 Expressive** extensively, which 
 
 *   **Track Habits**: Easily mark habits as done for the day.
 *   **Visualize Progress**: See your streaks and consistency with beautiful heatmaps and monthly calendars.
-*   **Stay Organized**: Reorder habits to focus on what matters most or archive ones you aren't working on right now.
-*   **Never Miss a Day**: Set custom notifications to remind you to complete your habits.
-*   **Your Data**: Your data stays on your device. You can backup and restore it anytime using the Import/Export feature.
-*   **Customizable**: Adjust the look and feel to match your style.
+*   **Build Or Quit Habits**: Build positive habits or quit negative ones. 
+*   **Never Miss A Day**: Set custom notifications to remind you to complete your habits.
+*   **Add Multiple Completions To A Habit**: Add multiple completions to a habit in a single day for finer tracking.
+*   **Your Data Your Choice**: Your data stays on your device. You can backup and restore it anytime using the Import/Export feature.
+*   **Material 3 Expressive**: The app uses Material 3 Expressive design language from the ground up for a modern and expressive user interface.
+*   **Free As In Freedom**: The app is free and open source, with no ads or in-app purchases.
+*   **Customizable**: Extensive customization options for almost every aspect of the app.
 
 ## 📱 How to Install
 
