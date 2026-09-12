@@ -40,6 +40,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -124,6 +125,8 @@ import com.habitly.habitly.data.Database.normalizeToStartOfDay
 import com.habitly.habitly.data.Database.normalizeToEndOfDay
 import com.habitly.habitly.data.settings.DefaultSettings
 import com.habitly.habitly.data.settings.SettingsDataStore
+import com.habitly.habitly.data.welcome.WelcomeCardContext
+import com.habitly.habitly.data.welcome.WelcomeCardEngine
 import com.habitly.habitly.notifications.NotificationScheduler
 import com.habitly.habitly.ui.HabitDetailScreen
 import com.habitly.habitly.ui.HabitItemCard
@@ -234,6 +237,10 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     val autoScrollTextScreens by settingsDataStore.autoScrollTextScreens.collectAsState(
         initial = DefaultSettings.AUTO_SCROLL_TEXT_SCREENS.split(',').filter { it.isNotEmpty() }.toSet()
     )
+    val savedWelcomeDateKey by settingsDataStore.welcomeCardDate.collectAsState(initial = "")
+    val savedWelcomeCategoryId by settingsDataStore.welcomeCardCategoryId.collectAsState(initial = "")
+    val savedWelcomeHabitId by settingsDataStore.welcomeCardHabitId.collectAsState(initial = "")
+    val savedWelcomeTemplateIndex by settingsDataStore.welcomeCardTemplateIndex.collectAsState(initial = 0)
 
     // Additional settings for consistent Shared Element Transition colors/animations
     val reduceMovement by settingsDataStore.reduceMovement.collectAsState(initial = false)
@@ -270,16 +277,43 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
         }
     }
 
-    val heroCardDescriptions = remember {
-        listOf(
-            "Track your habits, build your future.",
-            "The secret of your future is hidden in your daily routine.",
-            "Consistency is the key to success.",
-            "Motivation is what gets you started. Habit is what keeps you going.",
-            "A little progress each day adds up to big results."
-        )
+    val currentHabits = (habitsUiState as? HabitsUiState.Success)?.habits ?: emptyList()
+
+    val welcomeCardResolution by remember(
+        currentHabits,
+        currentDateMillis,
+        firstDayOfWeekCalendar,
+        savedWelcomeDateKey,
+        savedWelcomeCategoryId,
+        savedWelcomeHabitId,
+        savedWelcomeTemplateIndex
+    ) {
+        derivedStateOf {
+            val welcomeContext = WelcomeCardContext(
+                habits = currentHabits,
+                todayMillis = currentDateMillis,
+                firstDayOfWeek = firstDayOfWeekCalendar
+            )
+            WelcomeCardEngine.resolveMessage(
+                context = welcomeContext,
+                savedDateKey = savedWelcomeDateKey.ifEmpty { null },
+                savedCategoryId = savedWelcomeCategoryId.ifEmpty { null },
+                savedHabitId = savedWelcomeHabitId.ifEmpty { null },
+                savedTemplateIndex = savedWelcomeTemplateIndex
+            )
+        }
     }
-    val heroCardDescription = remember { heroCardDescriptions.random() }
+
+    LaunchedEffect(welcomeCardResolution.dateKey, welcomeCardResolution.categoryId, welcomeCardResolution.habitId, welcomeCardResolution.templateIndex, welcomeCardResolution.isNewSelection) {
+        if (welcomeCardResolution.isNewSelection) {
+            settingsDataStore.saveWelcomeCardState(
+                dateKey = welcomeCardResolution.dateKey,
+                categoryId = welcomeCardResolution.categoryId,
+                habitId = welcomeCardResolution.habitId,
+                templateIndex = welcomeCardResolution.templateIndex
+            )
+        }
+    }
 
     var showHabitSheet by remember { mutableStateOf(false) }
     var habitToView by remember { mutableStateOf<HabitWithCompletions?>(null) }
@@ -601,7 +635,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                         ) {
                                             item {
                                                 AnimatedVisibility(visible = heroCardVisible) {
-                                                    HeroCard(greeting = greeting, description = heroCardDescription)
+                                                    HeroCard(greeting = greeting, description = welcomeCardResolution.text)
                                                 }
                                             }
                                             items(
@@ -1401,7 +1435,7 @@ fun HeroCard(greeting: String, description: String, modifier: Modifier = Modifie
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(140.dp)
+                .heightIn(min = 130.dp)
                 .background(
                     brush = Brush.linearGradient(
                         colors = listOf(

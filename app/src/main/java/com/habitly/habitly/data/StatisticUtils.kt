@@ -411,16 +411,17 @@ fun calculateLongestStreak(habit: Habit, completions: List<Completion>, now: Lon
 
 
 
-fun calculateMonthlyStats(habitWithCompletions: HabitWithCompletions): List<MonthlyCompletion> {
+fun calculateMonthlyStats(habitWithCompletions: HabitWithCompletions, now: Long = System.currentTimeMillis()): List<MonthlyCompletion> {
     val habit = habitWithCompletions.habit
     val completions = habitWithCompletions.completions
     val effectiveStartDate = habit.getEffectiveStartDateMillis()
 
     val calendar = Calendar.getInstance()
-    val nowCalendar = Calendar.getInstance()
+    val nowCalendar = Calendar.getInstance().apply { timeInMillis = now }
     
     // Start of today
     val startOfTodayCal = Calendar.getInstance().apply {
+        timeInMillis = now
         set(Calendar.HOUR_OF_DAY, 0)
         set(Calendar.MINUTE, 0)
         set(Calendar.SECOND, 0)

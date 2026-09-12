@@ -27,9 +27,13 @@ import java.util.Date
 import java.util.Locale
 import java.util.UUID
 import java.util.concurrent.TimeUnit
+import com.habitly.habitly.data.welcome.WelcomeCardEngine
+import com.habitly.habitly.data.welcome.WelcomeCardContext
 
 const val GENERAL_NOTIFICATION_ID = "general_notification"
 const val GENERAL_NOTIFICATION_REQUEST_CODE = 1001
+const val WELCOME_CARD_NOTIFICATION_ID = "welcome_card_notification"
+const val WELCOME_CARD_NOTIFICATION_REQUEST_CODE = 1002
 
 class NotificationScheduler(private val context: Context) {
     private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
@@ -153,6 +157,56 @@ class NotificationScheduler(private val context: Context) {
         alarmManager.cancel(pendingIntent)
     }
 
+    fun scheduleWelcomeCardNotification(time: String, days: Set<String>, exactMode: Boolean? = null) {
+        if (days.isEmpty()) {
+            cancelWelcomeCardNotification()
+            return
+        }
+
+        val intent = Intent(context, NotificationReceiver::class.java).apply {
+            putExtra("habitId", WELCOME_CARD_NOTIFICATION_ID)
+            putExtra("notificationTime", time)
+            putExtra("notificationDays", days.toTypedArray())
+        }
+
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            WELCOME_CARD_NOTIFICATION_REQUEST_CODE,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val timeParts = time.split(":")
+        val hour = timeParts.getOrNull(0)?.toIntOrNull()
+        val minute = timeParts.getOrNull(1)?.toIntOrNull()
+        if (hour == null || minute == null || hour !in 0..23 || minute !in 0..59) {
+            cancelWelcomeCardNotification()
+            return
+        }
+
+        val nextAlarmTime = getNextAlarmTime(hour, minute, days) ?: return
+
+        if (exactMode != null) {
+            scheduleAlarm(alarmManager, nextAlarmTime, pendingIntent, exactMode)
+        } else {
+            CoroutineScope(Dispatchers.IO).launch {
+                val isExact = SettingsDataStore(context).exactAlarms.first()
+                scheduleAlarm(alarmManager, nextAlarmTime, pendingIntent, isExact)
+            }
+        }
+    }
+
+    fun cancelWelcomeCardNotification() {
+        val intent = Intent(context, NotificationReceiver::class.java)
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            WELCOME_CARD_NOTIFICATION_REQUEST_CODE,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        alarmManager.cancel(pendingIntent)
+    }
+
     suspend fun rescheduleAll() {
         val settingsDataStore = SettingsDataStore(context)
         val exactMode = settingsDataStore.exactAlarms.first()
@@ -171,6 +225,15 @@ class NotificationScheduler(private val context: Context) {
         } else {
             cancelGeneralNotification()
         }
+
+        val welcomeCardEnabled = settingsDataStore.welcomeCardNotificationEnabled.first()
+        if (welcomeCardEnabled) {
+            val wcTime = settingsDataStore.welcomeCardNotificationTime.first()
+            val wcDays = settingsDataStore.welcomeCardNotificationDays.first()
+            scheduleWelcomeCardNotification(wcTime, wcDays, exactMode)
+        } else {
+            cancelWelcomeCardNotification()
+        }
     }
 
     suspend fun cancelAllNotifications() {
@@ -180,6 +243,7 @@ class NotificationScheduler(private val context: Context) {
             cancelNotification(habit)
         }
         cancelGeneralNotification()
+        cancelWelcomeCardNotification()
     }
 }
 
@@ -391,10 +455,11 @@ class NotificationReceiver : BroadcastReceiver() {
             try {
                 var shouldShow = true
                 val isGeneralNotification = habitId == GENERAL_NOTIFICATION_ID
+                val isWelcomeCardNotification = habitId == WELCOME_CARD_NOTIFICATION_ID
                 val settingsDataStore = SettingsDataStore(context)
                 val snoozeEnabled = settingsDataStore.snoozeEnabled.first()
                 val exactMode = settingsDataStore.exactAlarms.first()
-                if (!isGeneralNotification) {
+                if (!isGeneralNotification && !isWelcomeCardNotification) {
                     // Check if the user has opted to skip notifications for habits already completed today
                     val skipCompleted = settingsDataStore.skipCompletedHabitNotifications.first()
 
@@ -410,14 +475,18 @@ class NotificationReceiver : BroadcastReceiver() {
                 }
 
                 if (shouldShow) {
-                    showNotification(context, intent, habitId, isGeneralNotification, snoozeEnabled, targetDate)
+                    showNotification(context, intent, habitId, isGeneralNotification, isWelcomeCardNotification, snoozeEnabled, targetDate)
                 }
 
                 // Since AlarmManager only schedules the alarm once, we must re-schedule
                 // the next occurrence manually. We don't reschedule if this is just a snoozed trigger.
                 if (!isSnoozedTrigger && notificationTime != null) {
                     val days = intent.getStringArrayExtra("notificationDays")?.toSet()
-                    if (isGeneralNotification) {
+                    if (isWelcomeCardNotification) {
+                        if (days != null) {
+                            rescheduleWelcomeCardAlarm(context, notificationTime, days, exactMode)
+                        }
+                    } else if (isGeneralNotification) {
                         if (days != null) {
                             rescheduleGeneralAlarm(context, notificationTime, days, exactMode)
                         }
@@ -433,11 +502,12 @@ class NotificationReceiver : BroadcastReceiver() {
         }
     }
 
-    private fun showNotification(
+    private suspend fun showNotification(
         context: Context,
         intent: Intent,
         habitId: String,
         isGeneralNotification: Boolean,
+        isWelcomeCardNotification: Boolean,
         snoozeEnabled: Boolean,
         targetDate: Long
     ) {
@@ -456,7 +526,46 @@ class NotificationReceiver : BroadcastReceiver() {
         val title: String
         val contentText: String
 
-        if (isGeneralNotification) {
+        if (isWelcomeCardNotification) {
+            val dao = HabitDatabase.getDatabase(context).habitDao()
+            val habits = dao.getAllHabitsWithCompletionsSnapshot()
+            val settingsDataStore = SettingsDataStore(context)
+            val firstDayOfWeek = settingsDataStore.firstDayOfWeekCalendar.first()
+            val savedDate = settingsDataStore.welcomeCardDate.first().ifEmpty { null }
+            val savedCat = settingsDataStore.welcomeCardCategoryId.first().ifEmpty { null }
+            val savedHabit = settingsDataStore.welcomeCardHabitId.first().ifEmpty { null }
+            val savedTemplate = settingsDataStore.welcomeCardTemplateIndex.first()
+
+            val welcomeContext = WelcomeCardContext(
+                habits = habits,
+                todayMillis = System.currentTimeMillis(),
+                firstDayOfWeek = firstDayOfWeek
+            )
+            val resolved = WelcomeCardEngine.resolveMessage(
+                context = welcomeContext,
+                savedDateKey = savedDate,
+                savedCategoryId = savedCat,
+                savedHabitId = savedHabit,
+                savedTemplateIndex = savedTemplate
+            )
+            if (resolved.isNewSelection) {
+                settingsDataStore.saveWelcomeCardState(
+                    dateKey = resolved.dateKey,
+                    categoryId = resolved.categoryId,
+                    habitId = resolved.habitId,
+                    templateIndex = resolved.templateIndex
+                )
+            }
+
+            val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+            title = when (hour) {
+                in 1..5 -> "It's a beautiful night!"
+                in 6..14 -> "Good morning"
+                in 15..19 -> "Good afternoon"
+                else -> "Good evening"
+            }
+            contentText = resolved.text
+        } else if (isGeneralNotification) {
             title = "Daily Reminder"
             contentText = "Time to log your habit completions!"
         } else {
@@ -484,7 +593,7 @@ class NotificationReceiver : BroadcastReceiver() {
             .setAutoCancel(true) // Dismiss the notification automatically when tapped
 
         // Add the inline "Complete" action for single habits
-        if (!isGeneralNotification) {
+        if (!isGeneralNotification && !isWelcomeCardNotification) {
             val actionIntent = Intent(context, NotificationReceiver::class.java).apply {
                 action = "ACTION_COMPLETE_HABIT"
                 putExtra("habitId", habitId)
@@ -577,6 +686,34 @@ class NotificationReceiver : BroadcastReceiver() {
         val pendingIntent = PendingIntent.getBroadcast(
             context,
             GENERAL_NOTIFICATION_REQUEST_CODE,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val timeParts = time.split(":")
+        val hour = timeParts.getOrNull(0)?.toIntOrNull()
+        val minute = timeParts.getOrNull(1)?.toIntOrNull()
+        if (hour == null || minute == null || hour !in 0..23 || minute !in 0..59) {
+            return
+        }
+
+        val nextAlarmTime = getNextAlarmTime(hour, minute, days) ?: return
+
+        scheduleAlarm(alarmManager, nextAlarmTime, pendingIntent, exactMode)
+    }
+
+    private fun rescheduleWelcomeCardAlarm(context: Context, time: String, days: Set<String>, exactMode: Boolean) {
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+
+        val intent = Intent(context, NotificationReceiver::class.java).apply {
+            putExtra("habitId", WELCOME_CARD_NOTIFICATION_ID)
+            putExtra("notificationTime", time)
+            putExtra("notificationDays", days.toTypedArray())
+        }
+
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            WELCOME_CARD_NOTIFICATION_REQUEST_CODE,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )

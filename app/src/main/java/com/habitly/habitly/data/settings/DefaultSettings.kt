@@ -39,5 +39,8 @@ object DefaultSettings {
     const val AUTO_SCROLL_TEXT = false
     const val AUTO_SCROLL_TEXT_ELEMENTS = "Title,Description"
     const val AUTO_SCROLL_TEXT_SCREENS = "Main Screen,Detail Screen"
+    const val WELCOME_CARD_NOTIFICATION_ENABLED = false
+    const val WELCOME_CARD_NOTIFICATION_TIME = "09:00"
+    const val WELCOME_CARD_NOTIFICATION_DAYS = "MON,TUE,WED,THU,FRI,SAT,SUN"
 }
 

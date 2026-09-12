@@ -79,6 +79,9 @@ fun NotificationSettingsScreen(
     val globalNotificationsEnabledState = settingsDataStore.globalNotificationsEnabled.collectAsState(initial = null)
     val globalNotificationTimeState = settingsDataStore.globalNotificationTime.collectAsState(initial = null)
     val globalNotificationDaysState = settingsDataStore.globalNotificationDays.collectAsState(initial = null)
+    val welcomeCardNotificationEnabledState = settingsDataStore.welcomeCardNotificationEnabled.collectAsState(initial = null)
+    val welcomeCardNotificationTimeState = settingsDataStore.welcomeCardNotificationTime.collectAsState(initial = null)
+    val welcomeCardNotificationDaysState = settingsDataStore.welcomeCardNotificationDays.collectAsState(initial = null)
 
     val exactAlarmsState = settingsDataStore.exactAlarms.collectAsState(initial = null)
     val vibrationsEnabled = vibrationsEnabledState.value ?: return
@@ -88,6 +91,9 @@ fun NotificationSettingsScreen(
     val globalNotificationsEnabled = globalNotificationsEnabledState.value ?: return
     val globalNotificationTime = globalNotificationTimeState.value ?: return
     val globalNotificationDays = globalNotificationDaysState.value ?: return
+    val welcomeCardNotificationEnabled = welcomeCardNotificationEnabledState.value ?: return
+    val welcomeCardNotificationTime = welcomeCardNotificationTimeState.value ?: return
+    val welcomeCardNotificationDays = welcomeCardNotificationDaysState.value ?: return
 
     val exactAlarms = exactAlarmsState.value ?: return
 
@@ -267,6 +273,58 @@ fun NotificationSettingsScreen(
         }
     }
 
+    var showWelcomeTimePicker by remember { mutableStateOf(false) }
+
+    if (showWelcomeTimePicker) {
+        val initialHour = welcomeCardNotificationTime.split(":")[0].toIntOrNull() ?: 9
+        val initialMinute = welcomeCardNotificationTime.split(":")[1].toIntOrNull() ?: 0
+        CustomTimePickerDialog(
+            onDismissRequest = { showWelcomeTimePicker = false },
+            onConfirm = { hour, minute ->
+                scope.launch {
+                    val newTime = String.format("%02d:%02d", hour, minute)
+                    settingsDataStore.setWelcomeCardNotificationTime(newTime)
+                    if (welcomeCardNotificationEnabled) {
+                        notificationScheduler.scheduleWelcomeCardNotification(
+                            newTime,
+                            welcomeCardNotificationDays
+                        )
+                    }
+                }
+                showWelcomeTimePicker = false
+            },
+            initialHour = initialHour,
+            initialMinute = initialMinute,
+            borderContrast = borderContrast,
+            is24Hour = is24Hour,
+            vibrationsEnabled = vibrationsEnabled
+        )
+    }
+
+    fun handleWelcomeNotificationToggle(enable: Boolean) {
+        if (enable) {
+            if (notificationPermissionHandler.hasPermission) {
+                scope.launch {
+                    settingsDataStore.setWelcomeCardNotificationEnabled(true)
+                    notificationScheduler.scheduleWelcomeCardNotification(welcomeCardNotificationTime, welcomeCardNotificationDays)
+                    if (vibrationsEnabled) {
+                        haptic.performHapticFeedback(HapticFeedbackType.ToggleOn)
+                    }
+                }
+            } else {
+                notificationPermissionHandler.requestPermission()
+            }
+        } else {
+            scope.launch {
+                settingsDataStore.setWelcomeCardNotificationEnabled(false)
+                notificationScheduler.cancelWelcomeCardNotification()
+                if (vibrationsEnabled) {
+                    haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+                }
+            }
+        }
+    }
+
     val (scrollState, scrollEnabled) = rememberSettingsScrollState()
 
     Column(
@@ -431,6 +489,65 @@ fun NotificationSettingsScreen(
                                 notificationPermissionHandler.requestPermission()
                             } else {
                                 handleNotificationToggle(true)
+                            }
+                        },
+                        isEnabled = isEnabled,
+                        borderAlpha = borderContrast,
+                        is24Hour = is24Hour,
+                        vibrationsEnabled = vibrationsEnabled,
+                        firstDayOfWeek = firstDayOfWeekCalendar,
+                        modifier = Modifier
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        SettingsGroup(
+            title = "Welcome Card Notification",
+            settingsDataStore = settingsDataStore
+        ) {
+            SettingsSwitchItem(
+                text = "Welcome card reminder",
+                description = "Receive a daily notification with your supportive progress and streaks",
+                checked = welcomeCardNotificationEnabled && notificationPermissionHandler.hasPermission,
+                settingsDataStore = settingsDataStore,
+                position = SettingsItemPosition.Top
+            ) {
+                handleWelcomeNotificationToggle(it)
+            }
+
+            SettingsItemBox(settingsDataStore = settingsDataStore, position = SettingsItemPosition.Bottom) {
+                val isEnabled = welcomeCardNotificationEnabled && notificationPermissionHandler.hasPermission
+                Column(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                ) {
+                    NotificationTimeSelectors(
+                        notificationTime = welcomeCardNotificationTime,
+                        selectedDays = welcomeCardNotificationDays,
+                        onTimeClick = { showWelcomeTimePicker = true },
+                        onDaySelected = { day ->
+                            scope.launch {
+                                val newDays = if (welcomeCardNotificationDays.contains(day)) {
+                                    welcomeCardNotificationDays - day
+                                } else {
+                                    welcomeCardNotificationDays + day
+                                }
+                                settingsDataStore.setWelcomeCardNotificationDays(newDays)
+                                if (welcomeCardNotificationEnabled) {
+                                    notificationScheduler.scheduleWelcomeCardNotification(
+                                        welcomeCardNotificationTime,
+                                        newDays
+                                    )
+                                }
+                            }
+                        },
+                        onDisabledClick = {
+                            if (!notificationPermissionHandler.hasPermission) {
+                                notificationPermissionHandler.requestPermission()
+                            } else {
+                                handleWelcomeNotificationToggle(true)
                             }
                         },
                         isEnabled = isEnabled,

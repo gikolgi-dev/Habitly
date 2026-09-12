@@ -62,6 +62,13 @@ class SettingsDataStore(private val context: Context) {
         val AUTO_SCROLL_TEXT_KEY = booleanPreferencesKey("auto_scroll_text")
         val AUTO_SCROLL_TEXT_ELEMENTS_KEY = stringPreferencesKey("auto_scroll_text_elements")
         val AUTO_SCROLL_TEXT_SCREENS_KEY = stringPreferencesKey("auto_scroll_text_screens")
+        val WELCOME_CARD_NOTIFICATION_ENABLED_KEY = booleanPreferencesKey("welcome_card_notification_enabled")
+        val WELCOME_CARD_NOTIFICATION_TIME_KEY = stringPreferencesKey("welcome_card_notification_time")
+        val WELCOME_CARD_NOTIFICATION_DAYS_KEY = stringPreferencesKey("welcome_card_notification_days")
+        val WELCOME_CARD_DATE_KEY = stringPreferencesKey("welcome_card_date")
+        val WELCOME_CARD_CATEGORY_ID_KEY = stringPreferencesKey("welcome_card_category_id")
+        val WELCOME_CARD_HABIT_ID_KEY = stringPreferencesKey("welcome_card_habit_id")
+        val WELCOME_CARD_TEMPLATE_INDEX_KEY = intPreferencesKey("welcome_card_template_index")
     }
 
     val theme: Flow<String> = context.dataStore.data
@@ -507,6 +514,68 @@ class SettingsDataStore(private val context: Context) {
         }
     }
 
+    val welcomeCardNotificationEnabled: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[WELCOME_CARD_NOTIFICATION_ENABLED_KEY] ?: DefaultSettings.WELCOME_CARD_NOTIFICATION_ENABLED
+        }
+
+    suspend fun setWelcomeCardNotificationEnabled(enabled: Boolean) {
+        context.dataStore.edit { settings ->
+            settings[WELCOME_CARD_NOTIFICATION_ENABLED_KEY] = enabled
+        }
+    }
+
+    val welcomeCardNotificationTime: Flow<String> = context.dataStore.data
+        .map { preferences ->
+            preferences[WELCOME_CARD_NOTIFICATION_TIME_KEY] ?: DefaultSettings.WELCOME_CARD_NOTIFICATION_TIME
+        }
+
+    suspend fun setWelcomeCardNotificationTime(time: String) {
+        context.dataStore.edit { settings ->
+            settings[WELCOME_CARD_NOTIFICATION_TIME_KEY] = time
+        }
+    }
+
+    val welcomeCardNotificationDays: Flow<Set<String>> = context.dataStore.data
+        .map { preferences ->
+            preferences[WELCOME_CARD_NOTIFICATION_DAYS_KEY]?.split(",")?.filter { it.isNotBlank() }?.toSet()
+                ?: DefaultSettings.WELCOME_CARD_NOTIFICATION_DAYS.split(",").toSet()
+        }
+
+    suspend fun setWelcomeCardNotificationDays(days: Set<String>) {
+        context.dataStore.edit { settings ->
+            settings[WELCOME_CARD_NOTIFICATION_DAYS_KEY] = days.joinToString(",")
+        }
+    }
+
+    val welcomeCardDate: Flow<String> = context.dataStore.data
+        .map { preferences ->
+            preferences[WELCOME_CARD_DATE_KEY] ?: ""
+        }
+
+    val welcomeCardCategoryId: Flow<String> = context.dataStore.data
+        .map { preferences ->
+            preferences[WELCOME_CARD_CATEGORY_ID_KEY] ?: ""
+        }
+
+    val welcomeCardHabitId: Flow<String> = context.dataStore.data
+        .map { preferences ->
+            preferences[WELCOME_CARD_HABIT_ID_KEY] ?: ""
+        }
+
+    val welcomeCardTemplateIndex: Flow<Int> = context.dataStore.data
+        .map { preferences ->
+            preferences[WELCOME_CARD_TEMPLATE_INDEX_KEY] ?: 0
+        }
+
+    suspend fun saveWelcomeCardState(dateKey: String, categoryId: String, habitId: String?, templateIndex: Int) {
+        context.dataStore.edit { settings ->
+            settings[WELCOME_CARD_DATE_KEY] = dateKey
+            settings[WELCOME_CARD_CATEGORY_ID_KEY] = categoryId
+            settings[WELCOME_CARD_HABIT_ID_KEY] = habitId ?: ""
+            settings[WELCOME_CARD_TEMPLATE_INDEX_KEY] = templateIndex
+        }
+    }
 
     // Make the reset to default button only affect and be visible in the appearence settings
     suspend fun resetToDefault() {
@@ -595,7 +664,10 @@ class SettingsDataStore(private val context: Context) {
             firstDayOfWeek = preferences[FIRST_DAY_OF_WEEK_KEY] ?: DefaultSettings.FIRST_DAY_OF_WEEK,
             autoScrollText = preferences[AUTO_SCROLL_TEXT_KEY] ?: DefaultSettings.AUTO_SCROLL_TEXT,
             autoScrollTextElements = preferences[AUTO_SCROLL_TEXT_ELEMENTS_KEY] ?: DefaultSettings.AUTO_SCROLL_TEXT_ELEMENTS,
-            autoScrollTextScreens = preferences[AUTO_SCROLL_TEXT_SCREENS_KEY] ?: DefaultSettings.AUTO_SCROLL_TEXT_SCREENS
+            autoScrollTextScreens = preferences[AUTO_SCROLL_TEXT_SCREENS_KEY] ?: DefaultSettings.AUTO_SCROLL_TEXT_SCREENS,
+            welcomeCardNotificationEnabled = preferences[WELCOME_CARD_NOTIFICATION_ENABLED_KEY] ?: DefaultSettings.WELCOME_CARD_NOTIFICATION_ENABLED,
+            welcomeCardNotificationTime = preferences[WELCOME_CARD_NOTIFICATION_TIME_KEY] ?: DefaultSettings.WELCOME_CARD_NOTIFICATION_TIME,
+            welcomeCardNotificationDays = preferences[WELCOME_CARD_NOTIFICATION_DAYS_KEY] ?: DefaultSettings.WELCOME_CARD_NOTIFICATION_DAYS
         )
     }
 
@@ -637,6 +709,9 @@ class SettingsDataStore(private val context: Context) {
             preferences[AUTO_SCROLL_TEXT_KEY] = settings.autoScrollText
             preferences[AUTO_SCROLL_TEXT_ELEMENTS_KEY] = settings.autoScrollTextElements
             preferences[AUTO_SCROLL_TEXT_SCREENS_KEY] = settings.autoScrollTextScreens
+            preferences[WELCOME_CARD_NOTIFICATION_ENABLED_KEY] = settings.welcomeCardNotificationEnabled
+            preferences[WELCOME_CARD_NOTIFICATION_TIME_KEY] = settings.welcomeCardNotificationTime
+            preferences[WELCOME_CARD_NOTIFICATION_DAYS_KEY] = settings.welcomeCardNotificationDays
         }
     }
 }
@@ -678,5 +753,8 @@ data class ExportedSettings(
     val firstDayOfWeek: String = DefaultSettings.FIRST_DAY_OF_WEEK,
     val autoScrollText: Boolean = DefaultSettings.AUTO_SCROLL_TEXT,
     val autoScrollTextElements: String = DefaultSettings.AUTO_SCROLL_TEXT_ELEMENTS,
-    val autoScrollTextScreens: String = DefaultSettings.AUTO_SCROLL_TEXT_SCREENS
+    val autoScrollTextScreens: String = DefaultSettings.AUTO_SCROLL_TEXT_SCREENS,
+    val welcomeCardNotificationEnabled: Boolean = DefaultSettings.WELCOME_CARD_NOTIFICATION_ENABLED,
+    val welcomeCardNotificationTime: String = DefaultSettings.WELCOME_CARD_NOTIFICATION_TIME,
+    val welcomeCardNotificationDays: String = DefaultSettings.WELCOME_CARD_NOTIFICATION_DAYS
 )
