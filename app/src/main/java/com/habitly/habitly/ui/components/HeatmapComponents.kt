@@ -37,6 +37,8 @@ import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.habitly.habitly.ui.colors.isBright
+import com.habitly.habitly.ui.colors.toThemeHabitColor
 
 @Immutable
 data class HeatmapWeekData(
@@ -70,6 +72,8 @@ fun HeatmapWeekColumn(
 ) {
     val onSurface = MaterialTheme.colorScheme.onSurface
     val surface = MaterialTheme.colorScheme.surface
+    val isDark = !surface.isBright()
+    val effectiveHabitColor = habitColor.toThemeHabitColor(isDark)
     val density = LocalDensity.current
     
     val cellSizePx = with(density) { cellSize.toPx() }
@@ -169,9 +173,13 @@ fun HeatmapWeekColumn(
                     val ratio = animatedRatios.getOrElse(i) { weekData.completionRatios.getOrNull(i) ?: if (isCompleted) 1f else 0f }
                     val color = when {
                         isFuture -> onSurface.copy(alpha = 0.05f)
-                        ratio >= 1f -> habitColor
-                        ratio > 0f -> androidx.compose.ui.graphics.lerp(habitColor.copy(alpha = 0.35f), habitColor, ratio)
-                        else -> habitColor.copy(alpha = 0.15f)
+                        ratio >= 1f -> effectiveHabitColor
+                        ratio > 0f -> androidx.compose.ui.graphics.lerp(
+                            effectiveHabitColor.copy(alpha = if (isDark) 0.35f else 0.42f),
+                            effectiveHabitColor,
+                            ratio
+                        )
+                        else -> effectiveHabitColor.copy(alpha = if (isDark) 0.15f else 0.24f)
                     }
 
                     val top = i * (cellSizePx + verticalSpacingPx)

@@ -67,6 +67,7 @@ import com.habitly.habitly.data.Database.normalizeToStartOfDay
 import com.habitly.habitly.data.Database.getDailyTarget
 import androidx.compose.ui.unit.sp
 import com.habitly.habitly.ui.colors.isBright
+import com.habitly.habitly.ui.colors.toThemeHabitColor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Calendar
@@ -346,9 +347,12 @@ fun MonthCalendar(
                             val isToday = dayStartMillis == today.timeInMillis
                             val isAfterToday = day.after(today)
 
+                            val isDark = !MaterialTheme.colorScheme.surface.isBright()
+                            val effectiveHabitColor = habitColor.toThemeHabitColor(isDark)
+
                             val targetCellColor = when {
-                                isCompleted -> habitColor.copy(alpha = if (isInCurrentMonth) 1f else 0.6f)
-                                ratio > 0f -> habitColor.copy(alpha = if (isInCurrentMonth) 0.35f + 0.35f * ratio else 0.25f)
+                                isCompleted -> effectiveHabitColor.copy(alpha = if (isInCurrentMonth) 1f else 0.6f)
+                                ratio > 0f -> effectiveHabitColor.copy(alpha = if (isInCurrentMonth) (if (isDark) 0.35f else 0.45f) + 0.35f * ratio else (if (isDark) 0.25f else 0.35f))
                                 else -> Color.Transparent
                             }
                             val cellColor by animateColorAsState(
@@ -358,7 +362,7 @@ fun MonthCalendar(
                             )
 
                             val textColor = when {
-                                isCompleted -> if (habitColor.isBright()) Color.Black else Color.White
+                                isCompleted -> if (effectiveHabitColor.isBright()) Color.Black else Color.White
                                 isAfterToday -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                                 !isInCurrentMonth -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                                 else -> MaterialTheme.colorScheme.onSurface

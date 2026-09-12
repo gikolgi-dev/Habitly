@@ -1344,8 +1344,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
             FabMenu(
                 modifier = Modifier
                     .windowInsetsPadding(WindowInsets.safeDrawing)
-                    .padding(end = 16.dp, bottom = 16.dp)
-                    .offset(x = 8.dp, y = 20.dp),
+                    .padding(end = 16.dp, bottom = 16.dp)/*
+                    .offset(x = 8.dp, y = 20.dp) */,
                 expanded = isFabMenuExpanded,
                 onExpandedChange = { isFabMenuExpanded = it },
                 onAddHabit = {

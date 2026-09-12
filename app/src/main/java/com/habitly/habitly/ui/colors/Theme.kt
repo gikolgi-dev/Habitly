@@ -157,12 +157,12 @@ fun Attempt3Theme(
             )
         } else {
             baseColorScheme.copy(
-                background = Color(0xFFFFFFFF),
-                onBackground = Color(0xFF121216),
-                surface = Color(0xFFFFFFFF),
-                surfaceVariant = Color(0xFFdcdcdc),
-                onSurface = Color(0xFF121216),
-                onSurfaceVariant = Color(0xFF121216)
+                background = Color(0xFFEEEEEE),
+                onBackground = Color(0xFF181815),
+                surface = Color(0xFFEEEEEE),
+                surfaceVariant = Color(0xFFDCDCDC),
+                onSurface = Color(0xFF181815),
+                onSurfaceVariant = Color(0xFF181815)
             )
         }
     } else {

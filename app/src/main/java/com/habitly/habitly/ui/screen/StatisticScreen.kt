@@ -132,6 +132,8 @@ import com.habitly.habitly.data.Database.HabitViewModel
 import com.habitly.habitly.data.Database.HabitsUiState
 import com.habitly.habitly.data.Database.HabitWithCompletions
 import com.habitly.habitly.ui.AppBackButton
+import com.habitly.habitly.ui.colors.isBright
+import com.habitly.habitly.ui.colors.toThemeHabitColor
 import com.habitly.habitly.ui.components.*
 
 private val ALL_STAT_MODULES = listOf(
@@ -483,7 +485,8 @@ fun StatisticScreen(
                         val index = page % actualCount
                         val habit = habits.getOrNull(index)
                         if (habit != null) {
-                            val habitColor = Color(habit.habit.color)
+                            val isDark = !MaterialTheme.colorScheme.surface.isBright()
+                            val habitColor = Color(habit.habit.color).toThemeHabitColor(isDark)
 
                             val pageLayout = remember(habit.habit.statsLayout, habit.habit.streakCountingDisabled) {
                                 val layout = habit.habit.statsLayout

@@ -285,7 +285,7 @@ fun HeatmapSubScreen(
 
                 SettingsSwitchItem(
                     text = "Heatmap scrolling",
-                    description = "Allow horizontal scrolling on the heatmap",
+                    description = "Allow scrolling the heatmap on the main screen",
                     checked = heatmapScrolling,
                     settingsDataStore = settingsDataStore,
                     position = SettingsItemPosition.Middle

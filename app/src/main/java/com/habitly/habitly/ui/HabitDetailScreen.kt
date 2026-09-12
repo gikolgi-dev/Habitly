@@ -20,6 +20,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
@@ -47,6 +48,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.habitly.habitly.ui.circleToSquareMorph
 import com.habitly.habitly.ui.MorphPolygonShape
+import com.habitly.habitly.ui.colors.toThemeHabitColor
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ShowChart
@@ -79,6 +81,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.PaintingStyle.Companion.Stroke
@@ -90,6 +93,7 @@ import androidx.graphics.shapes.toPath
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
@@ -181,20 +185,29 @@ fun SharedTransitionScope.HabitDetailScreen(
     }
     val secondaryContainerAlpha = if (useDarkTheme) 0.25f else 1f
 
+    val habitThemeColor = Color(habit.color).toThemeHabitColor(useDarkTheme)
     val cardBackgroundColor = if (useHabitColor) {
-        lerp(Color(habit.color), MaterialTheme.colorScheme.surfaceVariant, 0.85f)
+        lerp(habitThemeColor, MaterialTheme.colorScheme.surfaceVariant, if (useDarkTheme) 0.85f else 0.82f)
     } else {
         MaterialTheme.colorScheme.surfaceVariant
     }
 
     val cardBorderColor = if (useHabitColor) {
         lerp(
-            Color(habit.color),
-            lerp(Color(habit.color), MaterialTheme.colorScheme.surfaceVariant, 0.85f),
+            habitThemeColor,
+            lerp(habitThemeColor, MaterialTheme.colorScheme.surfaceVariant, if (useDarkTheme) 0.85f else 0.82f),
             1f - borderContrast
         )
     } else {
         MaterialTheme.colorScheme.outline.copy(alpha = borderContrast)
+    }
+
+    val secondaryContainerColor = MaterialTheme.colorScheme.secondaryContainer
+    val infoBoxBackgroundColor = remember(secondaryContainerColor, secondaryContainerAlpha, cardBackgroundColor) {
+        secondaryContainerColor.copy(alpha = secondaryContainerAlpha).compositeOver(cardBackgroundColor)
+    }
+    val streakBackgroundColor = remember(cardBackgroundColor) {
+        Color(0xFFFC9920).copy(alpha = 0.4f).compositeOver(cardBackgroundColor)
     }
 
     if (showDeleteConfirmation) {
@@ -290,6 +303,7 @@ fun SharedTransitionScope.HabitDetailScreen(
             colors = CardDefaults.cardColors(
                 containerColor = cardBackgroundColor
             ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
             border = BorderStroke(
                 1.dp,
                 cardBorderColor
@@ -359,10 +373,22 @@ fun SharedTransitionScope.HabitDetailScreen(
                         val isCompletedToday = remember(habit, completions, todayStart, currentDateMillis) {
                             com.habitly.habitly.data.Database.isDayCompleted(habit, completions, todayStart, currentDateMillis)
                         }
-                        
-                        val secondaryContainerColor = MaterialTheme.colorScheme.secondaryContainer
+
                         val transformedPath = remember { Path() }
                         val transformMatrix = remember { android.graphics.Matrix() }
+
+                        val isMorphConcluded = transitionProgressProvider() >= 0.999f
+                        val shadowAlpha by animateFloatAsState(
+                            targetValue = if (isMorphConcluded) 1f else 0f,
+                            animationSpec = if (disableAnimations || !isMorphConcluded) snap() else tween(150),
+                            label = "closeButtonShadowAlpha"
+                        )
+                        val closeElevation by animateDpAsState(
+                            targetValue = if (isClosePressed) 0.dp else 1.dp,
+                            animationSpec = if (disableAnimations) snap() else tween(150),
+                            label = "closeButtonElevation"
+                        )
+                        val closeShape = remember { MorphPolygonShape(circleToSquareMorph, 1f) }
 
                         Box(
                             modifier = Modifier
@@ -374,6 +400,9 @@ fun SharedTransitionScope.HabitDetailScreen(
                                 .graphicsLayer {
                                     scaleX = closeScale
                                     scaleY = closeScale
+                                    shape = closeShape
+                                    val currentElevation = closeElevation * shadowAlpha
+                                    shadowElevation = if (currentElevation > 0.dp) currentElevation.toPx() else 0f
                                 }
                                 .size(48.dp)
                                 .drawBehind {
@@ -384,15 +413,15 @@ fun SharedTransitionScope.HabitDetailScreen(
 
                                     val p = if (isCompletedToday) 1f else 0f
                                     val tp = transitionProgressProvider()
-                                    val currentColor = animatedColorState.value
+                                    val currentColor = animatedColorState.value.toThemeHabitColor(useDarkTheme)
 
-                                    val bgAlpha = 0.1f + (1f - 0.1f) * p
+                                    val bgAlpha = if (useDarkTheme) 0.1f + (1f - 0.1f) * p else 0.22f + (1f - 0.22f) * p
                                     val strokeAlpha = borderContrast + (1f - borderContrast) * p
 
                                     val itemBgColor = currentColor.copy(alpha = bgAlpha)
                                     val itemStrokeColor = currentColor.copy(alpha = strokeAlpha)
 
-                                    val targetBgColor = secondaryContainerColor.copy(alpha = secondaryContainerAlpha)
+                                    val targetBgColor = infoBoxBackgroundColor
                                     val targetBorderColor = cardBorderColor
 
                                     val currentBgColor = lerp(itemBgColor, targetBgColor, tp)
@@ -482,8 +511,8 @@ fun SharedTransitionScope.HabitDetailScreen(
                     Box(
                         modifier = Modifier
                             .height(35.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = secondaryContainerAlpha))
+                            .shadow(1.dp, RoundedCornerShape(8.dp))
+                            .background(infoBoxBackgroundColor, RoundedCornerShape(8.dp))
                             .border(
                                 1.dp,
                                 cardBorderColor,
@@ -523,8 +552,8 @@ fun SharedTransitionScope.HabitDetailScreen(
                         Box(
                             modifier = Modifier
                                 .height(35.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = secondaryContainerAlpha))
+                                .shadow(1.dp, RoundedCornerShape(8.dp))
+                                .background(infoBoxBackgroundColor, RoundedCornerShape(8.dp))
                                 .border(
                                     1.dp,
                                     cardBorderColor,
@@ -572,8 +601,8 @@ fun SharedTransitionScope.HabitDetailScreen(
                                 modifier = Modifier
                                     .wrapContentWidth()
                                     .height(35.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(Color(0xFFFC9920).copy(alpha = 0.4f))
+                                    .shadow(1.dp, RoundedCornerShape(8.dp))
+                                    .background(streakBackgroundColor, RoundedCornerShape(8.dp))
                                     .border(
                                         1.dp,
                                         Color(0xFFFC9920).copy(alpha = borderContrast * 2),
@@ -670,6 +699,10 @@ fun SharedTransitionScope.HabitDetailScreen(
                         containerColor = cardBackgroundColor,
                         contentColor = MaterialTheme.colorScheme.onSurface
                     ),
+                    elevation = ButtonDefaults.buttonElevation(
+                        defaultElevation = 1.dp,
+                        pressedElevation = 0.dp
+                    ),
                     border = BorderStroke(1.dp, cardBorderColor)
                 ) {
                     Icon(
@@ -693,6 +726,10 @@ fun SharedTransitionScope.HabitDetailScreen(
                     colors = ButtonDefaults.buttonColors(
                         containerColor = cardBackgroundColor,
                         contentColor = MaterialTheme.colorScheme.onSurface
+                    ),
+                    elevation = ButtonDefaults.buttonElevation(
+                        defaultElevation = 1.dp,
+                        pressedElevation = 0.dp
                     ),
                     border = BorderStroke(1.dp, cardBorderColor)
                 ) {
@@ -722,6 +759,10 @@ fun SharedTransitionScope.HabitDetailScreen(
                     colors = ButtonDefaults.buttonColors(
                         containerColor = cardBackgroundColor,
                         contentColor = MaterialTheme.colorScheme.onSurface
+                    ),
+                    elevation = ButtonDefaults.buttonElevation(
+                        defaultElevation = 1.dp,
+                        pressedElevation = 0.dp
                     ),
                     border = BorderStroke(1.dp, cardBorderColor)
                 ) {

@@ -85,6 +85,7 @@ import com.habitly.habitly.data.Database.Completion
 import com.habitly.habitly.data.Database.Habit
 import com.habitly.habitly.data.Database.getDailyTarget
 import com.habitly.habitly.ui.colors.isBright
+import com.habitly.habitly.ui.colors.toThemeHabitColor
 import com.habitly.habitly.ui.components.RotatingHabitIcon
 import java.util.Calendar
 
@@ -135,7 +136,7 @@ fun HabitTitleAndDescription(
                     Text(
                         text = habit.description,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                         maxLines = 1,
                         overflow = TextOverflow.Clip,
                         modifier = Modifier.basicMarquee(
@@ -163,7 +164,7 @@ fun HabitTitleAndDescription(
                             style = MaterialTheme.typography.bodyMedium,
                             maxLines = if (isExpanded) Int.MAX_VALUE else 1,
                             overflow = TextOverflow.Ellipsis,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                             onTextLayout = { textLayoutResult ->
                                 if (!isOverflowing && !isExpanded) {
                                     isOverflowing = textLayoutResult.hasVisualOverflow
@@ -175,7 +176,7 @@ fun HabitTitleAndDescription(
                                 text = if (isExpanded) "Read less" else "Read more",
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -221,6 +222,11 @@ fun HabitCompletionButton(
     currentCompletions: Int = if (isCompleted) habit.getDailyTarget() else 0,
     onDecrement: (() -> Unit)? = null
 ) {
+    val useDarkTheme = when (theme) {
+        "light" -> false
+        "dark" -> true
+        else -> androidx.compose.foundation.isSystemInDarkTheme()
+    }
     val target = habit.getDailyTarget()
     val color = Color(habit.color)
     val targetProgress = if (isCompleted) 1f else 0f
@@ -263,9 +269,8 @@ fun HabitCompletionButton(
     val buttonModifier = if (sharedTransitionScope != null) {
         with(sharedTransitionScope) {
             Modifier.sharedElementWithCallerManagedVisibility(
-                rememberSharedContentState(key = "button-${habit.id}"),
-                visible = visible,
-                boundsTransform = { _, _ -> tween(durationMillis = 300, easing = FastOutSlowInEasing) }
+                rememberSharedContentState(key = "habit_button_${habit.id}"),
+                visible = visible
             )
         }
     } else {
@@ -287,19 +292,19 @@ fun HabitCompletionButton(
                 val index = (morphPercentage * 100).roundToInt().coerceIn(0, 100)
                 val cachedPath = precomputedMorphPaths[index]
 
-                val bgAlpha = lerp(0.1f, 1f, p)
+                val bgAlpha = lerp(if (useDarkTheme) 0.1f else 0.22f, 1f, p)
                 val strokeAlpha = lerp(borderContrast, 1f, p)
-                val currentColor = animatedHabitColorState.value
+                val currentColor = animatedHabitColorState.value.toThemeHabitColor(useDarkTheme)
 
                 val itemBgColor = currentColor.copy(alpha = bgAlpha)
                 val itemStrokeColor = currentColor.copy(alpha = strokeAlpha)
-                
+
                 val targetBgColor = if (detailBgColor != Color.Unspecified) detailBgColor else itemBgColor
                 val targetBorderColor = if (detailBorderColor != Color.Unspecified) detailBorderColor else itemStrokeColor
-                
+
                 val currentBgColor = lerp(itemBgColor, targetBgColor, tp)
                 val currentStrokeColor = lerp(itemStrokeColor, targetBorderColor, tp)
-                
+
                 val innerSize = if (target > 1) (44.dp.toPx() + (size.width - 44.dp.toPx()) * morphPercentage) else size.width
                 val offset = (size.width - innerSize) / 2f
 
@@ -322,7 +327,8 @@ fun HabitCompletionButton(
                         val ringRadiusPx = (27.5.dp - 3.5.dp * p).toPx()
                         val strokeWidthPx = (3.dp * (1f - 0.4f * p)).toPx()
                         val comp = animatedCompletions.value
-                        val trackAlpha = lerp(0.15f, 0.3f, borderContrast) * chunksAlpha
+                        val baseTrackAlpha = if (useDarkTheme) lerp(0.15f, 0.3f, borderContrast) else lerp(0.25f, 0.45f, borderContrast)
+                        val trackAlpha = baseTrackAlpha * chunksAlpha
                         val filledAlpha = chunksAlpha
 
                         for (i in 0 until count) {
@@ -380,14 +386,14 @@ fun HabitCompletionButton(
             ),
         contentAlignment = Alignment.Center
     ) {
-        val animatedHabitColor = animatedHabitColorState.value
+        val animatedHabitColor = animatedHabitColorState.value.toThemeHabitColor(useDarkTheme)
         val iconTintColor = if (isCompleted) {
-            if (animatedHabitColor.isBright()) MaterialTheme.colorScheme.onPrimary else Color.White
+            if (animatedHabitColor.isBright()) Color.Black else Color.White
         } else {
             animatedHabitColor
         }
         val tp = transitionProgressProvider()
-        val baseIconSize = if (target > 1) 22.dp else 32.dp
+        val baseIconSize = 32.dp
         val targetIconSize = if (target > 1) baseIconSize + (32.dp - baseIconSize) * progressState.value else 32.dp
         val iconSize = targetIconSize + (20.dp - targetIconSize) * tp
         val delayStart = if (isCompleted) 0f else 0.4f
@@ -454,16 +460,23 @@ fun HabitItemCard(
     autoScrollTextElements: Set<String> = emptySet(),
     autoScrollTextScreens: Set<String> = emptySet()
 ) {
+    val useDarkTheme = when (theme) {
+        "light" -> false
+        "dark" -> true
+        else -> androidx.compose.foundation.isSystemInDarkTheme()
+    }
+
+    val habitThemeColor = Color(habit.color).toThemeHabitColor(useDarkTheme)
     val targetCardBackgroundColor = if (useHabitColor) {
-        lerp(Color(habit.color), MaterialTheme.colorScheme.surfaceVariant, 0.85f)
+        lerp(habitThemeColor, MaterialTheme.colorScheme.surfaceVariant, if (useDarkTheme) 0.85f else 0.82f)
     } else {
         MaterialTheme.colorScheme.surfaceVariant
     }
 
     val targetCardBorderColor = if (useHabitColor) {
         lerp(
-            Color(habit.color),
-            lerp(Color(habit.color), MaterialTheme.colorScheme.surfaceVariant, 0.85f),
+            habitThemeColor,
+            lerp(habitThemeColor, MaterialTheme.colorScheme.surfaceVariant, if (useDarkTheme) 0.85f else 0.82f),
             1f - borderContrast
         )
     } else {
@@ -480,11 +493,6 @@ fun HabitItemCard(
         animationSpec = tween(300),
         label = "cardBorderColor"
     )
-    val useDarkTheme = when (theme) {
-        "light" -> false
-        "dark" -> true
-        else -> androidx.compose.foundation.isSystemInDarkTheme()
-    }
     val secondaryContainerAlpha = if (useDarkTheme) 0.25f else 1f
     val resolvedDetailBgColor = if (detailBgColor != Color.Unspecified) {
         detailBgColor
@@ -494,15 +502,26 @@ fun HabitItemCard(
     val detailBorderColor = cardBorderColor
 
     Card(
+        onClick = onClick,
+        enabled = !isPreview,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 0.dp)
-            .then(modifier)
-            .clip(MaterialTheme.shapes.medium)
-            .then(if (!isPreview) Modifier.clickable(onClick = onClick) else Modifier),
+            .then(modifier),
+        shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
             containerColor = cardBackgroundColor,
-            contentColor = MaterialTheme.colorScheme.onSurface
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            disabledContainerColor = cardBackgroundColor,
+            disabledContentColor = MaterialTheme.colorScheme.onSurface
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 1.dp,
+            pressedElevation = 0.dp,
+            focusedElevation = 2.dp,
+            hoveredElevation = 3.dp,
+            draggedElevation = 4.dp,
+            disabledElevation = 2.dp
         ),
         border = BorderStroke(
             1.dp,

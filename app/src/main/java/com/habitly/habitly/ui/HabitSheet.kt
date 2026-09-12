@@ -133,6 +133,7 @@ import androidx.compose.ui.unit.dp
 import com.habitly.habitly.data.settings.SettingsDataStore
 import com.habitly.habitly.ui.colors.habitColors
 import com.habitly.habitly.ui.colors.isBright
+import com.habitly.habitly.ui.colors.toThemeHabitColor
 import com.habitly.habitly.ui.components.NotificationTimeSelectors
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.sqrt
@@ -327,6 +328,9 @@ private fun HabitColorItem(
         label = "translationY"
     )
 
+    val isDark = !MaterialTheme.colorScheme.surface.isBright()
+    val displayColor = color.toThemeHabitColor(isDark)
+
     Box(
         modifier = Modifier
             .aspectRatio(1f)
@@ -337,7 +341,7 @@ private fun HabitColorItem(
                 this.translationY = translationY
             }
             .clip(RoundedCornerShape(6.dp))
-            .background(color)
+            .background(displayColor)
             .pointerInput(color) {
                 detectTapGestures(
                     onPress = {
@@ -364,6 +368,7 @@ private fun HabitColorItem(
             animationSpec = spring(dampingRatio = 0.7f, stiffness = Spring.StiffnessLow),
             label = "selectScale"
         )
+        val selectionIndicatorColor = if (displayColor.isBright()) Color.Black else Color.White
         Box(
             modifier = Modifier
                 .fillMaxSize(0.6f)
@@ -373,7 +378,7 @@ private fun HabitColorItem(
                     alpha = if (selectScale > 0.01f) 1f else 0f
                 }
                 .clip(RoundedCornerShape(4.dp))
-                .background(MaterialTheme.colorScheme.surface)
+                .background(selectionIndicatorColor)
         )
     }
 }
