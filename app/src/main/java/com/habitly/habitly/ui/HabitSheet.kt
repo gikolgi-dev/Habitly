@@ -578,12 +578,6 @@ fun HabitSheetContent(
     notificationDays: Set<String>,
     onNotificationDaySelected: (String) -> Unit,
     headerModifier: Modifier = Modifier,
-<<<<<<< Updated upstream
-=======
-<<<<<<< Updated upstream
-    onClose: () -> Unit = {}
-=======
->>>>>>> Stashed changes
     onClose: () -> Unit = {},
     previewContent: (@Composable () -> Unit)? = null,
     isInverse: Boolean = false,
@@ -595,14 +589,9 @@ fun HabitSheetContent(
     targetConversionIsPercentage: Boolean = false,
     onTargetConversionChanged: (Boolean) -> Unit = {},
     streakCountingDisabled: Boolean = false,
-<<<<<<< Updated upstream
-    onStreakCountingDisabledChanged: (Boolean) -> Unit = {}
-=======
     onStreakCountingDisabledChanged: (Boolean) -> Unit = {},
     ignoreInWelcomeCard: Boolean = false,
     onIgnoreInWelcomeCardChanged: (Boolean) -> Unit = {}
->>>>>>> Stashed changes
->>>>>>> Stashed changes
 ) {
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
     val haptic = LocalHapticFeedback.current

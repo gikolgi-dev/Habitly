@@ -451,12 +451,8 @@ class HabitFeaturesTest {
             globalNotificationDays = "MON,WED,FRI",
             autoScrollText = true,
             autoScrollTextElements = "Title",
-<<<<<<< Updated upstream
-            autoScrollTextScreens = "Main Screen"
-=======
             autoScrollTextScreens = "Main Screen",
             ignoreWelcomeEngine = true
->>>>>>> Stashed changes
         )
         val exportData = ExportData(
             habits = emptyList(),
@@ -472,10 +468,7 @@ class HabitFeaturesTest {
         assertTrue(encoded.contains("\"firstDayOfWeek\":\"sunday\"") || encoded.contains("\"firstDayOfWeek\": \"sunday\""))
         assertTrue(encoded.contains("\"globalNotificationTime\":\"08:30\"") || encoded.contains("\"globalNotificationTime\": \"08:30\""))
         assertTrue(encoded.contains("\"heatmapWeeks\":30") || encoded.contains("\"heatmapWeeks\": 30"))
-<<<<<<< Updated upstream
-=======
         assertTrue(encoded.contains("\"ignoreWelcomeEngine\":true") || encoded.contains("\"ignoreWelcomeEngine\": true"))
->>>>>>> Stashed changes
 
         // Decode and verify all values deserialize correctly
         val decoded = json.decodeFromString(ExportData.serializer(), encoded)
@@ -492,8 +485,6 @@ class HabitFeaturesTest {
         assertTrue(decoded.settings?.autoScrollText ?: false)
         assertEquals("Title", decoded.settings?.autoScrollTextElements)
         assertEquals("Main Screen", decoded.settings?.autoScrollTextScreens)
-<<<<<<< Updated upstream
-=======
         assertTrue(decoded.settings?.ignoreWelcomeEngine ?: false)
     }
 
@@ -517,7 +508,6 @@ class HabitFeaturesTest {
         assertNotNull(decoded.settings)
         assertEquals("dark", decoded.settings?.theme)
         assertFalse(decoded.settings?.ignoreWelcomeEngine ?: true)
->>>>>>> Stashed changes
     }
 
     @Test
@@ -568,8 +558,6 @@ class HabitFeaturesTest {
     }
 
     @Test
-<<<<<<< Updated upstream
-=======
     fun testExportData_ignoreInWelcomeCardField() {
         val habit1 = com.habitly.habitly.ui.screen.settings.ExportedHabit(
             id = "h-1",
@@ -659,7 +647,6 @@ class HabitFeaturesTest {
     }
 
     @Test
->>>>>>> Stashed changes
     fun testHabitKitFormatVersion2_importMapping() {
         val sampleJson = """{"formatVersion":2,"habits":[{"id":"583371e5-1dbb-4490-bfc7-fa2ca3218499","name":"Hehs","description":null,"icon":"activity","color":"red","archived":false,"orderIndex":0,"createdAt":"2026-08-27T19:42:49.376491Z","isInverse":true,"inverseStartDate":"2026-08-18","inverseSpanBounds":[],"emoji":null},{"id":"4bd94bc5-3512-41b0-a7f1-51d0179f6628","name":"Multi","description":null,"icon":"activity","color":"red","archived":false,"orderIndex":0,"createdAt":"2026-08-27T19:43:31.694871Z","isInverse":false,"inverseStartDate":null,"inverseSpanBounds":[],"emoji":null}],"completions":[{"id":"9d4dce62-fb2a-4a4b-a08d-21840ed58d1b","date":"2026-08-26T22:00:00.000Z","habitId":"583371e5-1dbb-4490-bfc7-fa2ca3218499","timezoneOffsetInMinutes":120,"amountOfCompletions":0,"note":null},{"id":"98efa988-469d-4c26-916f-7f62d8c18897","date":"2026-08-19T22:00:01.000Z","habitId":"583371e5-1dbb-4490-bfc7-fa2ca3218499","timezoneOffsetInMinutes":120,"amountOfCompletions":1,"note":null},{"id":"01f9dc61-4584-4775-ad55-b90e6f2c3e1d","date":"2026-08-24T22:00:01.000Z","habitId":"583371e5-1dbb-4490-bfc7-fa2ca3218499","timezoneOffsetInMinutes":120,"amountOfCompletions":1,"note":null},{"id":"56144dab-0673-4924-bcdb-00fa5e0280d8","date":"2026-08-26T22:00:00.000Z","habitId":"4bd94bc5-3512-41b0-a7f1-51d0179f6628","timezoneOffsetInMinutes":120,"amountOfCompletions":2,"note":null}],"intervals":[{"id":"74bd989f-136c-46be-84c1-41f25c36cf2d","habitId":"583371e5-1dbb-4490-bfc7-fa2ca3218499","startDate":"2026-08-19T22:00:00.000Z","endDate":null,"type":"none","requiredNumberOfCompletions":null,"requiredNumberOfCompletionsPerDay":1,"unitType":"incremental","streakType":"day","allowExceedingGoal":false},{"id":"b74b911b-481a-4afa-8427-21c071cf7290","habitId":"4bd94bc5-3512-41b0-a7f1-51d0179f6628","startDate":"2026-08-26T22:00:00.000Z","endDate":null,"type":"none","requiredNumberOfCompletions":null,"requiredNumberOfCompletionsPerDay":3,"unitType":"incremental","streakType":"day","allowExceedingGoal":false}],"reminders":[],"categories":[]}"""
 

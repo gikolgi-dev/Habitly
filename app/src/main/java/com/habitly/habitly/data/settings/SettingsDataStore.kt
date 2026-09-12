@@ -58,11 +58,6 @@ class SettingsDataStore(private val context: Context) {
         val HEATMAP_WEEKS_KEY = intPreferencesKey("heatmap_weeks")
         val HEATMAP_INFINITE_KEY = booleanPreferencesKey("heatmap_infinite")
         val HAS_ASKED_NOTIFICATION_PERMISSION_KEY = booleanPreferencesKey("has_asked_notification_permission")
-<<<<<<< Updated upstream
-=======
-<<<<<<< Updated upstream
-=======
->>>>>>> Stashed changes
         val FIRST_DAY_OF_WEEK_KEY = stringPreferencesKey("first_day_of_week")
         val AUTO_SCROLL_TEXT_KEY = booleanPreferencesKey("auto_scroll_text")
         val AUTO_SCROLL_TEXT_ELEMENTS_KEY = stringPreferencesKey("auto_scroll_text_elements")
@@ -74,11 +69,7 @@ class SettingsDataStore(private val context: Context) {
         val WELCOME_CARD_CATEGORY_ID_KEY = stringPreferencesKey("welcome_card_category_id")
         val WELCOME_CARD_HABIT_ID_KEY = stringPreferencesKey("welcome_card_habit_id")
         val WELCOME_CARD_TEMPLATE_INDEX_KEY = intPreferencesKey("welcome_card_template_index")
-<<<<<<< Updated upstream
-=======
         val IGNORE_WELCOME_ENGINE_KEY = booleanPreferencesKey("ignore_welcome_engine")
->>>>>>> Stashed changes
->>>>>>> Stashed changes
     }
 
     val theme: Flow<String> = context.dataStore.data
@@ -628,130 +619,6 @@ class SettingsDataStore(private val context: Context) {
             settings[REDUCE_MOVEMENT_TARGETS_KEY] = DefaultSettings.REDUCE_MOVEMENT_TARGETS
             settings[USE_HABIT_COLOR_FOR_CARD_KEY] = false
             settings[HABIT_COLOR_TARGETS_KEY] = DefaultSettings.HABIT_COLOR_TARGETS
-<<<<<<< Updated upstream
-            settings[AUTO_SCROLL_TEXT_KEY] = DefaultSettings.AUTO_SCROLL_TEXT
-            settings[AUTO_SCROLL_TEXT_ELEMENTS_KEY] = DefaultSettings.AUTO_SCROLL_TEXT_ELEMENTS
-            settings[AUTO_SCROLL_TEXT_SCREENS_KEY] = DefaultSettings.AUTO_SCROLL_TEXT_SCREENS
-        }
-    }
-
-    suspend fun getExportedSettings(): ExportedSettings {
-        val preferences = context.dataStore.data.first()
-        val bordersValue = preferences[BORDERS_KEY] ?: run {
-            val oldValue = preferences[OLD_BORDERS_KEY]
-            if (oldValue == true) 1.0f else if (oldValue == false) 0.0f else DefaultSettings.BORDERS
-        }
-        val heatmapDays = preferences[HEATMAP_VISIBLE_DAYS_KEY] ?: run {
-            val visible = preferences[DAY_OF_WEEK_LABELS_VISIBLE_KEY]
-            val all = preferences[SHOW_ALL_DAY_OF_WEEK_LABELS_KEY]
-            if (visible == null && all == null) {
-                DefaultSettings.HEATMAP_VISIBLE_DAYS
-            } else {
-                val isVisible = visible ?: true
-                val isAll = all ?: true
-                if (!isVisible) ""
-                else if (isAll) "MON,TUE,WED,THU,FRI,SAT,SUN"
-                else "TUE,THU,SAT"
-            }
-        }
-        val reduceMovTargets = preferences[REDUCE_MOVEMENT_TARGETS_KEY] ?: run {
-            val disableAnimations = preferences[DISABLE_ANIMATIONS_KEY] ?: DefaultSettings.DISABLE_ANIMATIONS
-            if (disableAnimations) "Rotation" else DefaultSettings.REDUCE_MOVEMENT_TARGETS
-        }
-
-        return ExportedSettings(
-            theme = preferences[THEME_KEY] ?: DefaultSettings.THEME,
-            useMaterialTheming = preferences[USE_MATERIAL_THEMING_KEY] ?: DefaultSettings.USE_MATERIAL_THEMING,
-            monthLabels = preferences[MONTH_LABELS_KEY] ?: DefaultSettings.MONTH_LABELS,
-            vibrations = preferences[VIBRATIONS_KEY] ?: DefaultSettings.VIBRATIONS,
-            borders = bordersValue,
-            dayOfWeekLabelsOnRight = preferences[DAY_OF_WEEK_LABELS_ON_RIGHT_KEY] ?: false,
-            heatmapVisibleDays = heatmapDays,
-            globalNotificationsEnabled = preferences[GLOBAL_NOTIFICATIONS_KEY] ?: false,
-            globalNotificationTime = preferences[GLOBAL_NOTIFICATION_TIME_KEY] ?: DefaultSettings.GLOBAL_NOTIFICATION_TIME,
-            globalNotificationDays = preferences[GLOBAL_NOTIFICATION_DAYS_KEY] ?: DefaultSettings.GLOBAL_NOTIFICATION_DAYS,
-            skipCompletedHabitNotifications = preferences[SKIP_COMPLETED_HABIT_NOTIFICATIONS_KEY] ?: DefaultSettings.SKIP_COMPLETED_HABIT_NOTIFICATIONS,
-            exactAlarms = preferences[EXACT_ALARMS_KEY] ?: DefaultSettings.EXACT_ALARMS,
-            snoozeEnabled = preferences[SNOOZE_ENABLED_KEY] ?: DefaultSettings.SNOOZE_ENABLED,
-            snoozeDurationMinutes = preferences[SNOOZE_DURATION_MINUTES_KEY] ?: DefaultSettings.SNOOZE_DURATION_MINUTES,
-            is24Hour = preferences[IS_24_HOUR_KEY] ?: DefaultSettings.IS_24_HOUR,
-            heroCardVisible = preferences[HERO_CARD_VISIBLE_KEY] ?: DefaultSettings.HERO_CARD_VISIBLE,
-            yearDivider = preferences[YEAR_DIVIDER_KEY] ?: DefaultSettings.YEAR_DIVIDER,
-            lineChartYearDivider = preferences[LINE_CHART_YEAR_DIVIDER_KEY] ?: DefaultSettings.LINE_CHART_YEAR_DIVIDER,
-            yearLabels = preferences[YEAR_LABELS_KEY] ?: DefaultSettings.YEAR_LABELS,
-            heatmapNotificationDot = preferences[HEATMAP_NOTIFICATION_DOT_KEY] ?: DefaultSettings.HEATMAP_NOTIFICATION_DOT,
-            heatmapNotificationDotRange = preferences[HEATMAP_NOTIFICATION_DOT_RANGE_KEY] ?: DefaultSettings.HEATMAP_NOTIFICATION_DOT_RANGE,
-            heatmapNotificationDotDetailOnly = preferences[HEATMAP_NOTIFICATION_DOT_DETAIL_ONLY_KEY] ?: DefaultSettings.HEATMAP_NOTIFICATION_DOT_DETAIL_ONLY,
-            heatmapScrolling = preferences[HEATMAP_SCROLLING_KEY] ?: DefaultSettings.HEATMAP_SCROLLING,
-            showScrollBlur = preferences[SHOW_SCROLL_BLUR_KEY] ?: DefaultSettings.SHOW_SCROLL_BLUR,
-            scrollBlurTargets = preferences[SCROLL_BLUR_TARGETS_KEY] ?: DefaultSettings.SCROLL_BLUR_TARGETS,
-            reduceMovement = preferences[REDUCE_MOVEMENT_KEY] ?: preferences[DISABLE_ANIMATIONS_KEY] ?: DefaultSettings.REDUCE_MOVEMENT,
-            reduceMovementTargets = reduceMovTargets,
-            useHabitColorForCard = preferences[USE_HABIT_COLOR_FOR_CARD_KEY] ?: DefaultSettings.USE_HABIT_COLOR_FOR_CARD,
-            habitColorTargets = preferences[HABIT_COLOR_TARGETS_KEY] ?: DefaultSettings.HABIT_COLOR_TARGETS,
-            heatmapWeeks = preferences[HEATMAP_WEEKS_KEY] ?: DefaultSettings.HEATMAP_WEEKS,
-            heatmapInfinite = preferences[HEATMAP_INFINITE_KEY] ?: DefaultSettings.HEATMAP_INFINITE,
-            hasAskedNotificationPermission = preferences[HAS_ASKED_NOTIFICATION_PERMISSION_KEY] ?: DefaultSettings.HAS_ASKED_NOTIFICATION_PERMISSION,
-            firstDayOfWeek = preferences[FIRST_DAY_OF_WEEK_KEY] ?: DefaultSettings.FIRST_DAY_OF_WEEK,
-            autoScrollText = preferences[AUTO_SCROLL_TEXT_KEY] ?: DefaultSettings.AUTO_SCROLL_TEXT,
-            autoScrollTextElements = preferences[AUTO_SCROLL_TEXT_ELEMENTS_KEY] ?: DefaultSettings.AUTO_SCROLL_TEXT_ELEMENTS,
-            autoScrollTextScreens = preferences[AUTO_SCROLL_TEXT_SCREENS_KEY] ?: DefaultSettings.AUTO_SCROLL_TEXT_SCREENS,
-            welcomeCardNotificationEnabled = preferences[WELCOME_CARD_NOTIFICATION_ENABLED_KEY] ?: DefaultSettings.WELCOME_CARD_NOTIFICATION_ENABLED,
-            welcomeCardNotificationTime = preferences[WELCOME_CARD_NOTIFICATION_TIME_KEY] ?: DefaultSettings.WELCOME_CARD_NOTIFICATION_TIME,
-            welcomeCardNotificationDays = preferences[WELCOME_CARD_NOTIFICATION_DAYS_KEY] ?: DefaultSettings.WELCOME_CARD_NOTIFICATION_DAYS
-        )
-    }
-
-    suspend fun importSettings(settings: ExportedSettings) {
-        context.dataStore.edit { preferences ->
-            preferences[THEME_KEY] = settings.theme
-            preferences[USE_MATERIAL_THEMING_KEY] = settings.useMaterialTheming
-            preferences[MONTH_LABELS_KEY] = settings.monthLabels
-            preferences[VIBRATIONS_KEY] = settings.vibrations
-            preferences[BORDERS_KEY] = settings.borders
-            preferences[DAY_OF_WEEK_LABELS_ON_RIGHT_KEY] = settings.dayOfWeekLabelsOnRight
-            preferences[HEATMAP_VISIBLE_DAYS_KEY] = settings.heatmapVisibleDays
-            preferences[GLOBAL_NOTIFICATIONS_KEY] = settings.globalNotificationsEnabled
-            preferences[GLOBAL_NOTIFICATION_TIME_KEY] = settings.globalNotificationTime
-            preferences[GLOBAL_NOTIFICATION_DAYS_KEY] = settings.globalNotificationDays
-            preferences[SKIP_COMPLETED_HABIT_NOTIFICATIONS_KEY] = settings.skipCompletedHabitNotifications
-            preferences[EXACT_ALARMS_KEY] = settings.exactAlarms
-            preferences[SNOOZE_ENABLED_KEY] = settings.snoozeEnabled
-            preferences[SNOOZE_DURATION_MINUTES_KEY] = settings.snoozeDurationMinutes
-            preferences[IS_24_HOUR_KEY] = settings.is24Hour
-            preferences[HERO_CARD_VISIBLE_KEY] = settings.heroCardVisible
-            preferences[YEAR_DIVIDER_KEY] = settings.yearDivider
-            preferences[LINE_CHART_YEAR_DIVIDER_KEY] = settings.lineChartYearDivider
-            preferences[YEAR_LABELS_KEY] = settings.yearLabels
-            preferences[HEATMAP_NOTIFICATION_DOT_KEY] = settings.heatmapNotificationDot
-            preferences[HEATMAP_NOTIFICATION_DOT_RANGE_KEY] = settings.heatmapNotificationDotRange
-            preferences[HEATMAP_NOTIFICATION_DOT_DETAIL_ONLY_KEY] = settings.heatmapNotificationDotDetailOnly
-            preferences[HEATMAP_SCROLLING_KEY] = settings.heatmapScrolling
-            preferences[SHOW_SCROLL_BLUR_KEY] = settings.showScrollBlur
-            preferences[SCROLL_BLUR_TARGETS_KEY] = settings.scrollBlurTargets
-            preferences[REDUCE_MOVEMENT_KEY] = settings.reduceMovement
-            preferences[REDUCE_MOVEMENT_TARGETS_KEY] = settings.reduceMovementTargets
-            preferences[USE_HABIT_COLOR_FOR_CARD_KEY] = settings.useHabitColorForCard
-            preferences[HABIT_COLOR_TARGETS_KEY] = settings.habitColorTargets
-            preferences[HEATMAP_WEEKS_KEY] = settings.heatmapWeeks
-            preferences[HEATMAP_INFINITE_KEY] = settings.heatmapInfinite
-            preferences[HAS_ASKED_NOTIFICATION_PERMISSION_KEY] = settings.hasAskedNotificationPermission
-            preferences[FIRST_DAY_OF_WEEK_KEY] = settings.firstDayOfWeek
-            preferences[AUTO_SCROLL_TEXT_KEY] = settings.autoScrollText
-            preferences[AUTO_SCROLL_TEXT_ELEMENTS_KEY] = settings.autoScrollTextElements
-            preferences[AUTO_SCROLL_TEXT_SCREENS_KEY] = settings.autoScrollTextScreens
-            preferences[WELCOME_CARD_NOTIFICATION_ENABLED_KEY] = settings.welcomeCardNotificationEnabled
-            preferences[WELCOME_CARD_NOTIFICATION_TIME_KEY] = settings.welcomeCardNotificationTime
-            preferences[WELCOME_CARD_NOTIFICATION_DAYS_KEY] = settings.welcomeCardNotificationDays
-        }
-    }
-}
-=======
-<<<<<<< Updated upstream
-        }
-    }
-}
-=======
             settings[AUTO_SCROLL_TEXT_KEY] = DefaultSettings.AUTO_SCROLL_TEXT
             settings[AUTO_SCROLL_TEXT_ELEMENTS_KEY] = DefaultSettings.AUTO_SCROLL_TEXT_ELEMENTS
             settings[AUTO_SCROLL_TEXT_SCREENS_KEY] = DefaultSettings.AUTO_SCROLL_TEXT_SCREENS
@@ -871,7 +738,6 @@ class SettingsDataStore(private val context: Context) {
         }
     }
 }
->>>>>>> Stashed changes
 
 @Serializable
 data class ExportedSettings(
@@ -913,12 +779,6 @@ data class ExportedSettings(
     val autoScrollTextScreens: String = DefaultSettings.AUTO_SCROLL_TEXT_SCREENS,
     val welcomeCardNotificationEnabled: Boolean = DefaultSettings.WELCOME_CARD_NOTIFICATION_ENABLED,
     val welcomeCardNotificationTime: String = DefaultSettings.WELCOME_CARD_NOTIFICATION_TIME,
-<<<<<<< Updated upstream
-    val welcomeCardNotificationDays: String = DefaultSettings.WELCOME_CARD_NOTIFICATION_DAYS
-)
-=======
     val welcomeCardNotificationDays: String = DefaultSettings.WELCOME_CARD_NOTIFICATION_DAYS,
     val ignoreWelcomeEngine: Boolean = DefaultSettings.IGNORE_WELCOME_ENGINE
 )
->>>>>>> Stashed changes
->>>>>>> Stashed changes

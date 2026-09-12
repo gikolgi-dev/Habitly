@@ -229,11 +229,6 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     val heatmapScrolling by settingsDataStore.heatmapScrolling.collectAsState(initial = false)
     val heatmapWeeks by settingsDataStore.heatmapWeeks.collectAsState(initial = DefaultSettings.HEATMAP_WEEKS)
     val heatmapInfinite by settingsDataStore.heatmapInfinite.collectAsState(initial = DefaultSettings.HEATMAP_INFINITE)
-<<<<<<< Updated upstream
-=======
-<<<<<<< Updated upstream
-=======
->>>>>>> Stashed changes
     val firstDayOfWeekCalendar by settingsDataStore.firstDayOfWeekCalendar.collectAsState(initial = java.util.Calendar.MONDAY)
     val autoScrollText by settingsDataStore.autoScrollText.collectAsState(initial = DefaultSettings.AUTO_SCROLL_TEXT)
     val autoScrollTextElements by settingsDataStore.autoScrollTextElements.collectAsState(
@@ -246,11 +241,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     val savedWelcomeCategoryId by settingsDataStore.welcomeCardCategoryId.collectAsState(initial = "")
     val savedWelcomeHabitId by settingsDataStore.welcomeCardHabitId.collectAsState(initial = "")
     val savedWelcomeTemplateIndex by settingsDataStore.welcomeCardTemplateIndex.collectAsState(initial = 0)
-<<<<<<< Updated upstream
-=======
     val ignoreWelcomeEngine by settingsDataStore.ignoreWelcomeEngine.collectAsState(initial = DefaultSettings.IGNORE_WELCOME_ENGINE)
->>>>>>> Stashed changes
->>>>>>> Stashed changes
 
     // Additional settings for consistent Shared Element Transition colors/animations
     val reduceMovement by settingsDataStore.reduceMovement.collectAsState(initial = false)
@@ -287,19 +278,6 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
         }
     }
 
-<<<<<<< Updated upstream
-=======
-<<<<<<< Updated upstream
-    val heroCardDescriptions = remember {
-        listOf(
-            "Track your habits, build your future.",
-            "The secret of your future is hidden in your daily routine.",
-            "Consistency is the key to success.",
-            "Motivation is what gets you started. Habit is what keeps you going.",
-            "A little progress each day adds up to big results."
-        )
-=======
->>>>>>> Stashed changes
     val currentHabits = (habitsUiState as? HabitsUiState.Success)?.habits ?: emptyList()
 
     val welcomeCardResolution by remember(
@@ -309,12 +287,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
         savedWelcomeDateKey,
         savedWelcomeCategoryId,
         savedWelcomeHabitId,
-<<<<<<< Updated upstream
-        savedWelcomeTemplateIndex
-=======
         savedWelcomeTemplateIndex,
         ignoreWelcomeEngine
->>>>>>> Stashed changes
     ) {
         derivedStateOf {
             val welcomeContext = WelcomeCardContext(
@@ -327,12 +301,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 savedDateKey = savedWelcomeDateKey.ifEmpty { null },
                 savedCategoryId = savedWelcomeCategoryId.ifEmpty { null },
                 savedHabitId = savedWelcomeHabitId.ifEmpty { null },
-<<<<<<< Updated upstream
-                savedTemplateIndex = savedWelcomeTemplateIndex
-=======
                 savedTemplateIndex = savedWelcomeTemplateIndex,
                 ignoreWelcomeEngine = ignoreWelcomeEngine
->>>>>>> Stashed changes
             )
         }
     }
@@ -346,10 +316,6 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 templateIndex = welcomeCardResolution.templateIndex
             )
         }
-<<<<<<< Updated upstream
-=======
->>>>>>> Stashed changes
->>>>>>> Stashed changes
     }
 
     var showHabitSheet by remember { mutableStateOf(false) }
@@ -387,45 +353,14 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     val allDays = remember { setOf("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN") }
     var notificationDays by remember { mutableStateOf(allDays) }
 
-<<<<<<< Updated upstream
-=======
-<<<<<<< Updated upstream
-    fun validate(completionsText: String) {
-=======
->>>>>>> Stashed changes
     var isInverse by remember { mutableStateOf(false) }
     var invertCompletionsOnTypeChange by remember { mutableStateOf(true) }
     var targetConversionIsPercentage by remember { mutableStateOf(false) }
     var streakCountingDisabled by remember { mutableStateOf(false) }
-<<<<<<< Updated upstream
-    fun validateDaily(text: String) {
-        val count = text.toIntOrNull()
-        completionsPerDayError = if (count == null) {
-=======
     var ignoreInWelcomeCard by remember { mutableStateOf(false) }
     fun validateDaily(text: String) {
         val count = text.toIntOrNull()
         completionsPerDayError = if (count == null) {
-            "Must be a number"
-        } else if (count <= 0) {
-            "Must be > 0"
-        } else if (count > 14) {
-            "Must be ≤ 14"
-        } else {
-            null
-        }
-    }
-
-    fun validateInterval(intervalText: String, dailyText: String) {
-        val daily = dailyText.toIntOrNull() ?: 1
->>>>>>> Stashed changes
-        if (intervalUnit == "day") {
-            completionsError = null
-            return
-        }
-        val completions = completionsText.toIntOrNull()
-        completionsError = if (completions == null) {
->>>>>>> Stashed changes
             "Must be a number"
         } else if (count <= 0) {
             "Must be > 0"
@@ -936,21 +871,11 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                 notificationTime = it.notificationTime ?: "09:00"
                                 notificationDays = it.notificationDays?.split(',')?.toSet() ?: allDays
                                 customColor = null
-<<<<<<< Updated upstream
-=======
-<<<<<<< Updated upstream
-
-=======
->>>>>>> Stashed changes
                                 isInverse = it.isInverse
                                 invertCompletionsOnTypeChange = true
                                 targetConversionIsPercentage = false
                                 streakCountingDisabled = it.streakCountingDisabled
-<<<<<<< Updated upstream
-=======
                                 ignoreInWelcomeCard = it.ignoreInWelcomeCard
->>>>>>> Stashed changes
->>>>>>> Stashed changes
                                 habitToEdit = it
                                 showHabitSheet = true
                             },
@@ -1207,14 +1132,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                     }
 
                     val livePreviewColor = if (showColorPicker) tempColor else customColor
-<<<<<<< Updated upstream
-                    val dummyHabit = remember(habitName, habitDescription, habitColor, customColor, habitIconKey, completionsPerInterval, completionsPerDay, intervalUnit, notificationsEnabled, notificationTime, notificationDays, livePreviewColor, isEditMode, isInverse, habitToEdit, streakCountingDisabled) {
-=======
-<<<<<<< Updated upstream
-                    val dummyHabit = remember(habitName, habitDescription, habitColor, customColor, habitIconKey, completionsPerInterval, intervalUnit, notificationsEnabled, notificationTime, notificationDays, livePreviewColor, isEditMode) {
-=======
                     val dummyHabit = remember(habitName, habitDescription, habitColor, customColor, habitIconKey, completionsPerInterval, completionsPerDay, intervalUnit, notificationsEnabled, notificationTime, notificationDays, livePreviewColor, isEditMode, isInverse, habitToEdit, streakCountingDisabled, ignoreInWelcomeCard) {
->>>>>>> Stashed changes
                         val defaultCreated = (System.currentTimeMillis() - 60L * 24 * 3600 * 1000).toString()
                         val created = habitToEdit?.createdAt ?: if (isEditMode) System.currentTimeMillis().toString() else defaultCreated
                         val start = habitToEdit?.startDate ?: created
@@ -1224,10 +1142,6 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                         } else {
                             (completionsPerInterval.toIntOrNull() ?: 1)
                         }
-<<<<<<< Updated upstream
-=======
->>>>>>> Stashed changes
->>>>>>> Stashed changes
                         Habit(
                             id = habitToEdit?.id ?: "preview",
                             name = habitName.ifBlank { "Habit Name" },
@@ -1244,20 +1158,10 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                             intervalUnit = intervalUnit,
                             notificationsEnabled = notificationsEnabled,
                             notificationTime = notificationTime,
-<<<<<<< Updated upstream
-                            notificationDays = notificationDays.joinToString(","),
-                            completionsPerDay = daily,
-                            streakCountingDisabled = streakCountingDisabled
-=======
-<<<<<<< Updated upstream
-                            notificationDays = notificationDays.joinToString(",")
-=======
                             notificationDays = notificationDays.joinToString(","),
                             completionsPerDay = daily,
                             streakCountingDisabled = streakCountingDisabled,
                             ignoreInWelcomeCard = ignoreInWelcomeCard
->>>>>>> Stashed changes
->>>>>>> Stashed changes
                         )
                     }
 
@@ -1265,205 +1169,6 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                         modifier = Modifier.fillMaxSize(),
                         color = MaterialTheme.colorScheme.surface
                     ) {
-<<<<<<< Updated upstream
-                        Box(modifier = Modifier.fillMaxSize()) {
-                            val scrollState = rememberScrollState()
-                            HabitSheetContent(
-                                title = title,
-                                habitName = habitName,
-                                onHabitNameChanged = { habitName = it },
-                                habitDescription = habitDescription,
-                                onHabitDescriptionChanged = { habitDescription = it },
-                                completionsPerDay = completionsPerDay,
-                                onCompletionsPerDayChanged = { completionsPerDay = it },
-                                completionsPerDayError = completionsPerDayError,
-                                completionsPerInterval = completionsPerInterval,
-                                onCompletionsPerIntervalChanged = { completionsPerInterval = it },
-                                intervalUnit = intervalUnit,
-                                onIntervalUnitChanged = { intervalUnit = it },
-                                completionsError = completionsError,
-                                habitIconKey = habitIconKey,
-                                onHabitIconKeyChanged = { habitIconKey = it },
-                                habitColor = habitColor,
-                                onHabitColorChanged = { habitColor = it },
-                                customColor = customColor,
-                                onShowColorPicker = { show, color ->
-                                    showColorPicker = show
-                                    if (show) {
-                                        tempColor = color
-                                    }
-                                },
-                                onClearCustomColor = { customColor = null },
-                                livePreviewColor = if (showColorPicker) tempColor else customColor,
-                                scrollState = scrollState,
-                                settingsDataStore = settingsDataStore,
-                                notificationsEnabled = notificationsEnabled,
-                                onNotificationsEnabledChanged = {
-                                    if (notificationPermissionHandler.hasPermission) {
-                                        notificationsEnabled = it
-                                    } else {
-                                        notificationPermissionHandler.requestPermission()
-                                    }
-                                },
-                                notificationTime = notificationTime,
-                                onTimePickerClick = {
-                                    if (notificationPermissionHandler.hasPermission) {
-                                        showTimePicker = true
-                                    } else {
-                                        notificationPermissionHandler.requestPermission()
-                                    }
-                                },
-                                notificationDays = notificationDays,
-                                onNotificationDaySelected = { day ->
-                                    notificationDays = if (notificationDays.contains(day)) {
-                                        notificationDays - day
-                                    } else {
-                                        notificationDays + day
-                                    }
-                                },
-                                hasNotificationPermission = notificationPermissionHandler.hasPermission,
-                                isInverse = isInverse,
-                                onIsInverseChanged = { isInverse = it },
-                                showInvertOptions = isEditMode && habitToEdit?.isInverse != isInverse,
-                                invertCompletions = invertCompletionsOnTypeChange,
-                                onInvertCompletionsChanged = { invertCompletionsOnTypeChange = it },
-                                showTargetConversionOptions = isEditMode && (habitToEdit?.getDailyTarget() != (completionsPerDay.toIntOrNull() ?: 1)),
-                                targetConversionIsPercentage = targetConversionIsPercentage,
-                                onTargetConversionChanged = { targetConversionIsPercentage = it },
-                                onClose = {
-                                    showHabitSheet = false
-                                },
-                                streakCountingDisabled = streakCountingDisabled,
-                                onStreakCountingDisabledChanged = { streakCountingDisabled = it },
-                                previewContent = {
-                                    HabitItemCard(
-                                        habit = dummyHabit,
-                                        isCompleted = false,
-                                        completions = previewCompletions,
-                                        showCheckbox = true,
-                                        showMonthLabels = showMonthLabels!!,
-                                        visibleDayLabels = heatmapVisibleDays!!,
-                                        dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight!!,
-                                        showYearDivider = showYearDivider!!,
-                                        showYearLabels = showYearLabels!!,
-                                        heatmapNotificationDot = heatmapNotificationDot!!,
-                                        heatmapNotificationDotRange = heatmapNotificationDotRange!!,
-                                        showScrollBlur = false,
-                                        borderContrast = borderContrast!!,
-                                        heatmapScrollEnabled = false,
-                                        heatmapWeeks = heatmapWeeks,
-                                        heatmapInfinite = heatmapInfinite,
-                                        useHabitColor = useHabitColorForItemCards,
-                                        disableAnimations = disableAnimations,
-                                        isPreview = true,
-                                        onComplete = { /* Do nothing in preview */ },
-                                        onClick = { /* Do nothing in preview */ },
-                                        sharedTransitionScope = null,
-                                        visible = true,
-                                        detailBgColor = Color(dummyHabit.color).copy(alpha = 0.1f),
-                                        modifier = Modifier.padding(horizontal = 0.dp, vertical = 4.dp),
-                                        currentDateMillis = currentDateMillis,
-                                        animateTileChanges = true,
-                                        firstDayOfWeek = firstDayOfWeekCalendar,
-                                        autoScrollText = autoScrollText,
-                                        autoScrollTextElements = autoScrollTextElements,
-                                        autoScrollTextScreens = autoScrollTextScreens
-                                    )
-                                },
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .statusBarsPadding()
-                            )
-=======
-<<<<<<< Updated upstream
-                        val previewKey = if (isEditMode) "card-${habitToEdit!!.id}" else "card-preview"
-                        HabitItemCard(
-                            habit = dummyHabit,
-                            isCompleted = false,
-                            completions = previewCompletions,
-                            showCheckbox = true,
-                            showMonthLabels = showMonthLabels!!,
-                            visibleDayLabels = heatmapVisibleDays!!,
-                            dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight!!,
-                            showYearDivider = showYearDivider!!,
-                            showYearLabels = showYearLabels!!,
-                            heatmapNotificationDot = heatmapNotificationDot!!,
-                            heatmapNotificationDotRange = heatmapNotificationDotRange!!,
-                            showScrollBlur = false,
-                            borderContrast = borderContrast!!,
-                            heatmapScrollEnabled = false,
-                            heatmapWeeks = heatmapWeeks,
-                            heatmapInfinite = heatmapInfinite,
-                            useHabitColor = useHabitColorForItemCards,
-                            disableAnimations = disableAnimations,
-                            onComplete = { /* Do nothing in preview */ },
-                            onClick = { /* Do nothing in preview */ },
-                            sharedTransitionScope = sharedTransitionScope,
-                            visible = showHabitSheet,
-                            transitionProgressProvider = { 1f - editSheetTransitionProgressState.value },
-                            detailBgColor = Color(dummyHabit.color).copy(alpha = 0.1f),
-                            modifier = Modifier
-                                .sharedElementWithCallerManagedVisibility(
-                                    rememberSharedContentState(key = previewKey),
-                                    visible = showHabitSheet,
-                                    boundsTransform = { _, _ -> tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing) }
-                                )
-                                .padding(horizontal = 8.dp, vertical = 8.dp),
-                            currentDateMillis = currentDateMillis
-                        )
->>>>>>> Stashed changes
-
-                            val habits = (habitsUiState as? HabitsUiState.Success)?.habits ?: emptyList()
-                            SaveHabitButton(
-                                buttonText = buttonText,
-                                isEnabled = habitName.trim().isNotBlank() && completionsError == null && completionsPerDayError == null,
-                                settingsDataStore = settingsDataStore,
-                                modifier = Modifier.align(Alignment.BottomCenter)
-                            ) {
-                                val trimmedName = habitName.trim()
-                                if (trimmedName.isNotBlank()) {
-                                    val currentHabitToEdit = habitToEdit
-                                    val daily = completionsPerDay.toIntOrNull() ?: 1
-                                    val intervalTarget = if (intervalUnit == "day") {
-                                        if (daily > 1) (completionsPerInterval.toIntOrNull()?.coerceIn(1, daily) ?: daily) else 1
-                                    } else {
-                                        (completionsPerInterval.toIntOrNull() ?: 1)
-                                    }
-                                    scope.launch {
-                                        if (currentHabitToEdit != null) {
-                                            val updatedHabit = currentHabitToEdit.copy(
-                                                name = trimmedName,
-                                                description = habitDescription,
-                                                icon = habitIconKey,
-                                                color = (customColor ?: habitColor).toArgb(),
-                                                isInverse = isInverse,
-                                                startDate = currentHabitToEdit.startDate ?: currentHabitToEdit.createdAt,
-                                                completionsPerInterval = intervalTarget,
-                                                intervalUnit = intervalUnit,
-                                                completionsPerDay = daily,
-                                                notificationsEnabled = notificationsEnabled,
-                                                notificationTime = if (notificationsEnabled) notificationTime else null,
-                                                notificationDays = if (notificationsEnabled) notificationDays.joinToString(
-                                                    ","
-                                                ) else null,
-                                                streakCountingDisabled = streakCountingDisabled
-                                            )
-                                            viewModel.updateHabitWithConversion(
-                                                currentHabitToEdit,
-                                                updatedHabit,
-                                                invertCompletions = invertCompletionsOnTypeChange,
-                                                targetConversionMode = if (targetConversionIsPercentage)
-                                                    com.habitly.habitly.data.Database.TargetConversionMode.PERCENTAGE
-                                                else
-                                                    com.habitly.habitly.data.Database.TargetConversionMode.ABSOLUTE
-                                            )
-                                            if (updatedHabit.notificationsEnabled) {
-                                                notificationScheduler.scheduleNotification(updatedHabit)
-                                            } else {
-<<<<<<< Updated upstream
-=======
-                                                sheetOffsetY.animateTo(0f, spring())
-=======
                         Box(modifier = Modifier.fillMaxSize()) {
                             val scrollState = rememberScrollState()
                             HabitSheetContent(
@@ -1623,7 +1328,6 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                             if (updatedHabit.notificationsEnabled) {
                                                 notificationScheduler.scheduleNotification(updatedHabit)
                                             } else {
->>>>>>> Stashed changes
                                                 notificationScheduler.cancelNotification(updatedHabit)
                                             }
                                             habitToView = habitToView?.copy(habit = updatedHabit)
@@ -1649,20 +1353,12 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                 notificationDays = if (notificationsEnabled) notificationDays.joinToString(
                                                     ","
                                                 ) else null,
-<<<<<<< Updated upstream
-                                                streakCountingDisabled = streakCountingDisabled
-=======
                                                 streakCountingDisabled = streakCountingDisabled,
                                                 ignoreInWelcomeCard = ignoreInWelcomeCard
->>>>>>> Stashed changes
                                             )
                                             habitDao.insertHabit(newHabit)
                                             if (newHabit.notificationsEnabled) {
                                                 notificationScheduler.scheduleNotification(newHabit)
-<<<<<<< Updated upstream
-=======
->>>>>>> Stashed changes
->>>>>>> Stashed changes
                                             }
                                         }
                                         showHabitSheet = false
@@ -1719,15 +1415,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                     isInverse = false
                     invertCompletionsOnTypeChange = true
 
-<<<<<<< Updated upstream
-                    streakCountingDisabled = false
-=======
-<<<<<<< Updated upstream
-=======
                     streakCountingDisabled = false
                     ignoreInWelcomeCard = false
->>>>>>> Stashed changes
->>>>>>> Stashed changes
                     habitToEdit = null
                     showHabitSheet = true
                 },

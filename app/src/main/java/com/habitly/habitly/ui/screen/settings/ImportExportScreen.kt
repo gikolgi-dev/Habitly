@@ -125,19 +125,10 @@ data class ExportedHabit(
     val notificationTime: String?,
     val notificationDays: String?,
     val statsLayout: String? = null,
-<<<<<<< Updated upstream
-    val startDate: String? = null,
-    val completionsPerDay: Int = 1,
-    val streakCountingDisabled: Boolean = false,
-=======
-<<<<<<< Updated upstream
-=======
     val startDate: String? = null,
     val completionsPerDay: Int = 1,
     val streakCountingDisabled: Boolean = false,
     val ignoreInWelcomeCard: Boolean = false,
->>>>>>> Stashed changes
->>>>>>> Stashed changes
     val completions: List<ExportedCompletion>
 )
 
@@ -310,19 +301,10 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                                     notificationTime = habitWithCompletions.habit.notificationTime,
                                     notificationDays = habitWithCompletions.habit.notificationDays,
                                     statsLayout = habitWithCompletions.habit.statsLayout,
-<<<<<<< Updated upstream
-                                    startDate = habitWithCompletions.habit.startDate,
-                                    completionsPerDay = habitWithCompletions.habit.getDailyTarget(),
-                                    streakCountingDisabled = habitWithCompletions.habit.streakCountingDisabled,
-=======
-<<<<<<< Updated upstream
-=======
                                     startDate = habitWithCompletions.habit.startDate,
                                     completionsPerDay = habitWithCompletions.habit.getDailyTarget(),
                                     streakCountingDisabled = habitWithCompletions.habit.streakCountingDisabled,
                                     ignoreInWelcomeCard = habitWithCompletions.habit.ignoreInWelcomeCard,
->>>>>>> Stashed changes
->>>>>>> Stashed changes
                                     completions = habitWithCompletions.completions.map { completion ->
                                         ExportedCompletion(
                                             id = completion.id,
@@ -1092,22 +1074,11 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                                                             notificationsEnabled = exportedHabit.notificationsEnabled,
                                                             notificationTime = exportedHabit.notificationTime,
                                                             notificationDays = exportedHabit.notificationDays,
-<<<<<<< Updated upstream
-                                                            statsLayout = exportedHabit.statsLayout,
-                                                            startDate = startDateMillis,
-                                                            completionsPerDay = exportedHabit.completionsPerDay,
-                                                            streakCountingDisabled = exportedHabit.streakCountingDisabled
-=======
-<<<<<<< Updated upstream
-                                                            statsLayout = exportedHabit.statsLayout
-=======
                                                             statsLayout = exportedHabit.statsLayout,
                                                             startDate = startDateMillis,
                                                             completionsPerDay = exportedHabit.completionsPerDay,
                                                             streakCountingDisabled = exportedHabit.streakCountingDisabled,
                                                             ignoreInWelcomeCard = exportedHabit.ignoreInWelcomeCard
->>>>>>> Stashed changes
->>>>>>> Stashed changes
                                                         )
                                                     })
                                                     completionsToInsert.addAll(exportedData.habits.flatMap { exportedHabit ->

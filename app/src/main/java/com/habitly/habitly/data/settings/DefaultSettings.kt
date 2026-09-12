@@ -35,11 +35,6 @@ object DefaultSettings {
     const val HEATMAP_WEEKS = 20
     const val HEATMAP_INFINITE = false
     const val HAS_ASKED_NOTIFICATION_PERMISSION = false
-<<<<<<< Updated upstream
-=======
-<<<<<<< Updated upstream
-=======
->>>>>>> Stashed changes
     const val FIRST_DAY_OF_WEEK = "monday"
     const val AUTO_SCROLL_TEXT = true
     const val AUTO_SCROLL_TEXT_ELEMENTS = "Title,Description"
@@ -47,10 +42,6 @@ object DefaultSettings {
     const val WELCOME_CARD_NOTIFICATION_ENABLED = false
     const val WELCOME_CARD_NOTIFICATION_TIME = "09:00"
     const val WELCOME_CARD_NOTIFICATION_DAYS = "MON,TUE,WED,THU,FRI,SAT,SUN"
-<<<<<<< Updated upstream
-=======
     const val IGNORE_WELCOME_ENGINE = false
->>>>>>> Stashed changes
->>>>>>> Stashed changes
 }
 

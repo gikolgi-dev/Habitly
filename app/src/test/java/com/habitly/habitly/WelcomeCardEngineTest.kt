@@ -15,20 +15,14 @@ import com.habitly.habitly.data.welcome.WelcomeCardEngine.CATEGORY_HIGH_COMPLETI
 import com.habitly.habitly.data.welcome.WelcomeCardEngine.CATEGORY_LONGEST_STREAK_RECORD
 import com.habitly.habitly.data.welcome.WelcomeCardEngine.CATEGORY_LONG_TIME_TRACKING
 import com.habitly.habitly.data.welcome.WelcomeCardEngine.CATEGORY_MONTHLY_TREND
-<<<<<<< Updated upstream
-=======
 import com.habitly.habitly.data.welcome.WelcomeCardEngine.CATEGORY_30_DAY_IMPROVEMENT
->>>>>>> Stashed changes
 import com.habitly.habitly.data.welcome.WelcomeCategory
 import com.habitly.habitly.data.welcome.WelcomeCategoryMatch
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
-<<<<<<< Updated upstream
-=======
 import org.junit.Assert.assertNull
->>>>>>> Stashed changes
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -56,12 +50,8 @@ class WelcomeCardEngineTest {
         completionsPerInterval: Int = 1,
         startDate: Long = System.currentTimeMillis() - (10L * 24 * 3600 * 1000),
         completionsPerDay: Int = completionsPerInterval,
-<<<<<<< Updated upstream
-        intervalUnit: String = "day"
-=======
         intervalUnit: String = "day",
         ignoreInWelcomeCard: Boolean = false
->>>>>>> Stashed changes
     ): Habit {
         return Habit(
             id = id,
@@ -77,12 +67,8 @@ class WelcomeCardEngineTest {
             emoji = null,
             completionsPerInterval = completionsPerInterval,
             intervalUnit = intervalUnit,
-<<<<<<< Updated upstream
-            completionsPerDay = completionsPerDay
-=======
             completionsPerDay = completionsPerDay,
             ignoreInWelcomeCard = ignoreInWelcomeCard
->>>>>>> Stashed changes
         )
     }
 
@@ -577,8 +563,6 @@ class WelcomeCardEngineTest {
         assertEquals("custom_super_streak", resolution.categoryId)
         assertEquals("Super milestone: Coding has reached 999 days!", resolution.text)
     }
-<<<<<<< Updated upstream
-=======
 
     @Test
     fun testBuildHabit_evaluationIgnoresLackOfCompletionsToday_andLiveUpdatesWhenCompleted() {
@@ -1025,5 +1009,4 @@ class WelcomeCardEngineTest {
             WelcomeCardEngine.SIMPLE_WELCOME_DESCRIPTIONS.contains(resolution.text)
         )
     }
->>>>>>> Stashed changes
 }
