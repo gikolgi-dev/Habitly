@@ -22,6 +22,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.input.KeyboardType
 import com.habitly.habitly.data.settings.DefaultSettings
 import com.habitly.habitly.data.settings.SettingsDataStore
 import kotlinx.coroutines.launch
@@ -147,3 +156,82 @@ fun GeneralSettingsScreen(
         Spacer(modifier = Modifier.height(16.dp).navigationBarsPadding())
     }
 }
+
+@Composable
+fun HeatmapWeeksSubScreen(
+    settingsDataStore: SettingsDataStore,
+    modifier: Modifier = Modifier
+) {
+    val scope = rememberCoroutineScope()
+    val heatmapWeeks by settingsDataStore.heatmapWeeks.collectAsState(initial = DefaultSettings.HEATMAP_WEEKS)
+    val heatmapInfinite by settingsDataStore.heatmapInfinite.collectAsState(initial = DefaultSettings.HEATMAP_INFINITE)
+    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
+    val haptic = LocalHapticFeedback.current
+
+    var textValue by remember(heatmapWeeks) { mutableStateOf(heatmapWeeks.toString()) }
+
+    val alpha by animateFloatAsState(
+        targetValue = if (heatmapInfinite) 0.38f else 1f,
+        animationSpec = tween(durationMillis = 300),
+        label = "deactivationAlpha"
+    )
+
+    SettingsSubScreenContainer(modifier = modifier) {
+        SettingsSubScreenDescription("Adjust the number of weeks displayed in the habit heatmap. High values may impact performance.")
+
+        MainSettingsToggle(
+            text = "Show all data",
+            checked = heatmapInfinite,
+            onCheckedChange = { isChecked ->
+                scope.launch { settingsDataStore.setHeatmapInfinite(isChecked) }
+                if (vibrationsEnabled) {
+                    haptic.performHapticFeedback(if (isChecked) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+                }
+            }
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        SettingsGroup(
+            title = "Week limit",
+            settingsDataStore = settingsDataStore
+        ) {
+            SettingsItemBox(
+                settingsDataStore = settingsDataStore,
+                position = SettingsItemPosition.Alone
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .graphicsLayer { this.alpha = alpha }
+                ) {
+                    OutlinedTextField(
+                        value = textValue,
+                        onValueChange = { newValue ->
+                            if (newValue.all { it.isDigit() }) {
+                                textValue = newValue
+                                val weeks = newValue.toIntOrNull() ?: 0
+                                scope.launch { settingsDataStore.setHeatmapWeeks(weeks) }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !heatmapInfinite,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        label = { Text("Number of weeks") }
+                    )
+                    if (heatmapWeeks > 52 && !heatmapInfinite) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Warning: Large values might cause lag.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+

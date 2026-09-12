@@ -201,3 +201,154 @@ fun AccessibilityScreen(
         Spacer(modifier = Modifier.height(24.dp).navigationBarsPadding())
     }
 }
+
+@Composable
+fun ScrollBlurSubScreen(
+    settingsDataStore: SettingsDataStore,
+    modifier: Modifier = Modifier
+) {
+    val scope = rememberCoroutineScope()
+    val showScrollBlur by settingsDataStore.showScrollBlur.collectAsState(initial = DefaultSettings.SHOW_SCROLL_BLUR)
+    val scrollBlurTargets by settingsDataStore.scrollBlurTargets.collectAsState(
+        initial = DefaultSettings.SCROLL_BLUR_TARGETS.split(',').filter { it.isNotEmpty() }.toSet()
+    )
+    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
+    val haptic = LocalHapticFeedback.current
+
+    SettingsSubScreenContainer(modifier = modifier) {
+        SettingsSubScreenDescription("Apply a blur effect to specific components while scrolling to improve focus and aesthetics.")
+
+        MainSettingsToggle(
+            text = "Use scroll blur",
+            checked = showScrollBlur,
+            onCheckedChange = { isChecked ->
+                scope.launch { settingsDataStore.setshowScrollBlur(isChecked) }
+                if (vibrationsEnabled) {
+                    haptic.performHapticFeedback(if (isChecked) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+                }
+            }
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        SettingsCheckboxGroup(
+            title = "Targets",
+            items = listOf("Heatmap", "Line Chart"),
+            selectedItems = scrollBlurTargets,
+            enabled = showScrollBlur,
+            settingsDataStore = settingsDataStore,
+            onToggleItem = { target ->
+                val newTargets = if (target in scrollBlurTargets) scrollBlurTargets - target else scrollBlurTargets + target
+                scope.launch { settingsDataStore.setScrollBlurTargets(newTargets) }
+                if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+            }
+        )
+    }
+}
+
+@Composable
+fun ReduceMovementSubScreen(
+    settingsDataStore: SettingsDataStore,
+    modifier: Modifier = Modifier
+) {
+    val scope = rememberCoroutineScope()
+    val reduceMovement by settingsDataStore.reduceMovement.collectAsState(initial = DefaultSettings.REDUCE_MOVEMENT)
+    val reduceMovementTargets by settingsDataStore.reduceMovementTargets.collectAsState(
+        initial = DefaultSettings.REDUCE_MOVEMENT_TARGETS.split(',').filter { it.isNotEmpty() }.toSet()
+    )
+    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
+    val haptic = LocalHapticFeedback.current
+
+    SettingsSubScreenContainer(modifier = modifier) {
+        SettingsSubScreenDescription("Minimize the amount of animation and movement in the app. This can be helpful if you are sensitive to motion or want a more static experience.")
+
+        MainSettingsToggle(
+            text = "Reduce movement",
+            checked = reduceMovement,
+            onCheckedChange = { isChecked ->
+                scope.launch { settingsDataStore.setReduceMovement(isChecked) }
+                if (vibrationsEnabled) {
+                    haptic.performHapticFeedback(if (isChecked) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+                }
+            }
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        SettingsCheckboxGroup(
+            title = "Targets",
+            items = listOf("Rotation", "Grid Reactions"),
+            selectedItems = reduceMovementTargets,
+            enabled = reduceMovement,
+            settingsDataStore = settingsDataStore,
+            onToggleItem = { target ->
+                val newTargets = if (target in reduceMovementTargets) reduceMovementTargets - target else reduceMovementTargets + target
+                scope.launch { settingsDataStore.setReduceMovementTargets(newTargets) }
+                if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+            }
+        )
+    }
+}
+
+@Composable
+fun AutoScrollSubScreen(
+    settingsDataStore: SettingsDataStore,
+    modifier: Modifier = Modifier
+) {
+    val scope = rememberCoroutineScope()
+    val autoScrollText by settingsDataStore.autoScrollText.collectAsState(initial = DefaultSettings.AUTO_SCROLL_TEXT)
+    val autoScrollTextElements by settingsDataStore.autoScrollTextElements.collectAsState(
+        initial = DefaultSettings.AUTO_SCROLL_TEXT_ELEMENTS.split(',').filter { it.isNotEmpty() }.toSet()
+    )
+    val autoScrollTextScreens by settingsDataStore.autoScrollTextScreens.collectAsState(
+        initial = DefaultSettings.AUTO_SCROLL_TEXT_SCREENS.split(',').filter { it.isNotEmpty() }.toSet()
+    )
+    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
+    val haptic = LocalHapticFeedback.current
+
+    SettingsSubScreenContainer(modifier = modifier) {
+        SettingsSubScreenDescription("Automatically scroll overflowing titles and descriptions horizontally from left to right.")
+
+        MainSettingsToggle(
+            text = "Auto-scroll text",
+            checked = autoScrollText,
+            onCheckedChange = { isChecked ->
+                scope.launch { settingsDataStore.setAutoScrollText(isChecked) }
+                if (vibrationsEnabled) {
+                    haptic.performHapticFeedback(if (isChecked) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+                }
+            }
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        SettingsCheckboxGroup(
+            title = "Elements",
+            items = listOf("Title", "Description"),
+            selectedItems = autoScrollTextElements,
+            enabled = autoScrollText,
+            settingsDataStore = settingsDataStore,
+            onToggleItem = { element ->
+                val newElements = if (element in autoScrollTextElements) autoScrollTextElements - element else autoScrollTextElements + element
+                scope.launch { settingsDataStore.setAutoScrollTextElements(newElements) }
+                if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+            }
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        SettingsCheckboxGroup(
+            title = "Screens",
+            items = listOf("Main Screen", "Detail Screen"),
+            selectedItems = autoScrollTextScreens,
+            enabled = autoScrollText,
+            settingsDataStore = settingsDataStore,
+            onToggleItem = { screen ->
+                val newScreens = if (screen in autoScrollTextScreens) autoScrollTextScreens - screen else autoScrollTextScreens + screen
+                scope.launch { settingsDataStore.setAutoScrollTextScreens(newScreens) }
+                if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+            }
+        )
+    }
+}
+

@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import com.habitly.habitly.ui.components.DayOfWeekSelector
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -336,3 +337,82 @@ fun HeatmapSubScreen(
         }
     }
 }
+
+@Composable
+fun HeatmapNotificationDotSubScreen(
+    settingsDataStore: SettingsDataStore,
+    modifier: Modifier = Modifier
+) {
+    val scope = rememberCoroutineScope()
+    val heatmapNotificationDot by settingsDataStore.heatmapNotificationDot.collectAsState(initial = DefaultSettings.HEATMAP_NOTIFICATION_DOT)
+    val heatmapNotificationDotRange by settingsDataStore.heatmapNotificationDotRange.collectAsState(initial = DefaultSettings.HEATMAP_NOTIFICATION_DOT_RANGE)
+    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
+    val heatmapNotificationDotDetailOnly by settingsDataStore.heatmapNotificationDotDetailOnly.collectAsState(initial = DefaultSettings.HEATMAP_NOTIFICATION_DOT_DETAIL_ONLY)
+    val haptic = LocalHapticFeedback.current
+
+    SettingsSubScreenContainer(modifier = modifier) {
+        SettingsSubScreenDescription("Show a white dot on the heatmap to indicate days when a notification is scheduled.")
+
+        MainSettingsToggle(
+            text = "Notification indicator",
+            checked = heatmapNotificationDot,
+            onCheckedChange = { isChecked ->
+                scope.launch { settingsDataStore.setHeatmapNotificationDot(isChecked) }
+                if (vibrationsEnabled) {
+                    haptic.performHapticFeedback(if (isChecked) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+                }
+            }
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        SettingsGroup(
+            title = "Display Range",
+            settingsDataStore = settingsDataStore
+        ) {
+            val ranges = listOf(
+                "future" to "Only future notifications",
+                "today_and_future" to "Today and future notifications",
+                "this_week" to "Notifications this week"
+            )
+
+            ranges.forEachIndexed { index, (rangeKey, rangeName) ->
+                val position = when (index) {
+                    0 -> SettingsItemPosition.Top
+                    ranges.size - 1 -> SettingsItemPosition.Bottom
+                    else -> SettingsItemPosition.Middle
+                }
+
+                SettingsRadioButtonItem(
+                    text = rangeName,
+                    selected = rangeKey == heatmapNotificationDotRange,
+                    enabled = heatmapNotificationDot,
+                    settingsDataStore = settingsDataStore,
+                    position = position,
+                    showDivider = index < ranges.size - 1,
+                    onClick = {
+                        scope.launch { settingsDataStore.setHeatmapNotificationDotRange(rangeKey) }
+                        if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                    }
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        SettingsGroup(settingsDataStore = settingsDataStore) {
+            SettingsSwitchItem(
+                text = "Only show on detail screen",
+                checked = heatmapNotificationDotDetailOnly,
+                enabled = heatmapNotificationDot,
+                settingsDataStore = settingsDataStore,
+                position = SettingsItemPosition.Alone,
+                onCheckedChange = { isChecked ->
+                    scope.launch { settingsDataStore.setHeatmapNotificationDotDetailOnly(isChecked) }
+                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOn)
+                }
+            )
+        }
+    }
+}
+

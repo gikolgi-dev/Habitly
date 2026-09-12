@@ -48,6 +48,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import com.habitly.habitly.BuildConfig
 import com.habitly.habitly.data.Database.HabitDatabase
+import com.habitly.habitly.data.settings.DefaultSettings
 import com.habitly.habitly.data.settings.SettingsDataStore
 import com.habitly.habitly.notifications.GENERAL_NOTIFICATION_ID
 import com.habitly.habitly.notifications.NotificationReceiver
@@ -64,6 +65,8 @@ fun NotificationSettingsScreen(
     settingsDataStore: SettingsDataStore,
     is24Hour: Boolean,
     borderContrast: Float,
+    onNavigateToDailyNotification: () -> Unit,
+    onNavigateToWelcomeCardNotification: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
@@ -211,7 +214,7 @@ fun NotificationSettingsScreen(
             shape = RoundedCornerShape(24.dp)
         )
     }
-    val notificationPermissionHandler = rememberNotificationPermissionHandler {
+    val dailyPermissionHandler = rememberNotificationPermissionHandler {
         scope.launch {
             settingsDataStore.setGlobalNotificationsEnabled(true)
             notificationScheduler.scheduleGeneralNotification(globalNotificationTime, globalNotificationDays)
@@ -221,37 +224,9 @@ fun NotificationSettingsScreen(
         }
     }
 
-    var showTimePicker by remember { mutableStateOf(false) }
-
-    if (showTimePicker) {
-        val initialHour = globalNotificationTime.split(":")[0].toIntOrNull() ?: 9
-        val initialMinute = globalNotificationTime.split(":")[1].toIntOrNull() ?: 0
-        CustomTimePickerDialog(
-            onDismissRequest = { showTimePicker = false },
-            onConfirm = { hour, minute ->
-                scope.launch {
-                    val newTime = String.format("%02d:%02d", hour, minute)
-                    settingsDataStore.setGlobalNotificationTime(newTime)
-                    if (globalNotificationsEnabled) {
-                        notificationScheduler.scheduleGeneralNotification(
-                            newTime,
-                            globalNotificationDays
-                        )
-                    }
-                }
-                showTimePicker = false
-            },
-            initialHour = initialHour,
-            initialMinute = initialMinute,
-            borderContrast = borderContrast,
-            is24Hour = is24Hour,
-            vibrationsEnabled = vibrationsEnabled
-        )
-    }
-
     fun handleNotificationToggle(enable: Boolean) {
         if (enable) {
-            if (notificationPermissionHandler.hasPermission) {
+            if (dailyPermissionHandler.hasPermission) {
                 scope.launch {
                     settingsDataStore.setGlobalNotificationsEnabled(true)
                     notificationScheduler.scheduleGeneralNotification(globalNotificationTime, globalNotificationDays)
@@ -260,7 +235,7 @@ fun NotificationSettingsScreen(
                     }
                 }
             } else {
-                notificationPermissionHandler.requestPermission()
+                dailyPermissionHandler.requestPermission()
             }
         } else {
             scope.launch {
@@ -273,37 +248,19 @@ fun NotificationSettingsScreen(
         }
     }
 
-    var showWelcomeTimePicker by remember { mutableStateOf(false) }
-
-    if (showWelcomeTimePicker) {
-        val initialHour = welcomeCardNotificationTime.split(":")[0].toIntOrNull() ?: 9
-        val initialMinute = welcomeCardNotificationTime.split(":")[1].toIntOrNull() ?: 0
-        CustomTimePickerDialog(
-            onDismissRequest = { showWelcomeTimePicker = false },
-            onConfirm = { hour, minute ->
-                scope.launch {
-                    val newTime = String.format("%02d:%02d", hour, minute)
-                    settingsDataStore.setWelcomeCardNotificationTime(newTime)
-                    if (welcomeCardNotificationEnabled) {
-                        notificationScheduler.scheduleWelcomeCardNotification(
-                            newTime,
-                            welcomeCardNotificationDays
-                        )
-                    }
-                }
-                showWelcomeTimePicker = false
-            },
-            initialHour = initialHour,
-            initialMinute = initialMinute,
-            borderContrast = borderContrast,
-            is24Hour = is24Hour,
-            vibrationsEnabled = vibrationsEnabled
-        )
+    val welcomePermissionHandler = rememberNotificationPermissionHandler {
+        scope.launch {
+            settingsDataStore.setWelcomeCardNotificationEnabled(true)
+            notificationScheduler.scheduleWelcomeCardNotification(welcomeCardNotificationTime, welcomeCardNotificationDays)
+            if (vibrationsEnabled) {
+                haptic.performHapticFeedback(HapticFeedbackType.ToggleOn)
+            }
+        }
     }
 
     fun handleWelcomeNotificationToggle(enable: Boolean) {
         if (enable) {
-            if (notificationPermissionHandler.hasPermission) {
+            if (welcomePermissionHandler.hasPermission) {
                 scope.launch {
                     settingsDataStore.setWelcomeCardNotificationEnabled(true)
                     notificationScheduler.scheduleWelcomeCardNotification(welcomeCardNotificationTime, welcomeCardNotificationDays)
@@ -312,7 +269,7 @@ fun NotificationSettingsScreen(
                     }
                 }
             } else {
-                notificationPermissionHandler.requestPermission()
+                welcomePermissionHandler.requestPermission()
             }
         } else {
             scope.launch {
@@ -449,57 +406,15 @@ fun NotificationSettingsScreen(
             title = "Daily Notifications",
             settingsDataStore = settingsDataStore
         ) {
-            SettingsSwitchItem(
+            SettingsSwitchNavigationItem(
                 text = "Daily reminder",
                 description = "Remind you to add completions every day",
-                checked = globalNotificationsEnabled && notificationPermissionHandler.hasPermission,
+                checked = globalNotificationsEnabled && dailyPermissionHandler.hasPermission,
                 settingsDataStore = settingsDataStore,
-                position = SettingsItemPosition.Top
-            ) {
-                handleNotificationToggle(it)
-            }
-
-            SettingsItemBox(settingsDataStore = settingsDataStore, position = SettingsItemPosition.Bottom) {
-                val isEnabled = globalNotificationsEnabled && notificationPermissionHandler.hasPermission
-                Column(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-                ) {
-                    NotificationTimeSelectors(
-                        notificationTime = globalNotificationTime,
-                        selectedDays = globalNotificationDays,
-                        onTimeClick = { showTimePicker = true },
-                        onDaySelected = { day ->
-                            scope.launch {
-                                val newDays = if (globalNotificationDays.contains(day)) {
-                                    globalNotificationDays - day
-                                } else {
-                                    globalNotificationDays + day
-                                }
-                                settingsDataStore.setGlobalNotificationDays(newDays)
-                                if (globalNotificationsEnabled) {
-                                    notificationScheduler.scheduleGeneralNotification(
-                                        globalNotificationTime,
-                                        newDays
-                                    )
-                                }
-                            }
-                        },
-                        onDisabledClick = {
-                            if (!notificationPermissionHandler.hasPermission) {
-                                notificationPermissionHandler.requestPermission()
-                            } else {
-                                handleNotificationToggle(true)
-                            }
-                        },
-                        isEnabled = isEnabled,
-                        borderAlpha = borderContrast,
-                        is24Hour = is24Hour,
-                        vibrationsEnabled = vibrationsEnabled,
-                        firstDayOfWeek = firstDayOfWeekCalendar,
-                        modifier = Modifier
-                    )
-                }
-            }
+                position = SettingsItemPosition.Alone,
+                onCheckedChange = { handleNotificationToggle(it) },
+                onClick = onNavigateToDailyNotification
+            )
         }
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -508,57 +423,15 @@ fun NotificationSettingsScreen(
             title = "Welcome Card Notification",
             settingsDataStore = settingsDataStore
         ) {
-            SettingsSwitchItem(
+            SettingsSwitchNavigationItem(
                 text = "Welcome card reminder",
                 description = "Receive a daily notification with your supportive progress and streaks",
-                checked = welcomeCardNotificationEnabled && notificationPermissionHandler.hasPermission,
+                checked = welcomeCardNotificationEnabled && welcomePermissionHandler.hasPermission,
                 settingsDataStore = settingsDataStore,
-                position = SettingsItemPosition.Top
-            ) {
-                handleWelcomeNotificationToggle(it)
-            }
-
-            SettingsItemBox(settingsDataStore = settingsDataStore, position = SettingsItemPosition.Bottom) {
-                val isEnabled = welcomeCardNotificationEnabled && notificationPermissionHandler.hasPermission
-                Column(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-                ) {
-                    NotificationTimeSelectors(
-                        notificationTime = welcomeCardNotificationTime,
-                        selectedDays = welcomeCardNotificationDays,
-                        onTimeClick = { showWelcomeTimePicker = true },
-                        onDaySelected = { day ->
-                            scope.launch {
-                                val newDays = if (welcomeCardNotificationDays.contains(day)) {
-                                    welcomeCardNotificationDays - day
-                                } else {
-                                    welcomeCardNotificationDays + day
-                                }
-                                settingsDataStore.setWelcomeCardNotificationDays(newDays)
-                                if (welcomeCardNotificationEnabled) {
-                                    notificationScheduler.scheduleWelcomeCardNotification(
-                                        welcomeCardNotificationTime,
-                                        newDays
-                                    )
-                                }
-                            }
-                        },
-                        onDisabledClick = {
-                            if (!notificationPermissionHandler.hasPermission) {
-                                notificationPermissionHandler.requestPermission()
-                            } else {
-                                handleWelcomeNotificationToggle(true)
-                            }
-                        },
-                        isEnabled = isEnabled,
-                        borderAlpha = borderContrast,
-                        is24Hour = is24Hour,
-                        vibrationsEnabled = vibrationsEnabled,
-                        firstDayOfWeek = firstDayOfWeekCalendar,
-                        modifier = Modifier
-                    )
-                }
-            }
+                position = SettingsItemPosition.Alone,
+                onCheckedChange = { handleWelcomeNotificationToggle(it) },
+                onClick = onNavigateToWelcomeCardNotification
+            )
         }
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -627,3 +500,255 @@ fun NotificationSettingsScreen(
         Spacer(modifier = Modifier.height(16.dp).navigationBarsPadding())
     }
 }
+
+@Composable
+fun NotificationScheduleSubScreen(
+    description: String,
+    toggleText: String,
+    enabled: Boolean,
+    notificationTime: String,
+    selectedDays: Set<String>,
+    settingsDataStore: SettingsDataStore,
+    is24Hour: Boolean,
+    borderContrast: Float,
+    vibrationsEnabled: Boolean,
+    firstDayOfWeekCalendar: Int,
+    onToggle: (Boolean) -> Unit,
+    onTimeChange: (String) -> Unit,
+    onDayToggle: (String) -> Unit,
+    onPermissionRequest: () -> Unit,
+    hasPermission: Boolean,
+    modifier: Modifier = Modifier
+) {
+    var showTimePicker by remember { mutableStateOf(false) }
+
+    if (showTimePicker) {
+        val initialHour = notificationTime.split(":").getOrNull(0)?.toIntOrNull() ?: 9
+        val initialMinute = notificationTime.split(":").getOrNull(1)?.toIntOrNull() ?: 0
+        CustomTimePickerDialog(
+            onDismissRequest = { showTimePicker = false },
+            onConfirm = { hour, minute ->
+                val newTime = String.format("%02d:%02d", hour, minute)
+                onTimeChange(newTime)
+                showTimePicker = false
+            },
+            initialHour = initialHour,
+            initialMinute = initialMinute,
+            borderContrast = borderContrast,
+            is24Hour = is24Hour,
+            vibrationsEnabled = vibrationsEnabled
+        )
+    }
+
+    val isEffectivelyEnabled = enabled && hasPermission
+
+    SettingsSubScreenContainer(modifier = modifier) {
+        SettingsSubScreenDescription(description)
+
+        MainSettingsToggle(
+            text = toggleText,
+            checked = isEffectivelyEnabled,
+            onCheckedChange = { onToggle(it) }
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        SettingsGroup(
+            title = "Schedule",
+            settingsDataStore = settingsDataStore
+        ) {
+            SettingsItemBox(settingsDataStore = settingsDataStore, position = SettingsItemPosition.Alone) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                ) {
+                    NotificationTimeSelectors(
+                        notificationTime = notificationTime,
+                        selectedDays = selectedDays,
+                        onTimeClick = { showTimePicker = true },
+                        onDaySelected = onDayToggle,
+                        onDisabledClick = {
+                            if (!hasPermission) {
+                                onPermissionRequest()
+                            } else {
+                                onToggle(true)
+                            }
+                        },
+                        isEnabled = isEffectivelyEnabled,
+                        borderAlpha = borderContrast,
+                        is24Hour = is24Hour,
+                        vibrationsEnabled = vibrationsEnabled,
+                        firstDayOfWeek = firstDayOfWeekCalendar,
+                        modifier = Modifier
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DailyNotificationSubScreen(
+    settingsDataStore: SettingsDataStore,
+    is24Hour: Boolean,
+    borderContrast: Float,
+    modifier: Modifier = Modifier
+) {
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
+    val notificationScheduler = remember { NotificationScheduler(context) }
+    val firstDayOfWeekCalendar by settingsDataStore.firstDayOfWeekCalendar.collectAsState(initial = Calendar.MONDAY)
+    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
+
+    val globalNotificationsEnabled by settingsDataStore.globalNotificationsEnabled.collectAsState(initial = false)
+    val globalNotificationTime by settingsDataStore.globalNotificationTime.collectAsState(initial = DefaultSettings.GLOBAL_NOTIFICATION_TIME)
+    val globalNotificationDays by settingsDataStore.globalNotificationDays.collectAsState(
+        initial = DefaultSettings.GLOBAL_NOTIFICATION_DAYS.split(',').filter { it.isNotEmpty() }.toSet()
+    )
+
+    val notificationPermissionHandler = rememberNotificationPermissionHandler {
+        scope.launch {
+            settingsDataStore.setGlobalNotificationsEnabled(true)
+            notificationScheduler.scheduleGeneralNotification(globalNotificationTime, globalNotificationDays)
+            if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOn)
+        }
+    }
+
+    fun handleToggle(enable: Boolean) {
+        if (enable) {
+            if (notificationPermissionHandler.hasPermission) {
+                scope.launch {
+                    settingsDataStore.setGlobalNotificationsEnabled(true)
+                    notificationScheduler.scheduleGeneralNotification(globalNotificationTime, globalNotificationDays)
+                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOn)
+                }
+            } else {
+                notificationPermissionHandler.requestPermission()
+            }
+        } else {
+            scope.launch {
+                settingsDataStore.setGlobalNotificationsEnabled(false)
+                notificationScheduler.cancelGeneralNotification()
+                if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+            }
+        }
+    }
+
+    NotificationScheduleSubScreen(
+        description = "Remind you to add completions every day. Choose the time and days that best fit your routine.",
+        toggleText = "Daily reminder",
+        enabled = globalNotificationsEnabled,
+        notificationTime = globalNotificationTime,
+        selectedDays = globalNotificationDays,
+        settingsDataStore = settingsDataStore,
+        is24Hour = is24Hour,
+        borderContrast = borderContrast,
+        vibrationsEnabled = vibrationsEnabled,
+        firstDayOfWeekCalendar = firstDayOfWeekCalendar,
+        onToggle = ::handleToggle,
+        onTimeChange = { newTime ->
+            scope.launch {
+                settingsDataStore.setGlobalNotificationTime(newTime)
+                if (globalNotificationsEnabled) {
+                    notificationScheduler.scheduleGeneralNotification(newTime, globalNotificationDays)
+                }
+            }
+        },
+        onDayToggle = { day ->
+            scope.launch {
+                val newDays = if (globalNotificationDays.contains(day)) globalNotificationDays - day else globalNotificationDays + day
+                settingsDataStore.setGlobalNotificationDays(newDays)
+                if (globalNotificationsEnabled) {
+                    notificationScheduler.scheduleGeneralNotification(globalNotificationTime, newDays)
+                }
+            }
+        },
+        onPermissionRequest = { notificationPermissionHandler.requestPermission() },
+        hasPermission = notificationPermissionHandler.hasPermission,
+        modifier = modifier
+    )
+}
+
+@Composable
+fun WelcomeCardNotificationSubScreen(
+    settingsDataStore: SettingsDataStore,
+    is24Hour: Boolean,
+    borderContrast: Float,
+    modifier: Modifier = Modifier
+) {
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
+    val notificationScheduler = remember { NotificationScheduler(context) }
+    val firstDayOfWeekCalendar by settingsDataStore.firstDayOfWeekCalendar.collectAsState(initial = Calendar.MONDAY)
+    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
+
+    val welcomeCardNotificationEnabled by settingsDataStore.welcomeCardNotificationEnabled.collectAsState(initial = DefaultSettings.WELCOME_CARD_NOTIFICATION_ENABLED)
+    val welcomeCardNotificationTime by settingsDataStore.welcomeCardNotificationTime.collectAsState(initial = DefaultSettings.WELCOME_CARD_NOTIFICATION_TIME)
+    val welcomeCardNotificationDays by settingsDataStore.welcomeCardNotificationDays.collectAsState(
+        initial = DefaultSettings.WELCOME_CARD_NOTIFICATION_DAYS.split(',').filter { it.isNotEmpty() }.toSet()
+    )
+
+    val notificationPermissionHandler = rememberNotificationPermissionHandler {
+        scope.launch {
+            settingsDataStore.setWelcomeCardNotificationEnabled(true)
+            notificationScheduler.scheduleWelcomeCardNotification(welcomeCardNotificationTime, welcomeCardNotificationDays)
+            if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOn)
+        }
+    }
+
+    fun handleToggle(enable: Boolean) {
+        if (enable) {
+            if (notificationPermissionHandler.hasPermission) {
+                scope.launch {
+                    settingsDataStore.setWelcomeCardNotificationEnabled(true)
+                    notificationScheduler.scheduleWelcomeCardNotification(welcomeCardNotificationTime, welcomeCardNotificationDays)
+                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOn)
+                }
+            } else {
+                notificationPermissionHandler.requestPermission()
+            }
+        } else {
+            scope.launch {
+                settingsDataStore.setWelcomeCardNotificationEnabled(false)
+                notificationScheduler.cancelWelcomeCardNotification()
+                if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+            }
+        }
+    }
+
+    NotificationScheduleSubScreen(
+        description = "Receive a daily notification with your supportive progress and streaks.",
+        toggleText = "Welcome card reminder",
+        enabled = welcomeCardNotificationEnabled,
+        notificationTime = welcomeCardNotificationTime,
+        selectedDays = welcomeCardNotificationDays,
+        settingsDataStore = settingsDataStore,
+        is24Hour = is24Hour,
+        borderContrast = borderContrast,
+        vibrationsEnabled = vibrationsEnabled,
+        firstDayOfWeekCalendar = firstDayOfWeekCalendar,
+        onToggle = ::handleToggle,
+        onTimeChange = { newTime ->
+            scope.launch {
+                settingsDataStore.setWelcomeCardNotificationTime(newTime)
+                if (welcomeCardNotificationEnabled) {
+                    notificationScheduler.scheduleWelcomeCardNotification(newTime, welcomeCardNotificationDays)
+                }
+            }
+        },
+        onDayToggle = { day ->
+            scope.launch {
+                val newDays = if (welcomeCardNotificationDays.contains(day)) welcomeCardNotificationDays - day else welcomeCardNotificationDays + day
+                settingsDataStore.setWelcomeCardNotificationDays(newDays)
+                if (welcomeCardNotificationEnabled) {
+                    notificationScheduler.scheduleWelcomeCardNotification(welcomeCardNotificationTime, newDays)
+                }
+            }
+        },
+        onPermissionRequest = { notificationPermissionHandler.requestPermission() },
+        hasPermission = notificationPermissionHandler.hasPermission,
+        modifier = modifier
+    )
+}
+

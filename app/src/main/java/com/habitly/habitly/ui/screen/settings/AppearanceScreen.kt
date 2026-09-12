@@ -164,3 +164,48 @@ fun AppearanceScreen(
         }
     }
 }
+
+@Composable
+fun HabitColorSubScreen(
+    settingsDataStore: SettingsDataStore,
+    modifier: Modifier = Modifier
+) {
+    val scope = rememberCoroutineScope()
+    val useHabitColor by settingsDataStore.useHabitColorForCard.collectAsState(initial = DefaultSettings.USE_HABIT_COLOR_FOR_CARD)
+    val habitColorTargets by settingsDataStore.habitColorTargets.collectAsState(
+        initial = DefaultSettings.HABIT_COLOR_TARGETS.split(',').filter { it.isNotEmpty() }.toSet()
+    )
+    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
+    val haptic = LocalHapticFeedback.current
+
+    SettingsSubScreenContainer(modifier = modifier) {
+        SettingsSubScreenDescription("Apply the habit's color to specific components to improve identification and aesthetics.")
+
+        MainSettingsToggle(
+            text = "Use habit color",
+            checked = useHabitColor,
+            onCheckedChange = { isChecked ->
+                scope.launch { settingsDataStore.setUseHabitColorForCard(isChecked) }
+                if (vibrationsEnabled) {
+                    haptic.performHapticFeedback(if (isChecked) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+                }
+            }
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        SettingsCheckboxGroup(
+            title = "Targets",
+            items = listOf("Habit Cards", "Statistic Screen"),
+            selectedItems = habitColorTargets,
+            enabled = useHabitColor,
+            settingsDataStore = settingsDataStore,
+            onToggleItem = { target ->
+                val newTargets = if (target in habitColorTargets) habitColorTargets - target else habitColorTargets + target
+                scope.launch { settingsDataStore.setHabitColorTargets(newTargets) }
+                if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+            }
+        )
+    }
+}
+

@@ -25,9 +25,11 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -817,3 +819,68 @@ fun MainSettingsToggle(
         }
     }
 }
+
+@Composable
+fun SettingsSubScreenDescription(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodyLarge,
+        color = MaterialTheme.colorScheme.onSurface,
+        modifier = modifier.padding(horizontal = 24.dp, vertical = 16.dp)
+    )
+}
+
+@Composable
+fun SettingsSubScreenContainer(
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val (scrollState, scrollEnabled) = rememberSettingsScrollState()
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState, enabled = scrollEnabled)
+    ) {
+        content()
+        Spacer(modifier = Modifier.height(16.dp).navigationBarsPadding())
+    }
+}
+
+@Composable
+fun SettingsCheckboxGroup(
+    items: List<String>,
+    selectedItems: Set<String>,
+    settingsDataStore: SettingsDataStore,
+    modifier: Modifier = Modifier,
+    title: String? = "Targets",
+    enabled: Boolean = true,
+    onToggleItem: (String) -> Unit
+) {
+    SettingsGroup(
+        title = title,
+        settingsDataStore = settingsDataStore,
+        modifier = modifier
+    ) {
+        items.forEachIndexed { index, item ->
+            val position = when {
+                items.size == 1 -> SettingsItemPosition.Alone
+                index == 0 -> SettingsItemPosition.Top
+                index == items.size - 1 -> SettingsItemPosition.Bottom
+                else -> SettingsItemPosition.Middle
+            }
+            SettingsCheckboxItem(
+                text = item,
+                checked = item in selectedItems,
+                enabled = enabled,
+                settingsDataStore = settingsDataStore,
+                position = position,
+                showDivider = index < items.size - 1,
+                onCheckedChange = { onToggleItem(item) }
+            )
+        }
+    }
+}
+

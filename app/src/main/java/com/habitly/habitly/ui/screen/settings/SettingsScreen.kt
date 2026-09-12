@@ -650,6 +650,48 @@ fun SettingsScreen(
                     settingsDataStore = settingsDataStore,
                     is24Hour = is24Hour,
                     borderContrast = borderContrast,
+                    onNavigateToDailyNotification = { navController.navigate("daily_notification") { launchSingleTop = true } },
+                    onNavigateToWelcomeCardNotification = { navController.navigate("welcome_card_notification") { launchSingleTop = true } },
+                    modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
+                )
+            }
+        }
+
+        composable(
+            route = "daily_notification"
+        ) {
+            SettingsScaffold(
+                title = "Daily reminder",
+                onBack = {
+                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+                    navController.popBackStack()
+                },
+                borderContrast = borderContrast,
+            ) { paddingValues ->
+                DailyNotificationSubScreen(
+                    settingsDataStore = settingsDataStore,
+                    is24Hour = is24Hour,
+                    borderContrast = borderContrast,
+                    modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
+                )
+            }
+        }
+
+        composable(
+            route = "welcome_card_notification"
+        ) {
+            SettingsScaffold(
+                title = "Welcome Card",
+                onBack = {
+                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+                    navController.popBackStack()
+                },
+                borderContrast = borderContrast,
+            ) { paddingValues ->
+                WelcomeCardNotificationSubScreen(
+                    settingsDataStore = settingsDataStore,
+                    is24Hour = is24Hour,
+                    borderContrast = borderContrast,
                     modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
                 )
             }
