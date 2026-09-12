@@ -158,6 +158,9 @@ fun MonthCalendar(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = {
+                if (vibrationsEnabled) {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                }
                 scope.launch {
                     if (pagerState.currentPage > 0) {
                         pagerState.animateScrollToPage(pagerState.currentPage - 1)
@@ -201,6 +204,9 @@ fun MonthCalendar(
 
             IconButton(
                 onClick = {
+                    if (vibrationsEnabled) {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    }
                     if (!isFutureMonth) {
                         scope.launch {
                             pagerState.animateScrollToPage(pagerState.currentPage + 1)

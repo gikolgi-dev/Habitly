@@ -552,7 +552,10 @@ fun StatisticScreen(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .background(Color.Black.copy(alpha = 0.4f))
-                                .clickable { isShelfExpanded = false }
+                                .clickable {
+                                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    isShelfExpanded = false
+                                }
                         )
                     }
 
@@ -592,7 +595,10 @@ fun StatisticScreen(
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .clickable { isShelfExpanded = !isShelfExpanded }
+                                        .clickable {
+                                            if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            isShelfExpanded = !isShelfExpanded
+                                        }
                                         .draggable(
                                             orientation = Orientation.Vertical,
                                             state = rememberDraggableState { delta ->

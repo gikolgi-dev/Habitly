@@ -93,7 +93,12 @@ fun ArchiveScreen(
                 ) {
                     OutlinedButton(
                         modifier = Modifier.weight(1f),
-                        onClick = { habitToDelete = null },
+                        onClick = {
+                            if (vibrationsEnabled) {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            }
+                            habitToDelete = null
+                        },
                         shape = CircleShape,
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface)
@@ -103,6 +108,9 @@ fun ArchiveScreen(
                     Button(
                         modifier = Modifier.weight(1f),
                         onClick = {
+                            if (vibrationsEnabled) {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            }
                             scope.launch {
                                 habitToDelete?.let {
                                     habitDao.deleteHabit(it)
@@ -202,6 +210,7 @@ fun ArchiveScreen(
                                     autoScrollText = autoScrollText,
                                     autoScrollTextElements = autoScrollTextElements,
                                     autoScrollTextScreens = autoScrollTextScreens,
+                                    vibrationsEnabled = vibrationsEnabled,
                                     onComplete = { },
                                     onClick = { },
                                     onUnarchive = {

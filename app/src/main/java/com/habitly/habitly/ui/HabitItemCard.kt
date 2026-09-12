@@ -30,6 +30,15 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -220,8 +229,14 @@ fun HabitCompletionButton(
     detailBgColor: Color = Color.Unspecified,
     detailBorderColor: Color = Color.Unspecified,
     currentCompletions: Int = if (isCompleted) habit.getDailyTarget() else 0,
+    vibrationsEnabled: Boolean = true,
     onDecrement: (() -> Unit)? = null
 ) {
+    val currentOnComplete by rememberUpdatedState(onComplete)
+    val currentOnDecrement by rememberUpdatedState(onDecrement)
+    val currentCompletionsState by rememberUpdatedState(currentCompletions)
+    val currentHabitState by rememberUpdatedState(habit)
+
     val useDarkTheme = when (theme) {
         "light" -> false
         "dark" -> true
@@ -254,6 +269,14 @@ fun HabitCompletionButton(
     )
 
     var isPressed by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
+    var repeatJob by remember { mutableStateOf<Job?>(null) }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            repeatJob?.cancel()
+        }
+    }
     val scaleState = animateFloatAsState(
         targetValue = if (isPressed && !disableAnimations && !disablePressAnimation) 0.85f else 1f,
         animationSpec = if (isPressed) spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessLow) else spring(
@@ -364,21 +387,47 @@ fun HabitCompletionButton(
             }
             .then(
                 if (!disablePressAnimation) {
-                    Modifier.pointerInput(isCompleted, currentCompletions) {
+                    Modifier.pointerInput(disablePressAnimation) {
                         detectTapGestures(
                             onPress = {
                                 isPressed = true
                                 try {
                                     awaitRelease()
+                                } catch (_: Exception) {
                                 } finally {
                                     isPressed = false
+                                    repeatJob?.cancel()
+                                    repeatJob = null
                                 }
                             },
                             onLongPress = {
-                                onDecrement?.invoke()
+                                repeatJob?.cancel()
+                                repeatJob = coroutineScope.launch {
+                                    val target = currentHabitState.getDailyTarget()
+                                    val isInverse = currentHabitState.isInverse
+                                    var localCount = currentCompletionsState
+
+                                    fun canDecrement(): Boolean {
+                                        return if (isInverse) localCount < target else localCount > 0
+                                    }
+
+                                    if (currentOnDecrement != null && canDecrement()) {
+                                        if (isInverse) localCount++ else localCount--
+                                        currentOnDecrement?.invoke()
+
+                                        var currentDelay = 350L
+                                        while (isActive && canDecrement()) {
+                                            delay(currentDelay)
+                                            if (!isActive || !canDecrement()) break
+                                            if (isInverse) localCount++ else localCount--
+                                            currentOnDecrement?.invoke()
+                                            currentDelay = (currentDelay * 0.85f).toLong().coerceAtLeast(200L)
+                                        }
+                                    }
+                                }
                             },
                             onTap = {
-                                onComplete()
+                                currentOnComplete()
                             }
                         )
                     }
@@ -458,8 +507,10 @@ fun HabitItemCard(
     firstDayOfWeek: Int = Calendar.MONDAY,
     autoScrollText: Boolean = false,
     autoScrollTextElements: Set<String> = emptySet(),
-    autoScrollTextScreens: Set<String> = emptySet()
+    autoScrollTextScreens: Set<String> = emptySet(),
+    vibrationsEnabled: Boolean = true
 ) {
+    val haptic = LocalHapticFeedback.current
     val useDarkTheme = when (theme) {
         "light" -> false
         "dark" -> true
@@ -473,36 +524,39 @@ fun HabitItemCard(
         MaterialTheme.colorScheme.surfaceVariant
     }
 
-    val targetCardBorderColor = if (useHabitColor) {
-        lerp(
-            habitThemeColor,
-            lerp(habitThemeColor, MaterialTheme.colorScheme.surfaceVariant, if (useDarkTheme) 0.85f else 0.82f),
-            1f - borderContrast
-        )
+    val cardBackgroundColor by animateColorAsState(
+        targetValue = targetCardBackgroundColor,
+        animationSpec = tween(300),
+        label = "cardBackgroundColor"
+    )
+
+    val targetBorderColor = if (useHabitColor) {
+        lerp(habitThemeColor, MaterialTheme.colorScheme.outline, borderContrast)
     } else {
         MaterialTheme.colorScheme.outline.copy(alpha = borderContrast)
     }
 
-    val cardBackgroundColor by animateColorAsState(
-        targetValue = targetCardBackgroundColor,
-        animationSpec = tween(300),
-        label = "cardBgColor"
-    )
     val cardBorderColor by animateColorAsState(
-        targetValue = targetCardBorderColor,
+        targetValue = targetBorderColor,
         animationSpec = tween(300),
         label = "cardBorderColor"
     )
-    val secondaryContainerAlpha = if (useDarkTheme) 0.25f else 1f
+
     val resolvedDetailBgColor = if (detailBgColor != Color.Unspecified) {
         detailBgColor
     } else {
+        val secondaryContainerAlpha = if (useDarkTheme) 0.25f else 1f
         MaterialTheme.colorScheme.secondaryContainer.copy(alpha = secondaryContainerAlpha)
     }
     val detailBorderColor = cardBorderColor
 
     Card(
-        onClick = onClick,
+        onClick = {
+            if (vibrationsEnabled) {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            }
+            onClick()
+        },
         enabled = !isPreview,
         modifier = Modifier
             .fillMaxWidth()
@@ -567,6 +621,7 @@ fun HabitItemCard(
                         disablePressAnimation = isPreview,
                         onComplete = onComplete,
                         onDecrement = onDecrement,
+                        vibrationsEnabled = vibrationsEnabled,
                         sharedTransitionScope = sharedTransitionScope,
                         visible = visible,
                         transitionProgressProvider = transitionProgressProvider,
@@ -577,12 +632,22 @@ fun HabitItemCard(
                 } else {
                     Row {
                         onUnarchive?.let {
-                            IconButton(onClick = it) {
+                            IconButton(onClick = {
+                                if (vibrationsEnabled) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                }
+                                it()
+                            }) {
                                 Icon(Icons.Default.Restore, contentDescription = "Unarchive")
                             }
                         }
                         onDelete?.let {
-                            IconButton(onClick = it) {
+                            IconButton(onClick = {
+                                if (vibrationsEnabled) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                }
+                                it()
+                            }) {
                                 Icon(Icons.Default.Delete, contentDescription = "Delete")
                             }
                         }

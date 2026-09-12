@@ -238,7 +238,8 @@ fun NotificationSettingsScreen(
             initialHour = initialHour,
             initialMinute = initialMinute,
             borderContrast = borderContrast,
-            is24Hour = is24Hour
+            is24Hour = is24Hour,
+            vibrationsEnabled = vibrationsEnabled
         )
     }
 

@@ -496,6 +496,9 @@ fun HabitStatisticsContent(
                                     interactionSource = remember { MutableInteractionSource() },
                                     indication = null
                                 ) {
+                                    if (vibrationsEnabled) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    }
                                     selectedModuleForResize = if (selectedModuleForResize == moduleId) null else moduleId
                                 }
                             } else Modifier

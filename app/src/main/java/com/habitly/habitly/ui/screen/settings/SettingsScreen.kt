@@ -373,6 +373,7 @@ fun SettingsScreen(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(4.dp))
                                     .clickable {
+                                        if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                         uriHandler.openUri("https://www.gnu.org/licenses/gpl-3.0.html")
                                     }
                                     .padding(horizontal = 4.dp, vertical = 2.dp)
@@ -430,7 +431,10 @@ fun SettingsScreen(
                 },
                 borderContrast = borderContrast,
                 actions = {
-                    IconButton(onClick = { scope.launch { settingsDataStore.resetToDefault() } }) {
+                    IconButton(onClick = {
+                        if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        scope.launch { settingsDataStore.resetToDefault() }
+                    }) {
                         Icon(painter = painterResource(id = R.drawable.resetwrench), contentDescription = "Reset Settings", tint = MaterialTheme.colorScheme.onSurface)
                     }
                 },

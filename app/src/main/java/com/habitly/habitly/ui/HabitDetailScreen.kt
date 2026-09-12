@@ -222,7 +222,12 @@ fun SharedTransitionScope.HabitDetailScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     OutlinedButton(
-                        onClick = { },
+                        onClick = {
+                            if (vibrationsEnabled) {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            }
+                            showDeleteConfirmation = false
+                        },
                         shape = CircleShape,
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface)
@@ -231,6 +236,10 @@ fun SharedTransitionScope.HabitDetailScreen(
                     }
                     Button(
                         onClick = {
+                            if (vibrationsEnabled) {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            }
+                            showDeleteConfirmation = false
                             onDismiss()
                             viewModel.deleteHabit(habit)
                             notificationScheduler.cancelNotification(habit)

@@ -70,7 +70,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -238,9 +240,11 @@ fun getFileName(uri: Uri, context: Context): String? {
 @Composable
 fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
     val settingsDataStore = remember { SettingsDataStore(context) }
     val bordersAlphaState = settingsDataStore.borders.collectAsState(initial = null)
     val bordersAlpha = bordersAlphaState.value ?: return
+    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
 
     var isSourceDisclosed by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
@@ -397,6 +401,7 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                         RoundedCornerShape(8.dp)
                     )
                     .clickable {
+                        if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         val currentDate = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                             LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
                         } else {
@@ -451,7 +456,10 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                 )
                 .then(
                     if (selectedFileUri == null) {
-                        Modifier.clickable { importLauncher.launch("application/json") }
+                        Modifier.clickable {
+                            if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            importLauncher.launch("application/json")
+                        }
                     } else Modifier
                 )
                 .padding(16.dp),
@@ -529,7 +537,10 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                                     ),
                                     RoundedCornerShape(12.dp)
                                 )
-                                .clickable { importLauncher.launch("application/json") }
+                                .clickable {
+                                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    importLauncher.launch("application/json")
+                                }
                                 .padding(12.dp)
                         ) {
                             Column(
@@ -574,7 +585,10 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                                             index = index,
                                             count = options.size
                                         ),
-                                        onClick = { importType = types[index] },
+                                        onClick = {
+                                            if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            importType = types[index]
+                                        },
                                         selected = importType == types[index],
                                         label = { Text(label) }
                                     )
@@ -634,6 +648,7 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                                     interactionSource = interactionSource,
                                     indication = null,
                                     onClick = {
+                                        if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                         scope.launch {
                                             isToggling = true
                                             mergeData = !mergeData
@@ -749,6 +764,7 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                                             interactionSource = settingsInteractionSource,
                                             indication = null,
                                             onClick = {
+                                                if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                                 scope.launch {
                                                     isTogglingSettings = true
                                                     ignoreSettings = !ignoreSettings
@@ -813,6 +829,7 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                         ) {
                             OutlinedButton(
                                 onClick = {
+                                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     selectedFileUri = null
                                     importType = null
                                     mergeData = false
@@ -840,6 +857,7 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                                     .weight(1f)
                                     .graphicsLayer { alpha = confirmAlpha },
                                 onClick = {
+                                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     scope.launch {
                                         try {
                                             val jsonString = withContext(Dispatchers.IO) {

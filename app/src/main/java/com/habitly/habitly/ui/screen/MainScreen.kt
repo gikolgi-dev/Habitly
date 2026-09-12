@@ -401,7 +401,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
             initialHour = initialHour,
             initialMinute = initialMinute,
             borderContrast = borderContrast!!,
-            is24Hour = is24Hour
+            is24Hour = is24Hour,
+            vibrationsEnabled = vibrationsEnabled
         )
     }
 
@@ -433,6 +434,9 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 ) {
                     OutlinedButton(
                         onClick = {
+                            if (vibrationsEnabled) {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            }
                             showColorPicker = false
                             tempColor = null
                         },
@@ -444,6 +448,9 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                     }
                     Button(
                         onClick = {
+                            if (vibrationsEnabled) {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            }
                             customColor = tempColor
                             showColorPicker = false
                             tempColor = null
@@ -645,6 +652,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                         autoScrollText = autoScrollText,
                                                         autoScrollTextElements = autoScrollTextElements,
                                                         autoScrollTextScreens = autoScrollTextScreens,
+                                                        vibrationsEnabled = vibrationsEnabled,
                                                         onComplete = {
                                                             if (vibrationsEnabled) {
                                                                 haptic.performHapticFeedback(

@@ -721,7 +721,12 @@ fun HabitSheetContent(
                             val selected = if (index == 0) !isInverse else isInverse
                             SegmentedButton(
                                 selected = selected,
-                                onClick = { onIsInverseChanged(index == 1) },
+                                onClick = {
+                                    if (vibrationsEnabled) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    }
+                                    onIsInverseChanged(index == 1)
+                                },
                                 shape = SegmentedButtonDefaults.itemShape(index = index, count = typeOptions.size),
                                 icon = {
                                     if (index == 0) {
@@ -781,7 +786,12 @@ fun HabitSheetContent(
                                     val selected = if (index == 0) invertCompletions else !invertCompletions
                                     SegmentedButton(
                                         selected = selected,
-                                        onClick = { onInvertCompletionsChanged(index == 0) },
+                                        onClick = {
+                                            if (vibrationsEnabled) {
+                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            }
+                                            onInvertCompletionsChanged(index == 0)
+                                        },
                                         shape = SegmentedButtonDefaults.itemShape(index = index, count = invertOptions.size),
                                         colors = SegmentedButtonDefaults.colors(
                                             activeContainerColor = MaterialTheme.colorScheme.primary,
@@ -955,7 +965,12 @@ fun HabitSheetContent(
                                     val selected = if (index == 0) !targetConversionIsPercentage else targetConversionIsPercentage
                                     SegmentedButton(
                                         selected = selected,
-                                        onClick = { onTargetConversionChanged(index == 1) },
+                                        onClick = {
+                                            if (vibrationsEnabled) {
+                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            }
+                                            onTargetConversionChanged(index == 1)
+                                        },
                                         shape = SegmentedButtonDefaults.itemShape(index = index, count = targetOptions.size),
                                         colors = SegmentedButtonDefaults.colors(
                                             activeContainerColor = MaterialTheme.colorScheme.primary,
@@ -998,6 +1013,9 @@ fun HabitSheetContent(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
+                                if (vibrationsEnabled) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                }
                                 onStreakCountingDisabledChanged(!streakCountingDisabled)
                             },
                         verticalAlignment = Alignment.CenterVertically,
@@ -1032,7 +1050,12 @@ fun HabitSheetContent(
                         items.forEachIndexed { index, label ->
                             SegmentedButton(
                                 selected = intervalUnit == intervalValues[index],
-                                onClick = { onIntervalUnitChanged(intervalValues[index]) },
+                                onClick = {
+                                    if (vibrationsEnabled) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    }
+                                    onIntervalUnitChanged(intervalValues[index])
+                                },
                                 shape = SegmentedButtonDefaults.itemShape(index = index, count = items.size),
                                 colors = SegmentedButtonDefaults.colors(
                                     activeContainerColor = MaterialTheme.colorScheme.primary,
@@ -1228,6 +1251,9 @@ fun HabitSheetContent(
                             .fillMaxWidth()
                             .clickable(
                                 onClick = {
+                                    if (vibrationsEnabled) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    }
                                     onNotificationsEnabledChanged(!notificationsEnabled)
                                 }
                             )

@@ -1116,4 +1116,79 @@ class HabitFeaturesTest {
         val disabledHabit = habit.copy(streakCountingDisabled = true)
         assertTrue(disabledHabit.streakCountingDisabled)
     }
+
+    @Test
+    fun testBuildHabit_continuousDecrement_bounds() {
+        val today = normalizeToStartOfDay(System.currentTimeMillis())
+        val habit = createHabit(isInverse = false, completionsPerInterval = 5)
+        val target = habit.getDailyTarget()
+
+        // Start at 4 completions
+        var currentEffective = 4
+        var decrementCalls = 0
+
+        fun canDecrement(effective: Int, isInverse: Boolean, target: Int): Boolean {
+            return if (isInverse) effective < target else effective > 0
+        }
+
+        while (canDecrement(currentEffective, habit.isInverse, target)) {
+            currentEffective = (currentEffective - 1).coerceAtLeast(0)
+            decrementCalls++
+        }
+
+        assertEquals(4, decrementCalls)
+        assertEquals(0, currentEffective)
+        assertFalse(canDecrement(currentEffective, habit.isInverse, target))
+    }
+
+    @Test
+    fun testQuitHabit_continuousDecrement_bounds() {
+        val today = normalizeToStartOfDay(System.currentTimeMillis())
+        val habit = createHabit(isInverse = true, completionsPerInterval = 4)
+        val target = habit.getDailyTarget()
+
+        // For inverse habit, 3 slips means effective = 4 - 3 = 1
+        var currentEffective = 1
+        var decrementCalls = 0
+
+        fun canDecrement(effective: Int, isInverse: Boolean, target: Int): Boolean {
+            return if (isInverse) effective < target else effective > 0
+        }
+
+        while (canDecrement(currentEffective, habit.isInverse, target)) {
+            currentEffective = (currentEffective + 1).coerceAtMost(target)
+            decrementCalls++
+        }
+
+        assertEquals(3, decrementCalls)
+        assertEquals(target, currentEffective)
+        assertFalse(canDecrement(currentEffective, habit.isInverse, target))
+    }
+
+    @Test
+    fun testBuildHabit_decrementAtZero_noDecrements() {
+        val habit = createHabit(isInverse = false, completionsPerInterval = 5)
+        val target = habit.getDailyTarget()
+        val currentEffective = 0
+
+        fun canDecrement(effective: Int, isInverse: Boolean, target: Int): Boolean {
+            return if (isInverse) effective < target else effective > 0
+        }
+
+        assertFalse(canDecrement(currentEffective, habit.isInverse, target))
+    }
+
+    @Test
+    fun testQuitHabit_decrementAtTarget_noDecrements() {
+        val habit = createHabit(isInverse = true, completionsPerInterval = 4)
+        val target = habit.getDailyTarget()
+        val currentEffective = target // Already at target (no slips to undo)
+
+        fun canDecrement(effective: Int, isInverse: Boolean, target: Int): Boolean {
+            return if (isInverse) effective < target else effective > 0
+        }
+
+        assertFalse(canDecrement(currentEffective, habit.isInverse, target))
+    }
 }
+

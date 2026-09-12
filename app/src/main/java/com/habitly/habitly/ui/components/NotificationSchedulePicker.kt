@@ -60,6 +60,7 @@ fun NotificationTimeSelectors(
     onDisabledClick: () -> Unit = {}
 ) {
     val alpha by animateFloatAsState(targetValue = if (isEnabled) 1f else 0.5f, label = "")
+    val haptic = LocalHapticFeedback.current
 
     @Suppress("DEPRECATION")
     val timeTextStyle = MaterialTheme.typography.displayLarge.copy(
@@ -84,6 +85,7 @@ fun NotificationTimeSelectors(
                 .fillMaxWidth()
                 .clickable(
                     onClick = {
+                        if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         if (isEnabled) {
                             onTimeClick()
                         } else {
@@ -155,7 +157,8 @@ fun CustomTimePickerDialog(
     initialHour: Int = Calendar.getInstance().get(Calendar.HOUR_OF_DAY),
     initialMinute: Int = Calendar.getInstance().get(Calendar.MINUTE),
     borderContrast: Float,
-    is24Hour: Boolean
+    is24Hour: Boolean,
+    vibrationsEnabled: Boolean = true
 ) {
     val timePickerState = rememberTimePickerState(
         initialHour = initialHour,
@@ -165,7 +168,9 @@ fun CustomTimePickerDialog(
     val haptic = LocalHapticFeedback.current
 
     LaunchedEffect(timePickerState.hour, timePickerState.minute) {
-        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        if (vibrationsEnabled) {
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        }
     }
 
     Dialog(
@@ -196,7 +201,10 @@ fun CustomTimePickerDialog(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 OutlinedButton(
-                    onClick = onDismissRequest,
+                    onClick = {
+                        if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        onDismissRequest()
+                    },
                     shape = CircleShape,
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface)
@@ -205,6 +213,7 @@ fun CustomTimePickerDialog(
                 }
                 Button(
                     onClick = {
+                        if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         onConfirm(timePickerState.hour, timePickerState.minute)
                     },
                     shape = CircleShape
