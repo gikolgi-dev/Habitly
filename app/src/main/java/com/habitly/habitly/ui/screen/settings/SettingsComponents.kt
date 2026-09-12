@@ -10,7 +10,6 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -34,8 +33,6 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -57,7 +54,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -79,7 +78,11 @@ val LocalSettingsVibrations = compositionLocalOf { true }
 fun rememberSettingsScrollState(initial: Int = 0): Pair<ScrollState, Boolean> {
     val scrollState = rememberScrollState(initial)
     val isTopBarCollapsed = LocalSettingsTopBarCollapsed.current
-    val scrollEnabled = scrollState.maxValue > 0 || scrollState.value > 0 || isTopBarCollapsed
+    val scrollEnabled by remember(scrollState, isTopBarCollapsed) {
+        derivedStateOf {
+            scrollState.maxValue > 0 || scrollState.value > 0 || isTopBarCollapsed
+        }
+    }
     return scrollState to scrollEnabled
 }
 

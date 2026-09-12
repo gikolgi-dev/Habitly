@@ -5,6 +5,7 @@ package com.habitly.habitly.ui.colors
 import android.app.Activity
 import android.os.Build
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -177,7 +178,7 @@ fun Attempt3Theme(
         enableAnimations = true
     }
 
-    val animationSpec = if (enableAnimations) tween<Color>(durationMillis = 400) else snap<Color>()
+    val animationSpec: AnimationSpec<Color> = if (enableAnimations) tween(durationMillis = 400) else snap()
 
     val animatedColorScheme = colorScheme.copy(
         primary = animateColorAsState(colorScheme.primary, animationSpec, label = "primary").value,

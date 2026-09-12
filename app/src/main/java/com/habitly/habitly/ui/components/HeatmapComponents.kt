@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
@@ -17,7 +16,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -61,14 +59,14 @@ fun HeatmapWeekColumn(
     verticalSpacing: Dp,
     horizontalSpacing: Dp,
     monthLabelAlpha: Float,
+    yearDividerAlpha: Float,
+    yearLabelsAlpha: Float,
+    modifier: Modifier = Modifier,
     monthTopSpacerHeight: Dp = 0.dp,
     monthRowHeight: Dp = 14.dp,
     monthSpacerHeight: Dp = 2.dp,
-    yearDividerAlpha: Float,
-    yearLabelsAlpha: Float,
     notificationDotAlpha: Float = 1f,
-    animateTileChanges: Boolean = false,
-    modifier: Modifier = Modifier
+    animateTileChanges: Boolean = false
 ) {
     val onSurface = MaterialTheme.colorScheme.onSurface
     val surface = MaterialTheme.colorScheme.surface

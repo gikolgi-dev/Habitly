@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
+import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -199,7 +199,8 @@ class HabitViewModel(private val habitDao: HabitDao) : ViewModel() {
         val existingCompletions = habitDao.getCompletionsForHabitSnapshot(habitId)
 
         val newCompletions = existingCompletions.mapNotNull { comp ->
-            val newAmount = Math.round(comp.amountOfCompletions.toFloat() * newTarget / oldTarget.toFloat())
+            val newAmount = (comp.amountOfCompletions.toFloat() * newTarget / oldTarget.toFloat())
+                .roundToInt()
                 .coerceIn(0, newTarget)
             if (newAmount > 0) {
                 comp.copy(amountOfCompletions = newAmount)
@@ -247,7 +248,8 @@ class HabitViewModel(private val habitDao: HabitDao) : ViewModel() {
             }
 
             val scaledOldEffective = if (targetConversionMode == TargetConversionMode.PERCENTAGE && oldTarget != newTarget) {
-                Math.round(oldEffective.toFloat() * newTarget / oldTarget.toFloat())
+                (oldEffective.toFloat() * newTarget / oldTarget.toFloat())
+                    .roundToInt()
                     .coerceIn(0, newTarget)
             } else {
                 oldEffective

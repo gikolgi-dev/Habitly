@@ -49,15 +49,39 @@ val Habit.isQuit: Boolean get() = isInverse
 fun parseDateToMillis(dateStr: String?): Long? {
     if (dateStr.isNullOrBlank()) return null
     dateStr.toLongOrNull()?.let { return it }
-    return try {
-        java.time.Instant.parse(dateStr).toEpochMilli()
-    } catch (_: Exception) {
+    try {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O || android.os.Build.VERSION.SDK_INT == 0) {
+            try {
+                return java.time.Instant.parse(dateStr).toEpochMilli()
+            } catch (_: Exception) {
+                try {
+                    return java.time.LocalDate.parse(dateStr).atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli()
+                } catch (_: Exception) {
+                    // fall through to legacy parsing
+                }
+            }
+        }
+    } catch (_: Throwable) {
+        // Fall through in case java.time is missing on older runtimes
+    }
+    val normalizedStr = dateStr.replace(Regex("""\.(\d{3})\d+([Z\+\-])"""), ".$1$2")
+    val isoPatterns = arrayOf(
+        "yyyy-MM-dd'T'HH:mm:ss.SSSX",
+        "yyyy-MM-dd'T'HH:mm:ssX",
+        "yyyy-MM-dd'T'HH:mm:ss",
+        "yyyy-MM-dd"
+    )
+    for (pattern in isoPatterns) {
         try {
-            java.time.LocalDate.parse(dateStr).atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli()
+            val sdf = java.text.SimpleDateFormat(pattern, java.util.Locale.US).apply {
+                timeZone = java.util.TimeZone.getTimeZone("UTC")
+            }
+            val date = sdf.parse(normalizedStr)
+            if (date != null) return date.time
         } catch (_: Exception) {
-            null
         }
     }
+    return null
 }
 
 fun Habit.getEffectiveStartDateMillis(): Long = parseDateToMillis(startDate) ?: parseDateToMillis(createdAt) ?: System.currentTimeMillis()

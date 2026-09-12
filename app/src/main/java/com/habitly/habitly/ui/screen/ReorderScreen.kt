@@ -219,8 +219,8 @@ fun ReorderHabitItem(
     borderContrast: Float, 
     disableAnimations: Boolean, 
     useHabitColor: Boolean,
-    isBeingDragged: Boolean = false,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isBeingDragged: Boolean = false
 ) {
     val isDark = !MaterialTheme.colorScheme.surface.isBright()
     val habitThemeColor = Color(habit.color).toThemeHabitColor(isDark)

@@ -15,7 +15,6 @@ import java.util.concurrent.TimeUnit
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.max
-import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
@@ -223,7 +222,6 @@ fun calculateStatistics(
         "N/A"
     }
 
-    val totalCompletionsVal = totalCompletions
     val bestDayOfWeek = calculateBestDayOfWeek(habit, completions, firstDayOfWeek)
     val rateLast30Days = calculateRateLast30Days(habit, completions, now)
 
@@ -234,7 +232,7 @@ fun calculateStatistics(
         timeSinceCreation = daysSinceCreation,
         daysSinceLongestStreak = daysSinceLongestStreak,
         currentStreak = currentStreak,
-        totalCompletions = totalCompletionsVal,
+        totalCompletions = totalCompletions,
         bestDayOfWeek = bestDayOfWeek,
         rateLast30Days = rateLast30Days
     )

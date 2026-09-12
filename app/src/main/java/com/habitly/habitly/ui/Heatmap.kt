@@ -2,14 +2,9 @@
 
 package com.habitly.habitly.ui
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandHorizontally
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.gestures.FlingBehavior
 import androidx.compose.foundation.gestures.ScrollScope
 import androidx.compose.foundation.gestures.ScrollableDefaults
@@ -22,8 +17,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -39,7 +32,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.zIndex
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.Dp
@@ -504,12 +496,12 @@ private fun DayOfWeekLabels(
     visibleDayLabels: Set<String>,
     cellSize: Dp,
     minSpacing: Dp,
+    modifier: Modifier = Modifier,
     monthTopSpacerHeight: Dp = 0.dp,
     monthRowHeight: Dp = 14.dp,
     monthSpacerHeight: Dp = 2.dp,
     firstDayOfWeek: Int = Calendar.MONDAY,
-    columnAlpha: Float = 1f,
-    modifier: Modifier = Modifier
+    columnAlpha: Float = 1f
 ) {
     val dayValues = getDaysAndDayValues(firstDayOfWeek).second
 

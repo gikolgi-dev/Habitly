@@ -6,8 +6,6 @@ package com.habitly.habitly.ui
 
 import android.annotation.SuppressLint
 import kotlin.math.roundToInt
-import androidx.compose.ui.graphics.drawscope.scale
-import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -17,15 +15,12 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.MarqueeSpacing
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -47,7 +42,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -68,16 +62,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asAndroidPath
-import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
@@ -353,7 +344,6 @@ fun HabitCompletionButton(
                         val comp = animatedCompletions.value
                         val baseTrackAlpha = if (useDarkTheme) lerp(0.15f, 0.3f, borderContrast) else lerp(0.25f, 0.45f, borderContrast)
                         val trackAlpha = baseTrackAlpha * chunksAlpha
-                        val filledAlpha = chunksAlpha
 
                         for (i in 0 until count) {
                             val startAngle = -90f + i * segmentAngle + (gapAngle / 2f)
@@ -372,7 +362,7 @@ fun HabitCompletionButton(
                                 val fillSweep = sweepAngle * fillFraction
                                 if (fillSweep > 0f) {
                                     drawArc(
-                                        color = currentColor.copy(alpha = filledAlpha),
+                                        color = currentColor.copy(alpha = chunksAlpha),
                                         startAngle = startAngle,
                                         sweepAngle = fillSweep,
                                         useCenter = false,
@@ -388,7 +378,7 @@ fun HabitCompletionButton(
             }
             .then(
                 if (!disablePressAnimation) {
-                    Modifier.pointerInput(disablePressAnimation) {
+                    Modifier.pointerInput(Unit) {
                         detectTapGestures(
                             onPress = {
                                 isPressed = true

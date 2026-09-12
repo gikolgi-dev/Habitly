@@ -84,6 +84,7 @@ import com.habitly.habitly.data.Database.Completion
 import com.habitly.habitly.data.Database.Habit
 import com.habitly.habitly.data.Database.HabitDatabase
 import com.habitly.habitly.data.Database.getDailyTarget
+import com.habitly.habitly.data.Database.parseDateToMillis
 import com.habitly.habitly.data.settings.SettingsDataStore
 import com.habitly.habitly.data.settings.ExportedSettings
 import com.habitly.habitly.notifications.NotificationScheduler
@@ -98,11 +99,6 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 import java.text.SimpleDateFormat
-import java.time.Instant
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
 import java.util.Date
 import java.util.Locale
 import java.util.UUID
@@ -216,16 +212,13 @@ enum class ImportType {
 fun getFileName(uri: Uri, context: Context): String? {
     var result: String? = null
     if (uri.scheme == "content") {
-        val cursor = context.contentResolver.query(uri, null, null, null, null)
-        try {
-            if (cursor != null && cursor.moveToFirst()) {
+        context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+            if (cursor.moveToFirst()) {
                 val displayNameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
                 if (displayNameIndex != -1) {
                     result = cursor.getString(displayNameIndex)
                 }
             }
-        } finally {
-            cursor?.close()
         }
     }
     if (result == null) {
@@ -347,7 +340,7 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                     try {
                         val headerText = withContext(Dispatchers.IO) {
                             context.contentResolver.openInputStream(uri)?.use { inputStream ->
-                                val reader = java.io.BufferedReader(java.io.InputStreamReader(inputStream))
+                                val reader = BufferedReader(InputStreamReader(inputStream))
                                 val buffer = CharArray(4000)
                                 val readCount = reader.read(buffer)
                                 if (readCount != -1) {
@@ -408,11 +401,7 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                     )
                     .clickable {
                         if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        val currentDate = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
-                        } else {
-                            SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
-                        }
+                        val currentDate = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
                         exportLauncher.launch("habits_backup_$currentDate.json")
                     }
                     .padding(16.dp),
@@ -945,23 +934,13 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                                                             else -> "day"
                                                         }
 
-                                                        val createdAtMillis = try {
-                                                            Instant.parse(kitHabit.createdAt).toEpochMilli().toString()
-                                                        } catch (_: Exception) {
-                                                            kitHabit.createdAt.toLongOrNull()?.toString()
-                                                                ?: System.currentTimeMillis().toString()
-                                                        }
+                                                        val createdAtMillis = parseDateToMillis(kitHabit.createdAt)?.toString()
+                                                            ?: kitHabit.createdAt.toLongOrNull()?.toString()
+                                                            ?: System.currentTimeMillis().toString()
 
                                                         val startDateMillis = if (kitHabit.isInverse && !kitHabit.inverseStartDate.isNullOrBlank()) {
-                                                            try {
-                                                                LocalDate.parse(kitHabit.inverseStartDate).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli().toString()
-                                                            } catch (_: Exception) {
-                                                                try {
-                                                                    Instant.parse(kitHabit.inverseStartDate).toEpochMilli().toString()
-                                                                } catch (_: Exception) {
-                                                                    createdAtMillis
-                                                                }
-                                                            }
+                                                            parseDateToMillis(kitHabit.inverseStartDate)?.toString()
+                                                                ?: createdAtMillis
                                                         } else {
                                                             createdAtMillis
                                                         }
@@ -992,45 +971,7 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                                                     }
 
                                                     habitKitData.completions.forEach { kitCompletion ->
-                                                        val dateMillis = try {
-                                                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                                                try {
-                                                                    Instant.parse(kitCompletion.date)
-                                                                        .toEpochMilli()
-                                                                } catch (_: Exception) {
-                                                                    try {
-                                                                        val localDateTime =
-                                                                            LocalDateTime.parse(
-                                                                                kitCompletion.date
-                                                                            )
-                                                                        val offset =
-                                                                            ZoneOffset.ofTotalSeconds(
-                                                                                kitCompletion.timezoneOffsetInMinutes * 60
-                                                                            )
-                                                                        localDateTime.toInstant(
-                                                                            offset
-                                                                        ).toEpochMilli()
-                                                                    } catch (_: Exception) {
-                                                                        val localDate =
-                                                                            LocalDate.parse(
-                                                                                kitCompletion.date
-                                                                            )
-                                                                        val offset =
-                                                                            ZoneOffset.ofTotalSeconds(
-                                                                                kitCompletion.timezoneOffsetInMinutes * 60
-                                                                            )
-                                                                        localDate.atStartOfDay()
-                                                                            .toInstant(offset)
-                                                                            .toEpochMilli()
-                                                                    }
-                                                                }
-                                                            } else {
-                                                                0L // Fallback for older SDKs
-                                                            }
-                                                        } catch (e: Exception) {
-                                                            e.printStackTrace()
-                                                            0L
-                                                        }
+                                                        val dateMillis = parseDateToMillis(kitCompletion.date) ?: 0L
 
                                                         if (dateMillis != 0L && kitCompletion.amountOfCompletions > 0) {
                                                             completionsToInsert.add(
@@ -1054,9 +995,9 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                                                         )
                                                     exportedSettings = exportedData.settings
                                                     habitsToInsert.addAll(exportedData.habits.map { exportedHabit ->
-                                                        val createdAtMillis = com.habitly.habitly.data.Database.parseDateToMillis(exportedHabit.createdAt)?.toString()
+                                                        val createdAtMillis = parseDateToMillis(exportedHabit.createdAt)?.toString()
                                                             ?: exportedHabit.createdAt
-                                                        val startDateMillis = com.habitly.habitly.data.Database.parseDateToMillis(exportedHabit.startDate)?.toString()
+                                                        val startDateMillis = parseDateToMillis(exportedHabit.startDate)?.toString()
                                                             ?: createdAtMillis
                                                         Habit(
                                                             id = exportedHabit.id,

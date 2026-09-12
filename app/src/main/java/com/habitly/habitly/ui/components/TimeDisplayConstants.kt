@@ -9,6 +9,7 @@ import androidx.compose.ui.unit.sp
  * Constants used for the uniform scaling of time display components.
  * These values are calibrated against a reference width of 320dp.
  */
+@Suppress("ConstPropertyName")
 object TimeDisplayConstants {
     val ReferenceWidth = 320.dp
 

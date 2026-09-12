@@ -61,7 +61,7 @@ fun getEffectiveCompletionsForDay(
     val todayStart = normalizeToStartOfDay(currentDateMillis, timeZone)
     val habitStart = normalizeToStartOfDay(habit.getEffectiveStartDateMillis(), timeZone)
 
-    if (dayStart < habitStart || dayStart > todayStart) {
+    if (dayStart !in habitStart..todayStart) {
         return 0
     }
 
@@ -102,7 +102,7 @@ fun getCompletionRatioForDay(
     val todayStart = normalizeToStartOfDay(currentDateMillis, timeZone)
     val habitStart = normalizeToStartOfDay(habit.getEffectiveStartDateMillis(), timeZone)
 
-    if (dayStart < habitStart || dayStart > todayStart) {
+    if (dayStart !in habitStart..todayStart) {
         return 0f
     }
 
@@ -115,7 +115,7 @@ fun HabitWithCompletions.effectiveCompletionsOnDay(dayMillis: Long, currentDateM
     getEffectiveCompletionsForDay(habit, completions, dayMillis, currentDateMillis)
 
 fun HabitWithCompletions.isDayCompleted(dayMillis: Long, currentDateMillis: Long = System.currentTimeMillis()): Boolean =
-    com.habitly.habitly.data.Database.isDayCompleted(habit, completions, dayMillis, currentDateMillis)
+    isDayCompleted(habit, completions, dayMillis, currentDateMillis)
 
 fun HabitWithCompletions.completionRatioOnDay(dayMillis: Long, currentDateMillis: Long = System.currentTimeMillis()): Float =
     getCompletionRatioForDay(habit, completions, dayMillis, currentDateMillis)

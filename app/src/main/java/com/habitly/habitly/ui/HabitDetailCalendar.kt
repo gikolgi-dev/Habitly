@@ -73,7 +73,7 @@ import kotlinx.coroutines.launch
 import java.util.Calendar
 import kotlin.math.sqrt
 
-private fun calculateGridDistance(index1: Int, index2: Int, columns: Int): Float {
+private fun calculateGridDistance(index1: Int, index2: Int, columns: Int = 7): Float {
     val r1 = index1 / columns
     val c1 = index1 % columns
     val r2 = index2 / columns

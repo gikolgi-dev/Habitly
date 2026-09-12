@@ -21,16 +21,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -57,27 +54,15 @@ import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CopyAll
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.ui.unit.DpOffset
-import androidx.compose.material.icons.filled.TrendingUp
-import androidx.compose.material.icons.filled.FlashOn
-import androidx.compose.material.icons.filled.DonutLarge
-import androidx.compose.material.icons.filled.AccessTime
-import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.WbSunny
-import androidx.compose.material.icons.filled.Speed
-import androidx.compose.material.icons.filled.ShowChart
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -118,16 +103,14 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.DpOffset
 import com.habitly.habitly.data.Database.HabitViewModel
 import com.habitly.habitly.data.Database.HabitsUiState
 import com.habitly.habitly.data.Database.HabitWithCompletions
@@ -162,18 +145,6 @@ private fun isStreakModule(id: String): Boolean = when (getBaseModuleId(id)) {
 }
 
 private fun getBaseModuleId(id: String): String = if (id.endsWith("_full")) id.removeSuffix("_full") else id
-private fun getModuleIcon(id: String): ImageVector = when (getBaseModuleId(id)) {
-    "longest_streak" -> Icons.Default.Star
-    "current_streak" -> Icons.Default.FlashOn
-    "completion_ratio" -> Icons.Default.DonutLarge
-    "avg_completion_time" -> Icons.Default.AccessTime
-    "days_since_creation" -> Icons.Default.CalendarToday
-    "total_completions" -> Icons.Default.CheckCircle
-    "best_day_of_week" -> Icons.Default.WbSunny
-    "rate_last_30_days" -> Icons.Default.Speed
-    "monthly_chart" -> Icons.AutoMirrored.Filled.ShowChart
-    else -> Icons.Default.Star
-}
 
 private fun getModuleDisplayName(id: String): String = when (getBaseModuleId(id)) {
     "longest_streak" -> "Longest Streak"
@@ -215,7 +186,6 @@ fun StatisticScreen(
 
     var isEditMode by remember { mutableStateOf(false) }
     var localActiveModules by remember { mutableStateOf<List<String>>(emptyList()) }
-    var savedLayout by remember { mutableStateOf<List<String>>(emptyList()) }
     var lastSavedLayouts by remember { mutableStateOf<Map<String, List<String>>>(emptyMap()) }
 
     LaunchedEffect(habits, initialHabitId) {
@@ -714,7 +684,12 @@ fun StatisticScreen(
                         ) + fadeOut(),
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
-                            .offset(y = -animatedShelfHeight - 16.dp, x = -16.dp)
+                            .offset {
+                                IntOffset(
+                                    x = (-16.dp).roundToPx(),
+                                    y = (-(animatedShelfHeight + 16.dp)).roundToPx()
+                                )
+                            }
                     ) {
                         SplitButtonLayout(
                             modifier = Modifier.shadow(elevation = 6.dp, shape = CircleShape),

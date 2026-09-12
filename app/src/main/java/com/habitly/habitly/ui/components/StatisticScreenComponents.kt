@@ -19,7 +19,6 @@ import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.FlingBehavior
 import androidx.compose.foundation.gestures.ScrollScope
 import androidx.compose.foundation.gestures.ScrollableDefaults
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.horizontalScroll
@@ -60,8 +59,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -69,7 +68,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.Modifier.Companion.then
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -79,7 +77,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
 import com.habitly.habitly.data.Database.HabitWithCompletions
@@ -94,7 +91,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.runtime.LaunchedEffect
@@ -107,28 +103,7 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.ui.input.pointer.changedToUp
 
-private sealed interface RenderRowItem {
-    data class Single(val moduleId: String, val isHalfWidth: Boolean) : RenderRowItem
-    data class Pair(val firstModuleId: String, val secondModuleId: String) : RenderRowItem
-}
 
-private fun groupModules(modules: List<String>): List<RenderRowItem> {
-    val result = mutableListOf<RenderRowItem>()
-    var i = 0
-    while (i < modules.size) {
-        val current = modules[i]
-        val currentIsHalf = current != "monthly_chart"
-        
-        if (currentIsHalf && i + 1 < modules.size && modules[i + 1] != "monthly_chart") {
-            result.add(RenderRowItem.Pair(current, modules[i + 1]))
-            i += 2
-        } else {
-            result.add(RenderRowItem.Single(current, isHalfWidth = false))
-            i += 1
-        }
-    }
-    return result
-}
 
 @Composable
 private fun RenderStatCard(
@@ -329,17 +304,12 @@ fun HabitStatisticsContent(
         lerp(accentColor, onSurface, 0.3f)
     }
 
-    val modulesToRender = activeModules
-
-    val moduleColumns = remember(modulesToRender) {
+    val moduleColumns = remember(activeModules) {
         val map = mutableMapOf<String, Int>()
         var currentColumn = 0
-        for (id in modulesToRender) {
+        for (id in activeModules) {
             val isFull = id == "monthly_chart" || id.endsWith("_full")
             if (isFull) {
-                if (currentColumn == 1) {
-                    currentColumn = 0
-                }
                 map[id] = 0
                 currentColumn = 0
             } else {
@@ -350,10 +320,10 @@ fun HabitStatisticsContent(
         map
     }
 
-    val currentModulesToRender by rememberUpdatedState(modulesToRender)
+    val currentModulesToRender by rememberUpdatedState(activeModules)
     val currentOnReorderModules by rememberUpdatedState(onReorderModules)
 
-    val density = androidx.compose.ui.platform.LocalDensity.current.density
+    val density = LocalDensity.current.density
     val haptic = LocalHapticFeedback.current
     val lazyGridState = rememberLazyGridState()
 
@@ -363,7 +333,7 @@ fun HabitStatisticsContent(
     var touchOffsetWithinItem by remember { mutableStateOf(Offset.Zero) }
     val navigationBarsPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
-    if (modulesToRender.isEmpty()) {
+    if (activeModules.isEmpty()) {
         Box(
             modifier = Modifier
                 .fillMaxSize(),
@@ -387,7 +357,7 @@ fun HabitStatisticsContent(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             itemsIndexed(
-                items = modulesToRender,
+                items = activeModules,
                 key = { _, item -> if (item.endsWith("_full")) item.removeSuffix("_full") else item },
                 span = { _, item ->
                     GridItemSpan(if (item == "monthly_chart" || item.endsWith("_full")) 2 else 1)
@@ -428,7 +398,7 @@ fun HabitStatisticsContent(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             itemsIndexed(
-                items = modulesToRender,
+                items = activeModules,
                 key = { _, item -> if (item.endsWith("_full")) item.removeSuffix("_full") else item },
                 span = { _, item ->
                     GridItemSpan(if (item == "monthly_chart" || item.endsWith("_full")) 2 else 1)
@@ -436,7 +406,7 @@ fun HabitStatisticsContent(
             ) { index, moduleId ->
                 val isBeingDragged = index == draggedItemIndex
 
-                var cardWidthPx by remember { mutableStateOf(0) }
+                var cardWidthPx by remember { mutableIntStateOf(0) }
                 val dragAmountXAnim = remember { Animatable(0f) }
                 var isDraggingLeft by remember { mutableStateOf(false) }
                 var isDraggingRight by remember { mutableStateOf(false) }
@@ -509,7 +479,7 @@ fun HabitStatisticsContent(
                                     awaitEachGesture {
                                         val down = awaitFirstDown(requireUnconsumed = false)
                                         val isLongPress = withTimeoutOrNull(300) {
-                                            var pointerId = down.id
+                                            val pointerId = down.id
                                             while (true) {
                                                 val event = awaitPointerEvent()
                                                 val change = event.changes.firstOrNull { it.id == pointerId }
@@ -521,7 +491,6 @@ fun HabitStatisticsContent(
                                                     return@withTimeoutOrNull false
                                                 }
                                             }
-                                            false
                                         }
                                         
                                         if (isLongPress == null) {
@@ -540,7 +509,7 @@ fun HabitStatisticsContent(
                                             }
                                             
                                             // Track drag
-                                            var pointerId = down.id
+                                            val pointerId = down.id
                                             while (true) {
                                                 val event = awaitPointerEvent()
                                                 val change = event.changes.firstOrNull { it.id == pointerId }
@@ -613,7 +582,7 @@ fun HabitStatisticsContent(
                                                             kotlin.math.abs(it.offset.y - targetItem.offset.y) < 5 
                                                         }
                                                         val sortedTargetRowIndices = targetRowItems.map { item ->
-                                                            modulesToRender.indexOfFirst {
+                                                            currentModulesToRender.indexOfFirst {
                                                                 val b1 = if (it.endsWith("_full")) it.removeSuffix("_full") else it
                                                                 b1 == item.key
                                                             }

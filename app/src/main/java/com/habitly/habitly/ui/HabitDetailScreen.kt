@@ -12,7 +12,6 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import kotlin.math.roundToInt
-import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
@@ -46,8 +45,6 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import com.habitly.habitly.ui.circleToSquareMorph
-import com.habitly.habitly.ui.MorphPolygonShape
 import com.habitly.habitly.ui.colors.toThemeHabitColor
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -79,17 +76,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Outline
-import androidx.compose.ui.graphics.PaintingStyle.Companion.Stroke
-import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asAndroidPath
-import androidx.graphics.shapes.toPath
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
@@ -98,7 +89,6 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.habitly.habitly.data.Database.Completion
@@ -107,13 +97,10 @@ import com.habitly.habitly.data.Database.HabitViewModel
 import androidx.compose.ui.res.painterResource
 import com.habitly.habitly.R
 import com.habitly.habitly.data.Database.isQuit
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.unit.LayoutDirection
 import com.habitly.habitly.data.Database.HabitWithCompletions
 import com.habitly.habitly.notifications.NotificationScheduler
 import com.habitly.habitly.ui.components.RotatingHabitIcon
 import java.util.Calendar
-import java.util.concurrent.TimeUnit
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -370,15 +357,6 @@ fun SharedTransitionScope.HabitDetailScreen(
                                 set(Calendar.MILLISECOND, 0)
                             }.timeInMillis
                         }
-                        val todayEnd = remember(currentDateMillis) {
-                            Calendar.getInstance().apply {
-                                timeInMillis = currentDateMillis
-                                set(Calendar.HOUR_OF_DAY, 23)
-                                set(Calendar.MINUTE, 59)
-                                set(Calendar.SECOND, 59)
-                                set(Calendar.MILLISECOND, 999)
-                            }.timeInMillis
-                        }
                         val isCompletedToday = remember(habit, completions, todayStart, currentDateMillis) {
                             com.habitly.habitly.data.Database.isDayCompleted(habit, completions, todayStart, currentDateMillis)
                         }
@@ -418,7 +396,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                                     val startPercentage = if (isCompletedToday) 1f else 0f
                                     val morphPercentage = startPercentage + (1f - startPercentage) * transitionProgressProvider()
                                     val index = (morphPercentage * 100).roundToInt().coerceIn(0, 100)
-                                    val cachedPath = com.habitly.habitly.ui.precomputedMorphPaths[index]
+                                    val cachedPath = precomputedMorphPaths[index]
 
                                     val p = if (isCompletedToday) 1f else 0f
                                     val tp = transitionProgressProvider()
@@ -430,11 +408,8 @@ fun SharedTransitionScope.HabitDetailScreen(
                                     val itemBgColor = currentColor.copy(alpha = bgAlpha)
                                     val itemStrokeColor = currentColor.copy(alpha = strokeAlpha)
 
-                                    val targetBgColor = infoBoxBackgroundColor
-                                    val targetBorderColor = cardBorderColor
-
-                                    val currentBgColor = lerp(itemBgColor, targetBgColor, tp)
-                                    val currentStrokeColor = lerp(itemStrokeColor, targetBorderColor, tp)
+                                    val currentBgColor = lerp(itemBgColor, infoBoxBackgroundColor, tp)
+                                    val currentStrokeColor = lerp(itemStrokeColor, cardBorderColor, tp)
 
                                     transformMatrix.reset()
                                     transformMatrix.setScale(size.width, size.height)

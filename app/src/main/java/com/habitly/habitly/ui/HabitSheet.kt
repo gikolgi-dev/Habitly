@@ -43,8 +43,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
-import com.habitly.habitly.ui.circleToSquareMorph
-import com.habitly.habitly.ui.MorphPolygonShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -57,11 +55,7 @@ import com.habitly.habitly.R
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.BikeScooter
 import androidx.compose.material.icons.filled.Book
-import androidx.compose.material.icons.filled.DateRange
-import java.text.SimpleDateFormat
 import java.util.Calendar
-import java.util.Date
-import java.util.Locale
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Dining
 import androidx.compose.material.icons.filled.Edit
@@ -178,7 +172,7 @@ const val defaultHabitIconKey = "SelfImprovement"
 val habitIconRows = habitIconMap.keys.toList().chunked(8)
 val habitColorRows = (0..habitColors.size).chunked(8)
 
-private fun calculateGridDistance(index1: Int, index2: Int, columns: Int): Float {
+private fun calculateGridDistance(index1: Int, index2: Int, columns: Int = 8): Float {
     val r1 = index1 / columns
     val c1 = index1 % columns
     val r2 = index2 / columns
@@ -767,7 +761,7 @@ fun HabitSheetContent(
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        textAlign = TextAlign.Center,
                         modifier = Modifier.padding(horizontal = 8.dp)
                     )
 
@@ -817,7 +811,7 @@ fun HabitSheetContent(
                                 },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                textAlign = TextAlign.Center,
                                 modifier = Modifier.padding(horizontal = 8.dp)
                             )
                         }

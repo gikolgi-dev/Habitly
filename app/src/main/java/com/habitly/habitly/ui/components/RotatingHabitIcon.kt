@@ -45,7 +45,7 @@ import com.habitly.habitly.data.Database.Habit
 import com.habitly.habitly.ui.colors.isBright
 import com.habitly.habitly.ui.colors.toThemeHabitColor
 import com.habitly.habitly.ui.habitIconMap
-val LocalRotatingIconRotation = compositionLocalOf<() -> Float> { { 0f } }
+val LocalRotatingIconRotation = compositionLocalOf { { 0f } }
 
 @Composable
 fun ProvideRotatingIconRotation(content: @Composable () -> Unit) {

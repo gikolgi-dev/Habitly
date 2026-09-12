@@ -5,9 +5,10 @@ package com.habitly.habitly.ui.screen.settings
 import android.content.Intent
 import android.app.AlarmManager
 import android.content.Context
-import android.net.Uri
+import androidx.core.net.toUri
 import android.os.Build
 import android.provider.Settings
+import java.util.Locale
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
@@ -26,7 +27,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -72,7 +72,6 @@ fun NotificationSettingsScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
-    val firstDayOfWeekCalendar by settingsDataStore.firstDayOfWeekCalendar.collectAsState(initial = Calendar.MONDAY)
     val notificationScheduler = remember { NotificationScheduler(context) }
 
     val vibrationsEnabledState = settingsDataStore.vibrations.collectAsState(initial = null)
@@ -170,13 +169,13 @@ fun NotificationSettingsScreen(
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                             try {
                                 val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
-                                    data = Uri.parse("package:${context.packageName}")
+                                    data = "package:${context.packageName}".toUri()
                                 }
                                 context.startActivity(intent)
                             } catch (e: Exception) {
                                 try {
                                     val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                        data = Uri.parse("package:${context.packageName}")
+                                        data = "package:${context.packageName}".toUri()
                                     }
                                     context.startActivity(intent)
                                 } catch (e2: Exception) {
@@ -528,7 +527,7 @@ fun NotificationScheduleSubScreen(
         CustomTimePickerDialog(
             onDismissRequest = { showTimePicker = false },
             onConfirm = { hour, minute ->
-                val newTime = String.format("%02d:%02d", hour, minute)
+                val newTime = String.format(Locale.ROOT, "%02d:%02d", hour, minute)
                 onTimeChange(newTime)
                 showTimePicker = false
             },
