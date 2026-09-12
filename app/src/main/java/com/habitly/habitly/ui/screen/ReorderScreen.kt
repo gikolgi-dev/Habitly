@@ -1,9 +1,10 @@
 /* Habitly - Licensed under GNU GPL v3.0 or later. See <https://www.gnu.org/licenses/gpl-3.0.html> */
 
-@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
-
 package com.habitly.habitly.ui.screen
 
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Box
@@ -22,8 +23,6 @@ import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -44,6 +43,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import com.habitly.habitly.ui.colors.isBright
+import com.habitly.habitly.ui.colors.toThemeHabitColor
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -52,13 +53,13 @@ import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import com.habitly.habitly.data.Database.Habit
 import com.habitly.habitly.data.Database.HabitViewModel
 import com.habitly.habitly.data.Database.HabitsUiState
 import com.habitly.habitly.ui.AppBackButton
 import com.habitly.habitly.ui.components.RotatingHabitIcon
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReorderScreen(
     habitViewModel: HabitViewModel,
@@ -133,10 +134,11 @@ fun ReorderScreen(
                                         borderContrast = borderContrast,
                                         disableAnimations = disableAnimations,
                                         useHabitColor = useHabitColor,
+                                        isBeingDragged = isBeingDragged,
                                         modifier = Modifier
+                                            .zIndex(if (isBeingDragged) 1f else 0f)
                                             .graphicsLayer {
                                                 translationY = displacement
-                                                shadowElevation = if (isBeingDragged) 8.dp.toPx() else 0f
                                             }
                                             .pointerInput(habit) {
                                                 detectDragGesturesAfterLongPress(
@@ -217,19 +219,29 @@ fun ReorderHabitItem(
     borderContrast: Float, 
     disableAnimations: Boolean, 
     useHabitColor: Boolean,
+    isBeingDragged: Boolean = false,
     modifier: Modifier = Modifier
 ) {
+    val isDark = !MaterialTheme.colorScheme.surface.isBright()
+    val habitThemeColor = Color(habit.color).toThemeHabitColor(isDark)
     val cardBackgroundColor = if (useHabitColor) {
-        lerp(Color(habit.color), MaterialTheme.colorScheme.surface, 0.85f)
+        lerp(habitThemeColor, MaterialTheme.colorScheme.surface, if (isDark) 0.85f else 0.82f)
     } else {
         MaterialTheme.colorScheme.surfaceVariant
     }
 
     val cardBorderColor = if (useHabitColor) {
-        lerp(Color(habit.color), MaterialTheme.colorScheme.surface, 1f - borderContrast)
+        lerp(habitThemeColor, MaterialTheme.colorScheme.surface, 1f - borderContrast)
     } else {
         MaterialTheme.colorScheme.outline.copy(alpha = borderContrast)
     }
+
+    val targetElevation = if (isBeingDragged) 8.dp else 2.dp
+    val animatedElevation by animateDpAsState(
+        targetValue = targetElevation,
+        animationSpec = if (disableAnimations) snap() else tween(150),
+        label = "reorderCardElevation"
+    )
 
     Card(
         modifier = modifier
@@ -239,6 +251,7 @@ fun ReorderHabitItem(
         colors = CardDefaults.cardColors(
             containerColor = cardBackgroundColor
         ),
+        elevation = CardDefaults.cardElevation(defaultElevation = animatedElevation),
         border = BorderStroke(1.dp, cardBorderColor)
     ) {
         Row(

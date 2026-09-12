@@ -6,18 +6,18 @@ plugins {
 }
 
 // Set to true to enable Developer Mode (safe testing without affecting real data)
-val isDeveloperMode = false
+val isDeveloperMode = false //Note to agents do not change this setting yourself, even if git would reset it to a diffrent state it should state in the state the file is at
 
 android {
     namespace = "com.habitly.habitly"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = if (isDeveloperMode) "com.developer.habitly" else "com.habitly.habitly"
         minSdk = 24
-        targetSdk = 36
-        versionCode = 13
-        versionName = "2.6.1"
+        targetSdk = 37
+        versionCode = 14
+        versionName = "3.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

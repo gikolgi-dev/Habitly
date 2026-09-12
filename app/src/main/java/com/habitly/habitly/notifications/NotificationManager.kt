@@ -27,14 +27,18 @@ import java.util.Date
 import java.util.Locale
 import java.util.UUID
 import java.util.concurrent.TimeUnit
+import com.habitly.habitly.data.welcome.WelcomeCardEngine
+import com.habitly.habitly.data.welcome.WelcomeCardContext
 
 const val GENERAL_NOTIFICATION_ID = "general_notification"
 const val GENERAL_NOTIFICATION_REQUEST_CODE = 1001
+const val WELCOME_CARD_NOTIFICATION_ID = "welcome_card_notification"
+const val WELCOME_CARD_NOTIFICATION_REQUEST_CODE = 1002
 
 class NotificationScheduler(private val context: Context) {
     private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
-    fun scheduleNotification(habit: Habit) {
+    fun scheduleNotification(habit: Habit, exactMode: Boolean? = null) {
         if (habit.archived || !habit.notificationsEnabled || habit.notificationTime == null) {
             cancelNotification(habit)
             return
@@ -65,12 +69,25 @@ class NotificationScheduler(private val context: Context) {
         )
 
         // Parse "HH:mm" time format safely
-        val (hour, minute) = habit.notificationTime.split(":").map { it.toInt() }
+        val timeParts = habit.notificationTime.split(":")
+        val hour = timeParts.getOrNull(0)?.toIntOrNull()
+        val minute = timeParts.getOrNull(1)?.toIntOrNull()
+        if (hour == null || minute == null || hour !in 0..23 || minute !in 0..59) {
+            cancelNotification(habit)
+            return
+        }
 
         val timeInMillis = getNextAlarmTime(hour, minute, days)
 
         if (timeInMillis != null) {
-            scheduleAlarm(alarmManager, timeInMillis, pendingIntent)
+            if (exactMode != null) {
+                scheduleAlarm(alarmManager, timeInMillis, pendingIntent, exactMode)
+            } else {
+                CoroutineScope(Dispatchers.IO).launch {
+                    val isExact = SettingsDataStore(context).exactAlarms.first()
+                    scheduleAlarm(alarmManager, timeInMillis, pendingIntent, isExact)
+                }
+            }
         } else {
             cancelNotification(habit)
         }
@@ -88,7 +105,7 @@ class NotificationScheduler(private val context: Context) {
         alarmManager.cancel(pendingIntent)
     }
 
-    fun scheduleGeneralNotification(time: String, days: Set<String>) {
+    fun scheduleGeneralNotification(time: String, days: Set<String>, exactMode: Boolean? = null) {
         // If no days are selected, ensure the notification is cancelled to prevent ghost alarms
         if (days.isEmpty()) {
             cancelGeneralNotification()
@@ -108,12 +125,25 @@ class NotificationScheduler(private val context: Context) {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val (hour, minute) = time.split(":").map { it.toInt() }
+        val timeParts = time.split(":")
+        val hour = timeParts.getOrNull(0)?.toIntOrNull()
+        val minute = timeParts.getOrNull(1)?.toIntOrNull()
+        if (hour == null || minute == null || hour !in 0..23 || minute !in 0..59) {
+            cancelGeneralNotification()
+            return
+        }
 
         // Find the next occurrence matching the selected days of the week
         val nextAlarmTime = getNextAlarmTime(hour, minute, days) ?: return
 
-        scheduleAlarm(alarmManager, nextAlarmTime, pendingIntent)
+        if (exactMode != null) {
+            scheduleAlarm(alarmManager, nextAlarmTime, pendingIntent, exactMode)
+        } else {
+            CoroutineScope(Dispatchers.IO).launch {
+                val isExact = SettingsDataStore(context).exactAlarms.first()
+                scheduleAlarm(alarmManager, nextAlarmTime, pendingIntent, isExact)
+            }
+        }
     }
 
     fun cancelGeneralNotification() {
@@ -127,21 +157,82 @@ class NotificationScheduler(private val context: Context) {
         alarmManager.cancel(pendingIntent)
     }
 
+    fun scheduleWelcomeCardNotification(time: String, days: Set<String>, exactMode: Boolean? = null) {
+        if (days.isEmpty()) {
+            cancelWelcomeCardNotification()
+            return
+        }
+
+        val intent = Intent(context, NotificationReceiver::class.java).apply {
+            putExtra("habitId", WELCOME_CARD_NOTIFICATION_ID)
+            putExtra("notificationTime", time)
+            putExtra("notificationDays", days.toTypedArray())
+        }
+
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            WELCOME_CARD_NOTIFICATION_REQUEST_CODE,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val timeParts = time.split(":")
+        val hour = timeParts.getOrNull(0)?.toIntOrNull()
+        val minute = timeParts.getOrNull(1)?.toIntOrNull()
+        if (hour == null || minute == null || hour !in 0..23 || minute !in 0..59) {
+            cancelWelcomeCardNotification()
+            return
+        }
+
+        val nextAlarmTime = getNextAlarmTime(hour, minute, days) ?: return
+
+        if (exactMode != null) {
+            scheduleAlarm(alarmManager, nextAlarmTime, pendingIntent, exactMode)
+        } else {
+            CoroutineScope(Dispatchers.IO).launch {
+                val isExact = SettingsDataStore(context).exactAlarms.first()
+                scheduleAlarm(alarmManager, nextAlarmTime, pendingIntent, isExact)
+            }
+        }
+    }
+
+    fun cancelWelcomeCardNotification() {
+        val intent = Intent(context, NotificationReceiver::class.java)
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            WELCOME_CARD_NOTIFICATION_REQUEST_CODE,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        alarmManager.cancel(pendingIntent)
+    }
+
     suspend fun rescheduleAll() {
+        val settingsDataStore = SettingsDataStore(context)
+        val exactMode = settingsDataStore.exactAlarms.first()
+
         val dao = HabitDatabase.getDatabase(context).habitDao()
         val habits = dao.getAllHabitsSnapshot()
         for (habit in habits) {
-            scheduleNotification(habit)
+            scheduleNotification(habit, exactMode)
         }
 
-        val settingsDataStore = SettingsDataStore(context)
         val globalEnabled = settingsDataStore.globalNotificationsEnabled.first()
         if (globalEnabled) {
             val globalTime = settingsDataStore.globalNotificationTime.first()
             val globalDays = settingsDataStore.globalNotificationDays.first()
-            scheduleGeneralNotification(globalTime, globalDays)
+            scheduleGeneralNotification(globalTime, globalDays, exactMode)
         } else {
             cancelGeneralNotification()
+        }
+
+        val welcomeCardEnabled = settingsDataStore.welcomeCardNotificationEnabled.first()
+        if (welcomeCardEnabled) {
+            val wcTime = settingsDataStore.welcomeCardNotificationTime.first()
+            val wcDays = settingsDataStore.welcomeCardNotificationDays.first()
+            scheduleWelcomeCardNotification(wcTime, wcDays, exactMode)
+        } else {
+            cancelWelcomeCardNotification()
         }
     }
 
@@ -152,29 +243,87 @@ class NotificationScheduler(private val context: Context) {
             cancelNotification(habit)
         }
         cancelGeneralNotification()
+        cancelWelcomeCardNotification()
     }
 }
 
 /**
- * Helper to centralize exact alarm scheduling logic, falling back to inexact
- * alarms if exact alarms are not permitted.
+ * Helper to centralize exact alarm scheduling logic, supporting both high-accuracy
+ * (allow while idle) mode and battery-saving mode, falling back to inexact alarms
+ * if exact alarms are not permitted.
  */
-internal fun scheduleAlarm(alarmManager: AlarmManager, timeInMillis: Long, pendingIntent: PendingIntent) {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
-        // Fallback to inexact alarm. Note: Inexact alarms might be delayed by the OS to batch wakeups.
-        alarmManager.set(
-            AlarmManager.RTC_WAKEUP,
-            timeInMillis,
-            pendingIntent
-        )
+internal fun scheduleAlarm(
+    alarmManager: AlarmManager,
+    timeInMillis: Long,
+    pendingIntent: PendingIntent,
+    exactMode: Boolean = false
+) {
+    if (exactMode) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+            // Fallback if exact alarm permission is not granted on Android 12+
+            try {
+                alarmManager.setAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    timeInMillis,
+                    pendingIntent
+                )
+            } catch (e: SecurityException) {
+                alarmManager.set(
+                    AlarmManager.RTC_WAKEUP,
+                    timeInMillis,
+                    pendingIntent
+                )
+            }
+        } else {
+            // High accuracy mode: wake up even during Doze mode at the exact time
+            try {
+                alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    timeInMillis,
+                    pendingIntent
+                )
+            } catch (e: SecurityException) {
+                try {
+                    alarmManager.setAndAllowWhileIdle(
+                        AlarmManager.RTC_WAKEUP,
+                        timeInMillis,
+                        pendingIntent
+                    )
+                } catch (e2: SecurityException) {
+                    alarmManager.set(
+                        AlarmManager.RTC_WAKEUP,
+                        timeInMillis,
+                        pendingIntent
+                    )
+                }
+            }
+        }
     } else {
-        // Using setExact instead of setExactAndAllowWhileIdle to preserve battery.
-        // This means it might not fire immediately during Doze mode, but will fire shortly after.
-        alarmManager.setExact(
-            AlarmManager.RTC_WAKEUP,
-            timeInMillis,
-            pendingIntent
-        )
+        // Battery-saving (default) mode:
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+            // Fallback to inexact alarm. Note: Inexact alarms might be delayed by the OS to batch wakeups.
+            alarmManager.set(
+                AlarmManager.RTC_WAKEUP,
+                timeInMillis,
+                pendingIntent
+            )
+        } else {
+            try {
+                // Using setExact instead of setExactAndAllowWhileIdle to preserve battery.
+                // This means it might not fire immediately during Doze mode, but will fire shortly after.
+                alarmManager.setExact(
+                    AlarmManager.RTC_WAKEUP,
+                    timeInMillis,
+                    pendingIntent
+                )
+            } catch (e: SecurityException) {
+                alarmManager.set(
+                    AlarmManager.RTC_WAKEUP,
+                    timeInMillis,
+                    pendingIntent
+                )
+            }
+        }
     }
 }
 
@@ -197,6 +346,7 @@ class NotificationReceiver : BroadcastReceiver() {
                     val settingsDataStore = SettingsDataStore(context)
                     val snoozeDurationMinutes = settingsDataStore.snoozeDurationMinutes.first()
                     val is24Hour = settingsDataStore.is24Hour.first()
+                    val exactMode = settingsDataStore.exactAlarms.first()
 
                     val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
@@ -217,7 +367,7 @@ class NotificationReceiver : BroadcastReceiver() {
                     )
 
                     val snoozeTime = Calendar.getInstance().timeInMillis + (snoozeDurationMinutes * 60 * 1000L)
-                    scheduleAlarm(alarmManager, snoozeTime, pendingIntent)
+                    scheduleAlarm(alarmManager, snoozeTime, pendingIntent, exactMode)
 
                     // Format the snooze time based on settings
                     val sdf = if (is24Hour) {
@@ -305,10 +455,11 @@ class NotificationReceiver : BroadcastReceiver() {
             try {
                 var shouldShow = true
                 val isGeneralNotification = habitId == GENERAL_NOTIFICATION_ID
+                val isWelcomeCardNotification = habitId == WELCOME_CARD_NOTIFICATION_ID
                 val settingsDataStore = SettingsDataStore(context)
                 val snoozeEnabled = settingsDataStore.snoozeEnabled.first()
-
-                if (!isGeneralNotification) {
+                val exactMode = settingsDataStore.exactAlarms.first()
+                if (!isGeneralNotification && !isWelcomeCardNotification) {
                     // Check if the user has opted to skip notifications for habits already completed today
                     val skipCompleted = settingsDataStore.skipCompletedHabitNotifications.first()
 
@@ -316,42 +467,32 @@ class NotificationReceiver : BroadcastReceiver() {
                         val dao = HabitDatabase.getDatabase(context).habitDao()
 
                         // Define bounds for "today" to check for existing completions
-                        val startOfDay = Calendar.getInstance().apply {
-                            set(Calendar.HOUR_OF_DAY, 0)
-                            set(Calendar.MINUTE, 0)
-                            set(Calendar.SECOND, 0)
-                            set(Calendar.MILLISECOND, 0)
-                        }.timeInMillis
-
-                        val endOfDay = Calendar.getInstance().apply {
-                            set(Calendar.HOUR_OF_DAY, 23)
-                            set(Calendar.MINUTE, 59)
-                            set(Calendar.SECOND, 59)
-                            set(Calendar.MILLISECOND, 999)
-                        }.timeInMillis
+                        val (startOfDay, endOfDay) = getDayBounds()
 
                         val completionsCount = dao.countCompletionsForHabitOnDay(habitId, startOfDay, endOfDay)
-                        if (completionsCount > 0) {
-                            shouldShow = false // Habit was already completed, skip this notification
-                        }
+                        shouldShow = shouldShowHabitNotification(skipCompleted, completionsCount)
                     }
                 }
 
                 if (shouldShow) {
-                    showNotification(context, intent, habitId, isGeneralNotification, snoozeEnabled, targetDate)
+                    showNotification(context, intent, habitId, isGeneralNotification, isWelcomeCardNotification, snoozeEnabled, targetDate)
                 }
 
                 // Since AlarmManager only schedules the alarm once, we must re-schedule
                 // the next occurrence manually. We don't reschedule if this is just a snoozed trigger.
                 if (!isSnoozedTrigger && notificationTime != null) {
                     val days = intent.getStringArrayExtra("notificationDays")?.toSet()
-                    if (isGeneralNotification) {
+                    if (isWelcomeCardNotification) {
                         if (days != null) {
-                            rescheduleGeneralAlarm(context, notificationTime, days)
+                            rescheduleWelcomeCardAlarm(context, notificationTime, days, exactMode)
+                        }
+                    } else if (isGeneralNotification) {
+                        if (days != null) {
+                            rescheduleGeneralAlarm(context, notificationTime, days, exactMode)
                         }
                     } else {
                         val habitName = intent.getStringExtra("habitName")
-                        rescheduleHabitAlarm(context, habitId, habitName, notificationTime, days)
+                        rescheduleHabitAlarm(context, habitId, habitName, notificationTime, days, exactMode)
                     }
                 }
             } finally {
@@ -361,11 +502,12 @@ class NotificationReceiver : BroadcastReceiver() {
         }
     }
 
-    private fun showNotification(
+    private suspend fun showNotification(
         context: Context,
         intent: Intent,
         habitId: String,
         isGeneralNotification: Boolean,
+        isWelcomeCardNotification: Boolean,
         snoozeEnabled: Boolean,
         targetDate: Long
     ) {
@@ -384,7 +526,46 @@ class NotificationReceiver : BroadcastReceiver() {
         val title: String
         val contentText: String
 
-        if (isGeneralNotification) {
+        if (isWelcomeCardNotification) {
+            val dao = HabitDatabase.getDatabase(context).habitDao()
+            val habits = dao.getAllHabitsWithCompletionsSnapshot()
+            val settingsDataStore = SettingsDataStore(context)
+            val firstDayOfWeek = settingsDataStore.firstDayOfWeekCalendar.first()
+            val savedDate = settingsDataStore.welcomeCardDate.first().ifEmpty { null }
+            val savedCat = settingsDataStore.welcomeCardCategoryId.first().ifEmpty { null }
+            val savedHabit = settingsDataStore.welcomeCardHabitId.first().ifEmpty { null }
+            val savedTemplate = settingsDataStore.welcomeCardTemplateIndex.first()
+
+            val welcomeContext = WelcomeCardContext(
+                habits = habits,
+                todayMillis = System.currentTimeMillis(),
+                firstDayOfWeek = firstDayOfWeek
+            )
+            val resolved = WelcomeCardEngine.resolveMessage(
+                context = welcomeContext,
+                savedDateKey = savedDate,
+                savedCategoryId = savedCat,
+                savedHabitId = savedHabit,
+                savedTemplateIndex = savedTemplate
+            )
+            if (resolved.isNewSelection) {
+                settingsDataStore.saveWelcomeCardState(
+                    dateKey = resolved.dateKey,
+                    categoryId = resolved.categoryId,
+                    habitId = resolved.habitId,
+                    templateIndex = resolved.templateIndex
+                )
+            }
+
+            val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+            title = when (hour) {
+                in 1..5 -> "It's a beautiful night!"
+                in 6..14 -> "Good morning"
+                in 15..19 -> "Good afternoon"
+                else -> "Good evening"
+            }
+            contentText = resolved.text
+        } else if (isGeneralNotification) {
             title = "Daily Reminder"
             contentText = "Time to log your habit completions!"
         } else {
@@ -412,7 +593,7 @@ class NotificationReceiver : BroadcastReceiver() {
             .setAutoCancel(true) // Dismiss the notification automatically when tapped
 
         // Add the inline "Complete" action for single habits
-        if (!isGeneralNotification) {
+        if (!isGeneralNotification && !isWelcomeCardNotification) {
             val actionIntent = Intent(context, NotificationReceiver::class.java).apply {
                 action = "ACTION_COMPLETE_HABIT"
                 putExtra("habitId", habitId)
@@ -457,7 +638,7 @@ class NotificationReceiver : BroadcastReceiver() {
         notificationManager.notify(habitId.hashCode(), builder.build())
     }
 
-    private fun rescheduleHabitAlarm(context: Context, habitId: String, habitName: String?, notificationTime: String, days: Set<String>?) {
+    private fun rescheduleHabitAlarm(context: Context, habitId: String, habitName: String?, notificationTime: String, days: Set<String>?, exactMode: Boolean) {
         if (days.isNullOrEmpty()) {
             return
         }
@@ -479,16 +660,21 @@ class NotificationReceiver : BroadcastReceiver() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val (hour, minute) = notificationTime.split(":").map { it.toInt() }
+        val timeParts = notificationTime.split(":")
+        val hour = timeParts.getOrNull(0)?.toIntOrNull()
+        val minute = timeParts.getOrNull(1)?.toIntOrNull()
+        if (hour == null || minute == null || hour !in 0..23 || minute !in 0..59) {
+            return
+        }
 
         val timeInMillis = getNextAlarmTime(hour, minute, days)
 
         if (timeInMillis != null) {
-            scheduleAlarm(alarmManager, timeInMillis, pendingIntent)
+            scheduleAlarm(alarmManager, timeInMillis, pendingIntent, exactMode)
         }
     }
 
-    private fun rescheduleGeneralAlarm(context: Context, time: String, days: Set<String>) {
+    private fun rescheduleGeneralAlarm(context: Context, time: String, days: Set<String>, exactMode: Boolean) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
         val intent = Intent(context, NotificationReceiver::class.java).apply {
@@ -504,11 +690,44 @@ class NotificationReceiver : BroadcastReceiver() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val (hour, minute) = time.split(":").map { it.toInt() }
+        val timeParts = time.split(":")
+        val hour = timeParts.getOrNull(0)?.toIntOrNull()
+        val minute = timeParts.getOrNull(1)?.toIntOrNull()
+        if (hour == null || minute == null || hour !in 0..23 || minute !in 0..59) {
+            return
+        }
 
         val nextAlarmTime = getNextAlarmTime(hour, minute, days) ?: return
 
-        scheduleAlarm(alarmManager, nextAlarmTime, pendingIntent)
+        scheduleAlarm(alarmManager, nextAlarmTime, pendingIntent, exactMode)
+    }
+
+    private fun rescheduleWelcomeCardAlarm(context: Context, time: String, days: Set<String>, exactMode: Boolean) {
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+
+        val intent = Intent(context, NotificationReceiver::class.java).apply {
+            putExtra("habitId", WELCOME_CARD_NOTIFICATION_ID)
+            putExtra("notificationTime", time)
+            putExtra("notificationDays", days.toTypedArray())
+        }
+
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            WELCOME_CARD_NOTIFICATION_REQUEST_CODE,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val timeParts = time.split(":")
+        val hour = timeParts.getOrNull(0)?.toIntOrNull()
+        val minute = timeParts.getOrNull(1)?.toIntOrNull()
+        if (hour == null || minute == null || hour !in 0..23 || minute !in 0..59) {
+            return
+        }
+
+        val nextAlarmTime = getNextAlarmTime(hour, minute, days) ?: return
+
+        scheduleAlarm(alarmManager, nextAlarmTime, pendingIntent, exactMode)
     }
 }
 
@@ -551,4 +770,34 @@ fun getNextAlarmTime(hour: Int, minute: Int, days: Set<String>): Long? {
     }
 
     return null
+}
+
+/**
+ * Determines whether a habit notification should be shown based on user settings
+ * and whether the habit has already been completed today.
+ */
+fun shouldShowHabitNotification(skipCompleted: Boolean, completionsCount: Int): Boolean {
+    if (!skipCompleted) return true
+    return completionsCount <= 0
+}
+
+/**
+ * Returns the timestamp bounds (startOfDay, endOfDay) in milliseconds for the given calendar day.
+ */
+fun getDayBounds(calendar: Calendar = Calendar.getInstance()): Pair<Long, Long> {
+    val startOfDay = (calendar.clone() as Calendar).apply {
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }.timeInMillis
+
+    val endOfDay = (calendar.clone() as Calendar).apply {
+        set(Calendar.HOUR_OF_DAY, 23)
+        set(Calendar.MINUTE, 59)
+        set(Calendar.SECOND, 59)
+        set(Calendar.MILLISECOND, 999)
+    }.timeInMillis
+
+    return Pair(startOfDay, endOfDay)
 }

@@ -12,6 +12,8 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.EaseInOutQuart
 import androidx.compose.animation.core.Spring
@@ -46,6 +48,8 @@ import androidx.compose.material.icons.automirrored.filled.CallMerge
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.FileUpload
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -66,14 +70,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.habitly.habitly.data.Database.Completion
 import com.habitly.habitly.data.Database.Habit
 import com.habitly.habitly.data.Database.HabitDatabase
+import com.habitly.habitly.data.Database.getDailyTarget
 import com.habitly.habitly.data.settings.SettingsDataStore
+import com.habitly.habitly.data.settings.ExportedSettings
 import com.habitly.habitly.notifications.NotificationScheduler
 import com.habitly.habitly.ui.colors.predefinedColors
 import kotlinx.coroutines.Dispatchers
@@ -113,6 +121,9 @@ data class ExportedHabit(
     val notificationTime: String?,
     val notificationDays: String?,
     val statsLayout: String? = null,
+    val startDate: String? = null,
+    val completionsPerDay: Int = 1,
+    val streakCountingDisabled: Boolean = false,
     val completions: List<ExportedCompletion>
 )
 
@@ -128,16 +139,34 @@ data class ExportedCompletion(
 @Serializable
 data class ExportData(
     val appOrigin: String = "habitly",
-    val habits: List<ExportedHabit>
+    val version: Int = 2,
+    val formatVersion: Int = 2,
+    val habits: List<ExportedHabit>,
+    val settings: ExportedSettings? = null
 )
 
 // HabitKit Data Classes
 @Serializable
 data class HabitKitExport(
+    val formatVersion: Int? = null,
     val habits: List<HabitKitHabit> = emptyList(),
     val completions: List<HabitKitCompletion> = emptyList(),
-    // Intervals are ignored as requested by the user
+    val intervals: List<HabitKitInterval> = emptyList(),
     val reminders: List<HabitKitReminder> = emptyList()
+)
+
+@Serializable
+data class HabitKitInterval(
+    val id: String? = null,
+    val habitId: String,
+    val startDate: String? = null,
+    val endDate: String? = null,
+    val type: String? = null,
+    val requiredNumberOfCompletions: Int? = null,
+    val requiredNumberOfCompletionsPerDay: Int? = null,
+    val unitType: String? = null,
+    val streakType: String? = null,
+    val allowExceedingGoal: Boolean? = null
 )
 
 @Serializable
@@ -145,13 +174,14 @@ data class HabitKitHabit(
     val id: String,
     val name: String,
     val description: String? = "",
-    val icon: String,
-    val color: String,
-    val archived: Boolean,
-    val orderIndex: Int,
+    val icon: String? = "default_icon",
+    val color: String? = "gray",
+    val archived: Boolean = false,
+    val orderIndex: Int = 0,
     val createdAt: String,
-    val isInverse: Boolean,
-    val emoji: String?
+    val isInverse: Boolean = false,
+    val inverseStartDate: String? = null,
+    val emoji: String? = null
 )
 
 @Serializable
@@ -210,15 +240,20 @@ fun getFileName(uri: Uri, context: Context): String? {
 @Composable
 fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
     val settingsDataStore = remember { SettingsDataStore(context) }
     val bordersAlphaState = settingsDataStore.borders.collectAsState(initial = null)
     val bordersAlpha = bordersAlphaState.value ?: return
+    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
 
+    var isSourceDisclosed by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     var selectedFileUri by remember { mutableStateOf<Uri?>(null) }
     var importType by remember { mutableStateOf<ImportType?>(null) }
     var mergeData by remember { mutableStateOf(false) }
     var isToggling by remember { mutableStateOf(false) }
+    var ignoreSettings by remember { mutableStateOf(false) }
+    var isTogglingSettings by remember { mutableStateOf(false) }
 
     val jsonParser = remember { Json {
         ignoreUnknownKeys = true
@@ -240,6 +275,7 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                         val habitsWithCompletions = withContext(Dispatchers.IO) {
                             db.habitDao().getAllHabitsWithCompletionsSnapshot()
                         }
+                        val currentSettings = settingsDataStore.getExportedSettings()
 
                         val exportedData = ExportData(
                             habits = habitsWithCompletions.map { habitWithCompletions ->
@@ -260,6 +296,9 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                                     notificationTime = habitWithCompletions.habit.notificationTime,
                                     notificationDays = habitWithCompletions.habit.notificationDays,
                                     statsLayout = habitWithCompletions.habit.statsLayout,
+                                    startDate = habitWithCompletions.habit.startDate,
+                                    completionsPerDay = habitWithCompletions.habit.getDailyTarget(),
+                                    streakCountingDisabled = habitWithCompletions.habit.streakCountingDisabled,
                                     completions = habitWithCompletions.completions.map { completion ->
                                         ExportedCompletion(
                                             id = completion.id,
@@ -270,7 +309,8 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                                         )
                                     }
                                 )
-                            }
+                            },
+                            settings = currentSettings
                         )
 
                         val jsonString = jsonParser.encodeToString(exportedData)
@@ -314,10 +354,13 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                         if (headerText != null) {
                             if (headerText.contains("\"appOrigin\":\"habitly\"") ||
                                 headerText.contains("\"appOrigin\": \"habitly\"") ||
+                                (headerText.contains("\"appOrigin\"") && headerText.contains("\"habitly\"")) ||
                                 headerText.contains("\"completionsPerInterval\"")) {
                                 importType = ImportType.APP_BACKUP
+                                isSourceDisclosed = true
                             } else {
                                 importType = null // let the user choose if it can't determine or is from somewhere else
+                                isSourceDisclosed = false
                             }
                         }
                     } catch (e: Exception) {
@@ -358,6 +401,7 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                         RoundedCornerShape(8.dp)
                     )
                     .clickable {
+                        if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         val currentDate = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                             LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
                         } else {
@@ -389,7 +433,7 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Export habits and completion for safe keeping, migration and sharing",
+                        text = "Export habits, completions and settings for safe keeping, migration and sharing",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
@@ -412,7 +456,10 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                 )
                 .then(
                     if (selectedFileUri == null) {
-                        Modifier.clickable { importLauncher.launch("application/json") }
+                        Modifier.clickable {
+                            if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            importLauncher.launch("application/json")
+                        }
                     } else Modifier
                 )
                 .padding(16.dp),
@@ -490,7 +537,10 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                                     ),
                                     RoundedCornerShape(12.dp)
                                 )
-                                .clickable { importLauncher.launch("application/json") }
+                                .clickable {
+                                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    importLauncher.launch("application/json")
+                                }
                                 .padding(12.dp)
                         ) {
                             Column(
@@ -510,31 +560,41 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
 
                         Spacer(modifier = Modifier.height(24.dp))
 
-                        Text(
-                            "Select Source",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
+                        if (isSourceDisclosed) {
+                            Text(
+                                "Source: Habitly",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        } else {
+                            Text(
+                                "Select Source",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
 
-                        val options = listOf("Habitly", "HabitKit")
-                        val types = listOf(ImportType.APP_BACKUP, ImportType.HABIT_KIT)
-                        SingleChoiceSegmentedButtonRow(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
-                        ) {
-                            options.forEachIndexed { index, label ->
-                                SegmentedButton(
-                                    shape = SegmentedButtonDefaults.itemShape(
-                                        index = index,
-                                        count = options.size
-                                    ),
-                                    onClick = { importType = types[index] },
-                                    selected = importType == types[index],
-                                    label = { Text(label) }
-                                )
+                            val options = listOf("Habitly", "HabitKit")
+                            val types = listOf(ImportType.APP_BACKUP, ImportType.HABIT_KIT)
+                            SingleChoiceSegmentedButtonRow(
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+                            ) {
+                                options.forEachIndexed { index, label ->
+                                    SegmentedButton(
+                                        shape = SegmentedButtonDefaults.itemShape(
+                                            index = index,
+                                            count = options.size
+                                        ),
+                                        onClick = {
+                                            if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            importType = types[index]
+                                        },
+                                        selected = importType == types[index],
+                                        label = { Text(label) }
+                                    )
+                                }
                             }
                         }
-
                         Spacer(modifier = Modifier.height(24.dp))
 
                         val interactionSource = remember { MutableInteractionSource() }
@@ -588,6 +648,7 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                                     interactionSource = interactionSource,
                                     indication = null,
                                     onClick = {
+                                        if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                         scope.launch {
                                             isToggling = true
                                             mergeData = !mergeData
@@ -617,7 +678,148 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                                 )
                             }
                         }
-                        /*Spacer(modifier = Modifier.height(24.dp))*/
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        AnimatedContent(
+                            targetState = mergeData,
+                            transitionSpec = {
+                                fadeIn(animationSpec = tween(220)) togetherWith fadeOut(animationSpec = tween(180))
+                            },
+                            label = "mergeDataDescription"
+                        ) { isMerge ->
+                            Text(
+                                text = if (isMerge) {
+                                    "Merge keeps your existing habits and completions, adding the imported data to them. If you try to merge two identical habits they will be merged together."
+                                } else {
+                                    "Overwrite deletes all existing habits and completions, replacing them with the imported data. This action cannot be undone."
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 24.dp)
+                            )
+                        }
+
+                        AnimatedVisibility(
+                            visible = importType == ImportType.APP_BACKUP,
+                            enter = expandVertically(expandFrom = Alignment.Top) + fadeIn(),
+                            exit = shrinkVertically(shrinkTowards = Alignment.Top) + fadeOut()
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                val settingsInteractionSource = remember { MutableInteractionSource() }
+                                val isSettingsPressed by settingsInteractionSource.collectIsPressedAsState()
+
+                                val settingsTargetCornerRadius = when {
+                                    isSettingsPressed || isTogglingSettings -> 14.dp
+                                    ignoreSettings -> 22.dp
+                                    else -> 28.dp
+                                }
+
+                                val settingsCornerRadius by animateDpAsState(
+                                    targetValue = settingsTargetCornerRadius,
+                                    animationSpec = spring(
+                                        dampingRatio = 0.6f,
+                                        stiffness = Spring.StiffnessMediumLow
+                                    ),
+                                    label = "settingsCornerRadius"
+                                )
+
+                                val settingsContainerColor by animateColorAsState(
+                                    targetValue = if (ignoreSettings) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
+                                    else MaterialTheme.colorScheme.primaryContainer,
+                                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                                    label = "settingsContainerColor"
+                                )
+
+                                val settingsContentColor by animateColorAsState(
+                                    targetValue = if (ignoreSettings) MaterialTheme.colorScheme.error
+                                    else MaterialTheme.colorScheme.onPrimaryContainer,
+                                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                                    label = "settingsContentColor"
+                                )
+
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp)
+                                        .height(56.dp)
+                                        .clip(RoundedCornerShape(settingsCornerRadius.coerceAtLeast(0.dp)))
+                                        .background(settingsContainerColor)
+                                        .border(
+                                            1.dp,
+                                            settingsContentColor.copy(
+                                                alpha = (bordersAlpha * 2f).coerceAtMost(1f)
+                                                    .coerceAtLeast(0.2f)
+                                            ),
+                                            RoundedCornerShape(settingsCornerRadius.coerceAtLeast(0.dp))
+                                        )
+                                        .clickable(
+                                            interactionSource = settingsInteractionSource,
+                                            indication = null,
+                                            onClick = {
+                                                if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                scope.launch {
+                                                    isTogglingSettings = true
+                                                    ignoreSettings = !ignoreSettings
+                                                    delay(100)
+                                                    isTogglingSettings = false
+                                                }
+                                            }
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = if (ignoreSettings) Icons.Default.Close else Icons.Default.Settings,
+                                            contentDescription = null,
+                                            tint = settingsContentColor,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Text(
+                                            text = if (ignoreSettings) "Ignore Settings" else "Import Settings",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = settingsContentColor,
+                                            textAlign = TextAlign.Center
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                AnimatedContent(
+                                    targetState = ignoreSettings,
+                                    transitionSpec = {
+                                        fadeIn(animationSpec = tween(220)) togetherWith fadeOut(animationSpec = tween(180))
+                                    },
+                                    label = "ignoreSettingsDescription"
+                                ) { isIgnored ->
+                                    Text(
+                                        text = if (isIgnored) {
+                                            "Keep your current settings. Only habits and completions from this backup will be imported."
+                                        } else {
+                                            "Settings stored in this backup will be imported and applied to the app."
+                                        },
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 24.dp)
+                                    )
+                                }
+                            }
+                        }
 
                         Spacer(modifier = Modifier.weight(1f))
 
@@ -627,9 +829,12 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                         ) {
                             OutlinedButton(
                                 onClick = {
+                                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     selectedFileUri = null
                                     importType = null
                                     mergeData = false
+                                    ignoreSettings = false
+                                    isSourceDisclosed = false
                                 },
                                 modifier = Modifier.weight(1f),
                                 border = BorderStroke(
@@ -652,6 +857,7 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                                     .weight(1f)
                                     .graphicsLayer { alpha = confirmAlpha },
                                 onClick = {
+                                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     scope.launch {
                                         try {
                                             val jsonString = withContext(Dispatchers.IO) {
@@ -668,6 +874,7 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                                                 val habitsToInsert = mutableListOf<Habit>()
                                                 val completionsToInsert =
                                                     mutableListOf<Completion>()
+                                                var exportedSettings: ExportedSettings? = null
 
                                                 if (importType == ImportType.HABIT_KIT) {
                                                     val habitKitData =
@@ -678,6 +885,8 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                                                     habitKitData.habits.forEach { kitHabit ->
                                                         val reminder =
                                                             habitKitData.reminders.find { it.habitId == kitHabit.id }
+                                                        val interval =
+                                                            habitKitData.intervals.find { it.habitId == kitHabit.id }
 
                                                         val notificationsEnabled = reminder != null
                                                         val notificationTime =
@@ -700,22 +909,55 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                                                             reminder?.weekdayIndices?.mapNotNull { dayMap[it] }
                                                                 ?.joinToString(",")
 
+                                                        val dailyCompletions = interval?.requiredNumberOfCompletionsPerDay ?: 1
+                                                        val completionsPerInterval = interval?.requiredNumberOfCompletions
+                                                            ?: dailyCompletions
+                                                        val intervalUnit = when (interval?.streakType?.lowercase()) {
+                                                            "week" -> "week"
+                                                            "month" -> "month"
+                                                            else -> "day"
+                                                        }
+
+                                                        val createdAtMillis = try {
+                                                            Instant.parse(kitHabit.createdAt).toEpochMilli().toString()
+                                                        } catch (_: Exception) {
+                                                            kitHabit.createdAt.toLongOrNull()?.toString()
+                                                                ?: System.currentTimeMillis().toString()
+                                                        }
+
+                                                        val startDateMillis = if (kitHabit.isInverse && !kitHabit.inverseStartDate.isNullOrBlank()) {
+                                                            try {
+                                                                LocalDate.parse(kitHabit.inverseStartDate).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli().toString()
+                                                            } catch (_: Exception) {
+                                                                try {
+                                                                    Instant.parse(kitHabit.inverseStartDate).toEpochMilli().toString()
+                                                                } catch (_: Exception) {
+                                                                    createdAtMillis
+                                                                }
+                                                            }
+                                                        } else {
+                                                            createdAtMillis
+                                                        }
+
+                                                        val habitColorKey = (kitHabit.color ?: "gray").lowercase()
                                                         val habit = Habit(
                                                             id = kitHabit.id,
                                                             name = kitHabit.name,
                                                             description = kitHabit.description
                                                                 ?: "",
-                                                            icon = "default_icon", // Default icon as requested
-                                                            color = habitColorMap[kitHabit.color.lowercase()]
+                                                            icon = kitHabit.icon ?: "default_icon",
+                                                            color = habitColorMap[habitColorKey]
                                                                 ?: Color.GRAY,
                                                             archived = kitHabit.archived,
                                                             orderIndex = kitHabit.orderIndex,
-                                                            createdAt = kitHabit.createdAt,
+                                                            createdAt = createdAtMillis,
+                                                            startDate = startDateMillis,
                                                             isInverse = kitHabit.isInverse,
                                                             emoji = kitHabit.emoji,
-                                                            completionsPerInterval = 1, // Default value
-                                                            intervalUnit = "day",      // Default value
+                                                            completionsPerInterval = completionsPerInterval,
+                                                            intervalUnit = intervalUnit,
                                                             notificationsEnabled = notificationsEnabled,
+                                                            completionsPerDay = dailyCompletions,
                                                             notificationTime = notificationTime,
                                                             notificationDays = notificationDays
                                                         )
@@ -783,7 +1025,12 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                                                         jsonParser.decodeFromString<ExportData>(
                                                             jsonString
                                                         )
+                                                    exportedSettings = exportedData.settings
                                                     habitsToInsert.addAll(exportedData.habits.map { exportedHabit ->
+                                                        val createdAtMillis = com.habitly.habitly.data.Database.parseDateToMillis(exportedHabit.createdAt)?.toString()
+                                                            ?: exportedHabit.createdAt
+                                                        val startDateMillis = com.habitly.habitly.data.Database.parseDateToMillis(exportedHabit.startDate)?.toString()
+                                                            ?: createdAtMillis
                                                         Habit(
                                                             id = exportedHabit.id,
                                                             name = exportedHabit.name,
@@ -792,7 +1039,7 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                                                             color = exportedHabit.color,
                                                             archived = exportedHabit.archived,
                                                             orderIndex = exportedHabit.orderIndex,
-                                                            createdAt = exportedHabit.createdAt,
+                                                            createdAt = createdAtMillis,
                                                             isInverse = exportedHabit.isInverse,
                                                             emoji = exportedHabit.emoji,
                                                             completionsPerInterval = exportedHabit.completionsPerInterval,
@@ -800,7 +1047,10 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                                                             notificationsEnabled = exportedHabit.notificationsEnabled,
                                                             notificationTime = exportedHabit.notificationTime,
                                                             notificationDays = exportedHabit.notificationDays,
-                                                            statsLayout = exportedHabit.statsLayout
+                                                            statsLayout = exportedHabit.statsLayout,
+                                                            startDate = startDateMillis,
+                                                            completionsPerDay = exportedHabit.completionsPerDay,
+                                                            streakCountingDisabled = exportedHabit.streakCountingDisabled
                                                         )
                                                     })
                                                     completionsToInsert.addAll(exportedData.habits.flatMap { exportedHabit ->
@@ -824,6 +1074,9 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                                                     db.habitDao().insertHabits(habitsToInsert)
                                                     db.habitDao()
                                                         .insertCompletions(completionsToInsert)
+                                                    if (importType == ImportType.APP_BACKUP && !ignoreSettings) {
+                                                        exportedSettings?.let { settingsDataStore.importSettings(it) }
+                                                    }
                                                     NotificationScheduler(context).rescheduleAll()
                                                 }
                                                 Toast.makeText(
@@ -834,6 +1087,8 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                                                 selectedFileUri = null
                                                 importType = null
                                                 mergeData = false
+                                                ignoreSettings = false
+                                                isSourceDisclosed = false
                                             } else {
                                                 Toast.makeText(
                                                     context,

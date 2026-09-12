@@ -1,7 +1,5 @@
 /* Habitly - Licensed under GNU GPL v3.0 or later. See <https://www.gnu.org/licenses/gpl-3.0.html> */
 
-@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
-
 package com.habitly.habitly.ui.colors
 
 import android.app.Activity
@@ -11,7 +9,6 @@ import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.darkColorScheme
@@ -57,12 +54,46 @@ fun Attempt3Theme(
             dynamicDarkColorScheme(context)
         } else {
             darkColorScheme(
+                // Primary Roles
                 primary = Color(0xFFBB86FC),
                 onPrimary = Color(0xFF1C0B3C),
-                secondary = Color(0xFF03DAC6),
-                onSecondary = Color(0xFF002724),
+                primaryContainer = Color(0xFF4700AB),
+                onPrimaryContainer = Color(0xFFEADDFF),
+                inversePrimary = Color(0xFF6200EE),
+
+                // Secondary Roles
+                secondary = Color(0xFF80D5C9),
+                onSecondary = Color(0xFF003732),
+                secondaryContainer = Color(0xFF264E48),
+                onSecondaryContainer = Color(0xFFA6F2E5),
+
+                // Tertiary Roles
+                tertiary = Color(0xFFEFB8C8),
+                onTertiary = Color(0xFF492532),
+                tertiaryContainer = Color(0xFF633B48),
+                onTertiaryContainer = Color(0xFFFFD8E4),
+
+                // Error Roles
                 error = Color(0xFFCF6679),
-                onError = Color.Black
+                onError = Color(0xFF1E0004),
+                errorContainer = Color(0xFF8C1D18),
+                onErrorContainer = Color(0xFFF9DEDC),
+
+                // Background & Surface
+                background = Color(0xFF121212),
+                onBackground = Color(0xFFE6E1E5),
+                surface = Color(0xFF121212),
+                onSurface = Color(0xFFE6E1E5),
+                surfaceVariant = Color(0xFF49454F),
+                onSurfaceVariant = Color(0xFFCAC4D0),
+                surfaceTint = Color(0xFFBB86FC),
+                inverseSurface = Color(0xFFE6E1E5),
+                inverseOnSurface = Color(0xFF313033),
+
+                // Outlines & Scrim
+                outline = Color(0xFF938F99),
+                outlineVariant = Color(0xFF49454F),
+                scrim = Color(0xFF000000)
             )
         }
     } else {
@@ -70,12 +101,46 @@ fun Attempt3Theme(
             dynamicLightColorScheme(context)
         } else {
             lightColorScheme(
+                // Primary Roles
                 primary = Color(0xFF6200EE),
-                onPrimary = Color.White,
-                secondary = Color(0xFF03DAC6),
-                onSecondary = Color.Black,
+                onPrimary = Color(0xFFFFFFFF),
+                primaryContainer = Color(0xFFEADDFF),
+                onPrimaryContainer = Color(0xFF21005D),
+                inversePrimary = Color(0xFFD0BCFF),
+
+                // Secondary Roles
+                secondary = Color(0xFF3B6661),
+                onSecondary = Color(0xFFFFFFFF),
+                secondaryContainer = Color(0xFFCEE8E2),
+                onSecondaryContainer = Color(0xFF05201D),
+
+                // Tertiary Roles (Warm coral accent)
+                tertiary = Color(0xFF7D5260),
+                onTertiary = Color(0xFFFFFFFF),
+                tertiaryContainer = Color(0xFFFFD8E4),
+                onTertiaryContainer = Color(0xFF31111D),
+
+                // Error Roles
                 error = Color(0xFFB00020),
-                onError = Color.White
+                onError = Color(0xFFFFFFFF),
+                errorContainer = Color(0xFFF9DEDC),
+                onErrorContainer = Color(0xFF410E0B),
+
+                // Background & Surface
+                background = Color(0xFFFFFBFE),
+                onBackground = Color(0xFF1C1B1F),
+                surface = Color(0xFFFFFBFE),
+                onSurface = Color(0xFF1C1B1F),
+                surfaceVariant = Color(0xFFE7E0EC),
+                onSurfaceVariant = Color(0xFF49454F),
+                surfaceTint = Color(0xFF6200EE),
+                inverseSurface = Color(0xFF313033),
+                inverseOnSurface = Color(0xFFF4EFF4),
+
+                // Outlines & Scrim
+                outline = Color(0xFF79747E),
+                outlineVariant = Color(0xFFCAC4D0),
+                scrim = Color(0xFF000000)
             )
         }
     }
@@ -92,12 +157,12 @@ fun Attempt3Theme(
             )
         } else {
             baseColorScheme.copy(
-                background = Color(0xFFFFFFFF),
-                onBackground = Color(0xFF121216),
-                surface = Color(0xFFFFFFFF),
-                surfaceVariant = Color(0xFFdcdcdc),
-                onSurface = Color(0xFF121216),
-                onSurfaceVariant = Color(0xFF121216)
+                background = Color(0xFFEEEEEE),
+                onBackground = Color(0xFF181815),
+                surface = Color(0xFFEEEEEE),
+                surfaceVariant = Color(0xFFDCDCDC),
+                onSurface = Color(0xFF181815),
+                onSurfaceVariant = Color(0xFF181815)
             )
         }
     } else {

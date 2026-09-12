@@ -13,11 +13,13 @@ object DefaultSettings {
     const val GLOBAL_NOTIFICATION_TIME = "09:00"
     const val GLOBAL_NOTIFICATION_DAYS = "MON,TUE,WED,THU,FRI,SAT,SUN"
     const val SKIP_COMPLETED_HABIT_NOTIFICATIONS = false
+    const val EXACT_ALARMS = false
     const val SNOOZE_ENABLED = true
     const val SNOOZE_DURATION_MINUTES = 60
     const val IS_24_HOUR = false
     const val HERO_CARD_VISIBLE = true
     const val YEAR_DIVIDER = false
+    const val LINE_CHART_YEAR_DIVIDER = false
     const val YEAR_LABELS = false
     const val HEATMAP_NOTIFICATION_DOT = false
     const val HEATMAP_NOTIFICATION_DOT_RANGE = "today_and_future"
@@ -33,5 +35,12 @@ object DefaultSettings {
     const val HEATMAP_WEEKS = 20
     const val HEATMAP_INFINITE = false
     const val HAS_ASKED_NOTIFICATION_PERMISSION = false
+    const val FIRST_DAY_OF_WEEK = "monday"
+    const val AUTO_SCROLL_TEXT = true
+    const val AUTO_SCROLL_TEXT_ELEMENTS = "Title,Description"
+    const val AUTO_SCROLL_TEXT_SCREENS = "Main Screen,Detail Screen"
+    const val WELCOME_CARD_NOTIFICATION_ENABLED = false
+    const val WELCOME_CARD_NOTIFICATION_TIME = "09:00"
+    const val WELCOME_CARD_NOTIFICATION_DAYS = "MON,TUE,WED,THU,FRI,SAT,SUN"
 }
 

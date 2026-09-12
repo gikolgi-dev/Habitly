@@ -1,102 +1,211 @@
 /* Habitly - Licensed under GNU GPL v3.0 or later. See <https://www.gnu.org/licenses/gpl-3.0.html> */
 
-@file:OptIn(ExperimentalMaterial3Api::class)
-
 package com.habitly.habitly.ui.screen.settings
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import com.habitly.habitly.data.settings.DefaultSettings
 import com.habitly.habitly.data.settings.SettingsDataStore
+import kotlinx.coroutines.launch
 
 @Composable
 fun AppearanceScreen(
     modifier: Modifier = Modifier,
     settingsDataStore: SettingsDataStore,
-    onNavigateToScrollBlur: () -> Unit,
     onNavigateToHabitColor: () -> Unit,
-    onNavigateToReduceMovement: () -> Unit,
-    onNavigateToHeatmapNotificationDot: () -> Unit
+    onNavigateToHeatmap: () -> Unit
 ) {
-    val scope = rememberCoroutineScope()
     val currentTheme by settingsDataStore.theme.collectAsState(initial = DefaultSettings.THEME)
     val useMaterialTheming by settingsDataStore.useMaterialTheming.collectAsState(initial = DefaultSettings.USE_MATERIAL_THEMING)
     val useHabitColorForCard by settingsDataStore.useHabitColorForCard.collectAsState(initial = DefaultSettings.USE_HABIT_COLOR_FOR_CARD)
-    val showMonthLabels by settingsDataStore.monthLabels.collectAsState(initial = DefaultSettings.MONTH_LABELS)
-    val showYearDivider by settingsDataStore.yearDivider.collectAsState(initial = DefaultSettings.YEAR_DIVIDER)
-    val showYearLabels by settingsDataStore.yearLabels.collectAsState(initial = DefaultSettings.YEAR_LABELS)
-    val heatmapNotificationDot by settingsDataStore.heatmapNotificationDot.collectAsState(initial = DefaultSettings.HEATMAP_NOTIFICATION_DOT)
-    val showScrollBlur by settingsDataStore.showScrollBlur.collectAsState(initial = DefaultSettings.SHOW_SCROLL_BLUR)
-    val borderContrast by settingsDataStore.borders.collectAsState(initial = DefaultSettings.BORDERS)
+    val lineChartYearDivider by settingsDataStore.lineChartYearDivider.collectAsState(initial = DefaultSettings.LINE_CHART_YEAR_DIVIDER)
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
-    val reduceMovement by settingsDataStore.reduceMovement.collectAsState(initial = DefaultSettings.REDUCE_MOVEMENT)
 
     val haptic = LocalHapticFeedback.current
-    val scrollState = rememberScrollState()
+    val scope = rememberCoroutineScope()
+    val (scrollState, scrollEnabled) = rememberSettingsScrollState()
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .verticalScroll(scrollState, enabled = scrollState.maxValue > 0),
+            .verticalScroll(scrollState, enabled = scrollEnabled),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            ThemeSection(
-                currentTheme = currentTheme,
-                useMaterialTheming = useMaterialTheming,
-                useHabitColorForCard = useHabitColorForCard,
-                vibrationsEnabled = vibrationsEnabled,
-                settingsDataStore = settingsDataStore,
-                scope = scope,
-                haptic = haptic,
-                onNavigateToHabitColor = onNavigateToHabitColor
-            )
+            SettingsGroup(
+                title = "Styling",
+                settingsDataStore = settingsDataStore
+            ) {
+                SettingsItemBox(settingsDataStore = settingsDataStore, position = SettingsItemPosition.Top) {
+                    Column {
+                        val themes = listOf("Light", "Dark", "System")
+                        themes.forEach { theme ->
+                            Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .selectable(
+                                        selected = (theme.lowercase() == currentTheme),
+                                        onClick = {
+                                            scope.launch {
+                                                settingsDataStore.setTheme(theme.lowercase())
+                                            }
+                                            if (vibrationsEnabled) {
+                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            }
+                                        }
+                                    )
+                                    .padding(start = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = (theme.lowercase() == currentTheme),
+                                    onClick = {
+                                        scope.launch {
+                                            settingsDataStore.setTheme(theme.lowercase())
+                                        }
+                                        if (vibrationsEnabled) {
+                                            haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                        }
+                                    }
+                                )
+                                Text(
+                                    text = theme,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.padding(start = 8.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                SettingsSwitchItem(
+                    text = "Use material theming",
+                    description = "Match the background colors with your system's dynamic color theme",
+                    checked = useMaterialTheming,
+                    settingsDataStore = settingsDataStore,
+                    position = SettingsItemPosition.Middle
+                ) {
+                    scope.launch { settingsDataStore.setUseMaterialTheming(it) }
+                    if (vibrationsEnabled) {
+                        haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+                    }
+                }
+
+                SettingsSwitchNavigationItem(
+                    text = "Habit color accents",
+                    description = "Add color accents to habit related elements",
+                    checked = useHabitColorForCard,
+                    settingsDataStore = settingsDataStore,
+                    position = SettingsItemPosition.Bottom,
+                    onCheckedChange = {
+                        scope.launch { settingsDataStore.setUseHabitColorForCard(it) }
+                        if (vibrationsEnabled) {
+                            haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+                        }
+                    },
+                    onClick = onNavigateToHabitColor
+                )
+            }
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            HeatmapSection(
-                showMonthLabels = showMonthLabels,
-                showYearDivider = showYearDivider,
-                showYearLabels = showYearLabels,
-                heatmapNotificationDot = heatmapNotificationDot,
-                borderContrast = borderContrast,
-                vibrationsEnabled = vibrationsEnabled,
-                settingsDataStore = settingsDataStore,
-                scope = scope,
-                haptic = haptic,
-                onNavigateToHeatmapNotificationDot = onNavigateToHeatmapNotificationDot
-            )
+            SettingsGroup(
+                settingsDataStore = settingsDataStore
+            ) {
+                SettingsNavigationItem(
+                    text = "Heatmap",
+                    description = "Customize heatmap appearance and visible labels",
+                    settingsDataStore = settingsDataStore,
+                    position = SettingsItemPosition.Alone,
+                    onClick = onNavigateToHeatmap
+                )
+            }
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            AccessibilitySection(
-                borderContrast = borderContrast,
-                showScrollBlur = showScrollBlur,
-                reduceMovement = reduceMovement,
-                vibrationsEnabled = vibrationsEnabled,
-                settingsDataStore = settingsDataStore,
-                scope = scope,
-                haptic = haptic,
-                onNavigateToScrollBlur = onNavigateToScrollBlur,
-                onNavigateToReduceMovement = onNavigateToReduceMovement
-            )
+            SettingsGroup(title = "Line Chart", settingsDataStore = settingsDataStore) {
+                SettingsSwitchItem(
+                    text = "Year divider",
+                    description = "Add a visual gap between different years on the line chart",
+                    checked = lineChartYearDivider,
+                    settingsDataStore = settingsDataStore,
+                    position = SettingsItemPosition.Alone
+                ) {
+                    scope.launch { settingsDataStore.setLineChartYearDivider(it) }
+                    if (vibrationsEnabled) {
+                        haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(24.dp).navigationBarsPadding())
         }
     }
 }
+
+@Composable
+fun HabitColorSubScreen(
+    settingsDataStore: SettingsDataStore,
+    modifier: Modifier = Modifier
+) {
+    val scope = rememberCoroutineScope()
+    val useHabitColor by settingsDataStore.useHabitColorForCard.collectAsState(initial = DefaultSettings.USE_HABIT_COLOR_FOR_CARD)
+    val habitColorTargets by settingsDataStore.habitColorTargets.collectAsState(
+        initial = DefaultSettings.HABIT_COLOR_TARGETS.split(',').filter { it.isNotEmpty() }.toSet()
+    )
+    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
+    val haptic = LocalHapticFeedback.current
+
+    SettingsSubScreenContainer(modifier = modifier) {
+        SettingsSubScreenDescription("Apply the habit's color to specific components to improve identification and aesthetics.")
+
+        MainSettingsToggle(
+            text = "Use habit color",
+            checked = useHabitColor,
+            onCheckedChange = { isChecked ->
+                scope.launch { settingsDataStore.setUseHabitColorForCard(isChecked) }
+                if (vibrationsEnabled) {
+                    haptic.performHapticFeedback(if (isChecked) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+                }
+            }
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        SettingsCheckboxGroup(
+            title = "Targets",
+            items = listOf("Habit Cards", "Statistic Screen"),
+            selectedItems = habitColorTargets,
+            enabled = useHabitColor,
+            settingsDataStore = settingsDataStore,
+            onToggleItem = { target ->
+                val newTargets = if (target in habitColorTargets) habitColorTargets - target else habitColorTargets + target
+                scope.launch { settingsDataStore.setHabitColorTargets(newTargets) }
+                if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+            }
+        )
+    }
+}
+

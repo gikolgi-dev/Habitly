@@ -26,6 +26,8 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -57,7 +59,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.habitly.habitly.data.Database.Completion
+import com.habitly.habitly.data.Database.Habit
+import com.habitly.habitly.data.Database.getEffectiveCompletionsForDay
+import com.habitly.habitly.data.Database.isDayCompleted
+import com.habitly.habitly.data.Database.getEffectiveStartDateMillis
+import com.habitly.habitly.data.Database.normalizeToStartOfDay
+import com.habitly.habitly.data.Database.getDailyTarget
+import androidx.compose.ui.unit.sp
 import com.habitly.habitly.ui.colors.isBright
+import com.habitly.habitly.ui.colors.toThemeHabitColor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Calendar
@@ -79,6 +89,8 @@ fun MonthCalendar(
     vibrationsEnabled: Boolean = true,
     reduceGridReactions: Boolean = false,
     currentDateMillis: Long = System.currentTimeMillis(),
+    habit: Habit? = null,
+    firstDayOfWeek: Int = Calendar.MONDAY,
     onDateClick: (Calendar, Boolean) -> Unit
 ) {
     val initialPage = 1200
@@ -100,16 +112,16 @@ fun MonthCalendar(
     }
 
     // Calculate number of rows for the current displayed month to handle dynamic height
-    val displayedMonthNumRows = remember(displayedMonth) {
+    val displayedMonthNumRows = remember(displayedMonth, firstDayOfWeek) {
         val currentMonth = displayedMonth.get(Calendar.MONTH)
         val currentYear = displayedMonth.get(Calendar.YEAR)
-        
+
         val firstDayOfMonthOffset = (Calendar.getInstance().apply {
             set(Calendar.DAY_OF_MONTH, 1)
             set(Calendar.YEAR, currentYear)
             set(Calendar.MONTH, currentMonth)
-        }.get(Calendar.DAY_OF_WEEK) - Calendar.MONDAY + 7) % 7
-        
+        }.get(Calendar.DAY_OF_WEEK) - firstDayOfWeek + 7) % 7
+
         val daysInMonth = displayedMonth.getActualMaximum(Calendar.DAY_OF_MONTH)
         (firstDayOfMonthOffset + daysInMonth + 6) / 7
     }
@@ -146,6 +158,9 @@ fun MonthCalendar(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = {
+                if (vibrationsEnabled) {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                }
                 scope.launch {
                     if (pagerState.currentPage > 0) {
                         pagerState.animateScrollToPage(pagerState.currentPage - 1)
@@ -189,6 +204,9 @@ fun MonthCalendar(
 
             IconButton(
                 onClick = {
+                    if (vibrationsEnabled) {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    }
                     if (!isFutureMonth) {
                         scope.launch {
                             pagerState.animateScrollToPage(pagerState.currentPage + 1)
@@ -211,7 +229,11 @@ fun MonthCalendar(
         Row(
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            val days = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+            val days = if (firstDayOfWeek == Calendar.SUNDAY) {
+                listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+            } else {
+                listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+            }
             days.forEach { day ->
                 Text(
                     modifier = Modifier.weight(1f),
@@ -270,12 +292,12 @@ fun MonthCalendar(
             val currentMonth = month.get(Calendar.MONTH)
             val currentYear = month.get(Calendar.YEAR)
 
-            val firstDayOfMonthOffset = remember(month) {
+            val firstDayOfMonthOffset = remember(month, firstDayOfWeek) {
                 (Calendar.getInstance().apply {
                     set(Calendar.DAY_OF_MONTH, 1)
                     set(Calendar.YEAR, currentYear)
                     set(Calendar.MONTH, currentMonth)
-                }.get(Calendar.DAY_OF_WEEK) - Calendar.MONDAY + 7) % 7
+                }.get(Calendar.DAY_OF_WEEK) - firstDayOfWeek + 7) % 7
             }
 
             val daysInMonth = remember(month) {
@@ -315,13 +337,28 @@ fun MonthCalendar(
                             }
 
                             val dayStartMillis = day.timeInMillis
-                            val isCompleted = completionDates.contains(dayStartMillis)
+                            val target = habit?.getDailyTarget() ?: 1
+                            val effectiveCount = if (habit != null) {
+                                getEffectiveCompletionsForDay(habit, completions, dayStartMillis, currentDateMillis)
+                            } else {
+                                if (completionDates.contains(dayStartMillis)) 1 else 0
+                            }
+                            val isCompleted = if (habit != null) {
+                                isDayCompleted(habit, completions, dayStartMillis, currentDateMillis)
+                            } else {
+                                completionDates.contains(dayStartMillis)
+                            }
+                            val ratio = (effectiveCount.toFloat() / target).coerceIn(0f, 1f)
                             val isInCurrentMonth = day.get(Calendar.MONTH) == currentMonth
                             val isToday = dayStartMillis == today.timeInMillis
                             val isAfterToday = day.after(today)
 
+                            val isDark = !MaterialTheme.colorScheme.surface.isBright()
+                            val effectiveHabitColor = habitColor.toThemeHabitColor(isDark)
+
                             val targetCellColor = when {
-                                isCompleted -> habitColor.copy(alpha = if (isInCurrentMonth) 1f else 0.6f)
+                                isCompleted -> effectiveHabitColor.copy(alpha = if (isInCurrentMonth) 1f else 0.6f)
+                                ratio > 0f -> effectiveHabitColor.copy(alpha = if (isInCurrentMonth) (if (isDark) 0.35f else 0.45f) + 0.35f * ratio else (if (isDark) 0.25f else 0.35f))
                                 else -> Color.Transparent
                             }
                             val cellColor by animateColorAsState(
@@ -331,7 +368,7 @@ fun MonthCalendar(
                             )
 
                             val textColor = when {
-                                isCompleted -> if (habitColor.isBright()) Color.Black else Color.White
+                                isCompleted -> if (effectiveHabitColor.isBright()) Color.Black else Color.White
                                 isAfterToday -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                                 !isInCurrentMonth -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                                 else -> MaterialTheme.colorScheme.onSurface
@@ -344,7 +381,7 @@ fun MonthCalendar(
                                 animationSpec = spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessLow),
                                 label = "scale"
                             )
-                            
+
                             val boxZIndex by animateFloatAsState(
                                 targetValue = if (!reduceGridReactions && pressedCellIndex != null) (100f - distance).coerceAtLeast(0f) else 0f,
                                 animationSpec = spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessLow),
@@ -422,11 +459,48 @@ fun MonthCalendar(
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(
-                                    text = "${day.get(Calendar.DAY_OF_MONTH)}",
-                                    color = textColor,
-                                    style = MaterialTheme.typography.bodySmall
-                                )
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        text = "${day.get(Calendar.DAY_OF_MONTH)}",
+                                        color = textColor,
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                    if (target > 1 && !isCompleted && !isAfterToday && (habit == null || dayStartMillis >= normalizeToStartOfDay(habit.getEffectiveStartDateMillis()))) {
+                                        if (effectiveCount in 1..6) {
+                                            Row(
+                                                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.padding(top = 2.dp)
+                                            ) {
+                                                repeat(effectiveCount) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(3.dp)
+                                                            .clip(CircleShape)
+                                                            .background(habitColor)
+                                                    )
+                                                }
+                                            }
+                                        } else if (effectiveCount > 6) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .padding(top = 1.5.dp)
+                                                    .clip(CircleShape)
+                                                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                                                    .padding(horizontal = 4.5.dp, vertical = 0.5.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = "$effectiveCount",
+                                                    color = habitColor,
+                                                    fontSize = 8.5.sp,
+                                                    lineHeight = 9.sp,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }

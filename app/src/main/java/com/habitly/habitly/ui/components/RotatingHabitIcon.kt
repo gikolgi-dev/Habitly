@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialShapes
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -41,6 +42,8 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.habitly.habitly.data.Database.Habit
+import com.habitly.habitly.ui.colors.isBright
+import com.habitly.habitly.ui.colors.toThemeHabitColor
 import com.habitly.habitly.ui.habitIconMap
 val LocalRotatingIconRotation = compositionLocalOf<() -> Float> { { 0f } }
 
@@ -89,6 +92,9 @@ fun RotatingHabitIcon(
         }
     }
 
+    val isDark = !MaterialTheme.colorScheme.surface.isBright()
+    val effectiveColor = animatedColor.toThemeHabitColor(isDark)
+
     Box(
         modifier = modifier
             .size(64.dp)
@@ -100,12 +106,12 @@ fun RotatingHabitIcon(
                 .fillMaxSize()
                 .rotate(rotation)
                 .background(
-                    animatedColor.copy(alpha = 0.1f),
+                    effectiveColor.copy(alpha = if (isDark) 0.1f else 0.22f),
                     cookieShape
                 )
                 .border(
                     1.dp,
-                    animatedColor.copy(alpha = borderContrast),
+                    effectiveColor.copy(alpha = borderContrast),
                     cookieShape
                 )
         )
@@ -114,7 +120,7 @@ fun RotatingHabitIcon(
                 imageVector = currentIcon,
                 contentDescription = habit.icon,
                 modifier = Modifier.size(40.dp),
-                tint = animatedColor.copy(alpha = 0.85f)
+                tint = effectiveColor.copy(alpha = if (isDark) 0.85f else 1f)
             )
         }
     }

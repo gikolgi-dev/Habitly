@@ -42,3 +42,4 @@ google-services.json
 /lint/intermediate-reports/
 /lint/reports/
 /app/lint/
+application.backup

@@ -21,7 +21,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -51,7 +50,6 @@ import com.habitly.habitly.ui.AppBackButton
 import com.habitly.habitly.ui.HabitItemCard
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ArchiveScreen(
     uiState: HabitsUiState,
@@ -71,7 +69,10 @@ fun ArchiveScreen(
     disableAnimations: Boolean,
     heatmapWeeks: Int = 0,
     heatmapInfinite: Boolean = false,
-    currentDateMillis: Long = System.currentTimeMillis()
+    currentDateMillis: Long = System.currentTimeMillis(),
+    autoScrollText: Boolean = false,
+    autoScrollTextElements: Set<String> = emptySet(),
+    autoScrollTextScreens: Set<String> = emptySet()
 ) {
     val scope = rememberCoroutineScope()
     var habitToDelete by remember { mutableStateOf<Habit?>(null) }
@@ -92,7 +93,12 @@ fun ArchiveScreen(
                 ) {
                     OutlinedButton(
                         modifier = Modifier.weight(1f),
-                        onClick = { habitToDelete = null },
+                        onClick = {
+                            if (vibrationsEnabled) {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            }
+                            habitToDelete = null
+                        },
                         shape = CircleShape,
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface)
@@ -102,6 +108,9 @@ fun ArchiveScreen(
                     Button(
                         modifier = Modifier.weight(1f),
                         onClick = {
+                            if (vibrationsEnabled) {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            }
                             scope.launch {
                                 habitToDelete?.let {
                                     habitDao.deleteHabit(it)
@@ -198,6 +207,10 @@ fun ArchiveScreen(
                                     heatmapWeeks = heatmapWeeks,
                                     heatmapInfinite = heatmapInfinite,
                                     currentDateMillis = currentDateMillis,
+                                    autoScrollText = autoScrollText,
+                                    autoScrollTextElements = autoScrollTextElements,
+                                    autoScrollTextScreens = autoScrollTextScreens,
+                                    vibrationsEnabled = vibrationsEnabled,
                                     onComplete = { },
                                     onClick = { },
                                     onUnarchive = {

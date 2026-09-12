@@ -1,16 +1,11 @@
 /* Habitly - Licensed under GNU GPL v3.0 or later. See <https://www.gnu.org/licenses/gpl-3.0.html> */
 
-@file:OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class,
-    ExperimentalMaterial3ExpressiveApi::class
-)
-
 package com.habitly.habitly.ui
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.EaseInOutQuint
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -34,7 +29,6 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -43,10 +37,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import com.habitly.habitly.ui.circleToSquareMorph
 import com.habitly.habitly.ui.MorphPolygonShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -54,9 +50,18 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Bedtime
+import androidx.compose.ui.res.painterResource
+import com.habitly.habitly.R
+import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.BikeScooter
 import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.DateRange
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Dining
 import androidx.compose.material.icons.filled.Edit
@@ -91,10 +96,9 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CardDefaults.cardColors
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -123,10 +127,13 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.habitly.habitly.data.settings.SettingsDataStore
 import com.habitly.habitly.ui.colors.habitColors
 import com.habitly.habitly.ui.colors.isBright
+import com.habitly.habitly.ui.colors.toThemeHabitColor
 import com.habitly.habitly.ui.components.NotificationTimeSelectors
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.sqrt
@@ -321,6 +328,9 @@ private fun HabitColorItem(
         label = "translationY"
     )
 
+    val isDark = !MaterialTheme.colorScheme.surface.isBright()
+    val displayColor = color.toThemeHabitColor(isDark)
+
     Box(
         modifier = Modifier
             .aspectRatio(1f)
@@ -331,7 +341,7 @@ private fun HabitColorItem(
                 this.translationY = translationY
             }
             .clip(RoundedCornerShape(6.dp))
-            .background(color)
+            .background(displayColor)
             .pointerInput(color) {
                 detectTapGestures(
                     onPress = {
@@ -358,6 +368,7 @@ private fun HabitColorItem(
             animationSpec = spring(dampingRatio = 0.7f, stiffness = Spring.StiffnessLow),
             label = "selectScale"
         )
+        val selectionIndicatorColor = if (displayColor.isBright()) Color.Black else Color.White
         Box(
             modifier = Modifier
                 .fillMaxSize(0.6f)
@@ -367,7 +378,7 @@ private fun HabitColorItem(
                     alpha = if (selectScale > 0.01f) 1f else 0f
                 }
                 .clip(RoundedCornerShape(4.dp))
-                .background(MaterialTheme.colorScheme.surface)
+                .background(selectionIndicatorColor)
         )
     }
 }
@@ -533,7 +544,6 @@ private fun CloseButton(
 }
 
 
-@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun HabitSheetContent(
     title: String,
@@ -544,6 +554,9 @@ fun HabitSheetContent(
     completionsPerInterval: String,
     onCompletionsPerIntervalChanged: (String) -> Unit,
     modifier: Modifier = Modifier,
+    completionsPerDay: String = "1",
+    onCompletionsPerDayChanged: (String) -> Unit = {},
+    completionsPerDayError: String? = null,
     intervalUnit: String = "day",
     onIntervalUnitChanged: (String) -> Unit,
     completionsError: String?,
@@ -565,11 +578,24 @@ fun HabitSheetContent(
     notificationDays: Set<String>,
     onNotificationDaySelected: (String) -> Unit,
     headerModifier: Modifier = Modifier,
-    onClose: () -> Unit = {}
+    onClose: () -> Unit = {},
+    previewContent: (@Composable () -> Unit)? = null,
+    isInverse: Boolean = false,
+    onIsInverseChanged: (Boolean) -> Unit = {},
+    showInvertOptions: Boolean = false,
+    invertCompletions: Boolean = true,
+    onInvertCompletionsChanged: (Boolean) -> Unit = {},
+    showTargetConversionOptions: Boolean = false,
+    targetConversionIsPercentage: Boolean = false,
+    onTargetConversionChanged: (Boolean) -> Unit = {},
+    streakCountingDisabled: Boolean = false,
+    onStreakCountingDisabledChanged: (Boolean) -> Unit = {}
 ) {
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
+    val haptic = LocalHapticFeedback.current
     val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
     val is24Hour by settingsDataStore.is24Hour.collectAsState(initial = false)
+    val firstDayOfWeekCalendar by settingsDataStore.firstDayOfWeekCalendar.collectAsState(initial = Calendar.MONDAY)
     val reduceMovement by settingsDataStore.reduceMovement.collectAsState(initial = false)
     val reduceMovementTargets by settingsDataStore.reduceMovementTargets.collectAsState(initial = emptySet())
     val reduceGridReactions by remember { derivedStateOf { reduceMovement && "Grid Reactions" in reduceMovementTargets } }
@@ -582,7 +608,7 @@ fun HabitSheetContent(
 
     var isInitial by remember { mutableStateOf(true) }
 
-    // Scroll to bottom when notifications are enabled to follow expansion
+    // Follow expansion and collapse to scroll smoothly with notification changes
     LaunchedEffect(notificationsEnabled, hasNotificationPermission) {
         if (isInitial) {
             isInitial = false
@@ -592,6 +618,14 @@ fun HabitSheetContent(
             withTimeoutOrNull(600) {
                 snapshotFlow { scrollState.maxValue }.collect { max ->
                     scrollState.scrollTo(max)
+                }
+            }
+        } else {
+            withTimeoutOrNull(600) {
+                snapshotFlow { scrollState.maxValue }.collect { max ->
+                    if (scrollState.value > max) {
+                        scrollState.scrollTo(max)
+                    }
                 }
             }
         }
@@ -618,15 +652,18 @@ fun HabitSheetContent(
                     )
                 }
             }
-            HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp).alpha(dividerAlpha), color = Color.Gray.copy(alpha = 0.2f))
         }
+
+        previewContent?.invoke()
+
+        HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 0.dp).alpha(dividerAlpha), color = Color.Gray.copy(alpha = 0.35f))
 
         Column(
             modifier = Modifier
+                .weight(1f, fill = false)
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp)
+                .padding(horizontal = 12.dp)
                 .verticalScroll(scrollState, enabled = scrollState.maxValue > 0),
-            horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Card(
@@ -675,16 +712,350 @@ fun HabitSheetContent(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("Streak interval", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurface)
+                    Text("Habit Type", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurface)
                     Spacer(modifier = Modifier.height(8.dp))
 
+                    val typeOptions = listOf("Build Habit", "Quit Habit")
+                    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                        typeOptions.forEachIndexed { index, label ->
+                            val selected = if (index == 0) !isInverse else isInverse
+                            SegmentedButton(
+                                selected = selected,
+                                onClick = {
+                                    if (vibrationsEnabled) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    }
+                                    onIsInverseChanged(index == 1)
+                                },
+                                shape = SegmentedButtonDefaults.itemShape(index = index, count = typeOptions.size),
+                                icon = {
+                                    if (index == 0) {
+                                        Icon(
+                                            painter = painterResource(R.drawable.ic_sentiment_calm),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(SegmentedButtonDefaults.IconSize)
+                                        )
+                                    } else {
+                                        Icon(
+                                            imageVector = Icons.Default.Block,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(SegmentedButtonDefaults.IconSize)
+                                        )
+                                    }
+                                },
+                                colors = SegmentedButtonDefaults.colors(
+                                    activeContainerColor = MaterialTheme.colorScheme.primary,
+                                    activeContentColor = MaterialTheme.colorScheme.onPrimary,
+                                    activeBorderColor = MaterialTheme.colorScheme.primary,
+                                    inactiveContainerColor = MaterialTheme.colorScheme.surface,
+                                    inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    inactiveBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = borderContrast)
+                                )
+                            ) {
+                                Text(label)
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = if (isInverse) {
+                            "Quit a habit. Completed by default each day you abstain; uncomplete to log a slip."
+                        } else {
+                            "Build a habit. Starts uncompleted each day; complete as you perform it."
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    )
+
+                    AnimatedVisibility(visible = showInvertOptions) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "Past Completions",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            val invertOptions = listOf("Invert", "Keep History")
+                            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                                invertOptions.forEachIndexed { index, label ->
+                                    val selected = if (index == 0) invertCompletions else !invertCompletions
+                                    SegmentedButton(
+                                        selected = selected,
+                                        onClick = {
+                                            if (vibrationsEnabled) {
+                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            }
+                                            onInvertCompletionsChanged(index == 0)
+                                        },
+                                        shape = SegmentedButtonDefaults.itemShape(index = index, count = invertOptions.size),
+                                        colors = SegmentedButtonDefaults.colors(
+                                            activeContainerColor = MaterialTheme.colorScheme.primary,
+                                            activeContentColor = MaterialTheme.colorScheme.onPrimary,
+                                            activeBorderColor = MaterialTheme.colorScheme.primary,
+                                            inactiveContainerColor = MaterialTheme.colorScheme.surface,
+                                            inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            inactiveBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = borderContrast)
+                                        )
+                                    ) {
+                                        Text(label)
+                                    }
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = if (invertCompletions) {
+                                    "Inverts completions: previously completed days become missed/slips."
+                                } else {
+                                    "Preserves history: previously completed days remain completed."
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                modifier = Modifier.padding(horizontal = 8.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                colors = cardColors(MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Completions per Day",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    val currentCount = completionsPerDay.toIntOrNull() ?: 1
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        IconButton(
+                            onClick = {
+                                if (currentCount > 1) {
+                                    if (vibrationsEnabled) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    }
+                                    onCompletionsPerDayChanged((currentCount - 1).toString())
+                                }
+                            },
+                            enabled = currentCount > 1,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (currentCount > 1)
+                                         MaterialTheme.colorScheme.primaryContainer
+                                    else
+                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+                                )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Remove,
+                                contentDescription = "Decrease completions per day",
+                                tint = if (currentCount > 1)
+                                    MaterialTheme.colorScheme.onPrimaryContainer
+                                else
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                            )
+                        }
+
+                        AnimatedContent(
+                            targetState = currentCount,
+                            transitionSpec = {
+                                if (targetState > initialState) {
+                                    (slideInVertically { -it } + fadeIn()).togetherWith(slideOutVertically { it } + fadeOut())
+                                } else {
+                                    (slideInVertically { it } + fadeIn()).togetherWith(slideOutVertically { -it } + fadeOut())
+                                }
+                            },
+                            label = "completionsPerDayNumber",
+                            modifier = Modifier.weight(1f),
+                            contentAlignment = Alignment.Center
+                        ) { count ->
+                            Text(
+                                text = count.toString(),
+                                style = MaterialTheme.typography.displaySmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+
+                        IconButton(
+                            onClick = {
+                                if (currentCount < 14) {
+                                    if (vibrationsEnabled) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    }
+                                    onCompletionsPerDayChanged((currentCount + 1).toString())
+                                }
+                            },
+                            enabled = currentCount < 14,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (currentCount < 14)
+                                        MaterialTheme.colorScheme.primaryContainer
+                                    else
+                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+                                )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "Increase completions per day",
+                                tint = if (currentCount < 14)
+                                    MaterialTheme.colorScheme.onPrimaryContainer
+                                else
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Text(
+                        text = if (isInverse) {
+                            if (currentCount == 1) "Completed by default, binary slipped or completed "
+                            else "Completed by default,$currentCount max slips per day"
+                        } else {
+                            if (currentCount == 1) "Single completion per day"
+                            else "Multiple completions required each day"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    )
+
+                    AnimatedVisibility(visible = showTargetConversionOptions) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "Convert Existing Completions",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            val targetOptions = listOf("Absolute", "Percentage")
+                            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                                targetOptions.forEachIndexed { index, label ->
+                                    val selected = if (index == 0) !targetConversionIsPercentage else targetConversionIsPercentage
+                                    SegmentedButton(
+                                        selected = selected,
+                                        onClick = {
+                                            if (vibrationsEnabled) {
+                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            }
+                                            onTargetConversionChanged(index == 1)
+                                        },
+                                        shape = SegmentedButtonDefaults.itemShape(index = index, count = targetOptions.size),
+                                        colors = SegmentedButtonDefaults.colors(
+                                            activeContainerColor = MaterialTheme.colorScheme.primary,
+                                            activeContentColor = MaterialTheme.colorScheme.onPrimary,
+                                            activeBorderColor = MaterialTheme.colorScheme.primary,
+                                            inactiveContainerColor = MaterialTheme.colorScheme.surface,
+                                            inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            inactiveBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = borderContrast)
+                                        )
+                                    ) {
+                                        Text(label)
+                                    }
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = if (targetConversionIsPercentage) {
+                                    "Scales completion amounts proportionally to the new daily target. This transformation is inherently lossful, so make sure you know what you're doing and make backups."
+                                } else {
+                                    "Keeps exact completion values unchanged, for example 1 always stays 1."
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(horizontal = 8.dp)
+                            )
+                        }
+                    }
+                }
+            }
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                colors = cardColors(MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                if (vibrationsEnabled) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                }
+                                onStreakCountingDisabledChanged(!streakCountingDisabled)
+                            },
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Streak interval", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurface)
+                        Switch(
+                            checked = !streakCountingDisabled,
+                            onCheckedChange = null
+                        )
+                    }
+
+                    AnimatedVisibility(
+                        visible = !streakCountingDisabled,
+                        enter = fadeIn(animationSpec = tween(300)) + expandVertically(
+                            animationSpec = tween(400, easing = FastOutSlowInEasing),
+                            expandFrom = Alignment.Top
+                        ),
+                        exit = fadeOut(animationSpec = tween(300)) + shrinkVertically(
+                            animationSpec = tween(400, easing = FastOutSlowInEasing),
+                            shrinkTowards = Alignment.Top
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Spacer(modifier = Modifier.height(8.dp))
                     val items = listOf("Daily", "Weekly", "Monthly")
                     val intervalValues = listOf("day", "week", "month")
                     SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                         items.forEachIndexed { index, label ->
                             SegmentedButton(
                                 selected = intervalUnit == intervalValues[index],
-                                onClick = { onIntervalUnitChanged(intervalValues[index]) },
+                                onClick = {
+                                    if (vibrationsEnabled) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    }
+                                    onIntervalUnitChanged(intervalValues[index])
+                                },
                                 shape = SegmentedButtonDefaults.itemShape(index = index, count = items.size),
                                 colors = SegmentedButtonDefaults.colors(
                                     activeContainerColor = MaterialTheme.colorScheme.primary,
@@ -700,28 +1071,52 @@ fun HabitSheetContent(
                         }
                     }
 
+                    val dailyCount = completionsPerDay.toIntOrNull() ?: 1
+                    val showStreakTargetInput = intervalUnit != "day" || dailyCount > 1
+
                     AnimatedVisibility(
-                        visible = intervalUnit != "day",
-                        enter = fadeIn(animationSpec = tween(300)) + expandVertically(animationSpec = tween(400, easing = EaseInOutQuint)),
-                        exit = fadeOut(animationSpec = tween(300)) + shrinkVertically(animationSpec = tween(400, easing = EaseInOutQuint))
+                        visible = showStreakTargetInput,
+                        enter = fadeIn(animationSpec = tween(300)) + expandVertically(
+                            animationSpec = tween(400, easing = FastOutSlowInEasing),
+                            expandFrom = Alignment.Top
+                        ),
+                        exit = fadeOut(animationSpec = tween(300)) + shrinkVertically(
+                            animationSpec = tween(400, easing = FastOutSlowInEasing),
+                            shrinkTowards = Alignment.Top
+                        )
                     ) {
                         Column(modifier = Modifier.fillMaxWidth()) {
                             Spacer(modifier = Modifier.height(8.dp))
                             OutlinedTextField(
                                 value = completionsPerInterval,
                                 onValueChange = onCompletionsPerIntervalChanged,
-                                label = { Text("Completions per ${intervalUnit.replaceFirstChar { it.uppercase() }}") },
+                                label = {
+                                    Text(
+                                        if (intervalUnit == "day") "Streak target per Day"
+                                        else "Streak target per ${intervalUnit.replaceFirstChar { it.uppercase() }}"
+                                    )
+                                },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 isError = completionsError != null,
                                 singleLine = true,
-                                supportingText = { if (completionsError != null) Text(completionsError) },
+                                supportingText = {
+                                    if (completionsError != null) {
+                                        Text(completionsError)
+                                    } else if (intervalUnit == "day") {
+                                        Text("Daily completions needed to maintain streak up to $dailyCount")
+                                    } else {
+                                        val maxInPeriod = if (intervalUnit == "week") 7 * dailyCount else 31 * dailyCount
+                                        Text("Required completions per $intervalUnit up to $maxInPeriod")
+                                    }
+                                },
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
                     }
+                        }
+                    }
                 }
             }
-
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -856,6 +1251,9 @@ fun HabitSheetContent(
                             .fillMaxWidth()
                             .clickable(
                                 onClick = {
+                                    if (vibrationsEnabled) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    }
                                     onNotificationsEnabledChanged(!notificationsEnabled)
                                 }
                             )
@@ -870,9 +1268,16 @@ fun HabitSheetContent(
                             enabled = hasNotificationPermission
                         )
                     }
-                    AnimatedVisibility(visible = notificationsEnabled && hasNotificationPermission,
-                        enter = fadeIn(animationSpec = tween(300)) + expandVertically(animationSpec = tween(400, easing = EaseInOutQuint)),
-                        exit = fadeOut(animationSpec = tween(300)) + shrinkVertically(animationSpec = tween(400, easing = EaseInOutQuint))
+                    AnimatedVisibility(
+                        visible = notificationsEnabled && hasNotificationPermission,
+                        enter = fadeIn(animationSpec = tween(300)) + expandVertically(
+                            animationSpec = tween(400, easing = FastOutSlowInEasing),
+                            expandFrom = Alignment.Top
+                        ),
+                        exit = fadeOut(animationSpec = tween(300)) + shrinkVertically(
+                            animationSpec = tween(400, easing = FastOutSlowInEasing),
+                            shrinkTowards = Alignment.Top
+                        )
                     ) {
                         Box(modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 8.dp)) {
                             NotificationTimeSelectors(
@@ -883,7 +1288,8 @@ fun HabitSheetContent(
                                 isEnabled = notificationsEnabled && hasNotificationPermission,
                                 borderAlpha = borderContrast,
                                 is24Hour = is24Hour,
-                                vibrationsEnabled = vibrationsEnabled
+                                vibrationsEnabled = vibrationsEnabled,
+                                firstDayOfWeek = firstDayOfWeekCalendar
                             )
                         }
                     }
@@ -894,18 +1300,18 @@ fun HabitSheetContent(
     }
 }
 
-@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun SaveHabitButton(
     buttonText: String,
     isEnabled: Boolean,
     settingsDataStore: SettingsDataStore,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
     val haptic = LocalHapticFeedback.current
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
     val isKeyboardOpen by rememberUpdatedState(WindowInsets.isImeVisible)
-    val padding by animateDpAsState(targetValue = if (isKeyboardOpen) 8.dp else 20.dp, label = "buttonPadding")
+    val verticalPadding by animateDpAsState(targetValue = if (isKeyboardOpen) 4.dp else 6.dp, label = "buttonPadding")
 
     Button(
         onClick = {
@@ -915,10 +1321,11 @@ fun SaveHabitButton(
             onClick()
         },
         enabled = isEnabled,
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .padding(padding)
-            .imePadding(),
+            .navigationBarsPadding()
+            .imePadding()
+            .padding(horizontal = 16.dp, vertical = verticalPadding),
         shape = RoundedCornerShape(20.dp),
         elevation = ButtonDefaults.buttonElevation(defaultElevation = 24.dp),
         colors = ButtonDefaults.buttonColors(

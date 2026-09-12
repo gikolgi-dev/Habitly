@@ -38,8 +38,29 @@ data class Habit(
     val notificationsEnabled: Boolean = false,
     val notificationTime: String? = null,
     val notificationDays: String? = null,
-    val statsLayout: String? = null
+    val statsLayout: String? = null,
+    val startDate: String? = null,
+    val completionsPerDay: Int = 1,
+    val streakCountingDisabled: Boolean = false
 )
+
+val Habit.isQuit: Boolean get() = isInverse
+fun parseDateToMillis(dateStr: String?): Long? {
+    if (dateStr.isNullOrBlank()) return null
+    dateStr.toLongOrNull()?.let { return it }
+    return try {
+        java.time.Instant.parse(dateStr).toEpochMilli()
+    } catch (_: Exception) {
+        try {
+            java.time.LocalDate.parse(dateStr).atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli()
+        } catch (_: Exception) {
+            null
+        }
+    }
+}
+
+fun Habit.getEffectiveStartDateMillis(): Long = parseDateToMillis(startDate) ?: parseDateToMillis(createdAt) ?: System.currentTimeMillis()
+fun Habit.getDailyTarget(): Int = maxOf(completionsPerDay, if (intervalUnit == "day") completionsPerInterval else 1).coerceIn(1, 14)
 
 @Entity(
     foreignKeys = [
@@ -105,6 +126,12 @@ interface HabitDao {
     fun getCompletionsForHabit(habitId: String): Flow<List<Completion>>
 
 
+    @Query("SELECT * FROM completion WHERE habitId = :habitId")
+    suspend fun getCompletionsForHabitSnapshot(habitId: String): List<Completion>
+
+    @Query("DELETE FROM completion WHERE habitId = :habitId")
+    suspend fun deleteCompletionsForHabit(habitId: String)
+
 
     @Query("SELECT COALESCE(SUM(amountOfCompletions), 0) FROM completion WHERE habitId = :habitId AND date >= :startOfDay AND date <= :endOfDay")
     suspend fun countCompletionsForHabitOnDay(habitId: String, startOfDay: Long, endOfDay: Long): Int
@@ -114,6 +141,19 @@ interface HabitDao {
 
     @Query("DELETE FROM completion WHERE habitId = :habitId AND date >= :startOfDay AND date <= :endOfDay")
     suspend fun deleteCompletionsForHabitOnDay(habitId: String, startOfDay: Long, endOfDay: Long)
+
+    @Transaction
+    suspend fun setCompletionsForHabitOnDay(
+        habitId: String,
+        startOfDay: Long,
+        endOfDay: Long,
+        completion: Completion?
+    ) {
+        deleteCompletionsForHabitOnDay(habitId, startOfDay, endOfDay)
+        if (completion != null) {
+            insertCompletion(completion)
+        }
+    }
     
     @Query("SELECT * FROM habit WHERE id = :habitId")
     suspend fun getHabit(habitId: String): Habit?
@@ -135,7 +175,7 @@ interface HabitDao {
     suspend fun clearCompletions()
 }
 
-@Database(entities = [Habit::class, Completion::class], version = 13, exportSchema = false)
+@Database(entities = [Habit::class, Completion::class], version = 17, exportSchema = false)
 abstract class HabitDatabase : RoomDatabase() {
     abstract fun habitDao(): HabitDao
 
@@ -156,7 +196,11 @@ abstract class HabitDatabase : RoomDatabase() {
                     MIGRATION_9_10, 
                     MIGRATION_10_11,
                     MIGRATION_11_12,
-                    MIGRATION_12_13
+                    MIGRATION_12_13,
+                    MIGRATION_13_14,
+                    MIGRATION_14_15,
+                    MIGRATION_15_16,
+                    MIGRATION_16_17
                 ).build()
                 INSTANCE = instance
                 instance
@@ -248,6 +292,44 @@ val MIGRATION_11_12 = object : Migration(11, 12) {
 val MIGRATION_12_13 = object : Migration(12, 13) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE Habit ADD COLUMN statsLayout TEXT DEFAULT NULL")
+    }
+}
+
+val MIGRATION_13_14 = object : Migration(13, 14) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE Habit ADD COLUMN startDate TEXT DEFAULT NULL")
+    }
+}
+
+val MIGRATION_14_15 = object : Migration(14, 15) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE Habit ADD COLUMN completionsPerDay INTEGER NOT NULL DEFAULT 1")
+        db.execSQL("UPDATE Habit SET completionsPerDay = completionsPerInterval WHERE intervalUnit = 'day' AND completionsPerInterval > 1")
+    }
+}
+
+val MIGRATION_15_16 = object : Migration(15, 16) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        val cursor = db.query("SELECT id, createdAt, startDate FROM Habit")
+        val updates = mutableListOf<Triple<String, String, String>>()
+        while (cursor.moveToNext()) {
+            val id = cursor.getString(0)
+            val createdAt = cursor.getString(1)
+            val startDate = if (cursor.isNull(2)) null else cursor.getString(2)
+            val createdMillis = parseDateToMillis(createdAt)?.toString() ?: createdAt
+            val startMillis = parseDateToMillis(startDate)?.toString() ?: createdMillis
+            updates.add(Triple(id, createdMillis, startMillis))
+        }
+        cursor.close()
+        updates.forEach { (id, created, start) ->
+            db.execSQL("UPDATE Habit SET createdAt = ?, startDate = ? WHERE id = ?", arrayOf(created, start, id))
+        }
+    }
+}
+
+val MIGRATION_16_17 = object : Migration(16, 17) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE Habit ADD COLUMN streakCountingDisabled INTEGER NOT NULL DEFAULT 0")
     }
 }
 

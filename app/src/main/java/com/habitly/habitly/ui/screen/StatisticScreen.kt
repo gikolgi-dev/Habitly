@@ -2,6 +2,7 @@
 
 package com.habitly.habitly.ui.screen
 
+import java.util.Calendar
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -131,6 +132,8 @@ import com.habitly.habitly.data.Database.HabitViewModel
 import com.habitly.habitly.data.Database.HabitsUiState
 import com.habitly.habitly.data.Database.HabitWithCompletions
 import com.habitly.habitly.ui.AppBackButton
+import com.habitly.habitly.ui.colors.isBright
+import com.habitly.habitly.ui.colors.toThemeHabitColor
 import com.habitly.habitly.ui.components.*
 
 private val ALL_STAT_MODULES = listOf(
@@ -153,8 +156,12 @@ private val defaultLayout = listOf(
     "monthly_chart"
 )
 
-private fun getBaseModuleId(id: String): String = if (id.endsWith("_full")) id.removeSuffix("_full") else id
+private fun isStreakModule(id: String): Boolean = when (getBaseModuleId(id)) {
+    "longest_streak", "current_streak" -> true
+    else -> false
+}
 
+private fun getBaseModuleId(id: String): String = if (id.endsWith("_full")) id.removeSuffix("_full") else id
 private fun getModuleIcon(id: String): ImageVector = when (getBaseModuleId(id)) {
     "longest_streak" -> Icons.Default.Star
     "current_streak" -> Icons.Default.FlashOn
@@ -191,7 +198,9 @@ fun StatisticScreen(
     vibrationsEnabled: Boolean,
     showScrollBlur: Boolean,
     scrollBlurTargets: Set<String>,
-    useHabitColor: Boolean
+    useHabitColor: Boolean,
+    firstDayOfWeek: Int = Calendar.MONDAY,
+    showYearDivider: Boolean = false
 ) {
     val context = LocalContext.current
     val habitsUiState by viewModel.habitsUiState.collectAsState()
@@ -276,19 +285,23 @@ fun StatisticScreen(
 
     fun enterEditMode() {
         val statsLayout = currentHabit?.habit?.statsLayout
+        val isStreakDisabled = currentHabit?.habit?.streakCountingDisabled == true
+        val baseDefaultLayout = if (isStreakDisabled) defaultLayout.filter { !isStreakModule(it) } else defaultLayout
         val currentLayout = if (statsLayout == null) {
-            defaultLayout
+            baseDefaultLayout
         } else {
-            statsLayout.split(",").filter { it.isNotEmpty() }
+            val raw = statsLayout.split(",").filter { it.isNotEmpty() }
+            if (isStreakDisabled) raw.filter { !isStreakModule(it) } else raw
         }
         val sanitized = sanitizeStaticModuleList(currentLayout)
-        savedLayout = sanitized
         localActiveModules = sanitized
         isEditMode = true
     }
 
     fun resetToDefault() {
-        localActiveModules = sanitizeStaticModuleList(defaultLayout)
+        val isStreakDisabled = currentHabit?.habit?.streakCountingDisabled == true
+        val baseDefault = if (isStreakDisabled) defaultLayout.filter { !isStreakModule(it) } else defaultLayout
+        localActiveModules = sanitizeStaticModuleList(baseDefault)
         if (vibrationsEnabled) {
             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
         }
@@ -312,9 +325,11 @@ fun StatisticScreen(
         isEditMode = false
     }
 
-    val inactiveModules = remember(localActiveModules) {
+    val inactiveModules = remember(localActiveModules, currentHabit) {
         val activeBases = localActiveModules.map { getBaseModuleId(it) }
-        ALL_STAT_MODULES.filter { it !in activeBases }.sortedBy { getModuleDisplayName(it) }
+        val isStreakDisabled = currentHabit?.habit?.streakCountingDisabled == true
+        val available = if (isStreakDisabled) ALL_STAT_MODULES.filter { !isStreakModule(it) } else ALL_STAT_MODULES
+        available.filter { it !in activeBases }.sortedBy { getModuleDisplayName(it) }
     }
 
     fun onRemoveModule(moduleId: String) {
@@ -470,25 +485,32 @@ fun StatisticScreen(
                         val index = page % actualCount
                         val habit = habits.getOrNull(index)
                         if (habit != null) {
-                            val habitColor = Color(habit.habit.color)
+                            val isDark = !MaterialTheme.colorScheme.surface.isBright()
+                            val habitColor = Color(habit.habit.color).toThemeHabitColor(isDark)
 
-                            val pageLayout = remember(habit.habit.statsLayout) {
+                            val pageLayout = remember(habit.habit.statsLayout, habit.habit.streakCountingDisabled) {
                                 val layout = habit.habit.statsLayout
+                                val isStreakDisabled = habit.habit.streakCountingDisabled
+                                val baseDefault = if (isStreakDisabled) defaultLayout.filter { !isStreakModule(it) } else defaultLayout
                                 val rawList = if (layout == null) {
-                                    defaultLayout
+                                    baseDefault
                                 } else {
-                                    layout.split(",").filter { it.isNotEmpty() }
+                                    val raw = layout.split(",").filter { it.isNotEmpty() }
+                                    if (isStreakDisabled) raw.filter { !isStreakModule(it) } else raw
                                 }
                                 sanitizeStaticModuleList(rawList)
                             }
 
                             val activeList =
                                 if (isEditMode && habit.habit.id == currentHabit?.habit?.id) {
-                                    localActiveModules
+                                    if (habit.habit.streakCountingDisabled) localActiveModules.filter { !isStreakModule(it) } else localActiveModules
                                 } else {
                                     val saved = lastSavedLayouts[habit.habit.id]
-                                    if (saved != null && pageLayout != saved) {
-                                        saved
+                                    val effectiveSaved = if (saved != null && habit.habit.streakCountingDisabled) {
+                                        saved.filter { !isStreakModule(it) }
+                                    } else saved
+                                    if (effectiveSaved != null && pageLayout != effectiveSaved) {
+                                        effectiveSaved
                                     } else {
                                         pageLayout
                                     }
@@ -504,7 +526,9 @@ fun StatisticScreen(
                                 isEditMode = isEditMode && habit.habit.id == currentHabit?.habit?.id,
                                 activeModules = activeList,
                                 onRemoveModule = ::onRemoveModule,
-                                onReorderModules = ::onReorderModules
+                                onReorderModules = ::onReorderModules,
+                                firstDayOfWeek = firstDayOfWeek,
+                                showYearDivider = showYearDivider
                             )
                         }
                     }
@@ -528,7 +552,10 @@ fun StatisticScreen(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .background(Color.Black.copy(alpha = 0.4f))
-                                .clickable { isShelfExpanded = false }
+                                .clickable {
+                                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    isShelfExpanded = false
+                                }
                         )
                     }
 
@@ -568,7 +595,10 @@ fun StatisticScreen(
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .clickable { isShelfExpanded = !isShelfExpanded }
+                                        .clickable {
+                                            if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            isShelfExpanded = !isShelfExpanded
+                                        }
                                         .draggable(
                                             orientation = Orientation.Vertical,
                                             state = rememberDraggableState { delta ->
@@ -657,6 +687,8 @@ fun StatisticScreen(
                                                          vibrationsEnabled = vibrationsEnabled,
                                                          borderContrast = borderContrast,
                                                          useHabitColorForCard = useHabitColor,
+                                                         firstDayOfWeek = firstDayOfWeek,
+                                                         showYearDivider = showYearDivider,
                                                          onAdd = { onAddModule(moduleId) }
                                                      )
                                                  }
@@ -802,10 +834,12 @@ fun InactiveModuleCard(
     vibrationsEnabled: Boolean,
     borderContrast: Float,
     useHabitColorForCard: Boolean,
+    firstDayOfWeek: Int = Calendar.MONDAY,
+    showYearDivider: Boolean = false,
     onAdd: () -> Unit
 ) {
-            val statsState = androidx.compose.runtime.produceState<com.habitly.habitly.data.HabitStatistics?>(initialValue = null, key1 = habit) {
-                value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { com.habitly.habitly.data.calculateStatistics(habit) }
+            val statsState = androidx.compose.runtime.produceState<com.habitly.habitly.data.HabitStatistics?>(initialValue = null, key1 = habit, key2 = firstDayOfWeek) {
+                value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { com.habitly.habitly.data.calculateStatistics(habit, firstDayOfWeek) }
             }
             val monthlyStatsState = androidx.compose.runtime.produceState<List<com.habitly.habitly.data.MonthlyCompletion>?>(initialValue = null, key1 = habit) {
                 value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { com.habitly.habitly.data.calculateMonthlyStats(habit) }
@@ -930,6 +964,7 @@ fun InactiveModuleCard(
                         borderContrast = borderContrast,
                         useHabitColorForCard = useHabitColorForCard,
                         habitColor = accentColor,
+                        showYearDivider = showYearDivider,
                         interactive = false
                     )
                 }

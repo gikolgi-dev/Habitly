@@ -16,6 +16,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.FlingBehavior
+import androidx.compose.foundation.gestures.ScrollScope
 import androidx.compose.foundation.gestures.ScrollableDefaults
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.draggable
@@ -75,6 +77,7 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -84,6 +87,7 @@ import com.habitly.habitly.data.HabitStatistics
 import com.habitly.habitly.data.MonthlyCompletion
 import com.habitly.habitly.data.calculateMonthlyStats
 import com.habitly.habitly.data.calculateStatistics
+import java.util.Calendar
 import com.habitly.habitly.ui.fadingEdge
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -137,6 +141,7 @@ private fun RenderStatCard(
     useHabitColorForCard: Boolean,
     vibrationsEnabled: Boolean,
     showScrollBlur: Boolean,
+    showYearDivider: Boolean,
     isEditMode: Boolean
 ) {
     if (moduleId.startsWith("spacer_")) {
@@ -227,6 +232,7 @@ private fun RenderStatCard(
             borderContrast = borderContrast,
             useHabitColorForCard = useHabitColorForCard,
             habitColor = accentColor,
+            showYearDivider = showYearDivider,
             interactive = !isEditMode
         )
     }
@@ -243,7 +249,9 @@ fun HabitStatisticsContent(
     isEditMode: Boolean = false,
     activeModules: List<String> = emptyList(),
     onRemoveModule: (String) -> Unit = {},
-    onReorderModules: (List<String>) -> Unit = {}
+    onReorderModules: (List<String>) -> Unit = {},
+    firstDayOfWeek: Int = Calendar.MONDAY,
+    showYearDivider: Boolean = false
 ) {
     var selectedModuleForResize by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(isEditMode) {
@@ -307,8 +315,8 @@ fun HabitStatisticsContent(
         onReorderModules(newList)
     }
 
-    val statsState = produceState<HabitStatistics?>(initialValue = null, key1 = habit) {
-        value = withContext(Dispatchers.Default) { calculateStatistics(habit) }
+    val statsState = produceState<HabitStatistics?>(initialValue = null, key1 = habit, key2 = firstDayOfWeek) {
+        value = withContext(Dispatchers.Default) { calculateStatistics(habit, firstDayOfWeek) }
     }
     val monthlyStatsState = produceState<List<MonthlyCompletion>?>(initialValue = null, key1 = habit) {
         value = withContext(Dispatchers.Default) { calculateMonthlyStats(habit) }
@@ -488,6 +496,9 @@ fun HabitStatisticsContent(
                                     interactionSource = remember { MutableInteractionSource() },
                                     indication = null
                                 ) {
+                                    if (vibrationsEnabled) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    }
                                     selectedModuleForResize = if (selectedModuleForResize == moduleId) null else moduleId
                                 }
                             } else Modifier
@@ -676,6 +687,7 @@ fun HabitStatisticsContent(
                         useHabitColorForCard = useHabitColorForCard,
                         vibrationsEnabled = vibrationsEnabled,
                         showScrollBlur = showScrollBlur,
+                        showYearDivider = showYearDivider,
                         isEditMode = isEditMode
                     )
                     
@@ -1095,6 +1107,7 @@ fun MonthlyCompletionGraph(
     borderContrast: Float,
     useHabitColorForCard: Boolean = false,
     habitColor: Color = Color.Transparent,
+    showYearDivider: Boolean = false,
     interactive: Boolean = true
 ) {
     var isZoomedOut by remember { mutableStateOf(false) }
@@ -1164,14 +1177,28 @@ fun MonthlyCompletionGraph(
                         showLabels = true,
                         lineColor = accentColor,
                         vibrationsEnabled = vibrationsEnabled,
-                        interactive = interactive
+                        interactive = interactive,
+                        isZoomedOut = true,
+                        showYearDivider = showYearDivider
                     )
                 } else {
                     val minWidthPerItem = 44.dp
                     val calculatedWidth = minWidthPerItem * stats.size
                     val scrollState = rememberScrollState()
                     val coroutineScope = rememberCoroutineScope()
-                    val flingBehavior = ScrollableDefaults.flingBehavior()
+                    val density = LocalDensity.current
+                    val baseFlingBehavior = ScrollableDefaults.flingBehavior()
+                    val flingBehavior = remember(density, baseFlingBehavior) {
+                        object : FlingBehavior {
+                            override suspend fun ScrollScope.performFling(initialVelocity: Float): Float {
+                                val maxVelocity = with(density) { 8000.dp.toPx() }
+                                val boostedVelocity = (initialVelocity * 1.5f).coerceIn(-maxVelocity, maxVelocity)
+                                return with(baseFlingBehavior) {
+                                    performFling(boostedVelocity)
+                                }
+                            }
+                        }
+                    }
 
                     Box(
                         modifier = Modifier
@@ -1209,8 +1236,9 @@ fun MonthlyCompletionGraph(
                             lineColor = accentColor,
                             vibrationsEnabled = vibrationsEnabled,
                             interactive = interactive,
+                            isZoomedOut = false,
+                            showYearDivider = showYearDivider,
                             onPointSelected = { x ->
-                                if (interactive) {
                                     coroutineScope.launch {
                                         val viewportWidth = scrollState.viewportSize
                                         if (viewportWidth > 0) {
@@ -1224,7 +1252,6 @@ fun MonthlyCompletionGraph(
                                         }
                                     }
                                 }
-                            }
                         )
                     }
                 }

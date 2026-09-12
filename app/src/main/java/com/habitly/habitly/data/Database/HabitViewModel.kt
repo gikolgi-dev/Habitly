@@ -15,9 +15,15 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.Calendar
 import java.util.UUID
 import java.util.concurrent.TimeUnit
+enum class TargetConversionMode {
+    ABSOLUTE,
+    PERCENTAGE
+}
 
 sealed interface HabitsUiState {
     data object Loading : HabitsUiState
@@ -26,53 +32,20 @@ sealed interface HabitsUiState {
 
 class HabitViewModel(private val habitDao: HabitDao) : ViewModel() {
 
-    private val optimisticCompletionChanges = MutableStateFlow<Map<String, Pair<Boolean, Long>>>(emptyMap())
+    private val toggleMutex = Mutex()
+    private val optimisticCompletionChanges = MutableStateFlow<Map<String, List<Completion>>>(emptyMap())
 
     val habitsUiState: StateFlow<HabitsUiState> =
         habitDao.getHabitsWithCompletions().combine(optimisticCompletionChanges) { habits, changes ->
             if (changes.isEmpty()) {
                 habits
             } else {
-                val now = Calendar.getInstance()
-                val timezoneOffsetInMinutes = TimeUnit.MILLISECONDS.toMinutes(now.timeZone.rawOffset.toLong()).toInt()
-                val cal = Calendar.getInstance()
-
                 habits.map { habitWithCompletions ->
-                    val habitId = habitWithCompletions.habit.id
-                    val change = changes[habitId]
-                    if (change == null) {
-                        habitWithCompletions
+                    val override = changes[habitWithCompletions.habit.id]
+                    if (override != null) {
+                        habitWithCompletions.copy(completions = override)
                     } else {
-                        val (isCompleted, date) = change
-                        
-                        cal.timeInMillis = date
-                        cal.set(Calendar.HOUR_OF_DAY, 0)
-                        cal.set(Calendar.MINUTE, 0)
-                        cal.set(Calendar.SECOND, 0)
-                        cal.set(Calendar.MILLISECOND, 0)
-                        val startOfDay = cal.timeInMillis
-                        
-                        cal.set(Calendar.HOUR_OF_DAY, 23)
-                        cal.set(Calendar.MINUTE, 59)
-                        cal.set(Calendar.SECOND, 59)
-                        cal.set(Calendar.MILLISECOND, 999)
-                        val endOfDay = cal.timeInMillis
-
-                        if (isCompleted) {
-                            val alreadyCompleted = habitWithCompletions.completions.any { it.date in startOfDay..endOfDay }
-                            if (alreadyCompleted) habitWithCompletions else {
-                                val newCompletion = Completion(
-                                    id = UUID.randomUUID().toString(),
-                                    habitId = habitId,
-                                    date = date,
-                                    timezoneOffsetInMinutes = timezoneOffsetInMinutes,
-                                    amountOfCompletions = 1
-                                )
-                                habitWithCompletions.copy(completions = habitWithCompletions.completions + newCompletion)
-                            }
-                        } else {
-                            habitWithCompletions.copy(completions = habitWithCompletions.completions.filterNot { it.date in startOfDay..endOfDay })
-                        }
+                        habitWithCompletions
                     }
                 }
             }
@@ -94,37 +67,228 @@ class HabitViewModel(private val habitDao: HabitDao) : ViewModel() {
                 initialValue = HabitsUiState.Loading
             )
 
-    fun toggleCompletion(habit: Habit, date: Calendar, isCompleted: Boolean) {
+    fun toggleCompletion(
+        habit: Habit,
+        date: Calendar,
+        isCompleted: Boolean? = null,
+        decrement: Boolean = false
+    ) {
         val habitId = habit.id
         val dateInMillis = date.timeInMillis
-
         val now = Calendar.getInstance()
-        val startOfToday = (now.clone() as Calendar).apply { set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }.timeInMillis
-        val endOfToday = (now.clone() as Calendar).apply { set(Calendar.HOUR_OF_DAY, 23); set(Calendar.MINUTE, 59); set(Calendar.SECOND, 59); set(Calendar.MILLISECOND, 999) }.timeInMillis
+        val timezoneOffsetInMinutes = TimeUnit.MILLISECONDS.toMinutes(now.timeZone.rawOffset.toLong()).toInt()
 
-        if (dateInMillis in startOfToday..endOfToday) {
-            optimisticCompletionChanges.update { it + (habitId to Pair(!isCompleted, dateInMillis)) }
-        }
+        val startOfDay = normalizeToStartOfDay(dateInMillis)
+        val endOfDay = normalizeToEndOfDay(dateInMillis)
+
+        val habitStart = normalizeToStartOfDay(habit.getEffectiveStartDateMillis())
+        val isBeforeStart = startOfDay < habitStart
 
         viewModelScope.launch {
-            val startOfDay = (date.clone() as Calendar).apply { set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }.timeInMillis
-            val endOfDay = (date.clone() as Calendar).apply { set(Calendar.HOUR_OF_DAY, 23); set(Calendar.MINUTE, 59); set(Calendar.SECOND, 59); set(Calendar.MILLISECOND, 999) }.timeInMillis
-            val timezoneOffsetInMinutes = TimeUnit.MILLISECONDS.toMinutes(now.timeZone.rawOffset.toLong()).toInt()
+            toggleMutex.withLock {
+                var currentHabit = habit
+                if (isBeforeStart) {
+                    val updatedHabit = habit.copy(startDate = startOfDay.toString())
+                    habitDao.updateHabit(updatedHabit)
+                    currentHabit = updatedHabit
+                }
 
-            if (!isCompleted) {
-                habitDao.insertCompletion(
-                    Completion(
-                        id = UUID.randomUUID().toString(),
-                        habitId = habitId,
-                        date = dateInMillis,
-                        timezoneOffsetInMinutes = timezoneOffsetInMinutes,
-                        amountOfCompletions = 1
-                    )
-                )
-            } else {
-                habitDao.deleteCompletionsForHabitOnDay(habitId, startOfDay, endOfDay)
+                val target = currentHabit.getDailyTarget()
+                val currentDbCompletions = habitDao.countCompletionsForHabitOnDay(habitId, startOfDay, endOfDay)
+
+                val currentEffective = if (currentHabit.isInverse) {
+                    if (isBeforeStart) {
+                        target
+                    } else {
+                        (target - currentDbCompletions).coerceAtLeast(0)
+                    }
+                } else {
+                    currentDbCompletions
+                }
+
+                if (decrement) {
+                    if (currentHabit.isInverse) {
+                        if (currentEffective >= target) return@withLock
+                    } else {
+                        if (currentEffective <= 0) return@withLock
+                    }
+                }
+
+                val newEffective = if (currentHabit.isInverse) {
+                    if (decrement) {
+                        (currentEffective + 1).coerceAtMost(target)
+                    } else {
+                        if (currentEffective > 0) currentEffective - 1 else target
+                    }
+                } else {
+                    if (decrement) {
+                        (currentEffective - 1).coerceAtLeast(0)
+                    } else if (isCompleted != null && target == 1) {
+                        if (isCompleted) 0 else target
+                    } else {
+                        if (currentEffective < target) {
+                            currentEffective + 1
+                        } else {
+                            0
+                        }
+                    }
+                }
+
+                if (currentHabit.isInverse) {
+                    val newSlips = (target - newEffective).coerceAtLeast(0)
+                    val completion = if (newSlips > 0) {
+                        Completion(
+                            id = UUID.randomUUID().toString(),
+                            habitId = habitId,
+                            date = dateInMillis,
+                            timezoneOffsetInMinutes = timezoneOffsetInMinutes,
+                            amountOfCompletions = newSlips
+                        )
+                    } else null
+                    habitDao.setCompletionsForHabitOnDay(habitId, startOfDay, endOfDay, completion)
+                } else {
+                    val completion = if (newEffective > 0) {
+                        Completion(
+                            id = UUID.randomUUID().toString(),
+                            habitId = habitId,
+                            date = dateInMillis,
+                            timezoneOffsetInMinutes = timezoneOffsetInMinutes,
+                            amountOfCompletions = newEffective
+                        )
+                    } else null
+                    habitDao.setCompletionsForHabitOnDay(habitId, startOfDay, endOfDay, completion)
+                }
             }
         }
+    }
+
+    fun updateHabitWithConversion(
+        oldHabit: Habit,
+        updatedHabit: Habit,
+        invertCompletions: Boolean = true,
+        targetConversionMode: TargetConversionMode = TargetConversionMode.ABSOLUTE
+    ) {
+        viewModelScope.launch {
+            val isTypeChanged = oldHabit.isInverse != updatedHabit.isInverse
+            val isTargetChanged = oldHabit.getDailyTarget() != updatedHabit.getDailyTarget()
+
+            if (isTypeChanged) {
+                if (invertCompletions) {
+                    if (isTargetChanged && targetConversionMode == TargetConversionMode.PERCENTAGE) {
+                        // First convert target under old type, then invert type
+                        convertTargetCompletions(oldHabit, updatedHabit)
+                    } else {
+                        habitDao.updateHabit(updatedHabit)
+                    }
+                } else {
+                    // Preserving the visual completion status: convert DB entries
+                    convertHabitCompletions(oldHabit, updatedHabit, targetConversionMode)
+                }
+            } else if (isTargetChanged && targetConversionMode == TargetConversionMode.PERCENTAGE) {
+                convertTargetCompletions(oldHabit, updatedHabit)
+            } else {
+                habitDao.updateHabit(updatedHabit)
+            }
+        }
+    }
+
+    private suspend fun convertTargetCompletions(oldHabit: Habit, newHabit: Habit) {
+        val habitId = oldHabit.id
+        val oldTarget = oldHabit.getDailyTarget()
+        val newTarget = newHabit.getDailyTarget()
+        val existingCompletions = habitDao.getCompletionsForHabitSnapshot(habitId)
+
+        val newCompletions = existingCompletions.mapNotNull { comp ->
+            val newAmount = Math.round(comp.amountOfCompletions.toFloat() * newTarget / oldTarget.toFloat())
+                .coerceIn(0, newTarget)
+            if (newAmount > 0) {
+                comp.copy(amountOfCompletions = newAmount)
+            } else null
+        }
+
+        habitDao.deleteCompletionsForHabit(habitId)
+        if (newCompletions.isNotEmpty()) {
+            habitDao.insertCompletions(newCompletions)
+        }
+        habitDao.updateHabit(newHabit)
+    }
+
+    private suspend fun convertHabitCompletions(
+        oldHabit: Habit,
+        newHabit: Habit,
+        targetConversionMode: TargetConversionMode = TargetConversionMode.ABSOLUTE
+    ) {
+        val habitId = oldHabit.id
+        val oldTarget = oldHabit.getDailyTarget()
+        val newTarget = newHabit.getDailyTarget()
+
+        val startDate = normalizeToStartOfDay(oldHabit.getEffectiveStartDateMillis())
+        val todayEnd = normalizeToEndOfDay(System.currentTimeMillis())
+
+        val existingCompletions = habitDao.getCompletionsForHabitSnapshot(habitId)
+
+        val cal = Calendar.getInstance().apply { timeInMillis = startDate }
+        val newCompletions = mutableListOf<Completion>()
+        val now = Calendar.getInstance()
+        val tzOffset = TimeUnit.MILLISECONDS.toMinutes(now.timeZone.rawOffset.toLong()).toInt()
+
+        while (cal.timeInMillis <= todayEnd) {
+            val dayStart = normalizeToStartOfDay(cal.timeInMillis)
+            val dayEnd = normalizeToEndOfDay(cal.timeInMillis)
+
+            val dbAmount = existingCompletions
+                .filter { it.date in dayStart..dayEnd }
+                .sumOf { it.amountOfCompletions }
+
+            val oldEffective = if (oldHabit.isInverse) {
+                (oldTarget - dbAmount).coerceAtLeast(0)
+            } else {
+                dbAmount
+            }
+
+            val scaledOldEffective = if (targetConversionMode == TargetConversionMode.PERCENTAGE && oldTarget != newTarget) {
+                Math.round(oldEffective.toFloat() * newTarget / oldTarget.toFloat())
+                    .coerceIn(0, newTarget)
+            } else {
+                oldEffective
+            }
+
+            if (newHabit.isInverse) {
+                val slips = (newTarget - scaledOldEffective).coerceAtLeast(0)
+                if (slips > 0) {
+                    newCompletions.add(
+                        Completion(
+                            id = UUID.randomUUID().toString(),
+                            habitId = habitId,
+                            date = dayStart + 12 * 3600 * 1000L,
+                            timezoneOffsetInMinutes = tzOffset,
+                            amountOfCompletions = slips
+                        )
+                    )
+                }
+            } else {
+                val completions = scaledOldEffective.coerceAtMost(newTarget)
+                if (completions > 0) {
+                    newCompletions.add(
+                        Completion(
+                            id = UUID.randomUUID().toString(),
+                            habitId = habitId,
+                            date = dayStart + 12 * 3600 * 1000L,
+                            timezoneOffsetInMinutes = tzOffset,
+                            amountOfCompletions = completions
+                        )
+                    )
+                }
+            }
+
+            cal.add(Calendar.DAY_OF_YEAR, 1)
+        }
+
+        habitDao.deleteCompletionsForHabit(habitId)
+        if (newCompletions.isNotEmpty()) {
+            habitDao.insertCompletions(newCompletions)
+        }
+        habitDao.updateHabit(newHabit)
     }
 
     fun reorderHabits(habits: List<Habit>) {

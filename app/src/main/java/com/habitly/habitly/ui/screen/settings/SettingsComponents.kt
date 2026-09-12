@@ -25,9 +25,11 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -47,11 +49,14 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
+import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Text
 import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -61,9 +66,22 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.habitly.habitly.data.settings.SettingsDataStore
+
+val LocalSettingsTopBarCollapsed = compositionLocalOf { false }
+val LocalSettingsVibrations = compositionLocalOf { true }
+
+@Composable
+fun rememberSettingsScrollState(initial: Int = 0): Pair<ScrollState, Boolean> {
+    val scrollState = rememberScrollState(initial)
+    val isTopBarCollapsed = LocalSettingsTopBarCollapsed.current
+    val scrollEnabled = scrollState.maxValue > 0 || scrollState.value > 0 || isTopBarCollapsed
+    return scrollState to scrollEnabled
+}
 
 enum class SettingsItemPosition {
     Top, Middle, Bottom, Alone
@@ -89,6 +107,7 @@ fun SettingsItemBox(
     content: @Composable () -> Unit
 ) {
     val borderContrast by settingsDataStore.borders.collectAsState(initial = 0f)
+    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
     val shape = getSettingsItemShape(position)
     
     Box(
@@ -102,7 +121,9 @@ fun SettingsItemBox(
                 shape
             )
     ) {
-        content()
+        CompositionLocalProvider(LocalSettingsVibrations provides vibrationsEnabled) {
+            content()
+        }
     }
 }
 
@@ -113,6 +134,7 @@ fun SettingsGroup(
     settingsDataStore: SettingsDataStore,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -126,11 +148,13 @@ fun SettingsGroup(
                 modifier = Modifier.padding(start = 8.dp, bottom = 4.dp)
             )
         }
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            content()
+        CompositionLocalProvider(LocalSettingsVibrations provides vibrationsEnabled) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                content()
+            }
         }
     }
 }
@@ -144,13 +168,20 @@ fun SettingsSwitchItemContent(
     showDivider: Boolean = false,
     onCheckedChange: (Boolean) -> Unit
 ) {
+    val vibrationsEnabled = LocalSettingsVibrations.current
+    val haptic = LocalHapticFeedback.current
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .selectable(
                     selected = checked,
-                    onClick = { if (enabled) onCheckedChange(!checked) }
+                    onClick = {
+                        if (enabled) {
+                            if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onCheckedChange(!checked)
+                        }
+                    }
                 )
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -223,6 +254,8 @@ fun SettingsSwitchNavigationItem(
     onCheckedChange: (Boolean) -> Unit,
     onClick: () -> Unit
 ) {
+    val vibrationsEnabled = LocalSettingsVibrations.current
+    val haptic = LocalHapticFeedback.current
     CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 48.dp) {
         SettingsItemBox(settingsDataStore = settingsDataStore, position = position, modifier = modifier) {
             Row(
@@ -234,7 +267,10 @@ fun SettingsSwitchNavigationItem(
                 Row(
                     modifier = Modifier
                         .weight(1f)
-                        .clickable(onClick = onClick)
+                        .clickable(onClick = {
+                            if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onClick()
+                        })
                         .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -271,13 +307,19 @@ fun SettingsSwitchNavigationItem(
 
                 Box(
                     modifier = Modifier
-                        .clickable { onCheckedChange(!checked) }
+                        .clickable {
+                            if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onCheckedChange(!checked)
+                        }
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Switch(
                         checked = checked,
-                        onCheckedChange = onCheckedChange
+                        onCheckedChange = {
+                            if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onCheckedChange(it)
+                        }
                     )
                 }
             }
@@ -295,13 +337,18 @@ fun SettingsNavigationItem(
     showDivider: Boolean = false,
     onClick: () -> Unit
 ) {
+    val vibrationsEnabled = LocalSettingsVibrations.current
+    val haptic = LocalHapticFeedback.current
     CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 48.dp) {
         SettingsItemBox(settingsDataStore = settingsDataStore, position = position, modifier = modifier) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable(onClick = onClick)
+                        .clickable(onClick = {
+                            if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onClick()
+                        })
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -346,6 +393,8 @@ fun SettingsCheckboxItemContent(
     showDivider: Boolean = false,
     onCheckedChange: (Boolean) -> Unit
 ) {
+    val vibrationsEnabled = LocalSettingsVibrations.current
+    val haptic = LocalHapticFeedback.current
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
@@ -353,14 +402,22 @@ fun SettingsCheckboxItemContent(
                 .selectable(
                     selected = checked,
                     enabled = enabled,
-                    onClick = { onCheckedChange(!checked) }
+                    onClick = {
+                        if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        onCheckedChange(!checked)
+                    }
                 )
                 .padding(all = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Checkbox(
                 checked = checked,
-                onCheckedChange = { if (enabled) onCheckedChange(it) },
+                onCheckedChange = {
+                    if (enabled) {
+                        if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        onCheckedChange(it)
+                    }
+                },
                 enabled = enabled,
                 modifier = Modifier.padding(start = 6.dp)
             )
@@ -411,17 +468,28 @@ fun SettingsRadioButtonItemContent(
     showDivider: Boolean = false,
     onClick: () -> Unit
 ) {
+    val vibrationsEnabled = LocalSettingsVibrations.current
+    val haptic = LocalHapticFeedback.current
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(enabled = enabled, onClick = onClick)
+                .clickable(
+                    enabled = enabled,
+                    onClick = {
+                        if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        onClick()
+                    }
+                )
                 .padding(horizontal = 16.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             androidx.compose.material3.RadioButton(
                 selected = selected,
-                onClick = onClick,
+                onClick = {
+                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onClick()
+                },
                 enabled = enabled,
                 modifier = Modifier.padding(end = 16.dp)
             )
@@ -576,9 +644,14 @@ fun GroupedSettingsItem(
     onClick: () -> Unit
 ) {
     SettingsItemBox(settingsDataStore = settingsDataStore, position = position) {
+        val vibrationsEnabled = LocalSettingsVibrations.current
+        val haptic = LocalHapticFeedback.current
         Column(modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)) {
+            .clickable(onClick = {
+                if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                onClick()
+            })) {
             Row(
                 modifier = Modifier.padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -629,9 +702,14 @@ fun GroupedSettingsItem(
     onClick: () -> Unit
 ) {
     SettingsItemBox(settingsDataStore = settingsDataStore, position = position) {
+        val vibrationsEnabled = LocalSettingsVibrations.current
+        val haptic = LocalHapticFeedback.current
         Column(modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)) {
+            .clickable(onClick = {
+                if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                onClick()
+            })) {
             Row(
                 modifier = Modifier.padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -664,60 +742,6 @@ fun GroupedSettingsItem(
 }
 
 
-@Composable
-fun ModernSettingsItem(
-    title: String,
-    subtitle: String? = null,
-    icon: ImageVector,
-    iconBackgroundColor: Color,
-    iconColor: Color,
-    settingsDataStore: SettingsDataStore,
-    position: SettingsItemPosition = SettingsItemPosition.Alone,
-    onClick: () -> Unit
-) {
-    val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
-    val shape = getSettingsItemShape(position)
-    Card(
-        onClick = onClick,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 0.dp),
-            border = BorderStroke(
-                1.dp,
-                MaterialTheme.colorScheme.outline.copy(alpha = borderContrast)
-            ),
-        shape = shape,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            RotatingCookie(
-                icon = icon,
-                iconBackgroundColor = iconBackgroundColor,
-                iconColor = iconColor,
-                settingsDataStore = settingsDataStore,
-                contentDescription = title
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                subtitle?.let {
-                    Text(
-                        text = it,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
-    }
-}
 
 @Composable
 fun SettingsSegmentedSelector(
@@ -727,13 +751,18 @@ fun SettingsSegmentedSelector(
     modifier: Modifier = Modifier,
     enabled: Boolean = true
 ) {
+    val vibrationsEnabled = LocalSettingsVibrations.current
+    val haptic = LocalHapticFeedback.current
     SingleChoiceSegmentedButtonRow(
         modifier = modifier.fillMaxWidth()
     ) {
         options.forEachIndexed { index, label ->
             SegmentedButton(
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
-                onClick = { onSelectionChange(index) },
+                onClick = {
+                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onSelectionChange(index)
+                },
                 selected = index == selectedIndex,
                 enabled = enabled,
                 label = { Text(label) },
@@ -757,8 +786,13 @@ fun MainSettingsToggle(
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val vibrationsEnabled = LocalSettingsVibrations.current
+    val haptic = LocalHapticFeedback.current
     Surface(
-        onClick = { onCheckedChange(!checked) },
+        onClick = {
+            if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            onCheckedChange(!checked)
+        },
         shape = RoundedCornerShape(64.dp),
         color = MaterialTheme.colorScheme.primaryContainer,
         modifier = modifier
@@ -777,8 +811,76 @@ fun MainSettingsToggle(
             )
             Switch(
                 checked = checked,
-                onCheckedChange = onCheckedChange
+                onCheckedChange = {
+                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onCheckedChange(it)
+                }
             )
         }
     }
 }
+
+@Composable
+fun SettingsSubScreenDescription(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodyLarge,
+        color = MaterialTheme.colorScheme.onSurface,
+        modifier = modifier.padding(horizontal = 24.dp, vertical = 16.dp)
+    )
+}
+
+@Composable
+fun SettingsSubScreenContainer(
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val (scrollState, scrollEnabled) = rememberSettingsScrollState()
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState, enabled = scrollEnabled)
+    ) {
+        content()
+        Spacer(modifier = Modifier.height(16.dp).navigationBarsPadding())
+    }
+}
+
+@Composable
+fun SettingsCheckboxGroup(
+    items: List<String>,
+    selectedItems: Set<String>,
+    settingsDataStore: SettingsDataStore,
+    modifier: Modifier = Modifier,
+    title: String? = "Targets",
+    enabled: Boolean = true,
+    onToggleItem: (String) -> Unit
+) {
+    SettingsGroup(
+        title = title,
+        settingsDataStore = settingsDataStore,
+        modifier = modifier
+    ) {
+        items.forEachIndexed { index, item ->
+            val position = when {
+                items.size == 1 -> SettingsItemPosition.Alone
+                index == 0 -> SettingsItemPosition.Top
+                index == items.size - 1 -> SettingsItemPosition.Bottom
+                else -> SettingsItemPosition.Middle
+            }
+            SettingsCheckboxItem(
+                text = item,
+                checked = item in selectedItems,
+                enabled = enabled,
+                settingsDataStore = settingsDataStore,
+                position = position,
+                showDivider = index < items.size - 1,
+                onCheckedChange = { onToggleItem(item) }
+            )
+        }
+    }
+}
+

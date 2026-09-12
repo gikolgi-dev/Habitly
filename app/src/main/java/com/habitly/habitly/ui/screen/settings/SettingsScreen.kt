@@ -1,7 +1,5 @@
 /* Habitly - Licensed under GNU GPL v3.0 or later. See <https://www.gnu.org/licenses/gpl-3.0.html> */
 
-@file:OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalTextApi::class)
-
 package com.habitly.habitly.ui.screen.settings
 
 import android.annotation.SuppressLint
@@ -23,8 +21,12 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -50,6 +52,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Accessibility
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
@@ -57,8 +60,6 @@ import androidx.compose.material.icons.filled.ImportExport
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -68,15 +69,20 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import com.habitly.habitly.data.settings.DefaultSettings
+import java.util.Calendar
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Size
@@ -97,6 +103,7 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -156,7 +163,6 @@ fun settingsExitTransition() =
     )
 
 @SuppressLint("DefaultLocale")
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     onDismiss: () -> Unit,
@@ -193,6 +199,33 @@ fun SettingsScreen(
         }
     }
 
+    val showMonthLabels by settingsDataStore.monthLabels.collectAsState(initial = DefaultSettings.MONTH_LABELS)
+    val showYearDivider by settingsDataStore.yearDivider.collectAsState(initial = DefaultSettings.YEAR_DIVIDER)
+    val showYearLabels by settingsDataStore.yearLabels.collectAsState(initial = DefaultSettings.YEAR_LABELS)
+    val heatmapNotificationDot by settingsDataStore.heatmapNotificationDot.collectAsState(initial = DefaultSettings.HEATMAP_NOTIFICATION_DOT)
+    val heatmapNotificationDotRange by settingsDataStore.heatmapNotificationDotRange.collectAsState(initial = DefaultSettings.HEATMAP_NOTIFICATION_DOT_RANGE)
+    val heatmapScrolling by settingsDataStore.heatmapScrolling.collectAsState(initial = DefaultSettings.HEATMAP_SCROLLING)
+    val heatmapVisibleDays by settingsDataStore.heatmapVisibleDays.collectAsState(initial = emptySet())
+    val dayOfWeekLabelsOnRight by settingsDataStore.dayOfWeekLabelsOnRight.collectAsState(initial = false)
+    val firstDayOfWeekCalendar by settingsDataStore.firstDayOfWeekCalendar.collectAsState(initial = Calendar.MONDAY)
+    val heatmapWeeks by settingsDataStore.heatmapWeeks.collectAsState(initial = DefaultSettings.HEATMAP_WEEKS)
+    val heatmapInfinite by settingsDataStore.heatmapInfinite.collectAsState(initial = DefaultSettings.HEATMAP_INFINITE)
+    val useHabitColorForCard by settingsDataStore.useHabitColorForCard.collectAsState(initial = DefaultSettings.USE_HABIT_COLOR_FOR_CARD)
+    val habitColorTargets by settingsDataStore.habitColorTargets.collectAsState(
+        initial = DefaultSettings.HABIT_COLOR_TARGETS.split(',').filter { it.isNotEmpty() }.toSet()
+    )
+    val reduceMovement by settingsDataStore.reduceMovement.collectAsState(initial = DefaultSettings.REDUCE_MOVEMENT)
+    val reduceMovementTargets by settingsDataStore.reduceMovementTargets.collectAsState(
+        initial = DefaultSettings.REDUCE_MOVEMENT_TARGETS.split(',').filter { it.isNotEmpty() }.toSet()
+    )
+    val autoScrollText by settingsDataStore.autoScrollText.collectAsState(initial = DefaultSettings.AUTO_SCROLL_TEXT)
+    val autoScrollTextElements by settingsDataStore.autoScrollTextElements.collectAsState(
+        initial = DefaultSettings.AUTO_SCROLL_TEXT_ELEMENTS.split(',').filter { it.isNotEmpty() }.toSet()
+    )
+    val autoScrollTextScreens by settingsDataStore.autoScrollTextScreens.collectAsState(
+        initial = DefaultSettings.AUTO_SCROLL_TEXT_SCREENS.split(',').filter { it.isNotEmpty() }.toSet()
+    )
+
     val blurModifier = Modifier
 
     NavHost(
@@ -222,9 +255,11 @@ fun SettingsScreen(
                 isRoot = true,
             ) { paddingValues ->
                 val listState = rememberLazyListState()
+                val isTopBarCollapsed = LocalSettingsTopBarCollapsed.current
+                val scrollEnabled = listState.canScrollForward || listState.canScrollBackward || isTopBarCollapsed
                 LazyColumn(
                     state = listState,
-                    userScrollEnabled = listState.canScrollForward || listState.canScrollBackward,
+                    userScrollEnabled = scrollEnabled,
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = PaddingValues(
                         top = paddingValues.calculateTopPadding() + 8.dp,
@@ -250,20 +285,27 @@ fun SettingsScreen(
                                 iconBackgroundColor = MaterialTheme.colorScheme.secondaryContainer,
                                 iconColor = MaterialTheme.colorScheme.onSecondaryContainer,
                                 settingsDataStore = settingsDataStore,
-                                position = SettingsItemPosition.Bottom
+                                position = SettingsItemPosition.Middle
                             ) { navController.navigate("appearance") { launchSingleTop = true } }
+                            GroupedSettingsItem(
+                                title = "Accessibility",
+                                subtitle = "Configure accessibility features",
+                                icon = Icons.Default.Accessibility,
+                                iconBackgroundColor = MaterialTheme.colorScheme.primaryContainer,
+                                iconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                settingsDataStore = settingsDataStore,
+                                position = SettingsItemPosition.Middle
+                            ) { navController.navigate("accessibility") { launchSingleTop = true } }
+                            GroupedSettingsItem(
+                                title = "Notifications",
+                                subtitle = "Manage daily and habit notifications",
+                                icon = Icons.Default.Notifications,
+                                iconBackgroundColor = MaterialTheme.colorScheme.tertiary,
+                                iconColor = MaterialTheme.colorScheme.onTertiary,
+                                settingsDataStore = settingsDataStore,
+                                position = SettingsItemPosition.Bottom
+                            ) { navController.navigate("notifications") { launchSingleTop = true } }
                         }
-                    }
-                    item {
-                        ModernSettingsItem(
-                            title = "Notifications",
-                            subtitle = "Manage daily and habit notifications",
-                            icon = Icons.Default.Notifications,
-                            iconBackgroundColor = MaterialTheme.colorScheme.tertiary,
-                            iconColor = MaterialTheme.colorScheme.onTertiary,
-                            settingsDataStore = settingsDataStore,
-                            position = SettingsItemPosition.Alone
-                        ) { navController.navigate("notifications") { launchSingleTop = true } }
                     }
                     item {
                         SettingsGroup(settingsDataStore = settingsDataStore) {
@@ -309,17 +351,8 @@ fun SettingsScreen(
                                 iconBackgroundColor = Color.Gray.copy(alpha = if (useDarkTheme) 0.5f else 0.15f),
                                 iconColor = MaterialTheme.colorScheme.onSurface,
                                 settingsDataStore = settingsDataStore,
-                                position = SettingsItemPosition.Top
+                                position = SettingsItemPosition.Alone
                             ) { uriHandler.openUri("https://github.com/gikolgi-dev/Habitly") }
-                            GroupedSettingsItem(
-                                title = "License",
-                                subtitle = "This app is licensed under GNU GPL v3.0",
-                                icon = Icons.Default.Description,
-                                iconBackgroundColor = MaterialTheme.colorScheme.secondaryContainer,
-                                iconColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                                settingsDataStore = settingsDataStore,
-                                position = SettingsItemPosition.Bottom
-                            ) { uriHandler.openUri("https://www.gnu.org/licenses/gpl-3.0.html") }
                         }
                     }
 
@@ -327,10 +360,25 @@ fun SettingsScreen(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 12.dp),
+                                .padding(top = 2.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
                         ) {
+                            Text(
+                                text = "Licensed under GNU GPL v3.0",
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    textDecoration = TextDecoration.Underline
+                                ),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .clickable {
+                                        if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        uriHandler.openUri("https://www.gnu.org/licenses/gpl-3.0.html")
+                                    }
+                                    .padding(horizontal = 4.dp, vertical = 2.dp)
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = "Made with ❤️",
                                 style = MaterialTheme.typography.bodySmall,
@@ -352,6 +400,27 @@ fun SettingsScreen(
 
         // Sub Screens
         composable(
+            route = "accessibility"
+        ) {
+            SettingsScaffold(
+                title = "Accessibility",
+                onBack = {
+                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+                    navController.popBackStack()
+                },
+                borderContrast = borderContrast,
+            ) { paddingValues ->
+                AccessibilityScreen(
+                    modifier = Modifier.padding(top = paddingValues.calculateTopPadding()),
+                    settingsDataStore = settingsDataStore,
+                    onNavigateToScrollBlur = { navController.navigate("scroll_blur") { launchSingleTop = true } },
+                    onNavigateToReduceMovement = { navController.navigate("reduce_movement") { launchSingleTop = true } },
+                    onNavigateToAutoScroll = { navController.navigate("auto_scroll") { launchSingleTop = true } }
+                )
+            }
+        }
+
+        composable(
             route = "appearance"
         ) {
             SettingsScaffold(
@@ -362,7 +431,10 @@ fun SettingsScreen(
                 },
                 borderContrast = borderContrast,
                 actions = {
-                    IconButton(onClick = { scope.launch { settingsDataStore.resetToDefault() } }) {
+                    IconButton(onClick = {
+                        if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        scope.launch { settingsDataStore.resetToDefault() }
+                    }) {
                         Icon(painter = painterResource(id = R.drawable.resetwrench), contentDescription = "Reset Settings", tint = MaterialTheme.colorScheme.onSurface)
                     }
                 },
@@ -370,10 +442,50 @@ fun SettingsScreen(
                 AppearanceScreen(
                     modifier = Modifier.padding(top = paddingValues.calculateTopPadding()),
                     settingsDataStore = settingsDataStore,
-                    onNavigateToScrollBlur = { navController.navigate("scroll_blur") { launchSingleTop = true } },
                     onNavigateToHabitColor = { navController.navigate("habit_color") { launchSingleTop = true } },
-                    onNavigateToReduceMovement = { navController.navigate("reduce_movement") { launchSingleTop = true } },
-                    onNavigateToHeatmapNotificationDot = { navController.navigate("heatmap_notification_dot") { launchSingleTop = true } }
+                    onNavigateToHeatmap = { navController.navigate("heatmap") { launchSingleTop = true } }
+                )
+            }
+        }
+
+        composable(
+            route = "heatmap"
+        ) {
+            SettingsScaffold(
+                title = "Heatmap",
+                onBack = {
+                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+                    navController.popBackStack()
+                },
+                borderContrast = borderContrast,
+            ) { paddingValues ->
+                HeatmapSubScreen(
+                    settingsDataStore = settingsDataStore,
+                    db = db,
+                    showMonthLabels = showMonthLabels,
+                    showYearDivider = showYearDivider,
+                    showYearLabels = showYearLabels,
+                    heatmapNotificationDot = heatmapNotificationDot,
+                    heatmapNotificationDotRange = heatmapNotificationDotRange,
+                    heatmapScrolling = heatmapScrolling,
+                    heatmapVisibleDays = heatmapVisibleDays,
+                    dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight,
+                    borderContrast = borderContrast,
+                    vibrationsEnabled = vibrationsEnabled,
+                    firstDayOfWeekCalendar = firstDayOfWeekCalendar,
+                    heatmapWeeks = heatmapWeeks,
+                    heatmapInfinite = heatmapInfinite,
+                    useHabitColorForCard = useHabitColorForCard,
+                    habitColorTargets = habitColorTargets,
+                    reduceMovement = reduceMovement,
+                    reduceMovementTargets = reduceMovementTargets,
+                    autoScrollText = autoScrollText,
+                    autoScrollTextElements = autoScrollTextElements,
+                    autoScrollTextScreens = autoScrollTextScreens,
+                    theme = theme,
+                    onNavigateToHeatmapNotificationDot = { navController.navigate("heatmap_notification_dot") { launchSingleTop = true } },
+                    onNavigateToHabitColor = { navController.navigate("habit_color") { launchSingleTop = true } },
+                    modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
                 )
             }
         }
@@ -506,6 +618,24 @@ fun SettingsScreen(
         }
 
         composable(
+            route = "auto_scroll"
+        ) {
+            SettingsScaffold(
+                title = "Auto-Scroll",
+                onBack = {
+                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+                    navController.popBackStack()
+                },
+                borderContrast = borderContrast,
+            ) { paddingValues ->
+                AutoScrollSubScreen(
+                    settingsDataStore = settingsDataStore,
+                    modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
+                )
+            }
+        }
+
+        composable(
             route = "notifications"
         ) {
             SettingsScaffold(
@@ -520,6 +650,48 @@ fun SettingsScreen(
                     settingsDataStore = settingsDataStore,
                     is24Hour = is24Hour,
                     borderContrast = borderContrast,
+                    onNavigateToDailyNotification = { navController.navigate("daily_notification") { launchSingleTop = true } },
+                    onNavigateToWelcomeCardNotification = { navController.navigate("welcome_card_notification") { launchSingleTop = true } },
+                    modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
+                )
+            }
+        }
+
+        composable(
+            route = "daily_notification"
+        ) {
+            SettingsScaffold(
+                title = "Daily reminder",
+                onBack = {
+                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+                    navController.popBackStack()
+                },
+                borderContrast = borderContrast,
+            ) { paddingValues ->
+                DailyNotificationSubScreen(
+                    settingsDataStore = settingsDataStore,
+                    is24Hour = is24Hour,
+                    borderContrast = borderContrast,
+                    modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
+                )
+            }
+        }
+
+        composable(
+            route = "welcome_card_notification"
+        ) {
+            SettingsScaffold(
+                title = "Welcome Card",
+                onBack = {
+                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+                    navController.popBackStack()
+                },
+                borderContrast = borderContrast,
+            ) { paddingValues ->
+                WelcomeCardNotificationSubScreen(
+                    settingsDataStore = settingsDataStore,
+                    is24Hour = is24Hour,
+                    borderContrast = borderContrast,
                     modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
                 )
             }
@@ -527,7 +699,6 @@ fun SettingsScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnimatedVisibilityScope.SettingsScaffold(
     modifier: Modifier = Modifier,
@@ -580,116 +751,146 @@ fun AnimatedVisibilityScope.SettingsScaffold(
         if (state == EnterExitState.Visible) 0f else 0.2f
     }
 
-    Scaffold(
-        modifier = modifier
-            .nestedScroll(scrollBehavior.nestedScrollConnection)
-            .graphicsLayer {
-                shape = RoundedCornerShape(cornerRadius)
-                clip = true
-            }
-            .drawWithContent {
-                drawContent()
-                if (dimAlpha > 0f) {
-                    drawRect(Color.Black.copy(alpha = dimAlpha))
+    val isTopBarCollapsed = scrollBehavior.state.heightOffset < -0.5f
+
+    CompositionLocalProvider(LocalSettingsTopBarCollapsed provides isTopBarCollapsed) {
+        Scaffold(
+            modifier = modifier
+                .nestedScroll(scrollBehavior.nestedScrollConnection)
+                .graphicsLayer {
+                    shape = RoundedCornerShape(cornerRadius)
+                    clip = true
+                }
+                .drawWithContent {
+                    drawContent()
+                    if (dimAlpha > 0f) {
+                        drawRect(Color.Black.copy(alpha = dimAlpha))
+                    }
+                },
+            topBar = {
+                val currentHeight = maxHeight + with(density) { scrollBehavior.state.heightOffset.toDp() }
+                val coroutineScope = rememberCoroutineScope()
+                val appBarDragModifier = Modifier.draggable(
+                    orientation = Orientation.Vertical,
+                    enabled = isTopBarCollapsed,
+                    state = rememberDraggableState { delta ->
+                        scrollBehavior.state.heightOffset += delta
+                    },
+                    onDragStopped = { velocity ->
+                        coroutineScope.launch {
+                            val limit = scrollBehavior.state.heightOffsetLimit
+                            if (limit < 0f) {
+                                val target = if (velocity > 300f) 0f
+                                else if (velocity < -300f) limit
+                                else if (scrollBehavior.state.heightOffset > limit / 2) 0f
+                                else limit
+                                Animatable(scrollBehavior.state.heightOffset).animateTo(
+                                    targetValue = target,
+                                    animationSpec = tween(durationMillis = 200)
+                                ) {
+                                    scrollBehavior.state.heightOffset = value
+                                }
+                            }
+                        }
+                    }
+                )
+
+                Surface(
+                    color = if (collapsedFraction > 0.9f) MaterialTheme.colorScheme.background else Color.Transparent,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(currentHeight)
+                        .then(appBarDragModifier)
+                ) {
+                    Box(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
+                        // Back button stays at the top
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .height(72.dp)
+                                .padding(start = 4.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            AppBackButton(onBack = onBack, borderContrast = borderContrast, isRoot = isRoot)
+                        }
+
+                        // Actions stay at the top
+                        Row(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .height(72.dp)
+                                .padding(end = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            content = actions
+                        )
+
+                        // Morphing Title
+                        val expandedFontSize = remember(title) {
+                            val words = title.split(" ")
+                            val longestWord = words.maxByOrNull { it.length }?.length ?: 0
+                            val baseSize = 56
+                            if (longestWord > 6) {
+                                (baseSize * (6.5f / longestWord)).coerceAtLeast(30f).sp
+                            } else {
+                                baseSize.sp
+                            }
+                        }
+                        val collapsedFontSize = 22.sp
+                        val fontSize = (expandedFontSize.value - (expandedFontSize.value - collapsedFontSize.value) * collapsedFraction).sp
+
+                        val titleStartPadding = (20 + (72 - 20) * collapsedFraction).dp
+
+                        // Use newlines to force stacking for multi-word titles when expanded
+                        val displayTitle = remember(title, collapsedFraction) {
+                            if (collapsedFraction < 0.5f && title.contains(" ")) {
+                                title.replace(" ", "\n")
+                            } else {
+                                title
+                            }
+                        }
+
+                        Text(
+                            text = displayTitle,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontSize = fontSize,
+                            lineHeight = (fontSize.value * 0.95f).sp,
+                            softWrap = false,
+                            maxLines = 2,
+                            overflow = TextOverflow.Clip,
+                            fontFamily = FontFamily(
+                                Font(
+                                    resId = R.font.gflex_variable,
+                                    variationSettings = FontVariation.Settings(
+                                        FontVariation.weight((636 - 36 * collapsedFraction).toInt()),
+                                        FontVariation.width(152f - 22f * collapsedFraction),
+                                        FontVariation.Setting("ROND", 50f),
+                                        FontVariation.Setting("XTRA", 520f - 70f * collapsedFraction),
+                                        FontVariation.Setting("YOPQ", 90f),
+                                        FontVariation.Setting("YTLC", 505f)
+                                    )
+                                )
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .align(Alignment.BottomStart)
+                                .padding(
+                                    start = titleStartPadding,
+                                    top = 3.dp + (32.dp *(1-collapsedFraction)),
+                                    bottom = 0.dp,
+                                    end = 16.dp
+                                )
+                                .heightIn(min = 72.dp)
+                                .wrapContentHeight(Alignment.CenterVertically)
+                        )
+                    }
                 }
             },
-        topBar = {
-            val currentHeight = maxHeight + with(density) { scrollBehavior.state.heightOffset.toDp() }
-
-            Surface(
-                color = if (collapsedFraction > 0.9f) MaterialTheme.colorScheme.background else Color.Transparent,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(currentHeight)
-            ) {
-                Box(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
-                    // Back button stays at the top
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .height(72.dp)
-                            .padding(start = 4.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        AppBackButton(onBack = onBack, borderContrast = borderContrast, isRoot = isRoot)
-                    }
-
-                    // Actions stay at the top
-                    Row(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .height(72.dp)
-                            .padding(end = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        content = actions
-                    )
-
-                    // Morphing Title
-                    val expandedFontSize = remember(title) {
-                        val words = title.split(" ")
-                        val longestWord = words.maxByOrNull { it.length }?.length ?: 0
-                        val baseSize = 56
-                        if (longestWord > 6) {
-                            (baseSize * (6.5f / longestWord)).coerceAtLeast(30f).sp
-                        } else {
-                            baseSize.sp
-                        }
-                    }
-                    val collapsedFontSize = 22.sp
-                    val fontSize = (expandedFontSize.value - (expandedFontSize.value - collapsedFontSize.value) * collapsedFraction).sp
-
-                    val titleStartPadding = (20 + (72 - 20) * collapsedFraction).dp
-
-                    // Use newlines to force stacking for multi-word titles when expanded
-                    val displayTitle = remember(title, collapsedFraction) {
-                        if (collapsedFraction < 0.5f && title.contains(" ")) {
-                            title.replace(" ", "\n")
-                        } else {
-                            title
-                        }
-                    }
-
-                    Text(
-                        text = displayTitle,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontSize = fontSize,
-                        lineHeight = (fontSize.value * 0.95f).sp,
-                        softWrap = false,
-                        maxLines = 2,
-                        overflow = TextOverflow.Clip,
-                        fontFamily = FontFamily(
-                            Font(
-                                resId = R.font.gflex_variable,
-                                variationSettings = FontVariation.Settings(
-                                    FontVariation.weight((636 - 36 * collapsedFraction).toInt()),
-                                    FontVariation.width(152f - 22f * collapsedFraction),
-                                    FontVariation.Setting("ROND", 50f),
-                                    FontVariation.Setting("XTRA", 520f - 70f * collapsedFraction),
-                                    FontVariation.Setting("YOPQ", 90f),
-                                    FontVariation.Setting("YTLC", 505f)
-                                )
-                            )
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .align(Alignment.BottomStart)
-                            .padding(
-                                start = titleStartPadding,
-                                top = 3.dp + (32.dp *(1-collapsedFraction)),
-                                bottom = 0.dp,
-                                end = 16.dp
-                            )
-                            .heightIn(min = 72.dp)
-                            .wrapContentHeight(Alignment.CenterVertically)
-                    )
-                }
-            }
-        },
-        containerColor = MaterialTheme.colorScheme.surface,
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        content = content
-    )
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
+            content = content
+        )
+    }
 }
 
 private enum class ClearState {
