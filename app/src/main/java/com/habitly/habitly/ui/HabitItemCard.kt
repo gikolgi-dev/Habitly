@@ -292,8 +292,9 @@ fun HabitCompletionButton(
     val buttonModifier = if (sharedTransitionScope != null) {
         with(sharedTransitionScope) {
             Modifier.sharedElementWithCallerManagedVisibility(
-                rememberSharedContentState(key = "habit_button_${habit.id}"),
-                visible = visible
+                rememberSharedContentState(key = "button-${habit.id}"),
+                visible = visible,
+                boundsTransform = { _, _ -> tween(durationMillis = 300, easing = FastOutSlowInEasing) }
             )
         }
     } else {

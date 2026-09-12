@@ -824,8 +824,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
 
                 AnimatedVisibility(
                     visible = habitToView != null,
-                    enter = fadeIn(),
-                    exit = fadeOut()
+                    enter = fadeIn(animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)),
+                    exit = fadeOut(animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing))
                 ) {
                     Box(
                         modifier = Modifier
@@ -839,7 +839,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                     visible = habitToView != null,
                     modifier = Modifier.fillMaxSize(),
                     enter = fadeIn(animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing)),
-                    exit = ExitTransition.None
+                    exit = fadeOut(animationSpec = tween(durationMillis = 300, easing = androidx.compose.animation.core.FastOutSlowInEasing))
                 ) {
                     lastNonNullHabitToView?.let { habitWithCompletions ->
                         val habitState by remember(habitsUiState, habitWithCompletions) {

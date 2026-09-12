@@ -159,9 +159,9 @@ fun SharedTransitionScope.HabitDetailScreen(
     var showDeleteConfirmation by remember { mutableStateOf(false) } // State for delete confirmation dialog
     val habit = habitWithCompletions.habit
     val completions = habitWithCompletions.completions
+    android.util.Log.d("HABIT_MORPH", "HabitDetailScreen: habit=${habit.id}, targetState=${animatedVisibilityScope.transition.targetState}, currentState=${animatedVisibilityScope.transition.currentState}, tp=${transitionProgressProvider()}")
     val animatedColorState =
         animateColorAsState(targetValue = Color(habit.color), animationSpec = tween(durationMillis = 500))
-    val isSharedVisible = !isEditSheetOpen && animatedVisibilityScope.transition.targetState == androidx.compose.animation.EnterExitState.Visible
 
     val notificationDotAlpha by animatedVisibilityScope.transition.animateFloat(
         transitionSpec = { tween(durationMillis = 300, easing = FastOutSlowInEasing) },
@@ -298,9 +298,9 @@ fun SharedTransitionScope.HabitDetailScreen(
             Card(
                 modifier = Modifier
                     .zIndex(1f)
-                    .sharedElementWithCallerManagedVisibility(
+                    .sharedElement(
                         rememberSharedContentState(key = "card-${habit.id}"),
-                        visible = isSharedVisible,
+                        animatedVisibilityScope = animatedVisibilityScope,
                         boundsTransform = { _, _ -> tween(durationMillis = 300, easing = FastOutSlowInEasing) }
                     )
                     .fillMaxWidth()
@@ -401,9 +401,9 @@ fun SharedTransitionScope.HabitDetailScreen(
 
                         Box(
                             modifier = Modifier
-                                .sharedElementWithCallerManagedVisibility(
+                                .sharedElement(
                                     rememberSharedContentState(key = "button-${habit.id}"),
-                                    visible = isSharedVisible,
+                                    animatedVisibilityScope = animatedVisibilityScope,
                                     boundsTransform = { _, _ -> tween(durationMillis = 300, easing = FastOutSlowInEasing) }
                                 )
                                 .graphicsLayer {
