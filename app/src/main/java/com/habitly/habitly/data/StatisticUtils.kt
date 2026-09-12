@@ -223,9 +223,22 @@ fun calculateStatistics(
         "N/A"
     }
 
+<<<<<<< Updated upstream
     val totalCompletionsVal = totalCompletions
     val bestDayOfWeek = calculateBestDayOfWeek(habit, completions, firstDayOfWeek)
     val rateLast30Days = calculateRateLast30Days(habit, completions)
+=======
+<<<<<<< Updated upstream
+    val currentStreak = calculateCurrentStreak(habit, completions)
+    val totalCompletionsVal = completions.sumOf { it.amountOfCompletions }
+    val bestDayOfWeek = calculateBestDayOfWeek(completions)
+    val rateLast30Days = calculateRateLast30Days(completions)
+=======
+    val totalCompletionsVal = totalCompletions
+    val bestDayOfWeek = calculateBestDayOfWeek(habit, completions, firstDayOfWeek)
+    val rateLast30Days = calculateRateLast30Days(habit, completions, now)
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
 
     return HabitStatistics(
         longestStreak = maxStreak,
@@ -573,17 +586,58 @@ fun calculateBestDayOfWeek(habit: Habit, completions: List<Completion>, firstDay
     }
 }
 
+<<<<<<< Updated upstream
 fun calculateRateLast30Days(habit: Habit, completions: List<Completion>): Int {
     val thirtyDaysAgo = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(30)
     val target = habit.getDailyTarget()
     if (!habit.isInverse) {
         val completionsLast30 = completions.filter { it.date >= thirtyDaysAgo }.sumOf { it.amountOfCompletions }
+=======
+<<<<<<< Updated upstream
+fun calculateBestDayOfWeek(completions: List<Completion>): String {
+    if (completions.isEmpty()) return "N/A"
+    val dayCounts = IntArray(8)
+    val c = Calendar.getInstance()
+    completions.forEach { completion ->
+        c.timeInMillis = completion.date
+        val day = c.get(Calendar.DAY_OF_WEEK)
+        dayCounts[day] += completion.amountOfCompletions
+    }
+    var bestDay = Calendar.SUNDAY
+    var maxCount = -1
+    for (day in Calendar.SUNDAY..Calendar.SATURDAY) {
+        if (dayCounts[day] > maxCount) {
+            maxCount = dayCounts[day]
+            bestDay = day
+        }
+    }
+    if (maxCount == 0) return "N/A"
+    c.set(Calendar.DAY_OF_WEEK, bestDay)
+    return c.getDisplayName(Calendar.DAY_OF_WEEK, Calendar.LONG, Locale.getDefault()) ?: "N/A"
+}
+
+fun calculateRateLast30Days(completions: List<Completion>): Int {
+    val thirtyDaysAgo = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(30)
+    val completionsLast30 = completions.filter { it.date >= thirtyDaysAgo }.sumOf { it.amountOfCompletions }
+    val rate = (completionsLast30.toFloat() / 30f) * 100f
+    return rate.coerceIn(0f, 100f).roundToInt()
+=======
+fun calculateRateLast30Days(habit: Habit, completions: List<Completion>, now: Long = System.currentTimeMillis()): Int {
+    val thirtyDaysAgo = now - TimeUnit.DAYS.toMillis(30)
+    val target = habit.getDailyTarget()
+    if (!habit.isInverse) {
+        val completionsLast30 = completions.filter { it.date in thirtyDaysAgo..now }.sumOf { it.amountOfCompletions }
+>>>>>>> Stashed changes
         val maxPossible = 30f * target
         val rate = (completionsLast30.toFloat() / maxPossible) * 100f
         return rate.coerceIn(0f, 100f).roundToInt()
     } else {
         val startDate = normalizeToStartOfDay(habit.getEffectiveStartDateMillis())
+<<<<<<< Updated upstream
         val today = normalizeToStartOfDay(System.currentTimeMillis())
+=======
+        val today = normalizeToStartOfDay(now)
+>>>>>>> Stashed changes
         var total = 0
         var daysCounted = 0
         val cal = Calendar.getInstance().apply { timeInMillis = maxOf(startDate, normalizeToStartOfDay(thirtyDaysAgo)) }
@@ -599,4 +653,8 @@ fun calculateRateLast30Days(habit: Habit, completions: List<Completion>): Int {
         val rate = (total.toFloat() / maxPossible.toFloat()) * 100f
         return rate.coerceIn(0f, 100f).roundToInt()
     }
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
 }

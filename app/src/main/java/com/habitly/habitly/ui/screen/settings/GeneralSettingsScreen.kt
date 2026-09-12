@@ -46,7 +46,15 @@ fun GeneralSettingsScreen(
     val is24Hour by settingsDataStore.is24Hour.collectAsState(initial = DefaultSettings.IS_24_HOUR)
     val heroCardVisible by settingsDataStore.heroCardVisible.collectAsState(initial = DefaultSettings.HERO_CARD_VISIBLE)
     val skipCompleted by settingsDataStore.skipCompletedHabitNotifications.collectAsState(initial = DefaultSettings.SKIP_COMPLETED_HABIT_NOTIFICATIONS)
+<<<<<<< Updated upstream
     val firstDayOfWeek by settingsDataStore.firstDayOfWeek.collectAsState(initial = DefaultSettings.FIRST_DAY_OF_WEEK)
+=======
+<<<<<<< Updated upstream
+=======
+    val firstDayOfWeek by settingsDataStore.firstDayOfWeek.collectAsState(initial = DefaultSettings.FIRST_DAY_OF_WEEK)
+    val ignoreWelcomeEngine by settingsDataStore.ignoreWelcomeEngine.collectAsState(initial = DefaultSettings.IGNORE_WELCOME_ENGINE)
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
 
     val haptic = LocalHapticFeedback.current
     val (scrollState, scrollEnabled) = rememberSettingsScrollState()
@@ -85,6 +93,31 @@ fun GeneralSettingsScreen(
                 }
                 if (vibrationsEnabled) haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
             }
+<<<<<<< Updated upstream
+=======
+            SettingsSwitchItem(
+<<<<<<< Updated upstream
+                text = "Heatmap scrolling",
+                description = "Allow horizontal scrolling on the main heatmap",
+                checked = heatmapScrolling,
+=======
+                text = "Simple welcome descriptions",
+                description = "Ignore the welcome engine and use the original simple descriptions",
+                checked = ignoreWelcomeEngine,
+>>>>>>> Stashed changes
+                settingsDataStore = settingsDataStore,
+                position = SettingsItemPosition.Middle
+            ) {
+                scope.launch {
+<<<<<<< Updated upstream
+                    settingsDataStore.setHeatmapScrolling(it)
+=======
+                    settingsDataStore.setIgnoreWelcomeEngine(it)
+>>>>>>> Stashed changes
+                }
+                if (vibrationsEnabled) haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+            }
+>>>>>>> Stashed changes
             SettingsNavigationItem(
                 text = "Week limit",
                 description = "Limit the amount of weeks shown in the heatmap. High values may impact performance.",

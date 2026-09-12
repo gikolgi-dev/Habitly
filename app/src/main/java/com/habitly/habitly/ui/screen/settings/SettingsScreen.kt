@@ -332,6 +332,7 @@ fun SettingsScreen(
                                     val scheduler = NotificationScheduler(context)
                                     scheduler.cancelAllNotifications()
                                     db.habitDao().clearAllTables()
+                                    settingsDataStore.clearWelcomeCardState()
                                 }
                             }
                         }

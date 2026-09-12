@@ -39,10 +39,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.CallMerge
 import androidx.compose.material.icons.filled.DeleteSweep
@@ -59,6 +62,7 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -121,9 +125,19 @@ data class ExportedHabit(
     val notificationTime: String?,
     val notificationDays: String?,
     val statsLayout: String? = null,
+<<<<<<< Updated upstream
     val startDate: String? = null,
     val completionsPerDay: Int = 1,
     val streakCountingDisabled: Boolean = false,
+=======
+<<<<<<< Updated upstream
+=======
+    val startDate: String? = null,
+    val completionsPerDay: Int = 1,
+    val streakCountingDisabled: Boolean = false,
+    val ignoreInWelcomeCard: Boolean = false,
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
     val completions: List<ExportedCompletion>
 )
 
@@ -296,9 +310,19 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                                     notificationTime = habitWithCompletions.habit.notificationTime,
                                     notificationDays = habitWithCompletions.habit.notificationDays,
                                     statsLayout = habitWithCompletions.habit.statsLayout,
+<<<<<<< Updated upstream
                                     startDate = habitWithCompletions.habit.startDate,
                                     completionsPerDay = habitWithCompletions.habit.getDailyTarget(),
                                     streakCountingDisabled = habitWithCompletions.habit.streakCountingDisabled,
+=======
+<<<<<<< Updated upstream
+=======
+                                    startDate = habitWithCompletions.habit.startDate,
+                                    completionsPerDay = habitWithCompletions.habit.getDailyTarget(),
+                                    streakCountingDisabled = habitWithCompletions.habit.streakCountingDisabled,
+                                    ignoreInWelcomeCard = habitWithCompletions.habit.ignoreInWelcomeCard,
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
                                     completions = habitWithCompletions.completions.map { completion ->
                                         ExportedCompletion(
                                             id = completion.id,
@@ -514,13 +538,28 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                 ) {
                     Column(
                         modifier = Modifier
-                            .fillMaxWidth()
+                            .fillMaxSize()
                             .padding(top = 16.dp, bottom = 8.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Top
                     ) {
-                        val fileName =
-                            selectedFileUri?.let { getFileName(it, context) } ?: "Unknown File"
+                        val importScrollState = rememberScrollState()
+
+                        LaunchedEffect(selectedFileUri) {
+                            if (selectedFileUri != null) {
+                                importScrollState.scrollTo(0)
+                            }
+                        }
+
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth()
+                                .verticalScroll(importScrollState),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            val fileName =
+                                selectedFileUri?.let { getFileName(it, context) } ?: "Unknown File"
 
                         Box(
                             modifier = Modifier
@@ -821,7 +860,10 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                             }
                         }
 
-                        Spacer(modifier = Modifier.weight(1f))
+                            Spacer(modifier = Modifier.height(16.dp))
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
 
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
@@ -836,7 +878,9 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                                     ignoreSettings = false
                                     isSourceDisclosed = false
                                 },
-                                modifier = Modifier.weight(1f),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .heightIn(min = 44.dp),
                                 border = BorderStroke(
                                     1.dp,
                                     MaterialTheme.colorScheme.primary.copy(
@@ -855,6 +899,7 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                                 enabled = importType != null,
                                 modifier = Modifier
                                     .weight(1f)
+                                    .heightIn(min = 44.dp)
                                     .graphicsLayer { alpha = confirmAlpha },
                                 onClick = {
                                     if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
@@ -1047,10 +1092,22 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                                                             notificationsEnabled = exportedHabit.notificationsEnabled,
                                                             notificationTime = exportedHabit.notificationTime,
                                                             notificationDays = exportedHabit.notificationDays,
+<<<<<<< Updated upstream
                                                             statsLayout = exportedHabit.statsLayout,
                                                             startDate = startDateMillis,
                                                             completionsPerDay = exportedHabit.completionsPerDay,
                                                             streakCountingDisabled = exportedHabit.streakCountingDisabled
+=======
+<<<<<<< Updated upstream
+                                                            statsLayout = exportedHabit.statsLayout
+=======
+                                                            statsLayout = exportedHabit.statsLayout,
+                                                            startDate = startDateMillis,
+                                                            completionsPerDay = exportedHabit.completionsPerDay,
+                                                            streakCountingDisabled = exportedHabit.streakCountingDisabled,
+                                                            ignoreInWelcomeCard = exportedHabit.ignoreInWelcomeCard
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
                                                         )
                                                     })
                                                     completionsToInsert.addAll(exportedData.habits.flatMap { exportedHabit ->
@@ -1070,6 +1127,7 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                                                     if (!mergeData) {
                                                         NotificationScheduler(context).cancelAllNotifications()
                                                         db.habitDao().clearAllTables()
+                                                        settingsDataStore.clearWelcomeCardState()
                                                     }
                                                     db.habitDao().insertHabits(habitsToInsert)
                                                     db.habitDao()
@@ -1113,7 +1171,9 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                     }
                 }
 
-                Spacer(modifier = Modifier.weight(1f))
+                if (headerBias > 0.001f) {
+                    Spacer(modifier = Modifier.weight(headerBias))
+                }
             }
         }
         Spacer(modifier = Modifier.height(8.dp))

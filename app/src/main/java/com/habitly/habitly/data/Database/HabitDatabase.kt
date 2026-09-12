@@ -38,10 +38,22 @@ data class Habit(
     val notificationsEnabled: Boolean = false,
     val notificationTime: String? = null,
     val notificationDays: String? = null,
+<<<<<<< Updated upstream
     val statsLayout: String? = null,
     val startDate: String? = null,
     val completionsPerDay: Int = 1,
     val streakCountingDisabled: Boolean = false
+=======
+<<<<<<< Updated upstream
+    val statsLayout: String? = null
+=======
+    val statsLayout: String? = null,
+    val startDate: String? = null,
+    val completionsPerDay: Int = 1,
+    val streakCountingDisabled: Boolean = false,
+    val ignoreInWelcomeCard: Boolean = false
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
 )
 
 val Habit.isQuit: Boolean get() = isInverse
@@ -175,7 +187,15 @@ interface HabitDao {
     suspend fun clearCompletions()
 }
 
+<<<<<<< Updated upstream
 @Database(entities = [Habit::class, Completion::class], version = 17, exportSchema = false)
+=======
+<<<<<<< Updated upstream
+@Database(entities = [Habit::class, Completion::class], version = 13, exportSchema = false)
+=======
+@Database(entities = [Habit::class, Completion::class], version = 18, exportSchema = false)
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
 abstract class HabitDatabase : RoomDatabase() {
     abstract fun habitDao(): HabitDao
 
@@ -196,11 +216,23 @@ abstract class HabitDatabase : RoomDatabase() {
                     MIGRATION_9_10, 
                     MIGRATION_10_11,
                     MIGRATION_11_12,
+<<<<<<< Updated upstream
+=======
+<<<<<<< Updated upstream
+                    MIGRATION_12_13
+=======
+>>>>>>> Stashed changes
                     MIGRATION_12_13,
                     MIGRATION_13_14,
                     MIGRATION_14_15,
                     MIGRATION_15_16,
+<<<<<<< Updated upstream
                     MIGRATION_16_17
+=======
+                    MIGRATION_16_17,
+                    MIGRATION_17_18
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
                 ).build()
                 INSTANCE = instance
                 instance
@@ -295,6 +327,11 @@ val MIGRATION_12_13 = object : Migration(12, 13) {
     }
 }
 
+<<<<<<< Updated upstream
+=======
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
 val MIGRATION_13_14 = object : Migration(13, 14) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE Habit ADD COLUMN startDate TEXT DEFAULT NULL")
@@ -333,3 +370,13 @@ val MIGRATION_16_17 = object : Migration(16, 17) {
     }
 }
 
+<<<<<<< Updated upstream
+=======
+val MIGRATION_17_18 = object : Migration(17, 18) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE Habit ADD COLUMN ignoreInWelcomeCard INTEGER NOT NULL DEFAULT 0")
+    }
+}
+
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes

@@ -526,6 +526,12 @@ class NotificationReceiver : BroadcastReceiver() {
         val title: String
         val contentText: String
 
+<<<<<<< Updated upstream
+=======
+<<<<<<< Updated upstream
+        if (isGeneralNotification) {
+=======
+>>>>>>> Stashed changes
         if (isWelcomeCardNotification) {
             val dao = HabitDatabase.getDatabase(context).habitDao()
             val habits = dao.getAllHabitsWithCompletionsSnapshot()
@@ -535,6 +541,10 @@ class NotificationReceiver : BroadcastReceiver() {
             val savedCat = settingsDataStore.welcomeCardCategoryId.first().ifEmpty { null }
             val savedHabit = settingsDataStore.welcomeCardHabitId.first().ifEmpty { null }
             val savedTemplate = settingsDataStore.welcomeCardTemplateIndex.first()
+<<<<<<< Updated upstream
+=======
+            val ignoreWelcomeEngine = settingsDataStore.ignoreWelcomeEngine.first()
+>>>>>>> Stashed changes
 
             val welcomeContext = WelcomeCardContext(
                 habits = habits,
@@ -546,7 +556,12 @@ class NotificationReceiver : BroadcastReceiver() {
                 savedDateKey = savedDate,
                 savedCategoryId = savedCat,
                 savedHabitId = savedHabit,
+<<<<<<< Updated upstream
                 savedTemplateIndex = savedTemplate
+=======
+                savedTemplateIndex = savedTemplate,
+                ignoreWelcomeEngine = ignoreWelcomeEngine
+>>>>>>> Stashed changes
             )
             if (resolved.isNewSelection) {
                 settingsDataStore.saveWelcomeCardState(
@@ -566,6 +581,10 @@ class NotificationReceiver : BroadcastReceiver() {
             }
             contentText = resolved.text
         } else if (isGeneralNotification) {
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
             title = "Daily Reminder"
             contentText = "Time to log your habit completions!"
         } else {

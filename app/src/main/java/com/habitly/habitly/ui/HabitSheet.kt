@@ -578,6 +578,12 @@ fun HabitSheetContent(
     notificationDays: Set<String>,
     onNotificationDaySelected: (String) -> Unit,
     headerModifier: Modifier = Modifier,
+<<<<<<< Updated upstream
+=======
+<<<<<<< Updated upstream
+    onClose: () -> Unit = {}
+=======
+>>>>>>> Stashed changes
     onClose: () -> Unit = {},
     previewContent: (@Composable () -> Unit)? = null,
     isInverse: Boolean = false,
@@ -589,7 +595,14 @@ fun HabitSheetContent(
     targetConversionIsPercentage: Boolean = false,
     onTargetConversionChanged: (Boolean) -> Unit = {},
     streakCountingDisabled: Boolean = false,
+<<<<<<< Updated upstream
     onStreakCountingDisabledChanged: (Boolean) -> Unit = {}
+=======
+    onStreakCountingDisabledChanged: (Boolean) -> Unit = {},
+    ignoreInWelcomeCard: Boolean = false,
+    onIgnoreInWelcomeCardChanged: (Boolean) -> Unit = {}
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
 ) {
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
     val haptic = LocalHapticFeedback.current
@@ -1293,6 +1306,49 @@ fun HabitSheetContent(
                             )
                         }
                     }
+                }
+            }
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                colors = cardColors(MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            if (vibrationsEnabled) {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            }
+                            onIgnoreInWelcomeCardChanged(!ignoreInWelcomeCard)
+                        }
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            "Ignore in Welcome Card",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Switch(
+                            checked = ignoreInWelcomeCard,
+                            onCheckedChange = null
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = if (ignoreInWelcomeCard) {
+                            "Excluded from daily welcome card statistics and milestones"
+                        } else {
+                            "Included in daily welcome card statistics and milestones"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
             Spacer(modifier = Modifier.height(80.dp))

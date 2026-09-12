@@ -4,6 +4,10 @@ package com.habitly.habitly.data.welcome
 
 import com.habitly.habitly.BuildConfig
 import com.habitly.habitly.data.Database.HabitWithCompletions
+<<<<<<< Updated upstream
+=======
+import com.habitly.habitly.data.Database.isDayCompleted
+>>>>>>> Stashed changes
 import com.habitly.habitly.data.Database.normalizeToStartOfDay
 import com.habitly.habitly.data.calculateMonthlyStats
 import com.habitly.habitly.data.calculateStatistics
@@ -22,7 +26,20 @@ data class WelcomeCardContext(
     val habits: List<HabitWithCompletions>,
     val todayMillis: Long,
     val firstDayOfWeek: Int = Calendar.MONDAY
+<<<<<<< Updated upstream
 )
+=======
+) {
+    val yesterdayMillis: Long
+        get() {
+            val cal = Calendar.getInstance().apply {
+                timeInMillis = normalizeToStartOfDay(todayMillis)
+                add(Calendar.DAY_OF_YEAR, -1)
+            }
+            return cal.timeInMillis
+        }
+}
+>>>>>>> Stashed changes
 
 /**
  * Result of a rule condition evaluation indicating a matched category and optional target habit.
@@ -64,10 +81,15 @@ object WelcomeCardEngine {
     const val CATEGORY_MONTHLY_TREND = "monthly_trend"
     const val CATEGORY_HABIT_QUIT_MILESTONE = "habit_quit_milestone"
     const val CATEGORY_LONG_TIME_TRACKING = "long_time_tracking"
+<<<<<<< Updated upstream
+=======
+    const val CATEGORY_30_DAY_IMPROVEMENT = "thirty_day_improvement"
+>>>>>>> Stashed changes
     const val CATEGORY_HIGH_COMPLETION_RATE = "high_completion_rate"
     const val CATEGORY_CURRENT_STREAK = "current_streak"
     const val CATEGORY_FALLBACK = "fallback"
 
+<<<<<<< Updated upstream
     /**
      * Checks if a streak number represents a milestone / round number.
      */
@@ -88,6 +110,64 @@ object WelcomeCardEngine {
             30L, 60L, 90L, 100L, 180L, 200L, 300L, 365L, 500L, 730L, 1000L
         )
         return days in milestoneDays || (days >= 100 && days % 100 in 0L..2L)
+=======
+    val SIMPLE_WELCOME_DESCRIPTIONS: List<String> = listOf(
+        "Track your habits, build your future.",
+        "The secret of your future is hidden in your daily routine.",
+        "Consistency is the key to success.",
+        "Motivation is what gets you started. Habit is what keeps you going.",
+        "A little progress each day adds up to big results."
+    )
+
+    /**
+     * Determines milestone interval step for a given day count based on dynamic magnitude scaling equation.
+     * - Under 30 days: Weekly milestones (step = 7)
+     * - 30 to 99 days: Multiples of 10 (step = 10)
+     * - 100 to 499 days: Multiples of 50 (step = 50)
+     * - 500 days and beyond: Multiples of 100 (step = 100)
+     */
+    fun getMilestoneStep(days: Long): Long {
+        return when {
+            days < 30L -> 7L
+            days < 100L -> 10L
+            days < 500L -> 50L
+            else -> 100L
+        }
+    }
+
+    /**
+     * Checks if a day count (for streaks or tracking) represents a milestone via equation.
+     * Milestones occur at:
+     * - Multiples of 365 days (yearly milestones)
+     * - Multiples of the dynamically scaled step equation (weekly < 30, 10s < 100, 50s < 500, 100s >= 500)
+     */
+    fun isMilestone(days: Long): Boolean {
+        if (days <= 0L) return false
+        if (days % 365L == 0L) return true
+        val step = getMilestoneStep(days)
+        return days % step == 0L
+    }
+
+    /**
+     * Checks if a streak number represents a milestone / round number via equation.
+     */
+    fun isRoundStreak(streak: Int): Boolean {
+        return isMilestone(streak.toLong())
+    }
+
+    /**
+     * Checks if tracking days count represents a notable milestone via equation.
+     */
+    fun isRoundTrackingDays(days: Long): Boolean {
+        return isMilestone(days)
+    }
+
+    /**
+     * Checks if an inverse (quit) habit has recorded a slip-up on today.
+     */
+    fun isQuitHabitSlippedToday(hwc: HabitWithCompletions, context: WelcomeCardContext): Boolean {
+        return hwc.habit.isInverse && !isDayCompleted(hwc.habit, hwc.completions, context.todayMillis, context.todayMillis)
+>>>>>>> Stashed changes
     }
 
     /**
@@ -115,9 +195,26 @@ object WelcomeCardEngine {
 
     /**
      * Replaces variable tokens (e.g. {habitName}, {streak}) with their string values.
+<<<<<<< Updated upstream
      */
     fun formatTemplate(template: String, variables: Map<String, String>): String {
         var result = template
+=======
+     * For year milestones, replaces day-based phrasings with "X year" / "X years".
+     */
+    fun formatTemplate(template: String, variables: Map<String, String>): String {
+        var result = template
+        val isYear = variables["isYear"] == "true"
+        val yearText = variables["yearText"]
+        if (isYear && !yearText.isNullOrEmpty()) {
+            val years = variables["years"]?.toLongOrNull() ?: 1L
+            val yearAdjective = if (years == 1L) "1-year" else "$years-year"
+            result = result.replace("{streak}-day", yearAdjective)
+            result = result.replace("{streak} consecutive days", yearText)
+            result = result.replace("{streak} days", yearText)
+            result = result.replace("{days} days", yearText)
+        }
+>>>>>>> Stashed changes
         for ((key, value) in variables) {
             result = result.replace("{$key}", value)
         }
@@ -140,20 +237,36 @@ object WelcomeCardEngine {
                 "Unstoppable: {streak} days on {habitName}, your best run so far."
             ),
             condition = { context ->
+<<<<<<< Updated upstream
                 val activeHabits = context.habits.filter { !it.habit.archived }
                 val startOfToday = normalizeToStartOfDay(context.todayMillis)
+=======
+                val activeHabits = context.habits.filter { !it.habit.archived && !it.habit.ignoreInWelcomeCard }
+                val startOfYesterday = context.yesterdayMillis
+>>>>>>> Stashed changes
 
                 var bestHabit: HabitWithCompletions? = null
                 var bestStreak = 0
 
                 for (hwc in activeHabits) {
+<<<<<<< Updated upstream
                     val streakData = calculateStreakData(hwc.habit, hwc.completions, context.todayMillis, context.firstDayOfWeek)
+=======
+                    if (isQuitHabitSlippedToday(hwc, context)) {
+                        continue
+                    }
+                    val streakData = calculateStreakData(hwc.habit, hwc.completions, startOfYesterday, context.firstDayOfWeek)
+>>>>>>> Stashed changes
                     val currentStreak = streakData.currentStreak
                     val longestStreak = streakData.longestStreak
 
                     if (currentStreak >= 3 && currentStreak >= longestStreak) {
                         // Avoid over-displaying daily: show when achieving record recently or on round/milestone days
+<<<<<<< Updated upstream
                         val isRecentlyAchieved = streakData.longestStreakEndDate >= (startOfToday - 86400000L)
+=======
+                        val isRecentlyAchieved = streakData.longestStreakEndDate >= (startOfYesterday - 86400000L)
+>>>>>>> Stashed changes
                         val isMilestoneDay = isRoundStreak(currentStreak)
                         if (isMilestoneDay || isRecentlyAchieved) {
                             if (currentStreak > bestStreak) {
@@ -174,10 +287,33 @@ object WelcomeCardEngine {
             extractVariables = { context, habitId ->
                 val hwc = context.habits.find { it.habit.id == habitId }
                 if (hwc != null) {
+<<<<<<< Updated upstream
                     val streakData = calculateStreakData(hwc.habit, hwc.completions, context.todayMillis, context.firstDayOfWeek)
                     mapOf(
                         "habitName" to hwc.habit.name,
                         "streak" to streakData.currentStreak.coerceAtLeast(1).toString()
+=======
+                    val streak = if (hwc.habit.isInverse) {
+                        if (isQuitHabitSlippedToday(hwc, context)) {
+                            0
+                        } else {
+                            calculateStreakData(hwc.habit, hwc.completions, context.yesterdayMillis, context.firstDayOfWeek).currentStreak
+                        }
+                    } else {
+                        calculateStreakData(hwc.habit, hwc.completions, context.todayMillis, context.firstDayOfWeek).currentStreak
+                    }
+                    val streakVal = streak.coerceAtLeast(1)
+                    val isYear = streakVal >= 365 && streakVal % 365 == 0
+                    val years = streakVal / 365
+                    val yearText = if (years == 1) "1 year" else "$years years"
+                    mapOf(
+                        "habitName" to hwc.habit.name,
+                        "streak" to streakVal.toString(),
+                        "isYear" to isYear.toString(),
+                        "years" to years.toString(),
+                        "yearText" to yearText,
+                        "timeSpan" to if (isYear) yearText else "$streakVal days"
+>>>>>>> Stashed changes
                     )
                 } else emptyMap()
             }
@@ -192,8 +328,13 @@ object WelcomeCardEngine {
                 "Upward trend: your completion rate for {habitName} has been climbing for {consecutive} months in a row.",
                 "A great start to the month: your {habitName} consistency has risen for {consecutive} consecutive months.",
                 "Building momentum: your consistency with {habitName} has grown for {consecutive} months in a row.",
+<<<<<<< Updated upstream
                 "Great start to the month: your {habitName} consistency jumped to {lastMonthRate}% last month.",
                 "Looking back at last month, your completion rate for {habitName} improved significantly."
+=======
+                "Great start to the month: your {habitName} consistency jumped to {lastMonthRate}% last month, up from {previousRate}% the month before.",
+                "Looking back at last month, your completion rate for {habitName} improved to {lastMonthRate}% (compared to {previousRate}% previously)."
+>>>>>>> Stashed changes
             ),
             condition = { context ->
                 val cal = Calendar.getInstance().apply { timeInMillis = context.todayMillis }
@@ -202,7 +343,11 @@ object WelcomeCardEngine {
                 if (dayOfMonth > 7) {
                     null
                 } else {
+<<<<<<< Updated upstream
                     val activeHabits = context.habits.filter { !it.habit.archived }
+=======
+                    val activeHabits = context.habits.filter { !it.habit.archived && !it.habit.ignoreInWelcomeCard }
+>>>>>>> Stashed changes
                     var bestHabit: HabitWithCompletions? = null
                     var bestConsecutive = 0
 
@@ -251,10 +396,19 @@ object WelcomeCardEngine {
                     }
                     val consecutiveCount = if (consecutive >= 2) consecutive + 1 else 2
                     val lastRate = completedStats.lastOrNull()?.percentage?.roundToInt() ?: 0
+<<<<<<< Updated upstream
                     mapOf(
                         "habitName" to hwc.habit.name,
                         "consecutive" to consecutiveCount.toString(),
                         "lastMonthRate" to lastRate.toString()
+=======
+                    val prevRate = if (completedStats.size >= 2) completedStats[completedStats.size - 2].percentage.roundToInt() else 0
+                    mapOf(
+                        "habitName" to hwc.habit.name,
+                        "consecutive" to consecutiveCount.toString(),
+                        "lastMonthRate" to lastRate.toString(),
+                        "previousRate" to prevRate.toString()
+>>>>>>> Stashed changes
                     )
                 } else emptyMap()
             }
@@ -272,15 +426,30 @@ object WelcomeCardEngine {
                 "Quiet discipline: {streak} days free from {habitName}."
             ),
             condition = { context ->
+<<<<<<< Updated upstream
                 val quitHabits = context.habits.filter { !it.habit.archived && it.habit.isInverse }
+=======
+                val quitHabits = context.habits.filter { !it.habit.archived && !it.habit.ignoreInWelcomeCard && it.habit.isInverse }
+>>>>>>> Stashed changes
                 var bestHabit: HabitWithCompletions? = null
                 var bestStreak = 0
 
                 for (hwc in quitHabits) {
+<<<<<<< Updated upstream
                     val streakData = calculateStreakData(hwc.habit, hwc.completions, context.todayMillis, context.firstDayOfWeek)
                     val streak = streakData.currentStreak
                     if (streak >= 3) {
                         if (isRoundStreak(streak) || streak % 7 == 0 || streak >= streakData.longestStreak) {
+=======
+                    // If user already slipped today, do not celebrate quitting milestone
+                    if (isQuitHabitSlippedToday(hwc, context)) {
+                        continue
+                    }
+                    val streakData = calculateStreakData(hwc.habit, hwc.completions, context.yesterdayMillis, context.firstDayOfWeek)
+                    val streak = streakData.currentStreak
+                    if (streak >= 3) {
+                        if (isRoundStreak(streak) || streak >= streakData.longestStreak) {
+>>>>>>> Stashed changes
                             if (streak > bestStreak) {
                                 bestStreak = streak
                                 bestHabit = hwc
@@ -299,10 +468,28 @@ object WelcomeCardEngine {
             extractVariables = { context, habitId ->
                 val hwc = context.habits.find { it.habit.id == habitId }
                 if (hwc != null) {
+<<<<<<< Updated upstream
                     val streakData = calculateStreakData(hwc.habit, hwc.completions, context.todayMillis, context.firstDayOfWeek)
                     mapOf(
                         "habitName" to hwc.habit.name,
                         "streak" to streakData.currentStreak.toString()
+=======
+                    val streak = if (isQuitHabitSlippedToday(hwc, context)) {
+                        0
+                    } else {
+                        calculateStreakData(hwc.habit, hwc.completions, context.yesterdayMillis, context.firstDayOfWeek).currentStreak
+                    }
+                    val isYear = streak >= 365 && streak % 365 == 0
+                    val years = streak / 365
+                    val yearText = if (years == 1) "1 year" else "$years years"
+                    mapOf(
+                        "habitName" to hwc.habit.name,
+                        "streak" to streak.toString(),
+                        "isYear" to isYear.toString(),
+                        "years" to years.toString(),
+                        "yearText" to yearText,
+                        "timeSpan" to if (isYear) yearText else "$streak days"
+>>>>>>> Stashed changes
                     )
                 } else emptyMap()
             }
@@ -320,7 +507,11 @@ object WelcomeCardEngine {
                 "Consistency over time: {days} days of showing up for {habitName}."
             ),
             condition = { context ->
+<<<<<<< Updated upstream
                 val activeHabits = context.habits.filter { !it.habit.archived }
+=======
+                val activeHabits = context.habits.filter { !it.habit.archived && !it.habit.ignoreInWelcomeCard }
+>>>>>>> Stashed changes
                 var bestHabit: HabitWithCompletions? = null
                 var maxDays = 0L
 
@@ -346,31 +537,152 @@ object WelcomeCardEngine {
                 val hwc = context.habits.find { it.habit.id == habitId }
                 if (hwc != null) {
                     val stats = calculateStatistics(hwc, context.firstDayOfWeek, context.todayMillis)
+<<<<<<< Updated upstream
                     mapOf(
                         "habitName" to hwc.habit.name,
                         "days" to stats.timeSinceCreation.toString()
+=======
+                    val days = stats.timeSinceCreation
+                    val isYear = days >= 365L && days % 365L == 0L
+                    val years = days / 365L
+                    val yearText = if (years == 1L) "1 year" else "$years years"
+                    mapOf(
+                        "habitName" to hwc.habit.name,
+                        "days" to days.toString(),
+                        "isYear" to isYear.toString(),
+                        "years" to years.toString(),
+                        "yearText" to yearText,
+                        "timeSpan" to if (isYear) yearText else "$days days"
+>>>>>>> Stashed changes
                     )
                 } else emptyMap()
             }
         ),
 
+<<<<<<< Updated upstream
         // 5. High Completion Rate / Improved Average (Priority: 55)
+=======
+        // 5. 30-Day Improvement vs Previous Month (Priority: 60)
+        WelcomeCategory(
+            id = CATEGORY_30_DAY_IMPROVEMENT,
+            priority = 60,
+            templates = listOf(
+                "Great progress: your consistency with {habitName} improved to {currentRate}% over the last 30 days, compared to {previousRate}% last month.",
+                "Upward trend: {habitName} reached {currentRate}% over the last 30 days (up from {previousRate}% last month).",
+                "Improving consistency: you've hit {currentRate}% on {habitName} in the last 30 days, beating last month's {previousRate}%.",
+                "Building momentum: {habitName} completion improved from {previousRate}% last month to {currentRate}% over the last 30 days.",
+                "Solid improvement: {habitName} is at {currentRate}% consistency over the last 30 days vs {previousRate}% last month."
+            ),
+            condition = { context ->
+                val activeHabits = context.habits.filter { !it.habit.archived && !it.habit.ignoreInWelcomeCard }
+                var bestHabit: HabitWithCompletions? = null
+                var bestImprovement = 0
+
+                for (hwc in activeHabits) {
+                    if (isQuitHabitSlippedToday(hwc, context)) {
+                        continue
+                    }
+                    val stats = calculateStatistics(hwc, context.firstDayOfWeek, context.todayMillis)
+                    if (stats.timeSinceCreation < 30) {
+                        continue
+                    }
+
+                    val completedStats = getCompletedMonthlyStats(hwc, context.todayMillis)
+                    if (completedStats.isEmpty()) continue
+
+                    val lastMonth = completedStats.last()
+                    val prevRate = lastMonth.percentage.roundToInt()
+
+                    val statsYesterday = calculateStatistics(hwc, context.firstDayOfWeek, context.yesterdayMillis)
+                    val currentRate = if (!hwc.habit.isInverse) {
+                        maxOf(statsYesterday.rateLast30Days, stats.rateLast30Days)
+                    } else {
+                        statsYesterday.rateLast30Days
+                    }
+
+                    val diff = currentRate - prevRate
+                    if (diff > 0 && currentRate > 0) {
+                        if (diff > bestImprovement) {
+                            bestImprovement = diff
+                            bestHabit = hwc
+                        }
+                    }
+                }
+
+                bestHabit?.let {
+                    WelcomeCategoryMatch(
+                        categoryId = CATEGORY_30_DAY_IMPROVEMENT,
+                        habitId = it.habit.id
+                    )
+                }
+            },
+            extractVariables = { context, habitId ->
+                val hwc = context.habits.find { it.habit.id == habitId }
+                if (hwc != null) {
+                    val completedStats = getCompletedMonthlyStats(hwc, context.todayMillis)
+                    val lastMonth = completedStats.lastOrNull()
+                    val prevRate = lastMonth?.percentage?.roundToInt() ?: 0
+
+                    val statsYesterday = calculateStatistics(hwc, context.firstDayOfWeek, context.yesterdayMillis)
+                    val currentRate = if (!hwc.habit.isInverse) {
+                        val statsToday = calculateStatistics(hwc, context.firstDayOfWeek, context.todayMillis)
+                        maxOf(statsYesterday.rateLast30Days, statsToday.rateLast30Days)
+                    } else {
+                        if (isQuitHabitSlippedToday(hwc, context)) {
+                            calculateStatistics(hwc, context.firstDayOfWeek, context.todayMillis).rateLast30Days
+                        } else {
+                            statsYesterday.rateLast30Days
+                        }
+                    }
+                    mapOf(
+                        "habitName" to hwc.habit.name,
+                        "currentRate" to currentRate.toString(),
+                        "previousRate" to prevRate.toString(),
+                        "rate" to currentRate.toString(),
+                        "lastMonthRate" to prevRate.toString(),
+                        "diff" to (currentRate - prevRate).toString(),
+                        "previousMonth" to (lastMonth?.monthLabel ?: "last month")
+                    )
+                } else emptyMap()
+            }
+        ),
+
+        // 6. High Completion Rate (Priority: 55)
+>>>>>>> Stashed changes
         WelcomeCategory(
             id = CATEGORY_HIGH_COMPLETION_RATE,
             priority = 55,
             templates = listOf(
                 "Remarkable consistency: you've completed {rate}% of {habitName} goals over the last 30 days.",
+<<<<<<< Updated upstream
                 "{rate}% consistency on {habitName} this past month. Keep setting the standard.",
                 "Your 30-day completion rate for {habitName} is at {rate}%. Superb follow-through.",
                 "Solid routine: {rate}% success rate on {habitName} over the last month."
             ),
             condition = { context ->
                 val activeHabits = context.habits.filter { !it.habit.archived }
+=======
+                "{rate}% consistency on {habitName} over the last 30 days. Keep setting the standard.",
+                "Your 30-day completion rate for {habitName} is at {rate}%. Superb follow-through.",
+                "Solid routine: {rate}% success rate on {habitName} over the last 30 days."
+            ),
+            condition = { context ->
+                val activeHabits = context.habits.filter { !it.habit.archived && !it.habit.ignoreInWelcomeCard }
+>>>>>>> Stashed changes
                 var bestHabit: HabitWithCompletions? = null
                 var bestRate = 0
 
                 for (hwc in activeHabits) {
+<<<<<<< Updated upstream
                     val stats = calculateStatistics(hwc, context.firstDayOfWeek, context.todayMillis)
+=======
+                    // For quit habits: if user has already slipped today, do not feature high rate
+                    if (isQuitHabitSlippedToday(hwc, context)) {
+                        continue
+                    }
+                    // Evaluate 30-day rate ending yesterday so today's lack of completions does not pull it down
+                    val stats = calculateStatistics(hwc, context.firstDayOfWeek, context.yesterdayMillis)
+>>>>>>> Stashed changes
                     val rate = stats.rateLast30Days
                     if (stats.timeSinceCreation >= 14 && rate >= 80) {
                         if (rate > bestRate) {
@@ -390,16 +702,37 @@ object WelcomeCardEngine {
             extractVariables = { context, habitId ->
                 val hwc = context.habits.find { it.habit.id == habitId }
                 if (hwc != null) {
+<<<<<<< Updated upstream
                     val stats = calculateStatistics(hwc, context.firstDayOfWeek, context.todayMillis)
                     mapOf(
                         "habitName" to hwc.habit.name,
                         "rate" to stats.rateLast30Days.toString()
+=======
+                    val statsYesterday = calculateStatistics(hwc, context.firstDayOfWeek, context.yesterdayMillis)
+                    val displayRate = if (!hwc.habit.isInverse) {
+                        val statsToday = calculateStatistics(hwc, context.firstDayOfWeek, context.todayMillis)
+                        maxOf(statsYesterday.rateLast30Days, statsToday.rateLast30Days)
+                    } else {
+                        if (isQuitHabitSlippedToday(hwc, context)) {
+                            calculateStatistics(hwc, context.firstDayOfWeek, context.todayMillis).rateLast30Days
+                        } else {
+                            statsYesterday.rateLast30Days
+                        }
+                    }
+                    mapOf(
+                        "habitName" to hwc.habit.name,
+                        "rate" to displayRate.toString()
+>>>>>>> Stashed changes
                     )
                 } else emptyMap()
             }
         ),
 
+<<<<<<< Updated upstream
         // 6. Longest Current Streak (Priority: 40)
+=======
+        // 7. Longest Current Streak (Priority: 40)
+>>>>>>> Stashed changes
         WelcomeCategory(
             id = CATEGORY_CURRENT_STREAK,
             priority = 40,
@@ -411,12 +744,24 @@ object WelcomeCardEngine {
                 "{streak} days in a row for {habitName}. You're building a solid habit."
             ),
             condition = { context ->
+<<<<<<< Updated upstream
                 val activeHabits = context.habits.filter { !it.habit.archived }
+=======
+                val activeHabits = context.habits.filter { !it.habit.archived && !it.habit.ignoreInWelcomeCard }
+>>>>>>> Stashed changes
                 var bestHabit: HabitWithCompletions? = null
                 var maxStreak = 0
 
                 for (hwc in activeHabits) {
+<<<<<<< Updated upstream
                     val streakData = calculateStreakData(hwc.habit, hwc.completions, context.todayMillis, context.firstDayOfWeek)
+=======
+                    // For quit habits: if user has already slipped today, streak broke
+                    if (isQuitHabitSlippedToday(hwc, context)) {
+                        continue
+                    }
+                    val streakData = calculateStreakData(hwc.habit, hwc.completions, context.yesterdayMillis, context.firstDayOfWeek)
+>>>>>>> Stashed changes
                     val currentStreak = streakData.currentStreak
                     if (currentStreak >= 2 && currentStreak > maxStreak) {
                         maxStreak = currentStreak
@@ -434,16 +779,43 @@ object WelcomeCardEngine {
             extractVariables = { context, habitId ->
                 val hwc = context.habits.find { it.habit.id == habitId }
                 if (hwc != null) {
+<<<<<<< Updated upstream
                     val streakData = calculateStreakData(hwc.habit, hwc.completions, context.todayMillis, context.firstDayOfWeek)
                     mapOf(
                         "habitName" to hwc.habit.name,
                         "streak" to streakData.currentStreak.toString()
+=======
+                    val streak = if (hwc.habit.isInverse) {
+                        if (isQuitHabitSlippedToday(hwc, context)) {
+                            0
+                        } else {
+                            calculateStreakData(hwc.habit, hwc.completions, context.yesterdayMillis, context.firstDayOfWeek).currentStreak
+                        }
+                    } else {
+                        // Live update if completed today
+                        calculateStreakData(hwc.habit, hwc.completions, context.todayMillis, context.firstDayOfWeek).currentStreak
+                    }
+                    val isYear = streak >= 365 && streak % 365 == 0
+                    val years = streak / 365
+                    val yearText = if (years == 1) "1 year" else "$years years"
+                    mapOf(
+                        "habitName" to hwc.habit.name,
+                        "streak" to streak.toString(),
+                        "isYear" to isYear.toString(),
+                        "years" to years.toString(),
+                        "yearText" to yearText,
+                        "timeSpan" to if (isYear) yearText else "$streak days"
+>>>>>>> Stashed changes
                     )
                 } else emptyMap()
             }
         ),
 
+<<<<<<< Updated upstream
         // 7. Fallback / Motivational Quotes (Priority: 0)
+=======
+        // 8. Fallback / Motivational Quotes (Priority: 0)
+>>>>>>> Stashed changes
         WelcomeCategory(
             id = CATEGORY_FALLBACK,
             priority = 0,
@@ -495,14 +867,40 @@ object WelcomeCardEngine {
         savedCategoryId: String?,
         savedHabitId: String?,
         savedTemplateIndex: Int?,
+<<<<<<< Updated upstream
         ignoreDailyLock: Boolean = BuildConfig.IS_DEVELOPER_MODE
     ): WelcomeCardResolution {
         val dateKey = getFormattedDateKey(context.todayMillis)
+=======
+        ignoreDailyLock: Boolean = BuildConfig.IS_DEVELOPER_MODE,
+        ignoreWelcomeEngine: Boolean = false
+    ): WelcomeCardResolution {
+        val dateKey = getFormattedDateKey(context.todayMillis)
+        if (ignoreWelcomeEngine) {
+            val cal = Calendar.getInstance().apply { timeInMillis = context.todayMillis }
+            val dayOfYear = cal.get(Calendar.DAY_OF_YEAR)
+            val index = dayOfYear % SIMPLE_WELCOME_DESCRIPTIONS.size
+            return WelcomeCardResolution(
+                dateKey = dateKey,
+                categoryId = CATEGORY_FALLBACK,
+                habitId = null,
+                templateIndex = index,
+                text = SIMPLE_WELCOME_DESCRIPTIONS[index],
+                variables = emptyMap(),
+                isNewSelection = false
+            )
+        }
+
+>>>>>>> Stashed changes
         val categoryMap = categories.associateBy { it.id }
 
         val isSameDay = !ignoreDailyLock && savedDateKey == dateKey && !savedCategoryId.isNullOrEmpty()
         val savedCategory = if (isSameDay) categoryMap[savedCategoryId] else null
+<<<<<<< Updated upstream
         val habitStillExists = savedHabitId.isNullOrEmpty() || context.habits.any { it.habit.id == savedHabitId }
+=======
+        val habitStillExists = savedHabitId.isNullOrEmpty() || context.habits.any { it.habit.id == savedHabitId && !it.habit.ignoreInWelcomeCard }
+>>>>>>> Stashed changes
 
         val categoryToUse: WelcomeCategory
         val habitIdToUse: String?
