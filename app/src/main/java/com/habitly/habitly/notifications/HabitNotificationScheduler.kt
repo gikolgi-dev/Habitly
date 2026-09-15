@@ -44,6 +44,7 @@ object HabitNotificationScheduler {
             .putString(HabitNotificationWorker.KEY_HABIT_NAME, habit.name)
             .putString(HabitNotificationWorker.KEY_HABIT_NOTIFICATION_DAYS, habit.notificationDays)
             .putString(HabitNotificationWorker.KEY_HABIT_NOTIFICATION_TIME, habit.notificationTime)
+            .putBoolean(HabitNotificationWorker.KEY_HABIT_IS_INVERSE, habit.isInverse)
             .build()
 
         val now = Calendar.getInstance()
