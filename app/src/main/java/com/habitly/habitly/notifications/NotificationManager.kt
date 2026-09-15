@@ -15,6 +15,9 @@ import com.habitly.habitly.MainActivity
 import com.habitly.habitly.R
 import com.habitly.habitly.data.Database.Habit
 import com.habitly.habitly.data.Database.HabitDatabase
+import com.habitly.habitly.data.Database.getDailyTarget
+import com.habitly.habitly.data.Database.getEffectiveStartDateMillis
+import com.habitly.habitly.data.Database.normalizeToStartOfDay
 import com.habitly.habitly.data.settings.SettingsDataStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -57,6 +60,7 @@ class NotificationScheduler(private val context: Context) {
             putExtra("habitName", habit.name)
             putExtra("notificationTime", habit.notificationTime)
             putExtra("notificationDays", days.toTypedArray())
+            putExtra("isInverse", habit.isInverse)
         }
 
         // FLAG_UPDATE_CURRENT: Updates the existing PendingIntent with the latest Intent extras.
@@ -352,12 +356,15 @@ class NotificationReceiver : BroadcastReceiver() {
 
                     val targetDate = intent.getLongExtra("targetDate", Calendar.getInstance().timeInMillis)
 
+                    val isInverse = intent.getBooleanExtra("isInverse", false)
+
                     // Create pending intent for snoozed notification
                     val rescheduleIntent = Intent(context, NotificationReceiver::class.java).apply {
                         action = "ACTION_SHOW_SNOOZED_NOTIFICATION"
                         putExtra("habitId", habitId)
                         putExtra("habitName", intent.getStringExtra("habitName"))
                         putExtra("targetDate", targetDate)
+                        putExtra("isInverse", isInverse)
                     }
                     val pendingIntent = PendingIntent.getBroadcast(
                         context,
@@ -379,7 +386,9 @@ class NotificationReceiver : BroadcastReceiver() {
 
                     // Update the SAME notification to show "Snoozed until xx:xx"
                     val isGeneralNotification = habitId == GENERAL_NOTIFICATION_ID
-                    val title = if (isGeneralNotification) "Daily Reminder" else "Completion Reminder"
+                    val isQuit = isInverse || (HabitDatabase.getDatabase(context).habitDao()
+                        .getHabit(habitId)?.isInverse == true)
+                    val title = if (isGeneralNotification) "Daily Reminder" else getHabitNotificationTitle(isQuit)
                     val contentText = "Snoozed until $formattedTime"
 
                     val activityIntent = Intent(context, MainActivity::class.java).apply {
@@ -400,7 +409,8 @@ class NotificationReceiver : BroadcastReceiver() {
                         .setAutoCancel(true)
                         .build()
 
-                    val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                    val notificationManager =
+                        context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
                     notificationManager.notify(habitId.hashCode(), snoozedNotification)
 
                     // Wait 3 seconds and then dismiss the notification
@@ -418,27 +428,97 @@ class NotificationReceiver : BroadcastReceiver() {
             CoroutineScope(Dispatchers.IO).launch {
                 try {
                     val dao = HabitDatabase.getDatabase(context).habitDao()
+                    val habit = dao.getHabit(habitId)
+                    if (habit?.isInverse == true) {
+                        // Quit habits are not completed via this action
+                        val notificationManager =
+                            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                        notificationManager.cancel(habitId.hashCode())
+                        return@launch
+                    }
 
                     val targetDate = intent.getLongExtra("targetDate", Calendar.getInstance().timeInMillis)
                     val dateCal = Calendar.getInstance().apply { timeInMillis = targetDate }
-                    val timezoneOffsetInMinutes = TimeUnit.MILLISECONDS.toMinutes(dateCal.timeZone.rawOffset.toLong()).toInt()
+                    val timezoneOffsetInMinutes =
+                        TimeUnit.MILLISECONDS.toMinutes(dateCal.timeZone.rawOffset.toLong()).toInt()
 
-                    // Insert completion directly into the database
-                    dao.insertCompletion(
+                    val (startOfDay, endOfDay) = getDayBounds(dateCal)
+                    if (habit != null) {
+                        val habitStart = normalizeToStartOfDay(habit.getEffectiveStartDateMillis())
+                        if (startOfDay < habitStart) {
+                            dao.updateHabit(habit.copy(startDate = startOfDay.toString()))
+                        }
+                    }
+                    val target = habit?.getDailyTarget() ?: 1
+                    val currentCompletions = dao.countCompletionsForHabitOnDay(habitId, startOfDay, endOfDay)
+                    val newCompletions = (currentCompletions + 1).coerceAtMost(target)
+
+                    dao.setCompletionsForHabitOnDay(
+                        habitId,
+                        startOfDay,
+                        endOfDay,
                         com.habitly.habitly.data.Database.Completion(
                             id = UUID.randomUUID().toString(),
                             habitId = habitId,
                             date = targetDate,
                             timezoneOffsetInMinutes = timezoneOffsetInMinutes,
-                            amountOfCompletions = 1
+                            amountOfCompletions = newCompletions
                         )
                     )
 
                     // Dismiss the notification now that the habit is marked complete
-                    val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                    val notificationManager =
+                        context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
                     notificationManager.cancel(habitId.hashCode())
                 } finally {
                     // Always finish pendingResult to signal the OS we're done
+                    pendingResult.finish()
+                }
+            }
+            return
+        }
+
+        // --- Handle direct action from the Notification: "Uncomplete Habit" ---
+        if (intent.action == "ACTION_UNCOMPLETE_HABIT") {
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val dao = HabitDatabase.getDatabase(context).habitDao()
+                    val habit = dao.getHabit(habitId)
+
+                    val targetDate = intent.getLongExtra("targetDate", Calendar.getInstance().timeInMillis)
+                    val dateCal = Calendar.getInstance().apply { timeInMillis = targetDate }
+                    val timezoneOffsetInMinutes =
+                        TimeUnit.MILLISECONDS.toMinutes(dateCal.timeZone.rawOffset.toLong()).toInt()
+
+                    val (startOfDay, endOfDay) = getDayBounds(dateCal)
+                    if (habit != null) {
+                        val habitStart = normalizeToStartOfDay(habit.getEffectiveStartDateMillis())
+                        if (startOfDay < habitStart) {
+                            dao.updateHabit(habit.copy(startDate = startOfDay.toString()))
+                        }
+                    }
+                    val target = habit?.getDailyTarget() ?: 1
+                    val currentSlips = dao.countCompletionsForHabitOnDay(habitId, startOfDay, endOfDay)
+                    val newSlips = (currentSlips + 1).coerceAtMost(target)
+
+                    dao.setCompletionsForHabitOnDay(
+                        habitId,
+                        startOfDay,
+                        endOfDay,
+                        com.habitly.habitly.data.Database.Completion(
+                            id = UUID.randomUUID().toString(),
+                            habitId = habitId,
+                            date = targetDate,
+                            timezoneOffsetInMinutes = timezoneOffsetInMinutes,
+                            amountOfCompletions = newSlips
+                        )
+                    )
+
+                    // Dismiss the notification now that the habit is marked uncompleted
+                    val notificationManager =
+                        context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                    notificationManager.cancel(habitId.hashCode())
+                } finally {
                     pendingResult.finish()
                 }
             }
@@ -470,12 +550,23 @@ class NotificationReceiver : BroadcastReceiver() {
                         val (startOfDay, endOfDay) = getDayBounds()
 
                         val completionsCount = dao.countCompletionsForHabitOnDay(habitId, startOfDay, endOfDay)
-                        shouldShow = shouldShowHabitNotification(skipCompleted, completionsCount)
+                        val habit = dao.getHabit(habitId)
+                        val isInverse = habit?.isInverse ?: intent.getBooleanExtra("isInverse", false)
+                        val target = habit?.getDailyTarget() ?: 1
+                        shouldShow = shouldShowHabitNotification(skipCompleted, completionsCount, isInverse, target)
                     }
                 }
 
                 if (shouldShow) {
-                    showNotification(context, intent, habitId, isGeneralNotification, isWelcomeCardNotification, snoozeEnabled, targetDate)
+                    showNotification(
+                        context,
+                        intent,
+                        habitId,
+                        isGeneralNotification,
+                        isWelcomeCardNotification,
+                        snoozeEnabled,
+                        targetDate
+                    )
                 }
 
                 // Since AlarmManager only schedules the alarm once, we must re-schedule
@@ -492,7 +583,8 @@ class NotificationReceiver : BroadcastReceiver() {
                         }
                     } else {
                         val habitName = intent.getStringExtra("habitName")
-                        rescheduleHabitAlarm(context, habitId, habitName, notificationTime, days, exactMode)
+                        val isInverse = intent.getBooleanExtra("isInverse", false)
+                        rescheduleHabitAlarm(context, habitId, habitName, notificationTime, days, exactMode, isInverse)
                     }
                 }
             } finally {
@@ -526,8 +618,11 @@ class NotificationReceiver : BroadcastReceiver() {
         val title: String
         val contentText: String
 
+        val dao = HabitDatabase.getDatabase(context).habitDao()
+        val habit = if (!isGeneralNotification && !isWelcomeCardNotification) dao.getHabit(habitId) else null
+        val isInverse = habit?.isInverse ?: intent.getBooleanExtra("isInverse", false)
+
         if (isWelcomeCardNotification) {
-            val dao = HabitDatabase.getDatabase(context).habitDao()
             val habits = dao.getAllHabitsWithCompletionsSnapshot()
             val settingsDataStore = SettingsDataStore(context)
             val firstDayOfWeek = settingsDataStore.firstDayOfWeekCalendar.first()
@@ -571,9 +666,9 @@ class NotificationReceiver : BroadcastReceiver() {
             title = "Daily Reminder"
             contentText = "Time to log your habit completions!"
         } else {
-            val habitName = intent.getStringExtra("habitName") ?: "your habit"
-            title = "Completion Reminder"
-            contentText = "Don't forget to complete $habitName today."
+            val habitName = habit?.name ?: intent.getStringExtra("habitName") ?: "your habit"
+            title = getHabitNotificationTitle(isInverse)
+            contentText = getHabitNotificationContent(habitName, isInverse)
         }
 
         // Tapping the notification opens the main activity
@@ -594,33 +689,60 @@ class NotificationReceiver : BroadcastReceiver() {
             .setContentIntent(activityPendingIntent)
             .setAutoCancel(true) // Dismiss the notification automatically when tapped
 
-        // Add the inline "Complete" action for single habits
+        // Add the inline action for single habits ("Uncomplete" for quit habits, "Complete" for build habits)
         if (!isGeneralNotification && !isWelcomeCardNotification) {
-            val actionIntent = Intent(context, NotificationReceiver::class.java).apply {
-                action = "ACTION_COMPLETE_HABIT"
-                putExtra("habitId", habitId)
-                putExtra("targetDate", targetDate)
+            val (startOfDay, endOfDay) = getDayBounds(Calendar.getInstance().apply { timeInMillis = targetDate })
+            val currentCount = dao.countCompletionsForHabitOnDay(habitId, startOfDay, endOfDay)
+            val target = habit?.getDailyTarget() ?: 1
+
+            if (isInverse) {
+                if (canOfferUncomplete(isInverse, currentCount, target)) {
+                    val actionIntent = Intent(context, NotificationReceiver::class.java).apply {
+                        action = "ACTION_UNCOMPLETE_HABIT"
+                        putExtra("habitId", habitId)
+                        putExtra("targetDate", targetDate)
+                    }
+                    val actionPendingIntent = PendingIntent.getBroadcast(
+                        context,
+                        habitId.hashCode() + 1,
+                        actionIntent,
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    )
+                    builder.addAction(
+                        0,
+                        getHabitNotificationActionLabel(isInverse = true),
+                        actionPendingIntent
+                    )
+                }
+            } else {
+                val actionIntent = Intent(context, NotificationReceiver::class.java).apply {
+                    action = "ACTION_COMPLETE_HABIT"
+                    putExtra("habitId", habitId)
+                    putExtra("targetDate", targetDate)
+                }
+                val actionPendingIntent = PendingIntent.getBroadcast(
+                    context,
+                    habitId.hashCode() + 1, // Offset the hash code to avoid intent collisions
+                    actionIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+                builder.addAction(
+                    0, // 0 means no icon is specified (action icons are largely ignored on modern Android anyway)
+                    getHabitNotificationActionLabel(isInverse = false),
+                    actionPendingIntent
+                )
             }
-            val actionPendingIntent = PendingIntent.getBroadcast(
-                context,
-                habitId.hashCode() + 1, // Offset the hash code to avoid intent collisions
-                actionIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            builder.addAction(
-                0, // 0 means no icon is specified (action icons are largely ignored on modern Android anyway)
-                "Complete",
-                actionPendingIntent
-            )
         }
 
         // Add the inline "Snooze" action
         if (snoozeEnabled) {
+            val habitName = habit?.name ?: intent.getStringExtra("habitName")
             val snoozeIntent = Intent(context, NotificationReceiver::class.java).apply {
                 action = "ACTION_SNOOZE_NOTIFICATION"
                 putExtra("habitId", habitId)
-                putExtra("habitName", intent.getStringExtra("habitName"))
+                putExtra("habitName", habitName)
                 putExtra("targetDate", targetDate)
+                putExtra("isInverse", isInverse)
             }
             val snoozePendingIntent = PendingIntent.getBroadcast(
                 context,
@@ -640,7 +762,15 @@ class NotificationReceiver : BroadcastReceiver() {
         notificationManager.notify(habitId.hashCode(), builder.build())
     }
 
-    private fun rescheduleHabitAlarm(context: Context, habitId: String, habitName: String?, notificationTime: String, days: Set<String>?, exactMode: Boolean) {
+    private fun rescheduleHabitAlarm(
+        context: Context,
+        habitId: String,
+        habitName: String?,
+        notificationTime: String,
+        days: Set<String>?,
+        exactMode: Boolean,
+        isInverse: Boolean = false
+    ) {
         if (days.isNullOrEmpty()) {
             return
         }
@@ -653,6 +783,7 @@ class NotificationReceiver : BroadcastReceiver() {
             putExtra("notificationTime", notificationTime)
             putExtra("habitName", habitName)
             putExtra("notificationDays", days.toTypedArray())
+            putExtra("isInverse", isInverse)
         }
 
         val pendingIntent = PendingIntent.getBroadcast(
@@ -778,10 +909,39 @@ fun getNextAlarmTime(hour: Int, minute: Int, days: Set<String>): Long? {
  * Determines whether a habit notification should be shown based on user settings
  * and whether the habit has already been completed today.
  */
-fun shouldShowHabitNotification(skipCompleted: Boolean, completionsCount: Int): Boolean {
+fun shouldShowHabitNotification(
+    skipCompleted: Boolean,
+    completionsCount: Int,
+    isInverse: Boolean = false,
+    target: Int = 1
+): Boolean {
     if (!skipCompleted) return true
-    return completionsCount <= 0
+    return completionsCount < target
 }
+
+/**
+ * Returns the notification title for a habit based on whether it is a quit (inverse) habit.
+ */
+fun getHabitNotificationTitle(isInverse: Boolean): String =
+    if (isInverse) "Quit Reminder" else "Completion Reminder"
+
+/**
+ * Returns the notification text for a habit based on whether it is a quit (inverse) habit.
+ */
+fun getHabitNotificationContent(habitName: String, isInverse: Boolean): String =
+    if (isInverse) "Did you succeed with $habitName today?" else "Don't forget to complete $habitName today."
+
+/**
+ * Returns the action label for a habit notification ("Uncomplete" for quit habits, "Complete" for build habits).
+ */
+fun getHabitNotificationActionLabel(isInverse: Boolean): String =
+    if (isInverse) "Uncomplete" else "Complete"
+
+/**
+ * Checks if the "Uncomplete" action should be offered for a quit habit.
+ */
+fun canOfferUncomplete(isInverse: Boolean, currentSlips: Int, target: Int): Boolean =
+    isInverse && currentSlips < target
 
 /**
  * Returns the timestamp bounds (startOfDay, endOfDay) in milliseconds for the given calendar day.

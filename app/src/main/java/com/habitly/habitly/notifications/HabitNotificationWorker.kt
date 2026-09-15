@@ -13,6 +13,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.habitly.habitly.R
 import com.habitly.habitly.data.Database.HabitDatabase
+import com.habitly.habitly.data.Database.getDailyTarget
 import com.habitly.habitly.data.settings.SettingsDataStore
 import kotlinx.coroutines.flow.first
 import java.util.Calendar
@@ -30,35 +31,23 @@ class HabitNotificationWorker(
         val skipCompleted = settingsDataStore.skipCompletedHabitNotifications.first()
         val dao = HabitDatabase.getDatabase(context).habitDao()
 
+        val habit = dao.getHabit(habitId)
+        val isInverse = habit?.isInverse ?: inputData.getBoolean(KEY_HABIT_IS_INVERSE, false)
+        val target = habit?.getDailyTarget() ?: 1
+
         var shouldShow = true
         if (skipCompleted) {
-            val now = Calendar.getInstance()
-            val startOfDay = (now.clone() as Calendar).apply { 
-                set(Calendar.HOUR_OF_DAY, 0)
-                set(Calendar.MINUTE, 0)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0) 
-            }.timeInMillis
-            val endOfDay = (now.clone() as Calendar).apply { 
-                set(Calendar.HOUR_OF_DAY, 23)
-                set(Calendar.MINUTE, 59)
-                set(Calendar.SECOND, 59)
-                set(Calendar.MILLISECOND, 999) 
-            }.timeInMillis
-
+            val (startOfDay, endOfDay) = getDayBounds()
             val completionsCount = dao.countCompletionsForHabitOnDay(habitId, startOfDay, endOfDay)
-            if (completionsCount > 0) {
-                shouldShow = false
-            }
+            shouldShow = shouldShowHabitNotification(skipCompleted, completionsCount, isInverse, target)
         }
 
         if (shouldShow) {
             createNotificationChannel(context)
-            showNotification(context, habitName, habitId)
+            showNotification(context, habitName, habitId, isInverse, dao)
         }
 
         // Reschedule the notification for the next day
-        val habit = dao.getHabit(habitId)
         if (habit != null) {
             HabitNotificationScheduler.scheduleNotification(context, habit)
         }
@@ -66,7 +55,13 @@ class HabitNotificationWorker(
         return Result.success()
     }
 
-    private fun showNotification(context: Context, habitName: String, habitId: String) {
+    private suspend fun showNotification(
+        context: Context,
+        habitName: String,
+        habitId: String,
+        isInverse: Boolean,
+        dao: com.habitly.habitly.data.Database.HabitDao
+    ) {
         val notificationManager =
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
@@ -78,29 +73,49 @@ class HabitNotificationWorker(
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        val actionIntent = android.content.Intent(context, NotificationReceiver::class.java).apply {
-            action = "ACTION_COMPLETE_HABIT"
-            putExtra("habitId", habitId)
-        }
-        val actionPendingIntent = PendingIntent.getBroadcast(
-            context,
-            habitId.hashCode() + 1,
-            actionIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
+        val title = getHabitNotificationTitle(isInverse)
+        val contentText = getHabitNotificationContent(habitName, isInverse)
 
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification) // A default launcher icon
-            .setContentTitle("Habit Reminder")
-            .setContentText("Time to work on your habit: $habitName")
+            .setContentTitle(title)
+            .setContentText(contentText)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
-            .addAction(
-                0,
-                "Complete",
-                actionPendingIntent
+
+        val (startOfDay, endOfDay) = getDayBounds()
+        val currentCount = dao.countCompletionsForHabitOnDay(habitId, startOfDay, endOfDay)
+        val habit = dao.getHabit(habitId)
+        val target = habit?.getDailyTarget() ?: 1
+
+        if (isInverse) {
+            if (canOfferUncomplete(isInverse, currentCount, target)) {
+                val actionIntent = android.content.Intent(context, NotificationReceiver::class.java).apply {
+                    action = "ACTION_UNCOMPLETE_HABIT"
+                    putExtra("habitId", habitId)
+                }
+                val actionPendingIntent = PendingIntent.getBroadcast(
+                    context,
+                    habitId.hashCode() + 1,
+                    actionIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+                builder.addAction(0, getHabitNotificationActionLabel(isInverse = true), actionPendingIntent)
+            }
+        } else {
+            val actionIntent = android.content.Intent(context, NotificationReceiver::class.java).apply {
+                action = "ACTION_COMPLETE_HABIT"
+                putExtra("habitId", habitId)
+            }
+            val actionPendingIntent = PendingIntent.getBroadcast(
+                context,
+                habitId.hashCode() + 1,
+                actionIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
+            builder.addAction(0, getHabitNotificationActionLabel(isInverse = false), actionPendingIntent)
+        }
 
         notificationManager.notify(habitId.hashCode(), builder.build())
     }
@@ -110,6 +125,7 @@ class HabitNotificationWorker(
         const val KEY_HABIT_NAME = "habit_name"
         const val KEY_HABIT_NOTIFICATION_DAYS = "habit_notification_days"
         const val KEY_HABIT_NOTIFICATION_TIME = "habit_notification_time"
+        const val KEY_HABIT_IS_INVERSE = "habit_is_inverse"
         private const val CHANNEL_ID = "habit_reminders"
         private const val CHANNEL_NAME = "Habit Reminders"
         private const val CHANNEL_DESCRIPTION = "Notifications to remind you about your habits"

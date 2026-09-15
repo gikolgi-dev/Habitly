@@ -16,8 +16,8 @@ android {
         applicationId = if (isDeveloperMode) "com.developer.habitly" else "com.habitly.habitly"
         minSdk = 24
         targetSdk = 37
-        versionCode = 14
-        versionName = "3.0.0"
+        versionCode = 15
+        versionName = "3.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

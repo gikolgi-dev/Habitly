@@ -6,6 +6,10 @@ import com.habitly.habitly.data.settings.DefaultSettings
 import com.habitly.habitly.notifications.getDayBounds
 import com.habitly.habitly.notifications.getNextAlarmTime
 import com.habitly.habitly.notifications.shouldShowHabitNotification
+import com.habitly.habitly.notifications.getHabitNotificationTitle
+import com.habitly.habitly.notifications.getHabitNotificationContent
+import com.habitly.habitly.notifications.getHabitNotificationActionLabel
+import com.habitly.habitly.notifications.canOfferUncomplete
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -93,6 +97,81 @@ class NotificationTest {
     fun shouldShowHabitNotification_notCompletedAndSkipDisabled_showsNotification() {
         // Baseline: not completed and skip disabled -> shows notification
         assertTrue(shouldShowHabitNotification(skipCompleted = false, completionsCount = 0))
+    }
+
+    @Test
+    fun getHabitNotificationTitle_buildHabit_returnsCompletionReminder() {
+        assertEquals("Completion Reminder", getHabitNotificationTitle(isInverse = false))
+    }
+
+    @Test
+    fun getHabitNotificationTitle_quitHabit_returnsQuitReminder() {
+        assertEquals("Quit Reminder", getHabitNotificationTitle(isInverse = true))
+    }
+
+    @Test
+    fun getHabitNotificationContent_buildHabit_returnsCompletionPrompt() {
+        assertEquals(
+            "Don't forget to complete Workout today.",
+            getHabitNotificationContent(habitName = "Workout", isInverse = false)
+        )
+    }
+
+    @Test
+    fun getHabitNotificationContent_quitHabit_asksIfUserSucceededInQuitting() {
+        assertEquals(
+            "Did you succeed in quitting Smoking today?",
+            getHabitNotificationContent(habitName = "Smoking", isInverse = true)
+        )
+    }
+
+    @Test
+    fun getHabitNotificationActionLabel_buildHabit_returnsComplete() {
+        assertEquals("Complete", getHabitNotificationActionLabel(isInverse = false))
+    }
+
+    @Test
+    fun getHabitNotificationActionLabel_quitHabit_returnsUncomplete() {
+        assertEquals("Uncomplete", getHabitNotificationActionLabel(isInverse = true))
+    }
+
+    @Test
+    fun canOfferUncomplete_quitHabit_belowTarget_returnsTrue() {
+        // Binary quit habit (target 1): 0 slips -> can uncomplete
+        assertTrue(canOfferUncomplete(isInverse = true, currentSlips = 0, target = 1))
+        // Multi-slip quit habit (target 3): 1 slip -> can uncomplete further
+        assertTrue(canOfferUncomplete(isInverse = true, currentSlips = 1, target = 3))
+    }
+
+    @Test
+    fun canOfferUncomplete_quitHabit_atOrAboveTarget_returnsFalse() {
+        // Binary quit habit (target 1): 1 slip -> already fully uncompleted today
+        assertFalse(canOfferUncomplete(isInverse = true, currentSlips = 1, target = 1))
+        // Multi-slip quit habit (target 3): 3 slips -> already reached max slips
+        assertFalse(canOfferUncomplete(isInverse = true, currentSlips = 3, target = 3))
+    }
+
+    @Test
+    fun canOfferUncomplete_buildHabit_returnsFalse() {
+        assertFalse(canOfferUncomplete(isInverse = false, currentSlips = 0, target = 1))
+    }
+
+    @Test
+    fun shouldShowHabitNotification_quitHabit_noSlipsAndSkipEnabled_showsNotification() {
+        // For a quit habit, 0 slips means abstaining so far; check-in reminder should show
+        assertTrue(shouldShowHabitNotification(skipCompleted = true, completionsCount = 0, isInverse = true, target = 1))
+    }
+
+    @Test
+    fun shouldShowHabitNotification_quitHabit_allSlipsUsedAndSkipEnabled_doesNotShow() {
+        // For a quit habit, if all slips were already used today (already uncompleted), skip if skipCompleted is true
+        assertFalse(shouldShowHabitNotification(skipCompleted = true, completionsCount = 1, isInverse = true, target = 1))
+    }
+
+    @Test
+    fun shouldShowHabitNotification_quitHabit_skipDisabled_showsNotificationEvenWithSlips() {
+        // If skip is disabled, always show
+        assertTrue(shouldShowHabitNotification(skipCompleted = false, completionsCount = 1, isInverse = true, target = 1))
     }
 
     @Test
