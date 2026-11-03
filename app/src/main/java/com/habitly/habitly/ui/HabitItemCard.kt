@@ -565,14 +565,21 @@ fun HabitItemCard(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                RotatingHabitIcon(habit = habit)
+                RotatingHabitIcon(
+                    habit = habit,
+                    borderContrast = borderContrast,
+                    shouldAnimate = !disableAnimations
+                )
 
                 Spacer(modifier = Modifier.size(16.dp))
 
                 HabitTitleAndDescription(
                     habit = habit,
                     isDetailView = false,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    autoScrollText = autoScrollText,
+                    autoScrollTextElements = autoScrollTextElements,
+                    autoScrollTextScreens = autoScrollTextScreens
                 )
 
                 Spacer(modifier = Modifier.size(16.dp))
@@ -630,11 +637,21 @@ fun HabitItemCard(
                     completions = completions,
                     habitColor = Color(habit.color),
                     modifier = Modifier.fillMaxWidth(),
+                    isScrollable = heatmapScrollEnabled,
+                    showMonthLabels = showMonthLabels,
+                    visibleDayLabels = visibleDayLabels,
+                    dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight,
+                    showYearDivider = showYearDivider,
+                    showYearLabels = showYearLabels,
+                    showScrollBlur = showScrollBlur,
                     minWeeks = heatmapWeeks,
                     isInfinite = heatmapInfinite,
                     currentDateMillis = currentDateMillis,
                     habit = habit,
-                    animateTileChanges = animateTileChanges
+                    showNotificationDot = heatmapNotificationDot,
+                    notificationDotRange = heatmapNotificationDotRange,
+                    animateTileChanges = animateTileChanges,
+                    firstDayOfWeek = firstDayOfWeek
                 )
             }
         }

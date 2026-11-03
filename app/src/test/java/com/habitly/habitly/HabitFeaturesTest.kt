@@ -510,7 +510,7 @@ class HabitFeaturesTest {
 
         assertNotNull(decoded.settings)
         assertEquals("dark", decoded.settings?.theme)
-        assertFalse(decoded.settings?.ignoreWelcomeEngine ?: true)
+        assertTrue(decoded.settings?.ignoreWelcomeEngine ?: false)
     }
 
     @Test

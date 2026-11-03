@@ -407,7 +407,7 @@ fun NotificationSettingsScreen(
         }
 
         Spacer(modifier = Modifier.height(8.dp))
-
+        /*
         SettingsGroup(
             title = "Welcome Card Notification",
             settingsDataStore = settingsDataStore
@@ -423,6 +423,8 @@ fun NotificationSettingsScreen(
             )
         }
 
+        Spacer(modifier = Modifier.height(8.dp))
+        */
         Spacer(modifier = Modifier.height(8.dp))
 
         if (BuildConfig.IS_DEVELOPER_MODE) {

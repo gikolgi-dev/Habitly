@@ -163,42 +163,8 @@ class NotificationScheduler(private val context: Context) {
     }
 
     fun scheduleWelcomeCardNotification(time: String, days: Set<String>, exactMode: Boolean? = null) {
-        if (days.isEmpty()) {
-            cancelWelcomeCardNotification()
-            return
-        }
-
-        val intent = Intent(context, NotificationReceiver::class.java).apply {
-            putExtra("habitId", WELCOME_CARD_NOTIFICATION_ID)
-            putExtra("notificationTime", time)
-            putExtra("notificationDays", days.toTypedArray())
-        }
-
-        val pendingIntent = PendingIntent.getBroadcast(
-            context,
-            WELCOME_CARD_NOTIFICATION_REQUEST_CODE,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val timeParts = time.split(":")
-        val hour = timeParts.getOrNull(0)?.toIntOrNull()
-        val minute = timeParts.getOrNull(1)?.toIntOrNull()
-        if (hour == null || minute == null || hour !in 0..23 || minute !in 0..59) {
-            cancelWelcomeCardNotification()
-            return
-        }
-
-        val nextAlarmTime = getNextAlarmTime(hour, minute, days) ?: return
-
-        if (exactMode != null) {
-            scheduleAlarm(alarmManager, nextAlarmTime, pendingIntent, exactMode)
-        } else {
-            CoroutineScope(Dispatchers.IO).launch {
-                val isExact = SettingsDataStore(context).exactAlarms.first()
-                scheduleAlarm(alarmManager, nextAlarmTime, pendingIntent, isExact)
-            }
-        }
+        // Welcome card notifications are dropped/disabled
+        cancelWelcomeCardNotification()
     }
 
     fun cancelWelcomeCardNotification() {
@@ -231,14 +197,8 @@ class NotificationScheduler(private val context: Context) {
             cancelGeneralNotification()
         }
 
-        val welcomeCardEnabled = settingsDataStore.welcomeCardNotificationEnabled.first()
-        if (welcomeCardEnabled) {
-            val wcTime = settingsDataStore.welcomeCardNotificationTime.first()
-            val wcDays = settingsDataStore.welcomeCardNotificationDays.first()
-            scheduleWelcomeCardNotification(wcTime, wcDays, exactMode)
-        } else {
-            cancelWelcomeCardNotification()
-        }
+        // Welcome card notification is disabled; cancel any existing scheduled alarm
+        cancelWelcomeCardNotification()
     }
 
     suspend fun cancelAllNotifications() {
@@ -534,13 +494,18 @@ class NotificationReceiver : BroadcastReceiver() {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                var shouldShow = true
                 val isGeneralNotification = habitId == GENERAL_NOTIFICATION_ID
                 val isWelcomeCardNotification = habitId == WELCOME_CARD_NOTIFICATION_ID
+                if (isWelcomeCardNotification) {
+                    // Welcome card notifications are disabled and should never be displayed
+                    NotificationScheduler(context).cancelWelcomeCardNotification()
+                    return@launch
+                }
+                var shouldShow = true
                 val settingsDataStore = SettingsDataStore(context)
                 val snoozeEnabled = settingsDataStore.snoozeEnabled.first()
                 val exactMode = settingsDataStore.exactAlarms.first()
-                if (!isGeneralNotification && !isWelcomeCardNotification) {
+                if (!isGeneralNotification) {
                     // Check if the user has opted to skip notifications for habits already completed today
                     val skipCompleted = settingsDataStore.skipCompletedHabitNotifications.first()
 
@@ -645,7 +610,7 @@ class NotificationReceiver : BroadcastReceiver() {
                 savedHabitId = savedHabit,
                 savedTemplateIndex = savedTemplate,
                 ignoreDailyLock = BuildConfig.IS_DEVELOPER_MODE,
-                ignoreWelcomeEngine = ignoreWelcomeEngine
+                ignoreWelcomeEngine = true
             )
             if (resolved.isNewSelection) {
                 settingsDataStore.saveWelcomeCardState(

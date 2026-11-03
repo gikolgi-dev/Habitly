@@ -255,7 +255,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 savedHabitId = savedWelcomeHabitId.ifEmpty { null },
                 savedTemplateIndex = savedWelcomeTemplateIndex,
                 ignoreDailyLock = BuildConfig.IS_DEVELOPER_MODE,
-                ignoreWelcomeEngine = ignoreWelcomeEngine
+                ignoreWelcomeEngine = true
             )
         }
     }

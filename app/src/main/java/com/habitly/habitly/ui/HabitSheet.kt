@@ -1295,6 +1295,7 @@ fun HabitSheetContent(
                     }
                 }
             }
+            /*
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -1338,6 +1339,7 @@ fun HabitSheetContent(
                     )
                 }
             }
+            */
             Spacer(modifier = Modifier.height(80.dp))
         }
     }

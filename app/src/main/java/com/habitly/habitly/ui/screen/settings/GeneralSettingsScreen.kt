@@ -87,6 +87,7 @@ fun GeneralSettingsScreen(
                 }
                 if (vibrationsEnabled) haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
             }
+            /*
             SettingsSwitchItem(
                 text = "Simple welcome descriptions",
                 description = "Ignore the welcome engine and use the original simple descriptions",
@@ -99,6 +100,7 @@ fun GeneralSettingsScreen(
                 }
                 if (vibrationsEnabled) haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
             }
+            */
             SettingsNavigationItem(
                 text = "Week limit",
                 description = "Limit the amount of weeks shown in the heatmap. High values may impact performance.",
