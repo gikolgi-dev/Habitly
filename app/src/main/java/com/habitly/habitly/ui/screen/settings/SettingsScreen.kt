@@ -253,6 +253,17 @@ fun SettingsScreen(
                 },
                 borderContrast = borderContrast,
                 isRoot = true,
+                actions = {
+                    IconButton(onClick = {
+                        if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        scope.launch {
+                            settingsDataStore.resetToDefault()
+                            NotificationScheduler(context).rescheduleAll()
+                        }
+                    }) {
+                        Icon(painter = painterResource(id = R.drawable.resetwrench), contentDescription = "Reset All Settings", tint = MaterialTheme.colorScheme.onSurface)
+                    }
+                },
             ) { paddingValues ->
                 val listState = rememberLazyListState()
                 val isTopBarCollapsed = LocalSettingsTopBarCollapsed.current
@@ -410,6 +421,14 @@ fun SettingsScreen(
                     navController.popBackStack()
                 },
                 borderContrast = borderContrast,
+                actions = {
+                    IconButton(onClick = {
+                        if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        scope.launch { settingsDataStore.resetAccessibilityToDefault() }
+                    }) {
+                        Icon(painter = painterResource(id = R.drawable.resetwrench), contentDescription = "Reset Settings", tint = MaterialTheme.colorScheme.onSurface)
+                    }
+                },
             ) { paddingValues ->
                 AccessibilityScreen(
                     modifier = Modifier.padding(top = paddingValues.calculateTopPadding()),
@@ -434,7 +453,7 @@ fun SettingsScreen(
                 actions = {
                     IconButton(onClick = {
                         if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        scope.launch { settingsDataStore.resetToDefault() }
+                        scope.launch { settingsDataStore.resetAppearanceToDefault() }
                     }) {
                         Icon(painter = painterResource(id = R.drawable.resetwrench), contentDescription = "Reset Settings", tint = MaterialTheme.colorScheme.onSurface)
                     }
@@ -501,6 +520,14 @@ fun SettingsScreen(
                     navController.popBackStack()
                 },
                 borderContrast = borderContrast,
+                actions = {
+                    IconButton(onClick = {
+                        if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        scope.launch { settingsDataStore.resetGeneralToDefault() }
+                    }) {
+                        Icon(painter = painterResource(id = R.drawable.resetwrench), contentDescription = "Reset Settings", tint = MaterialTheme.colorScheme.onSurface)
+                    }
+                },
             ) { paddingValues ->
                 GeneralSettingsScreen(
                     settingsDataStore = settingsDataStore,
@@ -646,6 +673,17 @@ fun SettingsScreen(
                     navController.popBackStack()
                 },
                 borderContrast = borderContrast,
+                actions = {
+                    IconButton(onClick = {
+                        if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        scope.launch {
+                            settingsDataStore.resetNotificationsToDefault()
+                            NotificationScheduler(context).rescheduleAll()
+                        }
+                    }) {
+                        Icon(painter = painterResource(id = R.drawable.resetwrench), contentDescription = "Reset Settings", tint = MaterialTheme.colorScheme.onSurface)
+                    }
+                },
             ) { paddingValues ->
                 NotificationSettingsScreen(
                     settingsDataStore = settingsDataStore,
