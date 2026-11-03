@@ -106,6 +106,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -226,6 +227,19 @@ fun SettingsScreen(
 
     val blurModifier = Modifier
 
+    val navigateBack: () -> Unit = {
+        if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+        if (!navController.popBackStack()) {
+            onDismiss()
+        }
+    }
+
+    fun navigateTo(route: String) {
+        if (navController.currentBackStackEntry?.lifecycle?.currentState == Lifecycle.State.RESUMED) {
+            navController.navigate(route) { launchSingleTop = true }
+        }
+    }
+
     NavHost(
         navController = navController,
         startDestination = "main",
@@ -288,7 +302,7 @@ fun SettingsScreen(
                                 iconColor = MaterialTheme.colorScheme.onPrimaryContainer,
                                 settingsDataStore = settingsDataStore,
                                 position = SettingsItemPosition.Top
-                            ) { navController.navigate("general") { launchSingleTop = true } }
+                            ) { navigateTo("general") }
                             GroupedSettingsItem(
                                 title = "Appearance",
                                 subtitle = "Change the look and feel of the app",
@@ -297,7 +311,7 @@ fun SettingsScreen(
                                 iconColor = MaterialTheme.colorScheme.onSecondaryContainer,
                                 settingsDataStore = settingsDataStore,
                                 position = SettingsItemPosition.Middle
-                            ) { navController.navigate("appearance") { launchSingleTop = true } }
+                            ) { navigateTo("appearance") }
                             GroupedSettingsItem(
                                 title = "Accessibility",
                                 subtitle = "Configure accessibility features",
@@ -306,7 +320,7 @@ fun SettingsScreen(
                                 iconColor = MaterialTheme.colorScheme.onPrimaryContainer,
                                 settingsDataStore = settingsDataStore,
                                 position = SettingsItemPosition.Middle
-                            ) { navController.navigate("accessibility") { launchSingleTop = true } }
+                            ) { navigateTo("accessibility") }
                             GroupedSettingsItem(
                                 title = "Notifications",
                                 subtitle = "Manage daily and habit notifications",
@@ -315,7 +329,7 @@ fun SettingsScreen(
                                 iconColor = MaterialTheme.colorScheme.onTertiary,
                                 settingsDataStore = settingsDataStore,
                                 position = SettingsItemPosition.Bottom
-                            ) { navController.navigate("notifications") { launchSingleTop = true } }
+                            ) { navigateTo("notifications") }
                         }
                     }
                     item {
@@ -328,7 +342,7 @@ fun SettingsScreen(
                                 iconColor = Color(0xFF246D29),
                                 settingsDataStore = settingsDataStore,
                                 position = SettingsItemPosition.Top
-                            ) { navController.navigate("import") { launchSingleTop = true } }
+                            ) { navigateTo("import") }
                             HoldToClearSettingsItem(
                                 title = "Clear all data",
                                 subtitle = "Delete all habits and their completions",
@@ -416,10 +430,7 @@ fun SettingsScreen(
         ) {
             SettingsScaffold(
                 title = "Accessibility",
-                onBack = {
-                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
-                    navController.popBackStack()
-                },
+                onBack = navigateBack,
                 borderContrast = borderContrast,
                 actions = {
                     IconButton(onClick = {
@@ -433,9 +444,9 @@ fun SettingsScreen(
                 AccessibilityScreen(
                     modifier = Modifier.padding(top = paddingValues.calculateTopPadding()),
                     settingsDataStore = settingsDataStore,
-                    onNavigateToScrollBlur = { navController.navigate("scroll_blur") { launchSingleTop = true } },
-                    onNavigateToReduceMovement = { navController.navigate("reduce_movement") { launchSingleTop = true } },
-                    onNavigateToAutoScroll = { navController.navigate("auto_scroll") { launchSingleTop = true } }
+                    onNavigateToScrollBlur = { navigateTo("scroll_blur") },
+                    onNavigateToReduceMovement = { navigateTo("reduce_movement") },
+                    onNavigateToAutoScroll = { navigateTo("auto_scroll") }
                 )
             }
         }
@@ -445,10 +456,7 @@ fun SettingsScreen(
         ) {
             SettingsScaffold(
                 title = "Appearance",
-                onBack = {
-                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
-                    navController.popBackStack()
-                },
+                onBack = navigateBack,
                 borderContrast = borderContrast,
                 actions = {
                     IconButton(onClick = {
@@ -462,8 +470,8 @@ fun SettingsScreen(
                 AppearanceScreen(
                     modifier = Modifier.padding(top = paddingValues.calculateTopPadding()),
                     settingsDataStore = settingsDataStore,
-                    onNavigateToHabitColor = { navController.navigate("habit_color") { launchSingleTop = true } },
-                    onNavigateToHeatmap = { navController.navigate("heatmap") { launchSingleTop = true } }
+                    onNavigateToHabitColor = { navigateTo("habit_color") },
+                    onNavigateToHeatmap = { navigateTo("heatmap") }
                 )
             }
         }
@@ -473,10 +481,7 @@ fun SettingsScreen(
         ) {
             SettingsScaffold(
                 title = "Heatmap",
-                onBack = {
-                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
-                    navController.popBackStack()
-                },
+                onBack = navigateBack,
                 borderContrast = borderContrast,
             ) { paddingValues ->
                 HeatmapSubScreen(
@@ -503,8 +508,8 @@ fun SettingsScreen(
                     autoScrollTextElements = autoScrollTextElements,
                     autoScrollTextScreens = autoScrollTextScreens,
                     theme = theme,
-                    onNavigateToHeatmapNotificationDot = { navController.navigate("heatmap_notification_dot") { launchSingleTop = true } },
-                    onNavigateToHabitColor = { navController.navigate("habit_color") { launchSingleTop = true } },
+                    onNavigateToHeatmapNotificationDot = { navigateTo("heatmap_notification_dot") },
+                    onNavigateToHabitColor = { navigateTo("habit_color") },
                     modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
                 )
             }
@@ -515,10 +520,7 @@ fun SettingsScreen(
         ) {
             SettingsScaffold(
                 title = "General",
-                onBack = {
-                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
-                    navController.popBackStack()
-                },
+                onBack = navigateBack,
                 borderContrast = borderContrast,
                 actions = {
                     IconButton(onClick = {
@@ -531,7 +533,7 @@ fun SettingsScreen(
             ) { paddingValues ->
                 GeneralSettingsScreen(
                     settingsDataStore = settingsDataStore,
-                    onNavigateToHeatmapWeeks = { navController.navigate("heatmap_weeks") { launchSingleTop = true } },
+                    onNavigateToHeatmapWeeks = { navigateTo("heatmap_weeks") },
                     modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
                 )
             }
@@ -542,10 +544,7 @@ fun SettingsScreen(
         ) {
             SettingsScaffold(
                 title = "Week limit",
-                onBack = {
-                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
-                    navController.popBackStack()
-                },
+                onBack = navigateBack,
                 borderContrast = borderContrast,
             ) { paddingValues ->
                 HeatmapWeeksSubScreen(
@@ -560,10 +559,7 @@ fun SettingsScreen(
         ) {
             SettingsScaffold(
                 title = "Notification indicator",
-                onBack = {
-                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
-                    navController.popBackStack()
-                },
+                onBack = navigateBack,
                 borderContrast = borderContrast
             ) { paddingValues ->
                 HeatmapNotificationDotSubScreen(
@@ -578,10 +574,7 @@ fun SettingsScreen(
         ) {
             SettingsScaffold(
                 title = "Data Management",
-                onBack = {
-                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
-                    navController.popBackStack()
-                },
+                onBack = navigateBack,
                 borderContrast = borderContrast,
             ) { paddingValues ->
                 ImportExportScreen(
@@ -596,10 +589,7 @@ fun SettingsScreen(
         ) {
             SettingsScaffold(
                 title = "Scroll Blur",
-                onBack = {
-                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
-                    navController.popBackStack()
-                },
+                onBack = navigateBack,
                 borderContrast = borderContrast,
             ) { paddingValues ->
                 ScrollBlurSubScreen(
@@ -614,10 +604,7 @@ fun SettingsScreen(
         ) {
             SettingsScaffold(
                 title = "Habit Color",
-                onBack = {
-                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
-                    navController.popBackStack()
-                },
+                onBack = navigateBack,
                 borderContrast = borderContrast,
             ) { paddingValues ->
                 HabitColorSubScreen(
@@ -632,10 +619,7 @@ fun SettingsScreen(
         ) {
             SettingsScaffold(
                 title = "Reduce Movement",
-                onBack = {
-                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
-                    navController.popBackStack()
-                },
+                onBack = navigateBack,
                 borderContrast = borderContrast,
             ) { paddingValues ->
                 ReduceMovementSubScreen(
@@ -650,10 +634,7 @@ fun SettingsScreen(
         ) {
             SettingsScaffold(
                 title = "Auto-Scroll",
-                onBack = {
-                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
-                    navController.popBackStack()
-                },
+                onBack = navigateBack,
                 borderContrast = borderContrast,
             ) { paddingValues ->
                 AutoScrollSubScreen(
@@ -668,10 +649,7 @@ fun SettingsScreen(
         ) {
             SettingsScaffold(
                 title = "Notifications",
-                onBack = {
-                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
-                    navController.popBackStack()
-                },
+                onBack = navigateBack,
                 borderContrast = borderContrast,
                 actions = {
                     IconButton(onClick = {
@@ -689,8 +667,8 @@ fun SettingsScreen(
                     settingsDataStore = settingsDataStore,
                     is24Hour = is24Hour,
                     borderContrast = borderContrast,
-                    onNavigateToDailyNotification = { navController.navigate("daily_notification") { launchSingleTop = true } },
-                    onNavigateToWelcomeCardNotification = { navController.navigate("welcome_card_notification") { launchSingleTop = true } },
+                    onNavigateToDailyNotification = { navigateTo("daily_notification") },
+                    onNavigateToWelcomeCardNotification = { navigateTo("welcome_card_notification") },
                     modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
                 )
             }
@@ -701,10 +679,7 @@ fun SettingsScreen(
         ) {
             SettingsScaffold(
                 title = "Daily reminder",
-                onBack = {
-                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
-                    navController.popBackStack()
-                },
+                onBack = navigateBack,
                 borderContrast = borderContrast,
             ) { paddingValues ->
                 DailyNotificationSubScreen(
@@ -721,10 +696,7 @@ fun SettingsScreen(
         ) {
             SettingsScaffold(
                 title = "Welcome Card",
-                onBack = {
-                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
-                    navController.popBackStack()
-                },
+                onBack = navigateBack,
                 borderContrast = borderContrast,
             ) { paddingValues ->
                 WelcomeCardNotificationSubScreen(
@@ -850,7 +822,15 @@ fun AnimatedVisibilityScope.SettingsScaffold(
                                 .padding(start = 4.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            AppBackButton(onBack = onBack, borderContrast = borderContrast, isRoot = isRoot)
+                            AppBackButton(
+                                onBack = {
+                                    if (transition.targetState == EnterExitState.Visible) {
+                                        onBack()
+                                    }
+                                },
+                                borderContrast = borderContrast,
+                                isRoot = isRoot
+                            )
                         }
 
                         // Actions stay at the top
