@@ -45,6 +45,7 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.habitly.habitly.ui.colors.isBright
 import com.habitly.habitly.ui.colors.toThemeHabitColor
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -167,24 +168,20 @@ fun SharedTransitionScope.HabitDetailScreen(
     val streak =
         remember(habit, completions, currentDateMillis, firstDayOfWeek) { calculateStreak(habit, completions, currentDateMillis, firstDayOfWeek) }
 
-    val useDarkTheme = when (theme) {
-        "light" -> false
-        "dark" -> true
-        else -> isSystemInDarkTheme()
-    }
+    val useDarkTheme = !MaterialTheme.colorScheme.surface.isBright()
     val secondaryContainerAlpha = if (useDarkTheme) 0.25f else 1f
 
     val habitThemeColor = Color(habit.color).toThemeHabitColor(useDarkTheme)
     val cardBackgroundColor = if (useHabitColor) {
-        lerp(habitThemeColor, MaterialTheme.colorScheme.surfaceVariant, if (useDarkTheme) 0.85f else 0.82f)
+        lerp(habitThemeColor, MaterialTheme.colorScheme.surfaceContainerHigh, if (useDarkTheme) 0.85f else 0.82f)
     } else {
-        MaterialTheme.colorScheme.surfaceVariant
+        MaterialTheme.colorScheme.surfaceContainerHigh
     }
 
     val cardBorderColor = if (useHabitColor) {
         lerp(
             habitThemeColor,
-            lerp(habitThemeColor, MaterialTheme.colorScheme.surfaceVariant, if (useDarkTheme) 0.85f else 0.82f),
+            lerp(habitThemeColor, MaterialTheme.colorScheme.surfaceContainerHigh, if (useDarkTheme) 0.85f else 0.82f),
             1f - borderContrast
         )
     } else {

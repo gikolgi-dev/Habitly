@@ -28,7 +28,7 @@ fun AppBackButton(
     isRoot: Boolean = false,
     icon: ImageVector = Icons.AutoMirrored.Filled.ArrowBack,
     tint: Color = MaterialTheme.colorScheme.onSurface,
-    backgroundColor: Color = MaterialTheme.colorScheme.surfaceVariant
+    backgroundColor: Color = MaterialTheme.colorScheme.surfaceContainerHigh
 ) {
     OutlinedIconButton(
         onClick = onBack,

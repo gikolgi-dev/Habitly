@@ -117,7 +117,7 @@ fun SettingsItemBox(
         modifier = modifier
             .fillMaxWidth()
             .clip(shape)
-            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .border(
                 1.dp,
                 MaterialTheme.colorScheme.outline.copy(alpha = borderContrast),

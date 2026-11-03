@@ -364,12 +364,12 @@ fun HabitStatisticsContent(
                 }
             ) { _, moduleId ->
                 val placeholderColor = if (useHabitColorForCard) {
-                    lerp(accentColor, MaterialTheme.colorScheme.surfaceVariant, 0.75f)
+                    lerp(accentColor, MaterialTheme.colorScheme.surfaceContainerHigh, 0.75f)
                 } else {
-                    MaterialTheme.colorScheme.surfaceContainer
+                    MaterialTheme.colorScheme.surfaceContainerHigh
                 }
                 val placeholderBorderColor = if (useHabitColorForCard) {
-                    lerp(accentColor, lerp(accentColor, MaterialTheme.colorScheme.surfaceVariant, 0.75f), 1f - borderContrast)
+                    lerp(accentColor, lerp(accentColor, MaterialTheme.colorScheme.surfaceContainerHigh, 0.75f), 1f - borderContrast)
                 } else {
                     MaterialTheme.colorScheme.outlineVariant.copy(alpha = borderContrast)
                 }
@@ -925,13 +925,13 @@ fun StatCard(
     isFullWidth: Boolean = false
 ) {
     val cardBackgroundColor = if (useHabitColorForCard) {
-        lerp(habitColor, MaterialTheme.colorScheme.surfaceVariant, 0.75f)
+        lerp(habitColor, MaterialTheme.colorScheme.surfaceContainerHigh, 0.75f)
     } else {
-        MaterialTheme.colorScheme.surfaceContainer
+        MaterialTheme.colorScheme.surfaceContainerHigh
     }
 
     val cardBorderColor = if (useHabitColorForCard) {
-        lerp(habitColor, lerp(habitColor, MaterialTheme.colorScheme.surfaceVariant, 0.75f), 1f - borderContrast)
+        lerp(habitColor, lerp(habitColor, MaterialTheme.colorScheme.surfaceContainerHigh, 0.75f), 1f - borderContrast)
     } else {
         MaterialTheme.colorScheme.outlineVariant.copy(alpha = borderContrast)
     }
@@ -1026,13 +1026,13 @@ fun PageIndicator(
     currentHabitColor: Color = Color.Transparent
 ) {
     val containerColor = if (useHabitColorForCard) {
-        lerp(currentHabitColor, MaterialTheme.colorScheme.surfaceVariant, 0.85f).copy(alpha = 0.95f)
+        lerp(currentHabitColor, MaterialTheme.colorScheme.surfaceContainerHigh, 0.85f).copy(alpha = 0.95f)
     } else {
         MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f)
     }
 
     val borderColor = if (useHabitColorForCard) {
-        lerp(currentHabitColor, lerp(currentHabitColor, MaterialTheme.colorScheme.surfaceVariant, 0.85f), 1f - borderContrast)
+        lerp(currentHabitColor, lerp(currentHabitColor, MaterialTheme.colorScheme.surfaceContainerHigh, 0.85f), 1f - borderContrast)
     } else {
         MaterialTheme.colorScheme.outlineVariant.copy(alpha = borderContrast)
     }
@@ -1082,13 +1082,13 @@ fun MonthlyCompletionGraph(
     var isZoomedOut by remember { mutableStateOf(false) }
 
     val cardBackgroundColor = if (useHabitColorForCard) {
-        lerp(habitColor, MaterialTheme.colorScheme.surfaceVariant, 0.75f)
+        lerp(habitColor, MaterialTheme.colorScheme.surfaceContainerHigh, 0.75f)
     } else {
-        MaterialTheme.colorScheme.surfaceContainer
+        MaterialTheme.colorScheme.surfaceContainerHigh
     }
 
     val cardBorderColor = if (useHabitColorForCard) {
-        lerp(habitColor, lerp(habitColor, MaterialTheme.colorScheme.surfaceVariant, 0.75f), 1f - borderContrast)
+        lerp(habitColor, lerp(habitColor, MaterialTheme.colorScheme.surfaceContainerHigh, 0.75f), 1f - borderContrast)
     } else {
         MaterialTheme.colorScheme.outlineVariant.copy(alpha = borderContrast)
     }

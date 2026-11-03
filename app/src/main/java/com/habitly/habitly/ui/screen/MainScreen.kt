@@ -616,7 +616,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                 val isCompleted = com.habitly.habitly.data.Database.isDayCompleted(habitWithCompletions.habit, habitWithCompletions.completions, currentDateMillis, currentDateMillis)
                                                 val isViewingThis = habitToView?.habit?.id == habitWithCompletions.habit.id
 
-                                                val shadowColor = MaterialTheme.colorScheme.surfaceVariant.copy(/*alpha = 0.15f*/)
+                                                val shadowColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(/*alpha = 0.15f*/)
 
                                                 Box {
                                                     if (isViewingThis) {

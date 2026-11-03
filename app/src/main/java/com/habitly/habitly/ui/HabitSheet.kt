@@ -491,7 +491,7 @@ private fun CloseButton(
         animationSpec = if (isClosePressed) spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessLow) else spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "button_scale"
     )
-    val useDarkTheme = isSystemInDarkTheme()
+    val useDarkTheme = !MaterialTheme.colorScheme.surface.isBright()
     val secondaryContainerAlpha = if (useDarkTheme) 0.25f else 1f
 
     Box(
@@ -666,7 +666,7 @@ fun HabitSheetContent(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                colors = cardColors(MaterialTheme.colorScheme.surfaceVariant)
+                colors = cardColors(MaterialTheme.colorScheme.surfaceContainerHigh)
             ) {
                 Column(modifier = Modifier.padding(horizontal = 12.dp,vertical = 4.dp)) {
                     OutlinedTextField(
@@ -703,7 +703,7 @@ fun HabitSheetContent(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                colors = cardColors(MaterialTheme.colorScheme.surfaceVariant)
+                colors = cardColors(MaterialTheme.colorScheme.surfaceContainerHigh)
             ) {
                 Column(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
@@ -824,7 +824,7 @@ fun HabitSheetContent(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                colors = cardColors(MaterialTheme.colorScheme.surfaceVariant)
+                colors = cardColors(MaterialTheme.colorScheme.surfaceContainerHigh)
             ) {
                 Column(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
@@ -1001,7 +1001,7 @@ fun HabitSheetContent(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                colors = cardColors(MaterialTheme.colorScheme.surfaceVariant)
+                colors = cardColors(MaterialTheme.colorScheme.surfaceContainerHigh)
             ) {
                 Column(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
@@ -1117,7 +1117,7 @@ fun HabitSheetContent(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                colors = cardColors(MaterialTheme.colorScheme.surfaceVariant)
+                colors = cardColors(MaterialTheme.colorScheme.surfaceContainerHigh)
             ) {
                 Column(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
@@ -1162,7 +1162,7 @@ fun HabitSheetContent(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                colors = cardColors(MaterialTheme.colorScheme.surfaceVariant)
+                colors = cardColors(MaterialTheme.colorScheme.surfaceContainerHigh)
             ) {
                 Column(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
@@ -1236,7 +1236,7 @@ fun HabitSheetContent(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                colors = cardColors(MaterialTheme.colorScheme.surfaceVariant)
+                colors = cardColors(MaterialTheme.colorScheme.surfaceContainerHigh)
             ) {
                 Column(
                     modifier = Modifier
@@ -1295,7 +1295,7 @@ fun HabitSheetContent(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                colors = cardColors(MaterialTheme.colorScheme.surfaceVariant)
+                colors = cardColors(MaterialTheme.colorScheme.surfaceContainerHigh)
             ) {
                 Column(
                     modifier = Modifier

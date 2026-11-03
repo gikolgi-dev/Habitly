@@ -498,9 +498,9 @@ fun HabitItemCard(
 
     val habitThemeColor = Color(habit.color).toThemeHabitColor(useDarkTheme)
     val targetCardBackgroundColor = if (useHabitColor) {
-        lerp(habitThemeColor, MaterialTheme.colorScheme.surfaceVariant, if (useDarkTheme) 0.85f else 0.82f)
+        lerp(habitThemeColor, MaterialTheme.colorScheme.surfaceContainerHigh, if (useDarkTheme) 0.85f else 0.82f)
     } else {
-        MaterialTheme.colorScheme.surfaceVariant
+        MaterialTheme.colorScheme.surfaceContainerHigh
     }
 
     val cardBackgroundColor by animateColorAsState(

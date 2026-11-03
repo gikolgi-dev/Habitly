@@ -225,13 +225,13 @@ fun ReorderHabitItem(
     val isDark = !MaterialTheme.colorScheme.surface.isBright()
     val habitThemeColor = Color(habit.color).toThemeHabitColor(isDark)
     val cardBackgroundColor = if (useHabitColor) {
-        lerp(habitThemeColor, MaterialTheme.colorScheme.surface, if (isDark) 0.85f else 0.82f)
+        lerp(habitThemeColor, MaterialTheme.colorScheme.surfaceContainerHigh, if (isDark) 0.85f else 0.82f)
     } else {
-        MaterialTheme.colorScheme.surfaceVariant
+        MaterialTheme.colorScheme.surfaceContainerHigh
     }
 
     val cardBorderColor = if (useHabitColor) {
-        lerp(habitThemeColor, MaterialTheme.colorScheme.surface, 1f - borderContrast)
+        lerp(habitThemeColor, MaterialTheme.colorScheme.outline, 0.5f).copy(alpha = borderContrast)
     } else {
         MaterialTheme.colorScheme.outline.copy(alpha = borderContrast)
     }

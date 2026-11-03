@@ -243,9 +243,9 @@ fun StatisticScreen(
     )
 
     val backButtonBackgroundColor = if (useHabitColor && habits.isNotEmpty()) {
-        lerp(currentHabitColor, MaterialTheme.colorScheme.surfaceVariant, 0.85f)
+        lerp(currentHabitColor, MaterialTheme.colorScheme.surfaceContainerHigh, 0.85f)
     } else {
-        MaterialTheme.colorScheme.surfaceVariant
+        MaterialTheme.colorScheme.surfaceContainerHigh
     }
 
     val topBarTint = if (useHabitColor) currentHabitColor else MaterialTheme.colorScheme.onSurface
@@ -829,12 +829,12 @@ fun InactiveModuleCard(
 
             if (stats == null || monthlyStats == null) {
                 val placeholderColor = if (useHabitColorForCard) {
-                    lerp(accentColor, MaterialTheme.colorScheme.surfaceVariant, 0.75f)
+                    lerp(accentColor, MaterialTheme.colorScheme.surfaceContainerHigh, 0.75f)
                 } else {
-                    MaterialTheme.colorScheme.surfaceContainer
+                    MaterialTheme.colorScheme.surfaceContainerHigh
                 }
                 val placeholderBorderColor = if (useHabitColorForCard) {
-                    lerp(accentColor, lerp(accentColor, MaterialTheme.colorScheme.surfaceVariant, 0.75f), 1f - borderContrast)
+                    lerp(accentColor, lerp(accentColor, MaterialTheme.colorScheme.surfaceContainerHigh, 0.75f), 1f - borderContrast)
                 } else {
                     MaterialTheme.colorScheme.outlineVariant.copy(alpha = borderContrast)
                 }

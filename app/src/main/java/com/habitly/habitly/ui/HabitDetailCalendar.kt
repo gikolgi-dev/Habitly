@@ -486,7 +486,7 @@ fun MonthCalendar(
                                                 modifier = Modifier
                                                     .padding(top = 1.5.dp)
                                                     .clip(CircleShape)
-                                                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                                                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                                                     .padding(horizontal = 4.5.dp, vertical = 0.5.dp),
                                                 contentAlignment = Alignment.Center
                                             ) {

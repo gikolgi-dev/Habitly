@@ -393,7 +393,7 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                     .weight(exportFraction.coerceAtLeast(0.0001f))
                     .graphicsLayer { alpha = exportAlpha }
                     .clip(RoundedCornerShape(8.dp))
-                    .background(color = MaterialTheme.colorScheme.surfaceVariant)
+                    .background(color = MaterialTheme.colorScheme.surfaceContainerHigh)
                     .border(
                         1.dp,
                         MaterialTheme.colorScheme.outline.copy(alpha = bordersAlpha),
@@ -443,7 +443,7 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                 .fillMaxWidth()
                 .weight((1f - exportFraction).coerceAtLeast(0.0001f))
                 .clip(RoundedCornerShape(8.dp))
-                .background(color = MaterialTheme.colorScheme.surfaceVariant)
+                .background(color = MaterialTheme.colorScheme.surfaceContainerHigh)
                 .border(
                     1.dp,
                     MaterialTheme.colorScheme.outline.copy(alpha = bordersAlpha),
@@ -537,7 +537,7 @@ fun ImportExportScreen(db: HabitDatabase, modifier: Modifier = Modifier) {
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp)
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f))
                                 .border(
                                     1.dp,
                                     MaterialTheme.colorScheme.outline.copy(
