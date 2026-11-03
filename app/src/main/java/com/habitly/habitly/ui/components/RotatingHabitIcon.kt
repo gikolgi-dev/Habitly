@@ -78,7 +78,8 @@ fun RotatingHabitIcon(
     }
 
     val icon = habitIconMap[habit.icon] ?: Icons.Default.Refresh
-    val animatedColor by animateColorAsState(targetValue = Color(habit.color), label = "habitColor")
+    val isDark = !MaterialTheme.colorScheme.surface.isBright()
+    val effectiveColor by animateColorAsState(targetValue = Color(habit.color).toThemeHabitColor(isDark), label = "habitColor")
     val cookieShape = MaterialShapes.Cookie12Sided.toShape()
 
     // Springy pop when icon changes
@@ -92,8 +93,6 @@ fun RotatingHabitIcon(
         }
     }
 
-    val isDark = !MaterialTheme.colorScheme.surface.isBright()
-    val effectiveColor = animatedColor.toThemeHabitColor(isDark)
 
     Box(
         modifier = modifier

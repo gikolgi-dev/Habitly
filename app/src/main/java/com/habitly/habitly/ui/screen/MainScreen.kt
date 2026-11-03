@@ -1226,6 +1226,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                         heatmapWeeks = heatmapWeeks,
                                         heatmapInfinite = heatmapInfinite,
                                         useHabitColor = useHabitColorForItemCards,
+                                        theme = theme,
                                         disableAnimations = disableAnimations,
                                         isPreview = true,
                                         onComplete = { /* Do nothing in preview */ },

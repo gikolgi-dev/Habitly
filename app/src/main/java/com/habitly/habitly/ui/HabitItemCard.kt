@@ -228,13 +228,9 @@ fun HabitCompletionButton(
     val currentCompletionsState by rememberUpdatedState(currentCompletions)
     val currentHabitState by rememberUpdatedState(habit)
 
-    val useDarkTheme = when (theme) {
-        "light" -> false
-        "dark" -> true
-        else -> androidx.compose.foundation.isSystemInDarkTheme()
-    }
+    val useDarkTheme = !MaterialTheme.colorScheme.surface.isBright()
     val target = habit.getDailyTarget()
-    val color = Color(habit.color)
+    val color = Color(habit.color).toThemeHabitColor(useDarkTheme)
     val targetProgress = if (isCompleted) 1f else 0f
     val progressState = animateFloatAsState(
         targetValue = targetProgress,
@@ -249,7 +245,7 @@ fun HabitCompletionButton(
     )
 
     val animatedHabitColorState =
-        animateColorAsState(targetValue = color, animationSpec = tween(300), label = "habitColor")
+        animateColorAsState(targetValue = color, label = "habitColor")
 
 
     val rotationAnimationSpec = tween<Float>(durationMillis = 400, easing = FastOutSlowInEasing)
@@ -309,7 +305,7 @@ fun HabitCompletionButton(
 
                 val bgAlpha = lerp(if (useDarkTheme) 0.1f else 0.22f, 1f, p)
                 val strokeAlpha = lerp(borderContrast, 1f, p)
-                val currentColor = animatedHabitColorState.value.toThemeHabitColor(useDarkTheme)
+                val currentColor = animatedHabitColorState.value
 
                 val itemBgColor = currentColor.copy(alpha = bgAlpha)
                 val itemStrokeColor = currentColor.copy(alpha = strokeAlpha)
@@ -426,7 +422,7 @@ fun HabitCompletionButton(
             ),
         contentAlignment = Alignment.Center
     ) {
-        val animatedHabitColor = animatedHabitColorState.value.toThemeHabitColor(useDarkTheme)
+        val animatedHabitColor = animatedHabitColorState.value
         val iconTintColor = if (isCompleted) {
             if (animatedHabitColor.isBright()) Color.Black else Color.White
         } else {
@@ -502,11 +498,7 @@ fun HabitItemCard(
     vibrationsEnabled: Boolean = true
 ) {
     val haptic = LocalHapticFeedback.current
-    val useDarkTheme = when (theme) {
-        "light" -> false
-        "dark" -> true
-        else -> androidx.compose.foundation.isSystemInDarkTheme()
-    }
+    val useDarkTheme = !MaterialTheme.colorScheme.surface.isBright()
 
     val habitThemeColor = Color(habit.color).toThemeHabitColor(useDarkTheme)
     val targetCardBackgroundColor = if (useHabitColor) {
@@ -517,7 +509,6 @@ fun HabitItemCard(
 
     val cardBackgroundColor by animateColorAsState(
         targetValue = targetCardBackgroundColor,
-        animationSpec = tween(300),
         label = "cardBackgroundColor"
     )
 
@@ -529,7 +520,6 @@ fun HabitItemCard(
 
     val cardBorderColor by animateColorAsState(
         targetValue = targetBorderColor,
-        animationSpec = tween(300),
         label = "cardBorderColor"
     )
 
