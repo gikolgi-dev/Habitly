@@ -96,6 +96,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -548,8 +549,8 @@ fun StatisticScreen(
                                 .fillMaxWidth()
                                 .height(animatedShelfHeight),
                             shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
-                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            tonalElevation = 8.dp,
+                            color = MaterialTheme.colorScheme.surfaceContainerLow,
+                            tonalElevation = 0.dp,
                             border = if (borderContrast > 0f) {
                                 BorderStroke(
                                     1.dp,
@@ -829,14 +830,16 @@ fun InactiveModuleCard(
 
             val haptic = LocalHapticFeedback.current
 
+            val baseCardColor = lerp(MaterialTheme.colorScheme.surfaceContainerHighest, MaterialTheme.colorScheme.onSurface, 0.06f)
+
             if (stats == null || monthlyStats == null) {
                 val placeholderColor = if (useHabitColorForCard) {
-                    lerp(accentColor, MaterialTheme.colorScheme.surfaceContainerHigh, 0.75f)
+                    lerp(accentColor, baseCardColor, 0.75f)
                 } else {
-                    MaterialTheme.colorScheme.surfaceContainerHigh
+                    baseCardColor
                 }
                 val placeholderBorderColor = if (useHabitColorForCard) {
-                    lerp(accentColor, lerp(accentColor, MaterialTheme.colorScheme.surfaceContainerHigh, 0.75f), 1f - borderContrast)
+                    lerp(accentColor, lerp(accentColor, baseCardColor, 0.75f), 1f - borderContrast)
                 } else {
                     MaterialTheme.colorScheme.outlineVariant.copy(alpha = borderContrast)
                 }
@@ -850,15 +853,14 @@ fun InactiveModuleCard(
                 return
             }
 
-            Box(
-                modifier = Modifier
-                    .clickable {
-                        onAdd()
-                        if (vibrationsEnabled) {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        }
-                    }
-            ) {
+            val onCardClick = {
+                if (vibrationsEnabled) {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                }
+                onAdd()
+            }
+
+            Box {
                 when (moduleId) {
                     "longest_streak" -> StatCard(
                         label = "Longest Streak",
@@ -867,7 +869,9 @@ fun InactiveModuleCard(
                         accentColor = displayAccentColor,
                         borderContrast = borderContrast,
                         useHabitColorForCard = useHabitColorForCard,
-                        habitColor = accentColor
+                        habitColor = accentColor,
+                        baseContainerColor = baseCardColor,
+                        onClick = onCardClick
                     )
 
                     "current_streak" -> StatCard(
@@ -876,7 +880,9 @@ fun InactiveModuleCard(
                         accentColor = displayAccentColor,
                         borderContrast = borderContrast,
                         useHabitColorForCard = useHabitColorForCard,
-                        habitColor = accentColor
+                        habitColor = accentColor,
+                        baseContainerColor = baseCardColor,
+                        onClick = onCardClick
                     )
 
                     "completion_ratio" -> StatCard(
@@ -885,7 +891,9 @@ fun InactiveModuleCard(
                         accentColor = displayAccentColor,
                         borderContrast = borderContrast,
                         useHabitColorForCard = useHabitColorForCard,
-                        habitColor = accentColor
+                        habitColor = accentColor,
+                        baseContainerColor = baseCardColor,
+                        onClick = onCardClick
                     )
 
                     "avg_completion_time" -> StatCard(
@@ -894,7 +902,9 @@ fun InactiveModuleCard(
                         accentColor = displayAccentColor,
                         borderContrast = borderContrast,
                         useHabitColorForCard = useHabitColorForCard,
-                        habitColor = accentColor
+                        habitColor = accentColor,
+                        baseContainerColor = baseCardColor,
+                        onClick = onCardClick
                     )
 
                     "days_since_creation" -> StatCard(
@@ -903,7 +913,9 @@ fun InactiveModuleCard(
                         accentColor = displayAccentColor,
                         borderContrast = borderContrast,
                         useHabitColorForCard = useHabitColorForCard,
-                        habitColor = accentColor
+                        habitColor = accentColor,
+                        baseContainerColor = baseCardColor,
+                        onClick = onCardClick
                     )
 
                     "total_completions" -> StatCard(
@@ -912,7 +924,9 @@ fun InactiveModuleCard(
                         accentColor = displayAccentColor,
                         borderContrast = borderContrast,
                         useHabitColorForCard = useHabitColorForCard,
-                        habitColor = accentColor
+                        habitColor = accentColor,
+                        baseContainerColor = baseCardColor,
+                        onClick = onCardClick
                     )
 
                     "best_day_of_week" -> StatCard(
@@ -921,7 +935,9 @@ fun InactiveModuleCard(
                         accentColor = displayAccentColor,
                         borderContrast = borderContrast,
                         useHabitColorForCard = useHabitColorForCard,
-                        habitColor = accentColor
+                        habitColor = accentColor,
+                        baseContainerColor = baseCardColor,
+                        onClick = onCardClick
                     )
 
                     "rate_last_30_days" -> StatCard(
@@ -930,7 +946,9 @@ fun InactiveModuleCard(
                         accentColor = displayAccentColor,
                         borderContrast = borderContrast,
                         useHabitColorForCard = useHabitColorForCard,
-                        habitColor = accentColor
+                        habitColor = accentColor,
+                        baseContainerColor = baseCardColor,
+                        onClick = onCardClick
                     )
 
                     "monthly_chart" -> MonthlyCompletionGraph(
@@ -942,7 +960,9 @@ fun InactiveModuleCard(
                         useHabitColorForCard = useHabitColorForCard,
                         habitColor = accentColor,
                         showYearDivider = showYearDivider,
-                        interactive = false
+                        interactive = false,
+                        baseContainerColor = baseCardColor,
+                        onClick = onCardClick
                     )
                 }
 
@@ -951,6 +971,7 @@ fun InactiveModuleCard(
                         .align(Alignment.TopEnd)
                         .offset(x = 6.dp, y = (-6).dp)
                         .size(22.dp)
+                        .clip(CircleShape)
                         .background(
                             color = MaterialTheme.colorScheme.primary,
                             shape = CircleShape

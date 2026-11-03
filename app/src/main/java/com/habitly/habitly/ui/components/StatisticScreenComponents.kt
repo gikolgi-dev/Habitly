@@ -68,6 +68,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -885,6 +886,7 @@ fun HabitStatisticsContent(
                         Box(
                             modifier = Modifier
                                 .size(22.dp)
+                                .clip(CircleShape)
                                 .background(
                                     color = MaterialTheme.colorScheme.error,
                                     shape = CircleShape
@@ -922,16 +924,18 @@ fun StatCard(
     borderContrast: Float,
     useHabitColorForCard: Boolean = false,
     habitColor: Color = Color.Transparent,
-    isFullWidth: Boolean = false
+    isFullWidth: Boolean = false,
+    baseContainerColor: Color = MaterialTheme.colorScheme.surfaceContainerHigh,
+    onClick: (() -> Unit)? = null
 ) {
     val cardBackgroundColor = if (useHabitColorForCard) {
-        lerp(habitColor, MaterialTheme.colorScheme.surfaceContainerHigh, 0.75f)
+        lerp(habitColor, baseContainerColor, 0.75f)
     } else {
-        MaterialTheme.colorScheme.surfaceContainerHigh
+        baseContainerColor
     }
 
     val cardBorderColor = if (useHabitColorForCard) {
-        lerp(habitColor, lerp(habitColor, MaterialTheme.colorScheme.surfaceContainerHigh, 0.75f), 1f - borderContrast)
+        lerp(habitColor, lerp(habitColor, baseContainerColor, 0.75f), 1f - borderContrast)
     } else {
         MaterialTheme.colorScheme.outlineVariant.copy(alpha = borderContrast)
     }
@@ -939,7 +943,14 @@ fun StatCard(
     val height = 96.dp
 
     Card(
-        modifier = modifier.fillMaxWidth().height(height),
+        modifier = modifier
+            .fillMaxWidth()
+            .height(height)
+            .then(
+                if (onClick != null) {
+                    Modifier.clip(CardDefaults.shape).clickable(onClick = onClick)
+                } else Modifier
+            ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(containerColor = cardBackgroundColor),
         border = BorderStroke(1.dp, cardBorderColor)
@@ -1077,24 +1088,32 @@ fun MonthlyCompletionGraph(
     useHabitColorForCard: Boolean = false,
     habitColor: Color = Color.Transparent,
     showYearDivider: Boolean = false,
-    interactive: Boolean = true
+    interactive: Boolean = true,
+    baseContainerColor: Color = MaterialTheme.colorScheme.surfaceContainerHigh,
+    onClick: (() -> Unit)? = null
 ) {
     var isZoomedOut by remember { mutableStateOf(false) }
 
     val cardBackgroundColor = if (useHabitColorForCard) {
-        lerp(habitColor, MaterialTheme.colorScheme.surfaceContainerHigh, 0.75f)
+        lerp(habitColor, baseContainerColor, 0.75f)
     } else {
-        MaterialTheme.colorScheme.surfaceContainerHigh
+        baseContainerColor
     }
 
     val cardBorderColor = if (useHabitColorForCard) {
-        lerp(habitColor, lerp(habitColor, MaterialTheme.colorScheme.surfaceContainerHigh, 0.75f), 1f - borderContrast)
+        lerp(habitColor, lerp(habitColor, baseContainerColor, 0.75f), 1f - borderContrast)
     } else {
         MaterialTheme.colorScheme.outlineVariant.copy(alpha = borderContrast)
     }
 
     Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .then(
+                if (onClick != null) {
+                    Modifier.clip(CardDefaults.shape).clickable(onClick = onClick)
+                } else Modifier
+            ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(containerColor = cardBackgroundColor),
         border = BorderStroke(1.dp, cardBorderColor)
