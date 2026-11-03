@@ -4,12 +4,10 @@ package com.habitly.habitly.ui.colors
 
 import android.app.Activity
 import android.os.Build
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.AnimationSpec
-import androidx.compose.animation.core.snap
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.darkColorScheme
@@ -17,21 +15,17 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import com.habitly.habitly.data.settings.SettingsDataStore
-import kotlinx.coroutines.delay
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun Attempt3Theme(
     settingsDataStore: SettingsDataStore,
@@ -170,44 +164,6 @@ fun Attempt3Theme(
         baseColorScheme
     }
 
-    var enableAnimations by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        // Delay enabling animations until after DataStore has loaded initial values
-        // and initial layout passes are done.
-        delay(500)
-        enableAnimations = true
-    }
-
-    val animationSpec: AnimationSpec<Color> = if (enableAnimations) tween(durationMillis = 400) else snap()
-
-    val animatedColorScheme = colorScheme.copy(
-        primary = animateColorAsState(colorScheme.primary, animationSpec, label = "primary").value,
-        onPrimary = animateColorAsState(colorScheme.onPrimary, animationSpec, label = "onPrimary").value,
-        primaryContainer = animateColorAsState(colorScheme.primaryContainer, animationSpec, label = "primaryContainer").value,
-        onPrimaryContainer = animateColorAsState(colorScheme.onPrimaryContainer, animationSpec, label = "onPrimaryContainer").value,
-        secondary = animateColorAsState(colorScheme.secondary, animationSpec, label = "secondary").value,
-        onSecondary = animateColorAsState(colorScheme.onSecondary, animationSpec, label = "onSecondary").value,
-        secondaryContainer = animateColorAsState(colorScheme.secondaryContainer, animationSpec, label = "secondaryContainer").value,
-        onSecondaryContainer = animateColorAsState(colorScheme.onSecondaryContainer, animationSpec, label = "onSecondaryContainer").value,
-        tertiary = animateColorAsState(colorScheme.tertiary, animationSpec, label = "tertiary").value,
-        onTertiary = animateColorAsState(colorScheme.onTertiary, animationSpec, label = "onTertiary").value,
-        tertiaryContainer = animateColorAsState(colorScheme.tertiaryContainer, animationSpec, label = "tertiaryContainer").value,
-        onTertiaryContainer = animateColorAsState(colorScheme.onTertiaryContainer, animationSpec, label = "onTertiaryContainer").value,
-        background = animateColorAsState(colorScheme.background, animationSpec, label = "background").value,
-        onBackground = animateColorAsState(colorScheme.onBackground, animationSpec, label = "onBackground").value,
-        surface = animateColorAsState(colorScheme.surface, animationSpec, label = "surface").value,
-        onSurface = animateColorAsState(colorScheme.onSurface, animationSpec, label = "onSurface").value,
-        surfaceVariant = animateColorAsState(colorScheme.surfaceVariant, animationSpec, label = "surfaceVariant").value,
-        onSurfaceVariant = animateColorAsState(colorScheme.onSurfaceVariant, animationSpec, label = "onSurfaceVariant").value,
-        error = animateColorAsState(colorScheme.error, animationSpec, label = "error").value,
-        onError = animateColorAsState(colorScheme.onError, animationSpec, label = "onError").value,
-        errorContainer = animateColorAsState(colorScheme.errorContainer, animationSpec, label = "errorContainer").value,
-        onErrorContainer = animateColorAsState(colorScheme.onErrorContainer, animationSpec, label = "onErrorContainer").value,
-        outline = animateColorAsState(colorScheme.outline, animationSpec, label = "outline").value,
-        outlineVariant = animateColorAsState(colorScheme.outlineVariant, animationSpec, label = "outlineVariant").value,
-        scrim = animateColorAsState(colorScheme.scrim, animationSpec, label = "scrim").value
-    )
-
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
@@ -218,8 +174,8 @@ fun Attempt3Theme(
         }
     }
 
-    MaterialTheme(
-        colorScheme = animatedColorScheme
+    MaterialExpressiveTheme(
+        colorScheme = colorScheme
     ) {
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             content()

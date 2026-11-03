@@ -1,19 +1,20 @@
 /* Habitly - Licensed under GNU GPL v3.0 or later. See <https://www.gnu.org/licenses/gpl-3.0.html> */
 
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package com.habitly.habitly.ui
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -29,25 +30,25 @@ fun AppBackButton(
     tint: Color = MaterialTheme.colorScheme.onSurface,
     backgroundColor: Color = MaterialTheme.colorScheme.surfaceVariant
 ) {
-    Surface(
+    OutlinedIconButton(
         onClick = onBack,
-        shape = CircleShape,
-        color = backgroundColor,
+        shapes = IconButtonDefaults.shapes(),
+        colors = IconButtonDefaults.outlinedIconButtonColors(
+            containerColor = backgroundColor,
+            contentColor = tint
+        ),
         border = BorderStroke(
             width = 1.dp,
             color = MaterialTheme.colorScheme.outline.copy(alpha = borderContrast)
         ),
         modifier = modifier
             .padding(horizontal = 12.dp)
-            .size(40.dp)
+            .size(IconButtonDefaults.smallContainerSize())
     ) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(
-                imageVector = icon,
-                contentDescription = if (isRoot) "Close" else "Back",
-                modifier = Modifier.size(24.dp),
-                tint = tint
-            )
-        }
+        Icon(
+            imageVector = icon,
+            contentDescription = if (isRoot) "Close" else "Back",
+            modifier = Modifier.size(IconButtonDefaults.smallIconSize)
+        )
     }
 }

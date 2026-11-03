@@ -62,6 +62,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -105,7 +107,7 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 
 
-@OptIn(ExperimentalSharedTransitionApi::class)
+@OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SharedTransitionScope.HabitDetailScreen(
     habitWithCompletions: HabitWithCompletions,
@@ -669,6 +671,10 @@ fun SharedTransitionScope.HabitDetailScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                val actionButtonShapes = ButtonDefaults.shapes(
+                    shape = IconButtonDefaults.mediumSquareShape,
+                    pressedShape = IconButtonDefaults.smallPressedShape
+                )
                 // Edit button
                 Button(
                     onClick = {
@@ -678,7 +684,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                         onEditHabit(habit)
                     },
                     modifier = Modifier.weight(1f).height(48.dp),
-                    shape = RoundedCornerShape(16.dp),
+                    shapes = actionButtonShapes,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = cardBackgroundColor,
                         contentColor = MaterialTheme.colorScheme.onSurface
@@ -706,7 +712,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                         onShowStatistics(habit)
                     },
                     modifier = Modifier.weight(1f).height(48.dp),
-                    shape = RoundedCornerShape(16.dp),
+                    shapes = actionButtonShapes,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = cardBackgroundColor,
                         contentColor = MaterialTheme.colorScheme.onSurface
@@ -739,7 +745,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                         onDismiss()
                     },
                     modifier = Modifier.weight(1f).height(48.dp),
-                    shape = RoundedCornerShape(16.dp),
+                    shapes = actionButtonShapes,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = cardBackgroundColor,
                         contentColor = MaterialTheme.colorScheme.onSurface
