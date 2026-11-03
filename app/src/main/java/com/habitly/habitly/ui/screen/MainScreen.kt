@@ -188,6 +188,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
     val heatmapNotificationDotRange by settingsDataStore.heatmapNotificationDotRange.collectAsState(initial = null)
     val showScrollBlur by settingsDataStore.showScrollBlur.collectAsState(initial = true)
     val scrollBlurTargets by settingsDataStore.scrollBlurTargets.collectAsState(initial = setOf("Heatmap", "Line Chart"))
+    val scrollBlurDetailOnly by settingsDataStore.scrollBlurDetailOnly.collectAsState(initial = DefaultSettings.SCROLL_BLUR_DETAIL_ONLY)
     val heatmapVisibleDays by settingsDataStore.heatmapVisibleDays.collectAsState(initial = null)
     val dayOfWeekLabelsOnRight by settingsDataStore.dayOfWeekLabelsOnRight.collectAsState(initial = null)
     val is24Hour by settingsDataStore.is24Hour.collectAsState(initial = false)
@@ -644,7 +645,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                         showYearLabels = showYearLabels!!,
                                                         heatmapNotificationDot = heatmapNotificationDot!! && !heatmapNotificationDotDetailOnly!!,
                                                         heatmapNotificationDotRange = heatmapNotificationDotRange!!,
-                                                        showScrollBlur = showScrollBlur && "Heatmap" in scrollBlurTargets,
+                                                        showScrollBlur = showScrollBlur && "Heatmap" in scrollBlurTargets && !scrollBlurDetailOnly,
                                                         borderContrast = borderContrast!!,
                                                         heatmapScrollEnabled = heatmapScrolling,
                                                         heatmapWeeks = heatmapWeeks,

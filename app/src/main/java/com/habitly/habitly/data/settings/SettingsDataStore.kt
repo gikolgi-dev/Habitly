@@ -50,6 +50,7 @@ class SettingsDataStore(private val context: Context) {
         val HEATMAP_SCROLLING_KEY = booleanPreferencesKey("heatmap_scrolling")
         val SHOW_SCROLL_BLUR_KEY = booleanPreferencesKey("show_scroll_blur")
         val SCROLL_BLUR_TARGETS_KEY = stringPreferencesKey("scroll_blur_targets")
+        val SCROLL_BLUR_DETAIL_ONLY_KEY = booleanPreferencesKey("scroll_blur_detail_only")
         val DISABLE_ANIMATIONS_KEY = booleanPreferencesKey("disable_animations")
         val REDUCE_MOVEMENT_KEY = booleanPreferencesKey("reduce_movement")
         val REDUCE_MOVEMENT_TARGETS_KEY = stringPreferencesKey("reduce_movement_targets")
@@ -374,6 +375,17 @@ class SettingsDataStore(private val context: Context) {
         }
     }
 
+    val scrollBlurDetailOnly: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[SCROLL_BLUR_DETAIL_ONLY_KEY] ?: DefaultSettings.SCROLL_BLUR_DETAIL_ONLY
+        }
+
+    suspend fun setScrollBlurDetailOnly(only: Boolean) {
+        context.dataStore.edit { settings ->
+            settings[SCROLL_BLUR_DETAIL_ONLY_KEY] = only
+        }
+    }
+
     val reduceMovement: Flow<Boolean> = context.dataStore.data
         .map { preferences ->
             preferences[REDUCE_MOVEMENT_KEY] ?: preferences[DISABLE_ANIMATIONS_KEY] ?: DefaultSettings.REDUCE_MOVEMENT
@@ -628,6 +640,9 @@ class SettingsDataStore(private val context: Context) {
             settings[DAY_OF_WEEK_LABELS_VISIBLE_KEY] = DefaultSettings.DAY_OF_WEEK_LABELS_VISIBLE
             settings[DAY_OF_WEEK_LABELS_ON_RIGHT_KEY] = DefaultSettings.DAY_OF_WEEK_LABELS_ON_RIGHT
             settings[SHOW_ALL_DAY_OF_WEEK_LABELS_KEY] = DefaultSettings.SHOW_ALL_DAY_OF_WEEK_LABELS
+            settings[SHOW_SCROLL_BLUR_KEY] = DefaultSettings.SHOW_SCROLL_BLUR
+            settings[SCROLL_BLUR_TARGETS_KEY] = DefaultSettings.SCROLL_BLUR_TARGETS
+            settings[SCROLL_BLUR_DETAIL_ONLY_KEY] = DefaultSettings.SCROLL_BLUR_DETAIL_ONLY
         }
     }
 
@@ -636,6 +651,7 @@ class SettingsDataStore(private val context: Context) {
             settings[BORDERS_KEY] = DefaultSettings.BORDERS
             settings[SHOW_SCROLL_BLUR_KEY] = DefaultSettings.SHOW_SCROLL_BLUR
             settings[SCROLL_BLUR_TARGETS_KEY] = DefaultSettings.SCROLL_BLUR_TARGETS
+            settings[SCROLL_BLUR_DETAIL_ONLY_KEY] = DefaultSettings.SCROLL_BLUR_DETAIL_ONLY
             settings[REDUCE_MOVEMENT_KEY] = DefaultSettings.REDUCE_MOVEMENT
             settings[REDUCE_MOVEMENT_TARGETS_KEY] = DefaultSettings.REDUCE_MOVEMENT_TARGETS
             settings[AUTO_SCROLL_TEXT_KEY] = DefaultSettings.AUTO_SCROLL_TEXT
@@ -716,6 +732,7 @@ class SettingsDataStore(private val context: Context) {
             heatmapScrolling = preferences[HEATMAP_SCROLLING_KEY] ?: DefaultSettings.HEATMAP_SCROLLING,
             showScrollBlur = preferences[SHOW_SCROLL_BLUR_KEY] ?: DefaultSettings.SHOW_SCROLL_BLUR,
             scrollBlurTargets = preferences[SCROLL_BLUR_TARGETS_KEY] ?: DefaultSettings.SCROLL_BLUR_TARGETS,
+            scrollBlurDetailOnly = preferences[SCROLL_BLUR_DETAIL_ONLY_KEY] ?: DefaultSettings.SCROLL_BLUR_DETAIL_ONLY,
             reduceMovement = preferences[REDUCE_MOVEMENT_KEY] ?: preferences[DISABLE_ANIMATIONS_KEY] ?: DefaultSettings.REDUCE_MOVEMENT,
             reduceMovementTargets = reduceMovTargets,
             useHabitColorForCard = preferences[USE_HABIT_COLOR_FOR_CARD_KEY] ?: DefaultSettings.USE_HABIT_COLOR_FOR_CARD,
@@ -761,6 +778,7 @@ class SettingsDataStore(private val context: Context) {
             preferences[HEATMAP_SCROLLING_KEY] = settings.heatmapScrolling
             preferences[SHOW_SCROLL_BLUR_KEY] = settings.showScrollBlur
             preferences[SCROLL_BLUR_TARGETS_KEY] = settings.scrollBlurTargets
+            preferences[SCROLL_BLUR_DETAIL_ONLY_KEY] = settings.scrollBlurDetailOnly
             preferences[REDUCE_MOVEMENT_KEY] = settings.reduceMovement
             preferences[REDUCE_MOVEMENT_TARGETS_KEY] = settings.reduceMovementTargets
             preferences[USE_HABIT_COLOR_FOR_CARD_KEY] = settings.useHabitColorForCard
@@ -807,6 +825,7 @@ data class ExportedSettings(
     val heatmapScrolling: Boolean = DefaultSettings.HEATMAP_SCROLLING,
     val showScrollBlur: Boolean = DefaultSettings.SHOW_SCROLL_BLUR,
     val scrollBlurTargets: String = DefaultSettings.SCROLL_BLUR_TARGETS,
+    val scrollBlurDetailOnly: Boolean = DefaultSettings.SCROLL_BLUR_DETAIL_ONLY,
     val reduceMovement: Boolean = DefaultSettings.REDUCE_MOVEMENT,
     val reduceMovementTargets: String = DefaultSettings.REDUCE_MOVEMENT_TARGETS,
     val useHabitColorForCard: Boolean = DefaultSettings.USE_HABIT_COLOR_FOR_CARD,

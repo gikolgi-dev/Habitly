@@ -453,6 +453,7 @@ class HabitFeaturesTest {
             autoScrollText = true,
             autoScrollTextElements = "Title",
             autoScrollTextScreens = "Main Screen",
+            scrollBlurDetailOnly = true,
             ignoreWelcomeEngine = true
         )
         val exportData = ExportData(
@@ -486,6 +487,7 @@ class HabitFeaturesTest {
         assertTrue(decoded.settings?.autoScrollText ?: false)
         assertEquals("Title", decoded.settings?.autoScrollTextElements)
         assertEquals("Main Screen", decoded.settings?.autoScrollTextScreens)
+        assertTrue(decoded.settings?.scrollBlurDetailOnly ?: false)
         assertTrue(decoded.settings?.ignoreWelcomeEngine ?: false)
     }
 

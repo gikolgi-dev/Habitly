@@ -42,15 +42,13 @@ import kotlinx.coroutines.launch
 fun AccessibilityScreen(
     modifier: Modifier = Modifier,
     settingsDataStore: SettingsDataStore,
-    onNavigateToScrollBlur: () -> Unit,
     onNavigateToReduceMovement: () -> Unit,
     onNavigateToAutoScroll: () -> Unit
 ) {
     val currentBorderContrast by settingsDataStore.borders.collectAsState(initial = DefaultSettings.BORDERS)
-    val currentShowScrollBlur by settingsDataStore.showScrollBlur.collectAsState(initial = DefaultSettings.SHOW_SCROLL_BLUR)
     val currentReduceMovement by settingsDataStore.reduceMovement.collectAsState(initial = DefaultSettings.REDUCE_MOVEMENT)
     val currentAutoScrollText by settingsDataStore.autoScrollText.collectAsState(initial = DefaultSettings.AUTO_SCROLL_TEXT)
-    val vibr by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
+    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
 
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
@@ -90,7 +88,7 @@ fun AccessibilityScreen(
                     Slider(
                         state = sliderState,
                         onValueChange = { newValue ->
-                            if (newValue != sliderState.value && vibr) {
+                            if (newValue != sliderState.value && vibrationsEnabled) {
                                 haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
                             }
                             sliderState.value = newValue
@@ -130,21 +128,6 @@ fun AccessibilityScreen(
             }
 
             SettingsSwitchNavigationItem(
-                text = "Scroll blur",
-                description = "Apply a blur effect to the top and bottom of scrolling lists",
-                checked = currentShowScrollBlur,
-                settingsDataStore = settingsDataStore,
-                position = SettingsItemPosition.Middle,
-                onCheckedChange = {
-                    scope.launch { settingsDataStore.setshowScrollBlur(it) }
-                    if (vibr) {
-                        haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
-                    }
-                },
-                onClick = onNavigateToScrollBlur
-            )
-
-            SettingsSwitchNavigationItem(
                 text = "Reduce movement",
                 description = "Minimize the amount of animation and movement in the app",
                 checked = currentReduceMovement,
@@ -152,7 +135,7 @@ fun AccessibilityScreen(
                 position = SettingsItemPosition.Middle,
                 onCheckedChange = {
                     scope.launch { settingsDataStore.setReduceMovement(it) }
-                    if (vibr) {
+                    if (vibrationsEnabled) {
                         haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
                     }
                 },
@@ -167,7 +150,7 @@ fun AccessibilityScreen(
                 position = SettingsItemPosition.Bottom,
                 onCheckedChange = {
                     scope.launch { settingsDataStore.setAutoScrollText(it) }
-                    if (vibr) {
+                    if (vibrationsEnabled) {
                         haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
                     }
                 },
@@ -189,6 +172,7 @@ fun ScrollBlurSubScreen(
     val scrollBlurTargets by settingsDataStore.scrollBlurTargets.collectAsState(
         initial = DefaultSettings.SCROLL_BLUR_TARGETS.split(',').filter { it.isNotEmpty() }.toSet()
     )
+    val scrollBlurDetailOnly by settingsDataStore.scrollBlurDetailOnly.collectAsState(initial = DefaultSettings.SCROLL_BLUR_DETAIL_ONLY)
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
     val haptic = LocalHapticFeedback.current
 
@@ -220,6 +204,24 @@ fun ScrollBlurSubScreen(
                 if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
             }
         )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        SettingsGroup(settingsDataStore = settingsDataStore) {
+            SettingsSwitchItem(
+                text = "Only show on detail screen",
+                checked = scrollBlurDetailOnly,
+                enabled = showScrollBlur && "Heatmap" in scrollBlurTargets,
+                settingsDataStore = settingsDataStore,
+                position = SettingsItemPosition.Alone,
+                onCheckedChange = { isChecked ->
+                    scope.launch { settingsDataStore.setScrollBlurDetailOnly(isChecked) }
+                    if (vibrationsEnabled) {
+                        haptic.performHapticFeedback(if (isChecked) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+                    }
+                }
+            )
+        }
     }
 }
 
@@ -328,4 +330,3 @@ fun AutoScrollSubScreen(
         )
     }
 }
-

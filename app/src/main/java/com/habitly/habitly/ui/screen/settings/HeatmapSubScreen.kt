@@ -46,6 +46,7 @@ fun HeatmapSubScreen(
     settingsDataStore: SettingsDataStore,
     onNavigateToHeatmapNotificationDot: () -> Unit,
     onNavigateToHabitColor: () -> Unit,
+    onNavigateToScrollBlur: () -> Unit,
     modifier: Modifier = Modifier,
     db: HabitDatabase? = null,
     showMonthLabels: Boolean = DefaultSettings.MONTH_LABELS,
@@ -68,6 +69,9 @@ fun HeatmapSubScreen(
     autoScrollText: Boolean = DefaultSettings.AUTO_SCROLL_TEXT,
     autoScrollTextElements: Set<String> = DefaultSettings.AUTO_SCROLL_TEXT_ELEMENTS.split(',').filter { it.isNotEmpty() }.toSet(),
     autoScrollTextScreens: Set<String> = DefaultSettings.AUTO_SCROLL_TEXT_SCREENS.split(',').filter { it.isNotEmpty() }.toSet(),
+    currentShowScrollBlur:  Boolean = DefaultSettings.SHOW_SCROLL_BLUR,
+    scrollBlurTargets: Set<String> = DefaultSettings.SCROLL_BLUR_TARGETS.split(',').filter { it.isNotEmpty() }.toSet(),
+    scrollBlurDetailOnly: Boolean = DefaultSettings.SCROLL_BLUR_DETAIL_ONLY,
     theme: String = DefaultSettings.THEME
 ) {
     val scope = rememberCoroutineScope()
@@ -176,7 +180,7 @@ fun HeatmapSubScreen(
                 showYearLabels = showYearLabels,
                 heatmapNotificationDot = heatmapNotificationDot,
                 heatmapNotificationDotRange = heatmapNotificationDotRange,
-                showScrollBlur = false,
+                showScrollBlur = currentShowScrollBlur && "Heatmap" in scrollBlurTargets && !scrollBlurDetailOnly,
                 borderContrast = borderContrast,
                 heatmapScrollEnabled = heatmapScrolling,
                 heatmapWeeks = heatmapWeeks,
@@ -296,6 +300,21 @@ fun HeatmapSubScreen(
                     }
                 }
 
+                SettingsSwitchNavigationItem(
+                    text = "Scroll blur",
+                    description = "Apply a blur effect to the top and bottom of scrolling lists",
+                    checked = currentShowScrollBlur,
+                    settingsDataStore = settingsDataStore,
+                    position = SettingsItemPosition.Middle,
+                    onCheckedChange = {
+                        scope.launch { settingsDataStore.setshowScrollBlur(it) }
+                        if (vibrationsEnabled) {
+                            haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+                        }
+                    },
+                    onClick = onNavigateToScrollBlur
+                )
+
                 SettingsItemBox(settingsDataStore = settingsDataStore, position = SettingsItemPosition.Bottom) {
                     Column(
                         modifier = Modifier.padding(
@@ -414,4 +433,3 @@ fun HeatmapNotificationDotSubScreen(
         }
     }
 }
-

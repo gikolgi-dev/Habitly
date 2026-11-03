@@ -34,6 +34,7 @@ object DefaultSettings {
     const val BORDERS = 0.05f
     const val SHOW_SCROLL_BLUR = true
     const val SCROLL_BLUR_TARGETS = "Line Chart,Heatmap"
+    const val SCROLL_BLUR_DETAIL_ONLY = false
     const val DISABLE_ANIMATIONS = false
     const val REDUCE_MOVEMENT = false
     const val REDUCE_MOVEMENT_TARGETS = "Rotation,Grid Reactions"

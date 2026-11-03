@@ -210,6 +210,11 @@ fun SettingsScreen(
     val heatmapWeeks by settingsDataStore.heatmapWeeks.collectAsState(initial = DefaultSettings.HEATMAP_WEEKS)
     val heatmapInfinite by settingsDataStore.heatmapInfinite.collectAsState(initial = DefaultSettings.HEATMAP_INFINITE)
     val useHabitColorForCard by settingsDataStore.useHabitColorForCard.collectAsState(initial = DefaultSettings.USE_HABIT_COLOR_FOR_CARD)
+    val currentShowScrollBlur by settingsDataStore.showScrollBlur.collectAsState(initial = DefaultSettings.SHOW_SCROLL_BLUR)
+    val scrollBlurTargets by settingsDataStore.scrollBlurTargets.collectAsState(
+        initial = DefaultSettings.SCROLL_BLUR_TARGETS.split(',').filter { it.isNotEmpty() }.toSet()
+    )
+    val scrollBlurDetailOnly by settingsDataStore.scrollBlurDetailOnly.collectAsState(initial = DefaultSettings.SCROLL_BLUR_DETAIL_ONLY)
     val habitColorTargets by settingsDataStore.habitColorTargets.collectAsState(
         initial = DefaultSettings.HABIT_COLOR_TARGETS.split(',').filter { it.isNotEmpty() }.toSet()
     )
@@ -444,7 +449,6 @@ fun SettingsScreen(
                 AccessibilityScreen(
                     modifier = Modifier.padding(top = paddingValues.calculateTopPadding()),
                     settingsDataStore = settingsDataStore,
-                    onNavigateToScrollBlur = { navigateTo("scroll_blur") },
                     onNavigateToReduceMovement = { navigateTo("reduce_movement") },
                     onNavigateToAutoScroll = { navigateTo("auto_scroll") }
                 )
@@ -507,9 +511,13 @@ fun SettingsScreen(
                     autoScrollText = autoScrollText,
                     autoScrollTextElements = autoScrollTextElements,
                     autoScrollTextScreens = autoScrollTextScreens,
+                    currentShowScrollBlur = currentShowScrollBlur,
+                    scrollBlurTargets = scrollBlurTargets,
+                    scrollBlurDetailOnly = scrollBlurDetailOnly,
                     theme = theme,
                     onNavigateToHeatmapNotificationDot = { navigateTo("heatmap_notification_dot") },
                     onNavigateToHabitColor = { navigateTo("habit_color") },
+                    onNavigateToScrollBlur = { navigateTo("scroll_blur") },
                     modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
                 )
             }
