@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -49,6 +50,88 @@ import java.util.Calendar
 import java.util.Locale
 import java.util.TimeZone
 import kotlin.math.floor
+data class HeatmapLayoutCalculation(
+    val totalSlots: Int,
+    val numWeeksOnScreen: Int,
+    val horizontalSpacing: Dp
+)
+
+fun calculateHeatmapLayout(
+    totalAvailableWidthPx: Int,
+    density: Density,
+    cellSize: Dp = 10.dp,
+    minHorizontalSpacing: Dp = 4.dp,
+    showDayLabels: Boolean = false
+): HeatmapLayoutCalculation {
+    val cellSizePx = with(density) { cellSize.roundToPx() }
+    val minSpacingPx = with(density) { minHorizontalSpacing.roundToPx() }
+
+    val totalSlots = floor((totalAvailableWidthPx + minSpacingPx).toFloat() / (cellSizePx + minSpacingPx)).toInt().coerceAtLeast(1)
+    val horizontalSpacing = if (totalSlots > 1) {
+        val remainingSpacePx = totalAvailableWidthPx - (totalSlots * cellSizePx)
+        val spacingPx = remainingSpacePx / (totalSlots - 1)
+        with(density) { spacingPx.toDp() }
+    } else {
+        minHorizontalSpacing
+    }
+
+    val numWeeksOnScreen = if (showDayLabels) {
+        (totalSlots - 1).coerceAtLeast(1)
+    } else {
+        totalSlots
+    }
+
+    return HeatmapLayoutCalculation(
+        totalSlots = totalSlots,
+        numWeeksOnScreen = numWeeksOnScreen,
+        horizontalSpacing = horizontalSpacing
+    )
+}
+
+fun resolveHeatmapMonthLabel(
+    weekIndex: Int,
+    totalWeeks: Int,
+    weekStartMillis: Long,
+    currentFirstDayOfWeekMillis: Long,
+    firstDayOfWeek: Int,
+    monthFormat: SimpleDateFormat
+): String? {
+    fun findMonthLabel(startMillis: Long): String? {
+        val labelCal = Calendar.getInstance()
+        labelCal.timeInMillis = startMillis
+        for (d in 0..6) {
+            if (labelCal.get(Calendar.DAY_OF_MONTH) == 1) {
+                return monthFormat.format(labelCal.time)
+            }
+            labelCal.add(Calendar.DAY_OF_YEAR, 1)
+        }
+        return null
+    }
+
+    if (totalWeeks <= 1) {
+        return findMonthLabel(weekStartMillis)
+    }
+
+    return when (weekIndex) {
+        0, totalWeeks - 1 -> null
+        else -> {
+            var label = findMonthLabel(weekStartMillis)
+            if (label == null && weekIndex == 1) {
+                label = findMonthLabel(currentFirstDayOfWeekMillis)
+            }
+            if (label == null && weekIndex == totalWeeks - 2) {
+                val edgeCal = Calendar.getInstance().apply {
+                    this.firstDayOfWeek = firstDayOfWeek
+                    timeInMillis = currentFirstDayOfWeekMillis
+                    add(Calendar.WEEK_OF_YEAR, -(totalWeeks - 1))
+                }
+                label = findMonthLabel(edgeCal.timeInMillis)
+            }
+            label
+        }
+    }
+}
+
 
 @Composable
 fun rememberMaxSpeedFlingBehavior(maxVelocity: Float): FlingBehavior {
@@ -177,21 +260,20 @@ fun Heatmap(
 
     BoxWithConstraints(modifier = modifier.fillMaxWidth().graphicsLayer(clip = false)) {
         val totalAvailableWidthPx = constraints.maxWidth
-        val cellSizePx = with(density) { cellSize.roundToPx() }
-        val minSpacingPx = with(density) { minHorizontalSpacing.roundToPx() }
-
-        val totalSlots = floor((totalAvailableWidthPx + minSpacingPx).toFloat() / (cellSizePx + minSpacingPx)).toInt().coerceAtLeast(1)
-        val horizontalSpacing = if (totalSlots > 1) {
-            val remainingSpacePx = totalAvailableWidthPx - (totalSlots * cellSizePx)
-            with(density) { (remainingSpacePx.toFloat() / (totalSlots - 1)).toDp() }
-        } else minHorizontalSpacing
-
         val showDayLabels = visibleDayLabels.isNotEmpty()
-        val numWeeksOnScreen = if (showDayLabels) {
-            (totalSlots - 1).coerceAtLeast(1)
-        } else {
-            totalSlots
+
+        val layoutCalculation = remember(totalAvailableWidthPx, density, showDayLabels) {
+            calculateHeatmapLayout(
+                totalAvailableWidthPx = totalAvailableWidthPx,
+                density = density,
+                cellSize = cellSize,
+                minHorizontalSpacing = minHorizontalSpacing,
+                showDayLabels = showDayLabels
+            )
         }
+        val totalSlots = layoutCalculation.totalSlots
+        val horizontalSpacing = layoutCalculation.horizontalSpacing
+        val numWeeksOnScreen = layoutCalculation.numWeeksOnScreen
 
         val animatedDayLabelsWidth by animateDpAsState(
             targetValue = if (showDayLabels) cellSize + horizontalSpacing else 0.dp,
@@ -309,7 +391,7 @@ fun Heatmap(
                     state = lazyListState,
                     reverseLayout = true,
                     flingBehavior = flingBehavior,
-                    horizontalArrangement = Arrangement.spacedBy(horizontalSpacing),
+                    horizontalArrangement = if (!isScrollable) Arrangement.SpaceBetween else Arrangement.spacedBy(horizontalSpacing),
                     userScrollEnabled = isScrollable
                 ) {
                     items(count = totalWeeks, key = { it }) { weekIndex ->
@@ -407,18 +489,14 @@ fun Heatmap(
                             }
 
                             // Month label logic
-                            var monthLabel: String? = null
-                            if (!(!isScrollable && weekIndex == totalWeeks - 1)) {
-                                val labelCal = Calendar.getInstance()
-                                labelCal.timeInMillis = weekStartMillis
-                                for (d in 0..6) {
-                                    if (labelCal.get(Calendar.DAY_OF_MONTH) == 1) {
-                                        monthLabel = monthFormat.format(labelCal.time)
-                                        break
-                                    }
-                                    labelCal.add(Calendar.DAY_OF_YEAR, 1)
-                                }
-                            }
+                            val monthLabel = resolveHeatmapMonthLabel(
+                                weekIndex = weekIndex,
+                                totalWeeks = totalWeeks,
+                                weekStartMillis = weekStartMillis,
+                                currentFirstDayOfWeekMillis = currentFirstDayOfWeekMillis,
+                                firstDayOfWeek = firstDayOfWeek,
+                                monthFormat = monthFormat
+                            )
 
                             HeatmapWeekData(
                                 weekStartMillis,

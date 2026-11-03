@@ -522,7 +522,7 @@ fun HabitItemCard(
     )
 
     val targetBorderColor = if (useHabitColor) {
-        lerp(habitThemeColor, MaterialTheme.colorScheme.outline, borderContrast)
+        lerp(habitThemeColor, MaterialTheme.colorScheme.outline, 0.5f).copy(alpha = borderContrast)
     } else {
         MaterialTheme.colorScheme.outline.copy(alpha = borderContrast)
     }
