@@ -248,7 +248,7 @@ fun HabitCompletionButton(
         animateColorAsState(targetValue = color, label = "habitColor")
 
 
-    val rotationAnimationSpec = tween<Float>(durationMillis = 400, easing = FastOutSlowInEasing)
+    val rotationAnimationSpec = tween<Float>(durationMillis = 300, easing = FastOutSlowInEasing)
     val rotationState = animateFloatAsState(
         if (isCompleted) 180f else 0f,
         label = "fab_icon_rotation",
@@ -423,11 +423,7 @@ fun HabitCompletionButton(
         contentAlignment = Alignment.Center
     ) {
         val animatedHabitColor = animatedHabitColorState.value
-        val iconTintColor = if (isCompleted) {
-            if (animatedHabitColor.isBright()) Color.Black else Color.White
-        } else {
-            animatedHabitColor
-        }
+        val completedIconColor = if (animatedHabitColor.isBright()) Color.Black else Color.White
         val tp = transitionProgressProvider()
         val baseIconSize = 32.dp
         val targetIconSize = if (target > 1) baseIconSize + (32.dp - baseIconSize) * progressState.value else 32.dp
@@ -444,12 +440,12 @@ fun HabitCompletionButton(
             Icon(
                 imageVector = if (completed) Icons.Default.Close else Icons.Default.Check,
                 contentDescription = if (completed) "Completed" else "Complete",
-                tint = iconTintColor,
+                tint = if (completed) completedIconColor else animatedHabitColor,
                 modifier = Modifier
                     .size(iconSize)
                     .graphicsLayer {
                         rotationZ = rotationState.value
-                        alpha = if (isCompleted) 1f else iconAlpha
+                        alpha = lerp(iconAlpha, 1f, progressState.value)
                     }
             )
         }
