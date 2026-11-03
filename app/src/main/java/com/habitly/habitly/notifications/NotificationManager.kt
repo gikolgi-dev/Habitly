@@ -12,6 +12,7 @@ import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.habitly.habitly.MainActivity
+import com.habitly.habitly.BuildConfig
 import com.habitly.habitly.R
 import com.habitly.habitly.data.Database.Habit
 import com.habitly.habitly.data.Database.HabitDatabase
@@ -643,6 +644,7 @@ class NotificationReceiver : BroadcastReceiver() {
                 savedCategoryId = savedCat,
                 savedHabitId = savedHabit,
                 savedTemplateIndex = savedTemplate,
+                ignoreDailyLock = BuildConfig.IS_DEVELOPER_MODE,
                 ignoreWelcomeEngine = ignoreWelcomeEngine
             )
             if (resolved.isNewSelection) {
@@ -929,7 +931,7 @@ fun getHabitNotificationTitle(isInverse: Boolean): String =
  * Returns the notification text for a habit based on whether it is a quit (inverse) habit.
  */
 fun getHabitNotificationContent(habitName: String, isInverse: Boolean): String =
-    if (isInverse) "Did you succeed with $habitName today?" else "Don't forget to complete $habitName today."
+    if (isInverse) "Did you succeed in quitting $habitName today?" else "Don't forget to complete $habitName today."
 
 /**
  * Returns the action label for a habit notification ("Uncomplete" for quit habits, "Complete" for build habits).

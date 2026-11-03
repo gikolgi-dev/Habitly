@@ -29,6 +29,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -1349,7 +1350,7 @@ fun SaveHabitButton(
 ) {
     val haptic = LocalHapticFeedback.current
     val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
-    val isKeyboardOpen by rememberUpdatedState(WindowInsets.isImeVisible)
+    @OptIn(ExperimentalLayoutApi::class) val isKeyboardOpen by rememberUpdatedState(WindowInsets.isImeVisible)
     val verticalPadding by animateDpAsState(targetValue = if (isKeyboardOpen) 4.dp else 6.dp, label = "buttonPadding")
 
     Button(

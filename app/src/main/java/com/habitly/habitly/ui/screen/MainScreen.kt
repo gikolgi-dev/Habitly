@@ -4,6 +4,7 @@
 
 package com.habitly.habitly.ui.screen
 
+import com.habitly.habitly.BuildConfig
 import android.annotation.SuppressLint
 import android.os.Build
 import androidx.activity.compose.BackHandler
@@ -267,6 +268,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 savedCategoryId = savedWelcomeCategoryId.ifEmpty { null },
                 savedHabitId = savedWelcomeHabitId.ifEmpty { null },
                 savedTemplateIndex = savedWelcomeTemplateIndex,
+                ignoreDailyLock = BuildConfig.IS_DEVELOPER_MODE,
                 ignoreWelcomeEngine = ignoreWelcomeEngine
             )
         }

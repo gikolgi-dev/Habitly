@@ -2,7 +2,6 @@
 
 package com.habitly.habitly.data.welcome
 
-import com.habitly.habitly.BuildConfig
 import com.habitly.habitly.data.Database.HabitWithCompletions
 import com.habitly.habitly.data.Database.isDayCompleted
 import com.habitly.habitly.data.Database.normalizeToStartOfDay
@@ -717,7 +716,7 @@ object WelcomeCardEngine {
         savedCategoryId: String?,
         savedHabitId: String?,
         savedTemplateIndex: Int?,
-        ignoreDailyLock: Boolean = BuildConfig.IS_DEVELOPER_MODE,
+        ignoreDailyLock: Boolean = false,
         ignoreWelcomeEngine: Boolean = false
     ): WelcomeCardResolution {
         val dateKey = getFormattedDateKey(context.todayMillis)
