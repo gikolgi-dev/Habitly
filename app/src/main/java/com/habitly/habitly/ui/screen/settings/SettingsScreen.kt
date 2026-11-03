@@ -236,7 +236,9 @@ fun SettingsScreen(
         enterTransition = { settingsEnterTransition() },
         exitTransition = { settingsExitTransition() },
         popEnterTransition = { settingsPopEnterTransition() },
-        popExitTransition = { settingsPopExitTransition() }
+        popExitTransition = { settingsPopExitTransition() },
+        predictivePopEnterTransition = { settingsPopEnterTransition() },
+        predictivePopExitTransition = { settingsPopExitTransition() }
     ) {
         // Main Screen
         composable(
