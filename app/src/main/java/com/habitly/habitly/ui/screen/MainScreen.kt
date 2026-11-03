@@ -115,6 +115,7 @@ import com.habitly.habitly.data.Database.normalizeToStartOfDay
 import com.habitly.habitly.data.Database.normalizeToEndOfDay
 import com.habitly.habitly.data.settings.DefaultSettings
 import com.habitly.habitly.data.settings.SettingsDataStore
+import com.habitly.habitly.data.settings.LocalAppSettings
 import com.habitly.habitly.data.welcome.WelcomeCardContext
 import com.habitly.habitly.data.welcome.WelcomeCardEngine
 import com.habitly.habitly.notifications.NotificationScheduler
@@ -177,60 +178,44 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
         }
     }
 
-    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
-    val borderContrast by settingsDataStore.borders.collectAsState(initial = null)
-    val showMonthLabels by settingsDataStore.monthLabels.collectAsState(initial = null)
-    val showYearDivider by settingsDataStore.yearDivider.collectAsState(initial = null)
-    val lineChartYearDivider by settingsDataStore.lineChartYearDivider.collectAsState(initial = DefaultSettings.LINE_CHART_YEAR_DIVIDER)
-    val showYearLabels by settingsDataStore.yearLabels.collectAsState(initial = null)
-    val heatmapNotificationDot by settingsDataStore.heatmapNotificationDot.collectAsState(initial = null)
-    val heatmapNotificationDotDetailOnly by settingsDataStore.heatmapNotificationDotDetailOnly.collectAsState(initial = null)
-    val heatmapNotificationDotRange by settingsDataStore.heatmapNotificationDotRange.collectAsState(initial = null)
-    val showScrollBlur by settingsDataStore.showScrollBlur.collectAsState(initial = true)
-    val scrollBlurTargets by settingsDataStore.scrollBlurTargets.collectAsState(initial = setOf("Heatmap", "Line Chart"))
-    val scrollBlurDetailOnly by settingsDataStore.scrollBlurDetailOnly.collectAsState(initial = DefaultSettings.SCROLL_BLUR_DETAIL_ONLY)
-    val heatmapVisibleDays by settingsDataStore.heatmapVisibleDays.collectAsState(initial = null)
-    val dayOfWeekLabelsOnRight by settingsDataStore.dayOfWeekLabelsOnRight.collectAsState(initial = null)
-    val is24Hour by settingsDataStore.is24Hour.collectAsState(initial = false)
-    val heroCardVisible by settingsDataStore.heroCardVisible.collectAsState(initial = true)
-    val heatmapScrolling by settingsDataStore.heatmapScrolling.collectAsState(initial = false)
-    val heatmapWeeks by settingsDataStore.heatmapWeeks.collectAsState(initial = DefaultSettings.HEATMAP_WEEKS)
-    val heatmapInfinite by settingsDataStore.heatmapInfinite.collectAsState(initial = DefaultSettings.HEATMAP_INFINITE)
-    val firstDayOfWeekCalendar by settingsDataStore.firstDayOfWeekCalendar.collectAsState(initial = Calendar.MONDAY)
-    val autoScrollText by settingsDataStore.autoScrollText.collectAsState(initial = DefaultSettings.AUTO_SCROLL_TEXT)
-    val autoScrollTextElements by settingsDataStore.autoScrollTextElements.collectAsState(
-        initial = DefaultSettings.AUTO_SCROLL_TEXT_ELEMENTS.split(',').filter { it.isNotEmpty() }.toSet()
-    )
-    val autoScrollTextScreens by settingsDataStore.autoScrollTextScreens.collectAsState(
-        initial = DefaultSettings.AUTO_SCROLL_TEXT_SCREENS.split(',').filter { it.isNotEmpty() }.toSet()
-    )
-    val savedWelcomeDateKey by settingsDataStore.welcomeCardDate.collectAsState(initial = "")
-    val savedWelcomeCategoryId by settingsDataStore.welcomeCardCategoryId.collectAsState(initial = "")
-    val savedWelcomeHabitId by settingsDataStore.welcomeCardHabitId.collectAsState(initial = "")
-    val savedWelcomeTemplateIndex by settingsDataStore.welcomeCardTemplateIndex.collectAsState(initial = 0)
-    val ignoreWelcomeEngine by settingsDataStore.ignoreWelcomeEngine.collectAsState(initial = DefaultSettings.IGNORE_WELCOME_ENGINE)
-
-    // Additional settings for consistent Shared Element Transition colors/animations
-    val reduceMovement by settingsDataStore.reduceMovement.collectAsState(initial = false)
-    val reduceMovementTargets by settingsDataStore.reduceMovementTargets.collectAsState(initial = emptySet())
-    val disableAnimations = reduceMovement && "Rotation" in reduceMovementTargets
-
-    val useHabitColorForCard by settingsDataStore.useHabitColorForCard.collectAsState(initial = true)
-    val habitColorTargets by settingsDataStore.habitColorTargets.collectAsState(initial = setOf("Habit Cards", "Statistic Screen"))
-    val theme by settingsDataStore.theme.collectAsState(initial = "system")
-
-    val useHabitColorForItemCards = useHabitColorForCard && "Habit Cards" in habitColorTargets
-    val useHabitColorForStatistics = useHabitColorForCard && "Statistic Screen" in habitColorTargets
-
-    val areSettingsLoaded = borderContrast != null &&
-            heatmapNotificationDot != null &&
-            heatmapNotificationDotDetailOnly != null &&
-            heatmapNotificationDotRange != null &&
-            showMonthLabels != null &&
-            showYearDivider != null &&
-            showYearLabels != null &&
-            heatmapVisibleDays != null &&
-            dayOfWeekLabelsOnRight != null
+    val settings = LocalAppSettings.current
+    val vibrationsEnabled = settings.vibrations
+    val borderContrast = settings.borders
+    val showMonthLabels = settings.monthLabels
+    val showYearDivider = settings.yearDivider
+    val lineChartYearDivider = settings.lineChartYearDivider
+    val showYearLabels = settings.yearLabels
+    val heatmapNotificationDot = settings.heatmapNotificationDot
+    val heatmapNotificationDotDetailOnly = settings.heatmapNotificationDotDetailOnly
+    val heatmapNotificationDotRange = settings.heatmapNotificationDotRange
+    val showScrollBlur = settings.showScrollBlur
+    val scrollBlurTargets = settings.scrollBlurTargets
+    val scrollBlurDetailOnly = settings.scrollBlurDetailOnly
+    val heatmapVisibleDays = settings.heatmapVisibleDays
+    val dayOfWeekLabelsOnRight = settings.dayOfWeekLabelsOnRight
+    val is24Hour = settings.is24Hour
+    val heroCardVisible = settings.heroCardVisible
+    val heatmapScrolling = settings.heatmapScrolling
+    val heatmapWeeks = settings.heatmapWeeks
+    val heatmapInfinite = settings.heatmapInfinite
+    val firstDayOfWeekCalendar = settings.firstDayOfWeekCalendar
+    val autoScrollText = settings.autoScrollText
+    val autoScrollTextElements = settings.autoScrollTextElements
+    val autoScrollTextScreens = settings.autoScrollTextScreens
+    val savedWelcomeDateKey = settings.welcomeCardDate
+    val savedWelcomeCategoryId = settings.welcomeCardCategoryId
+    val savedWelcomeHabitId = settings.welcomeCardHabitId
+    val savedWelcomeTemplateIndex = settings.welcomeCardTemplateIndex
+    val ignoreWelcomeEngine = settings.ignoreWelcomeEngine
+    val reduceMovement = settings.reduceMovement
+    val reduceMovementTargets = settings.reduceMovementTargets
+    val disableAnimations = settings.disableRotationAnimations
+    val useHabitColorForCard = settings.useHabitColorForCard
+    val habitColorTargets = settings.habitColorTargets
+    val theme = settings.theme
+    val useHabitColorForItemCards = settings.useHabitColorForItemCards
+    val useHabitColorForStatistics = settings.useHabitColorForStatistics
+    val areSettingsLoaded = true
 
     val greeting by remember {
         derivedStateOf {
@@ -406,7 +391,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
             },
             initialHour = initialHour,
             initialMinute = initialMinute,
-            borderContrast = borderContrast!!,
+            borderContrast = borderContrast,
             is24Hour = is24Hour,
             vibrationsEnabled = vibrationsEnabled
         )
@@ -638,27 +623,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                                         isCompleted = isCompleted,
                                                         completions = habitWithCompletions.completions,
                                                         showCheckbox = true,
-                                                        showMonthLabels = showMonthLabels!!,
-                                                        visibleDayLabels = heatmapVisibleDays!!,
-                                                        dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight!!,
-                                                        showYearDivider = showYearDivider!!,
-                                                        showYearLabels = showYearLabels!!,
-                                                        heatmapNotificationDot = heatmapNotificationDot!! && !heatmapNotificationDotDetailOnly!!,
-                                                        heatmapNotificationDotRange = heatmapNotificationDotRange!!,
-                                                        showScrollBlur = showScrollBlur && "Heatmap" in scrollBlurTargets && !scrollBlurDetailOnly,
-                                                        borderContrast = borderContrast!!,
-                                                        heatmapScrollEnabled = heatmapScrolling,
-                                                        heatmapWeeks = heatmapWeeks,
-                                                        heatmapInfinite = heatmapInfinite,
-                                                        useHabitColor = useHabitColorForItemCards,
-                                                        theme = theme,
-                                                        disableAnimations = disableAnimations,
                                                         currentDateMillis = currentDateMillis,
-                                                        firstDayOfWeek = firstDayOfWeekCalendar,
-                                                        autoScrollText = autoScrollText,
-                                                        autoScrollTextElements = autoScrollTextElements,
-                                                        autoScrollTextScreens = autoScrollTextScreens,
-                                                        vibrationsEnabled = vibrationsEnabled,
                                                         onComplete = {
                                                             if (vibrationsEnabled) {
                                                                 haptic.performHapticFeedback(
@@ -744,24 +709,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                         uiState = archivedHabitsUiState,
                         habitDao = habitDao,
                         onBack = { showArchiveSheet = false },
-                        borderContrast = borderContrast ?: 0f,
-                        showMonthLabels = showMonthLabels ?: false,
-                        showYearDivider = showYearDivider ?: false,
-                        showYearLabels = showYearLabels ?: false,
-                        heatmapNotificationDotDetailOnly = heatmapNotificationDotDetailOnly ?: false,
-                        heatmapNotificationDot = if (heatmapNotificationDotDetailOnly == true) false else heatmapNotificationDot ?: false,
-                        heatmapNotificationDotRange = heatmapNotificationDotRange ?: DefaultSettings.HEATMAP_NOTIFICATION_DOT_RANGE,
-                        heatmapVisibleDays = heatmapVisibleDays ?: emptySet(),
-                        dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight ?: false,
-                        vibrationsEnabled = vibrationsEnabled,
-                        useHabitColor = useHabitColorForItemCards,
-                        disableAnimations = disableAnimations,
-                        heatmapWeeks = heatmapWeeks,
-                        heatmapInfinite = heatmapInfinite,
-                        currentDateMillis = currentDateMillis,
-                        autoScrollText = autoScrollText,
-                        autoScrollTextElements = autoScrollTextElements,
-                        autoScrollTextScreens = autoScrollTextScreens
+                        currentDateMillis = currentDateMillis
                     )
                 }
 
@@ -786,11 +734,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                 ) {
                     ReorderScreen(
                         habitViewModel = viewModel,
-                        onBack = { showReorderSheet = false },
-                        borderContrast = borderContrast ?: 0f,
-                        vibrationsEnabled = vibrationsEnabled,
-                        useHabitColor = useHabitColorForItemCards,
-                        disableAnimations = disableAnimations
+                        onBack = { showReorderSheet = false }
                     )
                 }
 
@@ -851,30 +795,9 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                 initialHabitIdForStats = habit.id
                                 showStatisticScreen = true
                             },
-                            borderContrast = borderContrast!!,
-                            showScrollBlur = showScrollBlur && "Heatmap" in scrollBlurTargets,
-                            showYearLabels = showYearLabels!!,
-                            heatmapNotificationDotDetailOnly = heatmapNotificationDotDetailOnly!!,
-                            heatmapNotificationDot = heatmapNotificationDot!!,
-                            heatmapNotificationDotRange = heatmapNotificationDotRange!!,
-                            showYearDivider = showYearDivider!!,
-                            vibrationsEnabled = vibrationsEnabled,
-                            showMonthLabels = showMonthLabels!!,
-                            dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight!!,
-                            heatmapVisibleDays = heatmapVisibleDays!!,
-                            disableAnimations = disableAnimations,
-                            useHabitColor = useHabitColorForItemCards,
-                            theme = theme,
-                            heatmapWeeks = heatmapWeeks,
-                            heatmapInfinite = heatmapInfinite,
                             currentDateMillis = currentDateMillis,
                             isEditSheetOpen = false,
-                            transitionProgressProvider = { detailTransitionProgressState.value },
-                            firstDayOfWeek = firstDayOfWeekCalendar,
-                            is24Hour = is24Hour,
-                            autoScrollText = autoScrollText,
-                            autoScrollTextElements = autoScrollTextElements,
-                            autoScrollTextScreens = autoScrollTextScreens
+                            transitionProgressProvider = { detailTransitionProgressState.value }
                         )
                     }
                 }
@@ -907,14 +830,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                             showStatisticScreen = false
                             initialHabitIdForStats = null
                         },
-                        initialHabitId = initialHabitIdForStats,
-                        borderContrast = borderContrast ?: 0f,
-                        vibrationsEnabled = vibrationsEnabled,
-                        showScrollBlur = showScrollBlur,
-                        scrollBlurTargets = scrollBlurTargets,
-                        useHabitColor = useHabitColorForStatistics,
-                        firstDayOfWeek = firstDayOfWeekCalendar,
-                        showYearDivider = lineChartYearDivider
+                        initialHabitId = initialHabitIdForStats
                     )
                 }
 
@@ -940,11 +856,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                     SettingsScreen(
                         onDismiss = { showSettingsScreen = false },
                         db = HabitDatabase.getDatabase(context),
-                        settingsDataStore = settingsDataStore,
-                        vibrationsEnabled = vibrationsEnabled,
-                        borderContrast = borderContrast ?: 0f,
-                        is24Hour = is24Hour,
-                        theme = theme
+                        settingsDataStore = settingsDataStore
                     )
                 }
 
@@ -1214,21 +1126,8 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                         isCompleted = false,
                                         completions = previewCompletions,
                                         showCheckbox = true,
-                                        showMonthLabels = showMonthLabels!!,
-                                        visibleDayLabels = heatmapVisibleDays!!,
-                                        dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight!!,
-                                        showYearDivider = showYearDivider!!,
-                                        showYearLabels = showYearLabels!!,
-                                        heatmapNotificationDot = heatmapNotificationDot!!,
-                                        heatmapNotificationDotRange = heatmapNotificationDotRange!!,
                                         showScrollBlur = false,
-                                        borderContrast = borderContrast!!,
                                         heatmapScrollEnabled = false,
-                                        heatmapWeeks = heatmapWeeks,
-                                        heatmapInfinite = heatmapInfinite,
-                                        useHabitColor = useHabitColorForItemCards,
-                                        theme = theme,
-                                        disableAnimations = disableAnimations,
                                         isPreview = true,
                                         onComplete = { /* Do nothing in preview */ },
                                         onClick = { /* Do nothing in preview */ },
@@ -1237,11 +1136,7 @@ fun ExpressiveMainScreen(viewModel: HabitViewModel, habitDao: HabitDao, db: Habi
                                         detailBgColor = Color(dummyHabit.color).copy(alpha = 0.1f),
                                         modifier = Modifier.padding(horizontal = 0.dp, vertical = 4.dp),
                                         currentDateMillis = currentDateMillis,
-                                        animateTileChanges = true,
-                                        firstDayOfWeek = firstDayOfWeekCalendar,
-                                        autoScrollText = autoScrollText,
-                                        autoScrollTextElements = autoScrollTextElements,
-                                        autoScrollTextScreens = autoScrollTextScreens
+                                        animateTileChanges = true
                                     )
                                 },
                                 modifier = Modifier

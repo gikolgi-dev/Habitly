@@ -118,6 +118,7 @@ import com.habitly.habitly.ui.AppBackButton
 import com.habitly.habitly.ui.colors.isBright
 import com.habitly.habitly.ui.colors.toThemeHabitColor
 import com.habitly.habitly.ui.components.*
+import com.habitly.habitly.data.settings.LocalAppSettings
 
 private val ALL_STAT_MODULES = listOf(
     "longest_streak",
@@ -164,15 +165,16 @@ private fun getModuleDisplayName(id: String): String = when (getBaseModuleId(id)
 fun StatisticScreen(
     viewModel: HabitViewModel,
     onBack: () -> Unit,
-    initialHabitId: String? = null,
-    borderContrast: Float,
-    vibrationsEnabled: Boolean,
-    showScrollBlur: Boolean,
-    scrollBlurTargets: Set<String>,
-    useHabitColor: Boolean,
-    firstDayOfWeek: Int = Calendar.MONDAY,
-    showYearDivider: Boolean = false
+    initialHabitId: String? = null
 ) {
+    val settings = LocalAppSettings.current
+    val borderContrast = settings.borders
+    val vibrationsEnabled = settings.vibrations
+    val showScrollBlur = settings.showScrollBlur
+    val scrollBlurTargets = settings.scrollBlurTargets
+    val useHabitColor = settings.useHabitColorForStatistics
+    val firstDayOfWeek = settings.firstDayOfWeekCalendar
+    val showYearDivider = settings.lineChartYearDivider
     val context = LocalContext.current
     val habitsUiState by viewModel.habitsUiState.collectAsState()
     val habits = (habitsUiState as? HabitsUiState.Success)?.habits?.filterNot { it.habit.archived }

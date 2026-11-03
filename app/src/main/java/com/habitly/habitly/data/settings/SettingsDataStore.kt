@@ -796,6 +796,10 @@ class SettingsDataStore(private val context: Context) {
             preferences[IGNORE_WELCOME_ENGINE_KEY] = settings.ignoreWelcomeEngine
         }
     }
+
+    val appSettingsFlow: Flow<AppSettings> = context.dataStore.data.map { it.toAppSettings() }
+
+    suspend fun getInitialAppSettings(): AppSettings = appSettingsFlow.first()
 }
 
 @Serializable
@@ -842,3 +846,89 @@ data class ExportedSettings(
     val welcomeCardNotificationDays: String = DefaultSettings.WELCOME_CARD_NOTIFICATION_DAYS,
     val ignoreWelcomeEngine: Boolean = DefaultSettings.IGNORE_WELCOME_ENGINE
 )
+
+fun Preferences.toAppSettings(): AppSettings {
+    val bordersValue = this[SettingsDataStore.BORDERS_KEY] ?: run {
+        val oldValue = this[SettingsDataStore.OLD_BORDERS_KEY]
+        if (oldValue == true) 1.0f else if (oldValue == false) 0.0f else DefaultSettings.BORDERS
+    }
+    val heatmapDays = this[SettingsDataStore.HEATMAP_VISIBLE_DAYS_KEY]?.let { saved ->
+        saved.split(',').filter { it.isNotEmpty() }.toSet()
+    } ?: run {
+        val visible = this[SettingsDataStore.DAY_OF_WEEK_LABELS_VISIBLE_KEY]
+        val all = this[SettingsDataStore.SHOW_ALL_DAY_OF_WEEK_LABELS_KEY]
+        if (visible == null && all == null) {
+            DefaultSettings.HEATMAP_VISIBLE_DAYS.split(',').filter { it.isNotEmpty() }.toSet()
+        } else {
+            val isVisible = visible ?: true
+            val isAll = all ?: true
+            if (!isVisible) emptySet()
+            else if (isAll) setOf("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")
+            else setOf("TUE", "THU", "SAT")
+        }
+    }
+    val reduceMovTargets = this[SettingsDataStore.REDUCE_MOVEMENT_TARGETS_KEY]?.let { saved ->
+        saved.split(',').filter { it.isNotEmpty() }.toSet()
+    } ?: run {
+        val disableAnimations = this[SettingsDataStore.DISABLE_ANIMATIONS_KEY] ?: DefaultSettings.DISABLE_ANIMATIONS
+        if (disableAnimations) {
+            setOf("Rotation")
+        } else {
+            DefaultSettings.REDUCE_MOVEMENT_TARGETS.split(',').filter { it.isNotEmpty() }.toSet()
+        }
+    }
+
+    return AppSettings(
+        vibrations = this[SettingsDataStore.VIBRATIONS_KEY] ?: DefaultSettings.VIBRATIONS,
+        heroCardVisible = this[SettingsDataStore.HERO_CARD_VISIBLE_KEY] ?: DefaultSettings.HERO_CARD_VISIBLE,
+        ignoreWelcomeEngine = this[SettingsDataStore.IGNORE_WELCOME_ENGINE_KEY] ?: DefaultSettings.IGNORE_WELCOME_ENGINE,
+        heatmapWeeks = this[SettingsDataStore.HEATMAP_WEEKS_KEY] ?: DefaultSettings.HEATMAP_WEEKS,
+        heatmapInfinite = this[SettingsDataStore.HEATMAP_INFINITE_KEY] ?: DefaultSettings.HEATMAP_INFINITE,
+        is24Hour = this[SettingsDataStore.IS_24_HOUR_KEY] ?: DefaultSettings.IS_24_HOUR,
+        firstDayOfWeek = this[SettingsDataStore.FIRST_DAY_OF_WEEK_KEY] ?: DefaultSettings.FIRST_DAY_OF_WEEK,
+        theme = this[SettingsDataStore.THEME_KEY] ?: DefaultSettings.THEME,
+        useMaterialTheming = this[SettingsDataStore.USE_MATERIAL_THEMING_KEY] ?: DefaultSettings.USE_MATERIAL_THEMING,
+        useHabitColorForCard = this[SettingsDataStore.USE_HABIT_COLOR_FOR_CARD_KEY] ?: DefaultSettings.USE_HABIT_COLOR_FOR_CARD,
+        habitColorTargets = this[SettingsDataStore.HABIT_COLOR_TARGETS_KEY]?.split(',')?.filter { it.isNotEmpty() }?.toSet()
+            ?: DefaultSettings.HABIT_COLOR_TARGETS.split(',').filter { it.isNotEmpty() }.toSet(),
+        lineChartYearDivider = this[SettingsDataStore.LINE_CHART_YEAR_DIVIDER_KEY] ?: DefaultSettings.LINE_CHART_YEAR_DIVIDER,
+        monthLabels = this[SettingsDataStore.MONTH_LABELS_KEY] ?: DefaultSettings.MONTH_LABELS,
+        yearDivider = this[SettingsDataStore.YEAR_DIVIDER_KEY] ?: DefaultSettings.YEAR_DIVIDER,
+        yearLabels = this[SettingsDataStore.YEAR_LABELS_KEY] ?: DefaultSettings.YEAR_LABELS,
+        heatmapNotificationDot = this[SettingsDataStore.HEATMAP_NOTIFICATION_DOT_KEY] ?: DefaultSettings.HEATMAP_NOTIFICATION_DOT,
+        heatmapNotificationDotRange = this[SettingsDataStore.HEATMAP_NOTIFICATION_DOT_RANGE_KEY] ?: DefaultSettings.HEATMAP_NOTIFICATION_DOT_RANGE,
+        heatmapNotificationDotDetailOnly = this[SettingsDataStore.HEATMAP_NOTIFICATION_DOT_DETAIL_ONLY_KEY] ?: DefaultSettings.HEATMAP_NOTIFICATION_DOT_DETAIL_ONLY,
+        heatmapScrolling = this[SettingsDataStore.HEATMAP_SCROLLING_KEY] ?: DefaultSettings.HEATMAP_SCROLLING,
+        heatmapVisibleDays = heatmapDays,
+        dayOfWeekLabelsOnRight = this[SettingsDataStore.DAY_OF_WEEK_LABELS_ON_RIGHT_KEY] ?: DefaultSettings.DAY_OF_WEEK_LABELS_ON_RIGHT,
+        borders = bordersValue,
+        showScrollBlur = this[SettingsDataStore.SHOW_SCROLL_BLUR_KEY] ?: DefaultSettings.SHOW_SCROLL_BLUR,
+        scrollBlurTargets = this[SettingsDataStore.SCROLL_BLUR_TARGETS_KEY]?.split(',')?.filter { it.isNotEmpty() }?.toSet()
+            ?: DefaultSettings.SCROLL_BLUR_TARGETS.split(',').filter { it.isNotEmpty() }.toSet(),
+        scrollBlurDetailOnly = this[SettingsDataStore.SCROLL_BLUR_DETAIL_ONLY_KEY] ?: DefaultSettings.SCROLL_BLUR_DETAIL_ONLY,
+        reduceMovement = this[SettingsDataStore.REDUCE_MOVEMENT_KEY] ?: this[SettingsDataStore.DISABLE_ANIMATIONS_KEY] ?: DefaultSettings.REDUCE_MOVEMENT,
+        reduceMovementTargets = reduceMovTargets,
+        autoScrollText = this[SettingsDataStore.AUTO_SCROLL_TEXT_KEY] ?: DefaultSettings.AUTO_SCROLL_TEXT,
+        autoScrollTextElements = this[SettingsDataStore.AUTO_SCROLL_TEXT_ELEMENTS_KEY]?.split(',')?.filter { it.isNotEmpty() }?.toSet()
+            ?: DefaultSettings.AUTO_SCROLL_TEXT_ELEMENTS.split(',').filter { it.isNotEmpty() }.toSet(),
+        autoScrollTextScreens = this[SettingsDataStore.AUTO_SCROLL_TEXT_SCREENS_KEY]?.split(',')?.filter { it.isNotEmpty() }?.toSet()
+            ?: DefaultSettings.AUTO_SCROLL_TEXT_SCREENS.split(',').filter { it.isNotEmpty() }.toSet(),
+        globalNotificationsEnabled = this[SettingsDataStore.GLOBAL_NOTIFICATIONS_KEY] ?: DefaultSettings.GLOBAL_NOTIFICATIONS_ENABLED,
+        globalNotificationTime = this[SettingsDataStore.GLOBAL_NOTIFICATION_TIME_KEY] ?: DefaultSettings.GLOBAL_NOTIFICATION_TIME,
+        globalNotificationDays = this[SettingsDataStore.GLOBAL_NOTIFICATION_DAYS_KEY]?.split(',')?.filter { it.isNotEmpty() }?.toSet()
+            ?: DefaultSettings.GLOBAL_NOTIFICATION_DAYS.split(',').filter { it.isNotEmpty() }.toSet(),
+        skipCompletedHabitNotifications = this[SettingsDataStore.SKIP_COMPLETED_HABIT_NOTIFICATIONS_KEY] ?: DefaultSettings.SKIP_COMPLETED_HABIT_NOTIFICATIONS,
+        exactAlarms = this[SettingsDataStore.EXACT_ALARMS_KEY] ?: DefaultSettings.EXACT_ALARMS,
+        snoozeEnabled = this[SettingsDataStore.SNOOZE_ENABLED_KEY] ?: DefaultSettings.SNOOZE_ENABLED,
+        snoozeDurationMinutes = this[SettingsDataStore.SNOOZE_DURATION_MINUTES_KEY] ?: DefaultSettings.SNOOZE_DURATION_MINUTES,
+        hasAskedNotificationPermission = this[SettingsDataStore.HAS_ASKED_NOTIFICATION_PERMISSION_KEY] ?: DefaultSettings.HAS_ASKED_NOTIFICATION_PERMISSION,
+        welcomeCardNotificationEnabled = this[SettingsDataStore.WELCOME_CARD_NOTIFICATION_ENABLED_KEY] ?: DefaultSettings.WELCOME_CARD_NOTIFICATION_ENABLED,
+        welcomeCardNotificationTime = this[SettingsDataStore.WELCOME_CARD_NOTIFICATION_TIME_KEY] ?: DefaultSettings.WELCOME_CARD_NOTIFICATION_TIME,
+        welcomeCardNotificationDays = this[SettingsDataStore.WELCOME_CARD_NOTIFICATION_DAYS_KEY]?.split(",")?.filter { it.isNotBlank() }?.toSet()
+            ?: DefaultSettings.WELCOME_CARD_NOTIFICATION_DAYS.split(",").toSet(),
+        welcomeCardDate = this[SettingsDataStore.WELCOME_CARD_DATE_KEY] ?: "",
+        welcomeCardCategoryId = this[SettingsDataStore.WELCOME_CARD_CATEGORY_ID_KEY] ?: "",
+        welcomeCardHabitId = this[SettingsDataStore.WELCOME_CARD_HABIT_ID_KEY] ?: "",
+        welcomeCardTemplateIndex = this[SettingsDataStore.WELCOME_CARD_TEMPLATE_INDEX_KEY] ?: 0
+    )
+}

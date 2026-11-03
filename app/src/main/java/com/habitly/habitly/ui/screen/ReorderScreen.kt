@@ -59,16 +59,18 @@ import com.habitly.habitly.data.Database.HabitViewModel
 import com.habitly.habitly.data.Database.HabitsUiState
 import com.habitly.habitly.ui.AppBackButton
 import com.habitly.habitly.ui.components.RotatingHabitIcon
+import com.habitly.habitly.data.settings.LocalAppSettings
 
 @Composable
 fun ReorderScreen(
     habitViewModel: HabitViewModel,
-    onBack: () -> Unit,
-    borderContrast: Float,
-    vibrationsEnabled: Boolean,
-    useHabitColor: Boolean,
-    disableAnimations: Boolean
+    onBack: () -> Unit
 ) {
+    val settings = LocalAppSettings.current
+    val vibrationsEnabled = settings.vibrations
+    val borderContrast = settings.borders
+    val useHabitColor = settings.useHabitColorForItemCards
+    val disableAnimations = settings.disableRotationAnimations
     val habitsUiState by habitViewModel.habitsUiState.collectAsState()
     val haptic = LocalHapticFeedback.current
 
@@ -258,11 +260,7 @@ fun ReorderHabitItem(
             modifier = Modifier.padding(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            RotatingHabitIcon(
-                habit = habit, 
-                borderContrast = borderContrast,
-                shouldAnimate = !disableAnimations
-            )
+            RotatingHabitIcon(habit = habit)
             Spacer(modifier = Modifier.size(16.dp))
 
             Column(

@@ -42,6 +42,7 @@ import com.habitly.habitly.data.Database.Completion
 import com.habitly.habitly.data.Database.Habit
 import com.habitly.habitly.data.Database.getEffectiveStartDateMillis
 import com.habitly.habitly.data.Database.getDailyTarget
+import com.habitly.habitly.data.settings.LocalAppSettings
 import com.habitly.habitly.ui.components.HeatmapWeekColumn
 import com.habitly.habitly.ui.components.HeatmapWeekData
 import com.habitly.habitly.ui.components.getDaysAndDayValues
@@ -154,21 +155,21 @@ fun Heatmap(
     habitColor: Color,
     modifier: Modifier = Modifier,
     isScrollable: Boolean = true,
-    showMonthLabels: Boolean,
-    visibleDayLabels: Set<String>,
-    dayOfWeekLabelsOnRight: Boolean,
-    showYearDivider: Boolean = true,
-    showYearLabels: Boolean = true,
-    showScrollBlur: Boolean,
+    showMonthLabels: Boolean = LocalAppSettings.current.monthLabels,
+    visibleDayLabels: Set<String> = LocalAppSettings.current.heatmapVisibleDays,
+    dayOfWeekLabelsOnRight: Boolean = LocalAppSettings.current.dayOfWeekLabelsOnRight,
+    showYearDivider: Boolean = LocalAppSettings.current.yearDivider,
+    showYearLabels: Boolean = LocalAppSettings.current.yearLabels,
+    showScrollBlur: Boolean = LocalAppSettings.current.let { it.showScrollBlur && "Heatmap" in it.scrollBlurTargets },
     minWeeks: Int = 0,
     isInfinite: Boolean = false,
     currentDateMillis: Long = System.currentTimeMillis(),
     habit: Habit? = null,
-    showNotificationDot: Boolean = false,
-    notificationDotRange: String = "today_and_future",
+    showNotificationDot: Boolean = LocalAppSettings.current.heatmapNotificationDot,
+    notificationDotRange: String = LocalAppSettings.current.heatmapNotificationDotRange,
     notificationDotAlpha: Float = 1f,
     animateTileChanges: Boolean = false,
-    firstDayOfWeek: Int = Calendar.MONDAY
+    firstDayOfWeek: Int = LocalAppSettings.current.firstDayOfWeekCalendar
 ) {
     val density = LocalDensity.current
 

@@ -33,6 +33,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
+import com.habitly.habitly.data.settings.LocalAppSettings
+import com.habitly.habitly.data.settings.LocalSettingsDataStore
 import com.habitly.habitly.data.settings.DefaultSettings
 import com.habitly.habitly.data.settings.SettingsDataStore
 import kotlinx.coroutines.launch
@@ -41,14 +43,15 @@ import kotlinx.coroutines.launch
 @Composable
 fun AccessibilityScreen(
     modifier: Modifier = Modifier,
-    settingsDataStore: SettingsDataStore,
+    settingsDataStore: SettingsDataStore = LocalSettingsDataStore.current,
     onNavigateToReduceMovement: () -> Unit,
     onNavigateToAutoScroll: () -> Unit
 ) {
-    val currentBorderContrast by settingsDataStore.borders.collectAsState(initial = DefaultSettings.BORDERS)
-    val currentReduceMovement by settingsDataStore.reduceMovement.collectAsState(initial = DefaultSettings.REDUCE_MOVEMENT)
-    val currentAutoScrollText by settingsDataStore.autoScrollText.collectAsState(initial = DefaultSettings.AUTO_SCROLL_TEXT)
-    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
+    val settings = LocalAppSettings.current
+    val currentBorderContrast = settings.borders
+    val currentReduceMovement = settings.reduceMovement
+    val currentAutoScrollText = settings.autoScrollText
+    val vibrationsEnabled = settings.vibrations
 
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
@@ -164,16 +167,15 @@ fun AccessibilityScreen(
 
 @Composable
 fun ScrollBlurSubScreen(
-    settingsDataStore: SettingsDataStore,
+    settingsDataStore: SettingsDataStore = LocalSettingsDataStore.current,
     modifier: Modifier = Modifier
 ) {
+    val settings = LocalAppSettings.current
     val scope = rememberCoroutineScope()
-    val showScrollBlur by settingsDataStore.showScrollBlur.collectAsState(initial = DefaultSettings.SHOW_SCROLL_BLUR)
-    val scrollBlurTargets by settingsDataStore.scrollBlurTargets.collectAsState(
-        initial = DefaultSettings.SCROLL_BLUR_TARGETS.split(',').filter { it.isNotEmpty() }.toSet()
-    )
-    val scrollBlurDetailOnly by settingsDataStore.scrollBlurDetailOnly.collectAsState(initial = DefaultSettings.SCROLL_BLUR_DETAIL_ONLY)
-    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
+    val showScrollBlur = settings.showScrollBlur
+    val scrollBlurTargets = settings.scrollBlurTargets
+    val scrollBlurDetailOnly = settings.scrollBlurDetailOnly
+    val vibrationsEnabled = settings.vibrations
     val haptic = LocalHapticFeedback.current
 
     SettingsSubScreenContainer(modifier = modifier) {
@@ -227,15 +229,14 @@ fun ScrollBlurSubScreen(
 
 @Composable
 fun ReduceMovementSubScreen(
-    settingsDataStore: SettingsDataStore,
+    settingsDataStore: SettingsDataStore = LocalSettingsDataStore.current,
     modifier: Modifier = Modifier
 ) {
+    val settings = LocalAppSettings.current
     val scope = rememberCoroutineScope()
-    val reduceMovement by settingsDataStore.reduceMovement.collectAsState(initial = DefaultSettings.REDUCE_MOVEMENT)
-    val reduceMovementTargets by settingsDataStore.reduceMovementTargets.collectAsState(
-        initial = DefaultSettings.REDUCE_MOVEMENT_TARGETS.split(',').filter { it.isNotEmpty() }.toSet()
-    )
-    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
+    val reduceMovement = settings.reduceMovement
+    val reduceMovementTargets = settings.reduceMovementTargets
+    val vibrationsEnabled = settings.vibrations
     val haptic = LocalHapticFeedback.current
 
     SettingsSubScreenContainer(modifier = modifier) {
@@ -271,18 +272,15 @@ fun ReduceMovementSubScreen(
 
 @Composable
 fun AutoScrollSubScreen(
-    settingsDataStore: SettingsDataStore,
+    settingsDataStore: SettingsDataStore = LocalSettingsDataStore.current,
     modifier: Modifier = Modifier
 ) {
+    val settings = LocalAppSettings.current
     val scope = rememberCoroutineScope()
-    val autoScrollText by settingsDataStore.autoScrollText.collectAsState(initial = DefaultSettings.AUTO_SCROLL_TEXT)
-    val autoScrollTextElements by settingsDataStore.autoScrollTextElements.collectAsState(
-        initial = DefaultSettings.AUTO_SCROLL_TEXT_ELEMENTS.split(',').filter { it.isNotEmpty() }.toSet()
-    )
-    val autoScrollTextScreens by settingsDataStore.autoScrollTextScreens.collectAsState(
-        initial = DefaultSettings.AUTO_SCROLL_TEXT_SCREENS.split(',').filter { it.isNotEmpty() }.toSet()
-    )
-    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
+    val autoScrollText = settings.autoScrollText
+    val autoScrollTextElements = settings.autoScrollTextElements
+    val autoScrollTextScreens = settings.autoScrollTextScreens
+    val vibrationsEnabled = settings.vibrations
     val haptic = LocalHapticFeedback.current
 
     SettingsSubScreenContainer(modifier = modifier) {

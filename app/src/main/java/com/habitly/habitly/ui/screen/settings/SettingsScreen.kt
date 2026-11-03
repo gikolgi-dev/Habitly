@@ -78,6 +78,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import com.habitly.habitly.data.settings.DefaultSettings
+import com.habitly.habitly.data.settings.LocalAppSettings
+import com.habitly.habitly.data.settings.LocalSettingsDataStore
 import java.util.Calendar
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -166,11 +168,7 @@ fun settingsExitTransition() =
 fun SettingsScreen(
     onDismiss: () -> Unit,
     db: HabitDatabase,
-    settingsDataStore: SettingsDataStore,
-    vibrationsEnabled: Boolean,
-    borderContrast: Float,
-    is24Hour: Boolean,
-    theme: String
+    settingsDataStore: SettingsDataStore = LocalSettingsDataStore.current
 ) {
     val navController = rememberNavController()
     val scope = rememberCoroutineScope()
@@ -178,6 +176,11 @@ fun SettingsScreen(
 
     val haptic = LocalHapticFeedback.current
     val uriHandler = LocalUriHandler.current
+    val settings = LocalAppSettings.current
+    val theme = settings.theme
+    val vibrationsEnabled = settings.vibrations
+    val borderContrast = settings.borders
+    val is24Hour = settings.is24Hour
     val useDarkTheme = when (theme) {
         "light" -> false
         "dark" -> true
@@ -197,38 +200,6 @@ fun SettingsScreen(
             "Unknown"
         }
     }
-
-    val showMonthLabels by settingsDataStore.monthLabels.collectAsState(initial = DefaultSettings.MONTH_LABELS)
-    val showYearDivider by settingsDataStore.yearDivider.collectAsState(initial = DefaultSettings.YEAR_DIVIDER)
-    val showYearLabels by settingsDataStore.yearLabels.collectAsState(initial = DefaultSettings.YEAR_LABELS)
-    val heatmapNotificationDot by settingsDataStore.heatmapNotificationDot.collectAsState(initial = DefaultSettings.HEATMAP_NOTIFICATION_DOT)
-    val heatmapNotificationDotRange by settingsDataStore.heatmapNotificationDotRange.collectAsState(initial = DefaultSettings.HEATMAP_NOTIFICATION_DOT_RANGE)
-    val heatmapScrolling by settingsDataStore.heatmapScrolling.collectAsState(initial = DefaultSettings.HEATMAP_SCROLLING)
-    val heatmapVisibleDays by settingsDataStore.heatmapVisibleDays.collectAsState(initial = emptySet())
-    val dayOfWeekLabelsOnRight by settingsDataStore.dayOfWeekLabelsOnRight.collectAsState(initial = false)
-    val firstDayOfWeekCalendar by settingsDataStore.firstDayOfWeekCalendar.collectAsState(initial = Calendar.MONDAY)
-    val heatmapWeeks by settingsDataStore.heatmapWeeks.collectAsState(initial = DefaultSettings.HEATMAP_WEEKS)
-    val heatmapInfinite by settingsDataStore.heatmapInfinite.collectAsState(initial = DefaultSettings.HEATMAP_INFINITE)
-    val useHabitColorForCard by settingsDataStore.useHabitColorForCard.collectAsState(initial = DefaultSettings.USE_HABIT_COLOR_FOR_CARD)
-    val currentShowScrollBlur by settingsDataStore.showScrollBlur.collectAsState(initial = DefaultSettings.SHOW_SCROLL_BLUR)
-    val scrollBlurTargets by settingsDataStore.scrollBlurTargets.collectAsState(
-        initial = DefaultSettings.SCROLL_BLUR_TARGETS.split(',').filter { it.isNotEmpty() }.toSet()
-    )
-    val scrollBlurDetailOnly by settingsDataStore.scrollBlurDetailOnly.collectAsState(initial = DefaultSettings.SCROLL_BLUR_DETAIL_ONLY)
-    val habitColorTargets by settingsDataStore.habitColorTargets.collectAsState(
-        initial = DefaultSettings.HABIT_COLOR_TARGETS.split(',').filter { it.isNotEmpty() }.toSet()
-    )
-    val reduceMovement by settingsDataStore.reduceMovement.collectAsState(initial = DefaultSettings.REDUCE_MOVEMENT)
-    val reduceMovementTargets by settingsDataStore.reduceMovementTargets.collectAsState(
-        initial = DefaultSettings.REDUCE_MOVEMENT_TARGETS.split(',').filter { it.isNotEmpty() }.toSet()
-    )
-    val autoScrollText by settingsDataStore.autoScrollText.collectAsState(initial = DefaultSettings.AUTO_SCROLL_TEXT)
-    val autoScrollTextElements by settingsDataStore.autoScrollTextElements.collectAsState(
-        initial = DefaultSettings.AUTO_SCROLL_TEXT_ELEMENTS.split(',').filter { it.isNotEmpty() }.toSet()
-    )
-    val autoScrollTextScreens by settingsDataStore.autoScrollTextScreens.collectAsState(
-        initial = DefaultSettings.AUTO_SCROLL_TEXT_SCREENS.split(',').filter { it.isNotEmpty() }.toSet()
-    )
 
     val blurModifier = Modifier
 
@@ -489,32 +460,7 @@ fun SettingsScreen(
                 borderContrast = borderContrast,
             ) { paddingValues ->
                 HeatmapSubScreen(
-                    settingsDataStore = settingsDataStore,
                     db = db,
-                    showMonthLabels = showMonthLabels,
-                    showYearDivider = showYearDivider,
-                    showYearLabels = showYearLabels,
-                    heatmapNotificationDot = heatmapNotificationDot,
-                    heatmapNotificationDotRange = heatmapNotificationDotRange,
-                    heatmapScrolling = heatmapScrolling,
-                    heatmapVisibleDays = heatmapVisibleDays,
-                    dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight,
-                    borderContrast = borderContrast,
-                    vibrationsEnabled = vibrationsEnabled,
-                    firstDayOfWeekCalendar = firstDayOfWeekCalendar,
-                    heatmapWeeks = heatmapWeeks,
-                    heatmapInfinite = heatmapInfinite,
-                    useHabitColorForCard = useHabitColorForCard,
-                    habitColorTargets = habitColorTargets,
-                    reduceMovement = reduceMovement,
-                    reduceMovementTargets = reduceMovementTargets,
-                    autoScrollText = autoScrollText,
-                    autoScrollTextElements = autoScrollTextElements,
-                    autoScrollTextScreens = autoScrollTextScreens,
-                    currentShowScrollBlur = currentShowScrollBlur,
-                    scrollBlurTargets = scrollBlurTargets,
-                    scrollBlurDetailOnly = scrollBlurDetailOnly,
-                    theme = theme,
                     onNavigateToHeatmapNotificationDot = { navigateTo("heatmap_notification_dot") },
                     onNavigateToHabitColor = { navigateTo("habit_color") },
                     onNavigateToScrollBlur = { navigateTo("scroll_blur") },
@@ -672,9 +618,6 @@ fun SettingsScreen(
                 },
             ) { paddingValues ->
                 NotificationSettingsScreen(
-                    settingsDataStore = settingsDataStore,
-                    is24Hour = is24Hour,
-                    borderContrast = borderContrast,
                     onNavigateToDailyNotification = { navigateTo("daily_notification") },
                     onNavigateToWelcomeCardNotification = { navigateTo("welcome_card_notification") },
                     modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
@@ -691,9 +634,6 @@ fun SettingsScreen(
                 borderContrast = borderContrast,
             ) { paddingValues ->
                 DailyNotificationSubScreen(
-                    settingsDataStore = settingsDataStore,
-                    is24Hour = is24Hour,
-                    borderContrast = borderContrast,
                     modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
                 )
             }
@@ -708,9 +648,6 @@ fun SettingsScreen(
                 borderContrast = borderContrast,
             ) { paddingValues ->
                 WelcomeCardNotificationSubScreen(
-                    settingsDataStore = settingsDataStore,
-                    is24Hour = is24Hour,
-                    borderContrast = borderContrast,
                     modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
                 )
             }

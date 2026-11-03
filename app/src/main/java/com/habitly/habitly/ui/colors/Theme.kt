@@ -24,18 +24,20 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import com.habitly.habitly.data.settings.SettingsDataStore
+import com.habitly.habitly.data.settings.LocalAppSettings
+import com.habitly.habitly.data.settings.LocalSettingsDataStore
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun Attempt3Theme(
-    settingsDataStore: SettingsDataStore,
+    settingsDataStore: SettingsDataStore = LocalSettingsDataStore.current,
     initialTheme: String = "system",
     initialUseMaterialTheming: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    val theme by settingsDataStore.theme.collectAsState(initial = initialTheme)
-    val useMaterialTheming by settingsDataStore.useMaterialTheming.collectAsState(initial = initialUseMaterialTheming)
-
+    val settings = LocalAppSettings.current
+    val theme = settings.theme
+    val useMaterialTheming = settings.useMaterialTheming
     val isSystemDark = isSystemInDarkTheme()
     val isDark = when (theme) {
         "light" -> false

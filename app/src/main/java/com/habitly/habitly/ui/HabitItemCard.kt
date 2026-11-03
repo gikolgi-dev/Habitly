@@ -87,6 +87,7 @@ import com.habitly.habitly.data.Database.getDailyTarget
 import com.habitly.habitly.ui.colors.isBright
 import com.habitly.habitly.ui.colors.toThemeHabitColor
 import com.habitly.habitly.ui.components.RotatingHabitIcon
+import com.habitly.habitly.data.settings.LocalAppSettings
 import java.util.Calendar
 
 val circleToSquareMorph = Morph(MaterialShapes.Circle, MaterialShapes.Square)
@@ -102,9 +103,9 @@ fun HabitTitleAndDescription(
     habit: Habit,
     isDetailView: Boolean,
     modifier: Modifier = Modifier,
-    autoScrollText: Boolean = false,
-    autoScrollTextElements: Set<String> = emptySet(),
-    autoScrollTextScreens: Set<String> = emptySet()
+    autoScrollText: Boolean = LocalAppSettings.current.autoScrollText,
+    autoScrollTextElements: Set<String> = LocalAppSettings.current.autoScrollTextElements,
+    autoScrollTextScreens: Set<String> = LocalAppSettings.current.autoScrollTextScreens
 ) {
     val isScreenEnabled = if (isDetailView) "Detail Screen" in autoScrollTextScreens else "Main Screen" in autoScrollTextScreens
     val shouldAutoScrollTitle = autoScrollText && isScreenEnabled && "Title" in autoScrollTextElements
@@ -459,39 +460,39 @@ fun HabitItemCard(
     isCompleted: Boolean,
     completions: List<Completion>,
     showCheckbox: Boolean,
-    showMonthLabels: Boolean,
-    visibleDayLabels: Set<String>,
-    dayOfWeekLabelsOnRight: Boolean,
-    showYearDivider: Boolean,
-    showYearLabels: Boolean,
-    heatmapNotificationDot: Boolean,
-    heatmapNotificationDotRange: String,
-    showScrollBlur: Boolean = true,
-    borderContrast: Float,
-    useHabitColor: Boolean,
-    disableAnimations: Boolean,
+    showMonthLabels: Boolean = LocalAppSettings.current.monthLabels,
+    visibleDayLabels: Set<String> = LocalAppSettings.current.heatmapVisibleDays,
+    dayOfWeekLabelsOnRight: Boolean = LocalAppSettings.current.dayOfWeekLabelsOnRight,
+    showYearDivider: Boolean = LocalAppSettings.current.yearDivider,
+    showYearLabels: Boolean = LocalAppSettings.current.yearLabels,
+    heatmapNotificationDot: Boolean = LocalAppSettings.current.let { it.heatmapNotificationDot && !it.heatmapNotificationDotDetailOnly },
+    heatmapNotificationDotRange: String = LocalAppSettings.current.heatmapNotificationDotRange,
+    showScrollBlur: Boolean = LocalAppSettings.current.let { it.showScrollBlur && "Heatmap" in it.scrollBlurTargets && !it.scrollBlurDetailOnly },
+    borderContrast: Float = LocalAppSettings.current.borders,
+    useHabitColor: Boolean = LocalAppSettings.current.useHabitColorForItemCards,
+    disableAnimations: Boolean = LocalAppSettings.current.disableRotationAnimations,
     onComplete: () -> Unit,
     onDecrement: (() -> Unit)? = null,
     onClick: () -> Unit,
     onUnarchive: (() -> Unit)? = null,
     onDelete: (() -> Unit)? = null,
-    heatmapScrollEnabled: Boolean = false,
-    heatmapWeeks: Int = 0,
-    heatmapInfinite: Boolean = false,
+    heatmapScrollEnabled: Boolean = LocalAppSettings.current.heatmapScrolling,
+    heatmapWeeks: Int = LocalAppSettings.current.heatmapWeeks,
+    heatmapInfinite: Boolean = LocalAppSettings.current.heatmapInfinite,
     isPreview: Boolean = false,
     currentDateMillis: Long = System.currentTimeMillis(),
     @SuppressLint("ModifierParameter") modifier: Modifier = Modifier,
     sharedTransitionScope: SharedTransitionScope? = null,
     visible: Boolean = true,
     transitionProgressProvider: () -> Float = { 0f },
-    theme: String = "system",
+    theme: String = LocalAppSettings.current.theme,
     detailBgColor: Color = Color.Unspecified,
     animateTileChanges: Boolean = false,
-    firstDayOfWeek: Int = Calendar.MONDAY,
-    autoScrollText: Boolean = false,
-    autoScrollTextElements: Set<String> = emptySet(),
-    autoScrollTextScreens: Set<String> = emptySet(),
-    vibrationsEnabled: Boolean = true
+    firstDayOfWeek: Int = LocalAppSettings.current.firstDayOfWeekCalendar,
+    autoScrollText: Boolean = LocalAppSettings.current.autoScrollText,
+    autoScrollTextElements: Set<String> = LocalAppSettings.current.autoScrollTextElements,
+    autoScrollTextScreens: Set<String> = LocalAppSettings.current.autoScrollTextScreens,
+    vibrationsEnabled: Boolean = LocalAppSettings.current.vibrations
 ) {
     val haptic = LocalHapticFeedback.current
     val useDarkTheme = !MaterialTheme.colorScheme.surface.isBright()
@@ -564,21 +565,14 @@ fun HabitItemCard(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                RotatingHabitIcon(
-                    habit = habit,
-                    borderContrast = borderContrast,
-                    shouldAnimate = !disableAnimations
-                )
+                RotatingHabitIcon(habit = habit)
 
                 Spacer(modifier = Modifier.size(16.dp))
 
                 HabitTitleAndDescription(
                     habit = habit,
                     isDetailView = false,
-                    modifier = Modifier.weight(1f),
-                    autoScrollText = autoScrollText,
-                    autoScrollTextElements = autoScrollTextElements,
-                    autoScrollTextScreens = autoScrollTextScreens,
+                    modifier = Modifier.weight(1f)
                 )
 
                 Spacer(modifier = Modifier.size(16.dp))
@@ -636,21 +630,11 @@ fun HabitItemCard(
                     completions = completions,
                     habitColor = Color(habit.color),
                     modifier = Modifier.fillMaxWidth(),
-                    isScrollable = heatmapScrollEnabled,
-                    showMonthLabels = showMonthLabels,
-                    visibleDayLabels = visibleDayLabels,
-                    dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight,
-                    showYearDivider = showYearDivider,
-                    showYearLabels = showYearLabels,
-                    showScrollBlur = showScrollBlur,
                     minWeeks = heatmapWeeks,
                     isInfinite = heatmapInfinite,
                     currentDateMillis = currentDateMillis,
                     habit = habit,
-                    showNotificationDot = heatmapNotificationDot,
-                    notificationDotRange = heatmapNotificationDotRange,
-                    animateTileChanges = animateTileChanges,
-                    firstDayOfWeek = firstDayOfWeek
+                    animateTileChanges = animateTileChanges
                 )
             }
         }
