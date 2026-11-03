@@ -47,6 +47,7 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ZoomIn
 import androidx.compose.material.icons.filled.ZoomOut
@@ -103,6 +104,7 @@ import androidx.compose.ui.zIndex
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.ui.input.pointer.changedToUp
+import kotlin.math.abs
 
 
 
@@ -413,7 +415,14 @@ fun HabitStatisticsContent(
                 var isDraggingRight by remember { mutableStateOf(false) }
                 val coroutineScope = rememberCoroutineScope()
                 val isFull = moduleId.endsWith("_full")
+                val isResizable = moduleId != "monthly_chart" && !moduleId.startsWith("spacer_")
                 val isSelectedForResize = isEditMode && selectedModuleForResize == moduleId
+                val columnIndex = moduleColumns[moduleId] ?: 0
+                val showLeftDot = isEditMode && isResizable && (isFull || columnIndex == 1)
+                val showRightDot = isEditMode && isResizable && (isFull || columnIndex == 0)
+                val currentIsFull by rememberUpdatedState(isFull)
+                val currentShowLeftDot by rememberUpdatedState(showLeftDot)
+                val currentShowRightDot by rememberUpdatedState(showRightDot)
 
                 Box(
                     modifier = Modifier
@@ -462,15 +471,20 @@ fun HabitStatisticsContent(
                             }
                         }
                         .then(
-                            if (isEditMode && moduleId != "monthly_chart" && !moduleId.startsWith("spacer_")) {
+                            if (isEditMode && isResizable) {
                                 Modifier.clickable(
                                     interactionSource = remember { MutableInteractionSource() },
                                     indication = null
                                 ) {
-                                    if (vibrationsEnabled) {
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    selectedModuleForResize = moduleId
+                                    if (isFull) {
+                                        resizeModule(moduleId, expand = false, shrinkLeftToRight = false)
+                                    } else {
+                                        resizeModule(moduleId, expand = true)
                                     }
-                                    selectedModuleForResize = if (selectedModuleForResize == moduleId) null else moduleId
+                                    if (vibrationsEnabled) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    }
                                 }
                             } else Modifier
                         )
@@ -479,24 +493,101 @@ fun HabitStatisticsContent(
                                 Modifier.pointerInput(moduleId) {
                                     awaitEachGesture {
                                         val down = awaitFirstDown(requireUnconsumed = false)
-                                        val isLongPress = withTimeoutOrNull(300) {
-                                            val pointerId = down.id
+                                        val pointerId = down.id
+                                        var horizontalSwipeMode = false
+                                        var initialDeltaX = 0f
+                                        val isLongPress = withTimeoutOrNull(250) {
                                             while (true) {
                                                 val event = awaitPointerEvent()
                                                 val change = event.changes.firstOrNull { it.id == pointerId }
                                                 if (change == null || change.changedToUp()) {
                                                     return@withTimeoutOrNull false
                                                 }
-                                                val dist = (change.position - down.position).getDistance()
-                                                if (dist > viewConfiguration.touchSlop) {
+                                                val delta = change.position - down.position
+                                                if (delta.getDistance() > viewConfiguration.touchSlop) {
+                                                    if (isResizable && abs(delta.x) > abs(delta.y) * 1.35f) {
+                                                        val canSwipeLeft = (currentIsFull && currentShowRightDot) || (!currentIsFull && currentShowLeftDot)
+                                                        val canSwipeRight = (currentIsFull && currentShowLeftDot) || (!currentIsFull && currentShowRightDot)
+                                                        if ((delta.x < 0f && canSwipeLeft) || (delta.x > 0f && canSwipeRight)) {
+                                                            horizontalSwipeMode = true
+                                                            initialDeltaX = delta.x
+                                                            change.consume()
+                                                        }
+                                                    }
                                                     return@withTimeoutOrNull false
                                                 }
                                             }
                                         }
-                                        
-                                        if (isLongPress == null) {
+
+                                        if (horizontalSwipeMode) {
+                                            selectedModuleForResize = moduleId
+                                            val swipeRight = initialDeltaX > 0f
+                                            if (currentIsFull) {
+                                                if (swipeRight) {
+                                                    isDraggingLeft = true
+                                                } else {
+                                                    isDraggingRight = true
+                                                }
+                                            } else {
+                                                if (swipeRight) {
+                                                    isDraggingRight = true
+                                                } else {
+                                                    isDraggingLeft = true
+                                                }
+                                            }
+                                            coroutineScope.launch { dragAmountXAnim.snapTo(initialDeltaX) }
+
+                                            while (true) {
+                                                val event = awaitPointerEvent()
+                                                val change = event.changes.firstOrNull { it.id == pointerId }
+                                                if (change == null) {
+                                                    coroutineScope.launch {
+                                                        dragAmountXAnim.animateTo(0f, spring(Spring.DampingRatioNoBouncy, Spring.StiffnessMedium))
+                                                        isDraggingLeft = false
+                                                        isDraggingRight = false
+                                                    }
+                                                    break
+                                                }
+                                                if (change.changedToUp()) {
+                                                    val finalDrag = dragAmountXAnim.value
+                                                    val threshold = (cardWidthPx / 4.5f).coerceAtLeast(24f * density)
+                                                    var resized = false
+                                                    if (isDraggingLeft) {
+                                                        if (currentIsFull && finalDrag > threshold) {
+                                                            resizeModule(moduleId, expand = false, shrinkLeftToRight = true)
+                                                            resized = true
+                                                        } else if (!currentIsFull && finalDrag < -threshold) {
+                                                            resizeModule(moduleId, expand = true)
+                                                            resized = true
+                                                        }
+                                                    } else if (isDraggingRight) {
+                                                        if (currentIsFull && finalDrag < -threshold) {
+                                                            resizeModule(moduleId, expand = false, shrinkLeftToRight = false)
+                                                            resized = true
+                                                        } else if (!currentIsFull && finalDrag > threshold) {
+                                                            resizeModule(moduleId, expand = true)
+                                                            resized = true
+                                                        }
+                                                    }
+                                                    if (resized && vibrationsEnabled) {
+                                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                    }
+                                                    coroutineScope.launch {
+                                                        dragAmountXAnim.animateTo(0f, spring(Spring.DampingRatioNoBouncy, Spring.StiffnessMedium))
+                                                        isDraggingLeft = false
+                                                        isDraggingRight = false
+                                                    }
+                                                    break
+                                                }
+                                                change.consume()
+                                                val dragDeltaX = change.position.x - change.previousPosition.x
+                                                coroutineScope.launch {
+                                                    dragAmountXAnim.snapTo(dragAmountXAnim.value + dragDeltaX)
+                                                }
+                                            }
+                                        } else if (isLongPress == null) {
                                             // Trigger onDragStart
-                                            selectedModuleForResize = null
+                                            selectedModuleForResize = moduleId
                                             draggedItemIndex = currentModulesToRender.indexOf(moduleId)
                                             touchOffsetWithinItem = down.position
                                             val stableKey = if (moduleId.endsWith("_full")) moduleId.removeSuffix("_full") else moduleId
@@ -661,29 +752,32 @@ fun HabitStatisticsContent(
                         isEditMode = isEditMode
                     )
                     
-                    val selectionAlpha by animateFloatAsState(
-                        targetValue = if (isSelectedForResize) 1f else 0f,
-                        animationSpec = tween(300),
-                        label = "selectionAlpha"
+                    val editHandlesAlpha by animateFloatAsState(
+                        targetValue = if (isEditMode && isResizable) 1f else 0f,
+                        animationSpec = tween(250),
+                        label = "editHandlesAlpha"
                     )
-                    
-                    if (selectionAlpha > 0f) {
+                    val isActivelyResizing = isSelectedForResize || isDraggingLeft || isDraggingRight
+                    val borderAlpha by animateFloatAsState(
+                        targetValue = if (!isEditMode || !isResizable) 0f else if (isActivelyResizing) 1f else 0.45f,
+                        animationSpec = tween(250),
+                        label = "borderAlpha"
+                    )
+
+                    if (editHandlesAlpha > 0f) {
                         val strokeColor = if (useHabitColorForCard) accentColor else MaterialTheme.colorScheme.primary
-                        val columnIndex = moduleColumns[moduleId] ?: 0
-                        val showLeftDot = isFull || columnIndex == 1
-                        val showRightDot = isFull || columnIndex == 0
-                        
+
                         val leftDotAlpha by animateFloatAsState(
                             targetValue = if (showLeftDot) 1f else 0f,
-                            animationSpec = tween(300),
+                            animationSpec = tween(250),
                             label = "leftDotAlpha"
                         )
                         val rightDotAlpha by animateFloatAsState(
                             targetValue = if (showRightDot) 1f else 0f,
-                            animationSpec = tween(300),
+                            animationSpec = tween(250),
                             label = "rightDotAlpha"
                         )
-                        
+
                         Box(
                             modifier = Modifier
                                 .matchParentSize()
@@ -692,12 +786,15 @@ fun HabitStatisticsContent(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .border(
-                                        border = BorderStroke(2.dp, strokeColor.copy(alpha = selectionAlpha)),
+                                        border = BorderStroke(
+                                            width = if (isActivelyResizing) 2.dp else 1.5.dp,
+                                            color = strokeColor.copy(alpha = borderAlpha)
+                                        ),
                                         shape = CardDefaults.shape
                                     )
                             )
-                            
-                            // Left dot
+
+                            // Left resize handle
                             if (leftDotAlpha > 0f) {
                                 Box(
                                     modifier = Modifier
@@ -708,16 +805,17 @@ fun HabitStatisticsContent(
                                         .pointerInput(moduleId) {
                                             detectDragGestures(
                                                 onDragStart = {
-                                                    if (!showLeftDot) return@detectDragGestures
+                                                    if (!currentShowLeftDot) return@detectDragGestures
+                                                    selectedModuleForResize = moduleId
                                                     isDraggingLeft = true
                                                     coroutineScope.launch { dragAmountXAnim.snapTo(0f) }
                                                 },
                                                 onDragEnd = {
-                                                    if (!showLeftDot) return@detectDragGestures
+                                                    if (!currentShowLeftDot) return@detectDragGestures
                                                     val finalDrag = dragAmountXAnim.value
-                                                    val threshold = cardWidthPx / 3.5f
+                                                    val threshold = (cardWidthPx / 4.5f).coerceAtLeast(24f * density)
                                                     var resized = false
-                                                    if (isFull) {
+                                                    if (currentIsFull) {
                                                         if (finalDrag > threshold) {
                                                             resizeModule(moduleId, expand = false, shrinkLeftToRight = true)
                                                             resized = true
@@ -728,11 +826,11 @@ fun HabitStatisticsContent(
                                                             resized = true
                                                         }
                                                     }
-                                                    
+
                                                     if (resized && vibrationsEnabled) {
                                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                                     }
-                                                    
+
                                                     coroutineScope.launch {
                                                         dragAmountXAnim.animateTo(0f, spring(Spring.DampingRatioNoBouncy, Spring.StiffnessMedium))
                                                         isDraggingLeft = false
@@ -745,7 +843,7 @@ fun HabitStatisticsContent(
                                                     }
                                                 },
                                                 onDrag = { change, dragAmount ->
-                                                    if (!showLeftDot) return@detectDragGestures
+                                                    if (!currentShowLeftDot) return@detectDragGestures
                                                     change.consume()
                                                     coroutineScope.launch {
                                                         dragAmountXAnim.snapTo(dragAmountXAnim.value + dragAmount.x)
@@ -758,6 +856,7 @@ fun HabitStatisticsContent(
                                             interactionSource = remember { MutableInteractionSource() },
                                             indication = null
                                         ) {
+                                            selectedModuleForResize = moduleId
                                             if (isFull) {
                                                 resizeModule(moduleId, expand = false, shrinkLeftToRight = true)
                                             } else {
@@ -768,17 +867,22 @@ fun HabitStatisticsContent(
                                             }
                                         }
                                 ) {
+                                    val handleShape = RoundedCornerShape(percent = 50)
                                     Box(
                                         modifier = Modifier
                                             .align(Alignment.Center)
-                                            .size(16.dp)
-                                            .background(strokeColor.copy(alpha = selectionAlpha * leftDotAlpha), CircleShape)
-                                            .border(BorderStroke(2.dp, MaterialTheme.colorScheme.surface.copy(alpha = selectionAlpha * leftDotAlpha)), CircleShape)
+                                            .width(if (isDraggingLeft) 14.dp else 12.dp)
+                                            .height(if (isDraggingLeft) 32.dp else 26.dp)
+                                            .background(strokeColor.copy(alpha = editHandlesAlpha * leftDotAlpha), handleShape)
+                                            .border(
+                                                BorderStroke(2.dp, MaterialTheme.colorScheme.surface.copy(alpha = editHandlesAlpha * leftDotAlpha)),
+                                                handleShape
+                                            )
                                     )
                                 }
                             }
-                            
-                            // Right dot
+
+                            // Right resize handle
                             if (rightDotAlpha > 0f) {
                                 Box(
                                     modifier = Modifier
@@ -789,16 +893,17 @@ fun HabitStatisticsContent(
                                         .pointerInput(moduleId) {
                                             detectDragGestures(
                                                 onDragStart = {
-                                                    if (!showRightDot) return@detectDragGestures
+                                                    if (!currentShowRightDot) return@detectDragGestures
+                                                    selectedModuleForResize = moduleId
                                                     isDraggingRight = true
                                                     coroutineScope.launch { dragAmountXAnim.snapTo(0f) }
                                                 },
                                                 onDragEnd = {
-                                                    if (!showRightDot) return@detectDragGestures
+                                                    if (!currentShowRightDot) return@detectDragGestures
                                                     val finalDrag = dragAmountXAnim.value
-                                                    val threshold = cardWidthPx / 3.5f
+                                                    val threshold = (cardWidthPx / 4.5f).coerceAtLeast(24f * density)
                                                     var resized = false
-                                                    if (isFull) {
+                                                    if (currentIsFull) {
                                                         if (finalDrag < -threshold) {
                                                             resizeModule(moduleId, expand = false, shrinkLeftToRight = false)
                                                             resized = true
@@ -809,11 +914,11 @@ fun HabitStatisticsContent(
                                                             resized = true
                                                         }
                                                     }
-                                                    
+
                                                     if (resized && vibrationsEnabled) {
                                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                                     }
-                                                    
+
                                                     coroutineScope.launch {
                                                         dragAmountXAnim.animateTo(0f, spring(Spring.DampingRatioNoBouncy, Spring.StiffnessMedium))
                                                         isDraggingRight = false
@@ -826,7 +931,7 @@ fun HabitStatisticsContent(
                                                     }
                                                 },
                                                 onDrag = { change, dragAmount ->
-                                                    if (!showRightDot) return@detectDragGestures
+                                                    if (!currentShowRightDot) return@detectDragGestures
                                                     change.consume()
                                                     coroutineScope.launch {
                                                         dragAmountXAnim.snapTo(dragAmountXAnim.value + dragAmount.x)
@@ -839,6 +944,7 @@ fun HabitStatisticsContent(
                                             interactionSource = remember { MutableInteractionSource() },
                                             indication = null
                                         ) {
+                                            selectedModuleForResize = moduleId
                                             if (isFull) {
                                                 resizeModule(moduleId, expand = false, shrinkLeftToRight = false)
                                             } else {
@@ -849,12 +955,17 @@ fun HabitStatisticsContent(
                                             }
                                         }
                                 ) {
+                                    val handleShape = RoundedCornerShape(percent = 50)
                                     Box(
                                         modifier = Modifier
                                             .align(Alignment.Center)
-                                            .size(16.dp)
-                                            .background(strokeColor.copy(alpha = selectionAlpha * rightDotAlpha), CircleShape)
-                                            .border(BorderStroke(2.dp, MaterialTheme.colorScheme.surface.copy(alpha = selectionAlpha * rightDotAlpha)), CircleShape)
+                                            .width(if (isDraggingRight) 14.dp else 12.dp)
+                                            .height(if (isDraggingRight) 32.dp else 26.dp)
+                                            .background(strokeColor.copy(alpha = editHandlesAlpha * rightDotAlpha), handleShape)
+                                            .border(
+                                                BorderStroke(2.dp, MaterialTheme.colorScheme.surface.copy(alpha = editHandlesAlpha * rightDotAlpha)),
+                                                handleShape
+                                            )
                                     )
                                 }
                             }

@@ -4,9 +4,11 @@ package com.habitly.habitly.ui.screen
 
 import java.util.Calendar
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.animateDpAsState
@@ -20,6 +22,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
@@ -43,6 +46,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.pager.PagerDefaults
@@ -93,6 +97,8 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -109,6 +115,8 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.DpOffset
@@ -120,6 +128,7 @@ import com.habitly.habitly.ui.colors.isBright
 import com.habitly.habitly.ui.colors.toThemeHabitColor
 import com.habitly.habitly.ui.components.*
 import com.habitly.habitly.data.settings.LocalAppSettings
+import kotlinx.coroutines.launch
 
 private val ALL_STAT_MODULES = listOf(
     "longest_streak",
@@ -188,6 +197,7 @@ fun StatisticScreen(
     val pagerState = rememberPagerState(pageCount = { pageCount })
 
     var isEditMode by remember { mutableStateOf(false) }
+    var isShelfExpanded by remember { mutableStateOf(false) }
     var localActiveModules by remember { mutableStateOf<List<String>>(emptyList()) }
     var lastSavedLayouts by remember { mutableStateOf<Map<String, List<String>>>(emptyMap()) }
 
@@ -269,6 +279,7 @@ fun StatisticScreen(
         val sanitized = sanitizeStaticModuleList(currentLayout)
         localActiveModules = sanitized
         isEditMode = true
+        isShelfExpanded = false
     }
 
     fun resetToDefault() {
@@ -282,6 +293,7 @@ fun StatisticScreen(
 
     fun cancelEdits() {
         isEditMode = false
+        isShelfExpanded = false
     }
 
     fun saveEdits(applyToAll: Boolean) {
@@ -296,6 +308,7 @@ fun StatisticScreen(
             }
         }
         isEditMode = false
+        isShelfExpanded = false
     }
 
     val inactiveModules = remember(localActiveModules, currentHabit) {
@@ -319,27 +332,112 @@ fun StatisticScreen(
         localActiveModules = sanitizeStaticModuleList(newList)
     }
 
-    var isShelfExpanded by remember { mutableStateOf(false) }
+    val density = LocalDensity.current
+    val coroutineScope = rememberCoroutineScope()
     val navigationBarsPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-    val animatedShelfHeight by animateDpAsState(
-        targetValue = if (isShelfExpanded) 580.dp else (60.dp + navigationBarsPadding),
-        animationSpec = tween(durationMillis = 300), // Smooth non-bouncy drawer height transition
-        label = "shelfHeight"
-    )
+    val collapsedShelfHeightDp = 64.dp + navigationBarsPadding
+    val expandedShelfHeightDp = 580.dp
+    val collapsedShelfHeightPx = with(density) { collapsedShelfHeightDp.toPx() }
+    val expandedShelfHeightPx = with(density) { expandedShelfHeightDp.toPx() }
 
-    val nestedScrollConnection = remember(isEditMode) {
+    val shelfExpansionFraction = remember { Animatable(0f) }
+    val shelfGridState = rememberLazyGridState()
+
+    fun settleShelf(expand: Boolean, initialVelocityFraction: Float = 0f) {
+        isShelfExpanded = expand
+        coroutineScope.launch {
+            shelfExpansionFraction.animateTo(
+                targetValue = if (expand) 1f else 0f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMediumLow
+                ),
+                initialVelocity = initialVelocityFraction
+            )
+        }
+    }
+
+    LaunchedEffect(isEditMode) {
+        if (!isEditMode) {
+            isShelfExpanded = false
+            shelfExpansionFraction.snapTo(0f)
+        }
+    }
+
+    val currentShelfHeightPx = collapsedShelfHeightPx +
+        (expandedShelfHeightPx - collapsedShelfHeightPx) * shelfExpansionFraction.value
+    val currentShelfHeightDp = with(density) { currentShelfHeightPx.toDp() }
+
+    val shelfRangePx = (expandedShelfHeightPx - collapsedShelfHeightPx).coerceAtLeast(1f)
+    val currentShelfRangePx by rememberUpdatedState(shelfRangePx)
+
+    val shelfNestedScrollConnection = remember {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                if (isEditMode) {
-                    val dy = available.y
-                    if (dy < -15f) {
-                        isShelfExpanded = true
-                    } else if (dy > 15f) {
-                        isShelfExpanded = false
+                val dy = available.y
+                if (dy < 0f && shelfExpansionFraction.value < 1f) {
+                    val deltaFraction = -dy / currentShelfRangePx
+                    val newFraction = (shelfExpansionFraction.value + deltaFraction).coerceIn(0f, 1f)
+                    val consumedFraction = newFraction - shelfExpansionFraction.value
+                    if (consumedFraction != 0f) {
+                        coroutineScope.launch { shelfExpansionFraction.snapTo(newFraction) }
+                        isShelfExpanded = newFraction > 0.5f
+                        return Offset(0f, -consumedFraction * currentShelfRangePx)
                     }
                 }
                 return Offset.Zero
             }
+
+            override fun onPostScroll(
+                consumed: Offset,
+                available: Offset,
+                source: NestedScrollSource
+            ): Offset {
+                val dy = available.y
+                if (dy > 0f && source == NestedScrollSource.UserInput && shelfExpansionFraction.value > 0f) {
+                    val deltaFraction = -dy / currentShelfRangePx
+                    val newFraction = (shelfExpansionFraction.value + deltaFraction).coerceIn(0f, 1f)
+                    val consumedFraction = newFraction - shelfExpansionFraction.value
+                    if (consumedFraction != 0f) {
+                        coroutineScope.launch { shelfExpansionFraction.snapTo(newFraction) }
+                        isShelfExpanded = newFraction > 0.5f
+                        return Offset(0f, -consumedFraction * currentShelfRangePx)
+                    }
+                }
+                return Offset.Zero
+            }
+
+            override suspend fun onPreFling(available: Velocity): Velocity {
+                val fraction = shelfExpansionFraction.value
+                if (fraction > 0f && fraction < 1f) {
+                    val vy = available.y
+                    val velFraction = -vy / currentShelfRangePx
+                    val shouldExpand = when {
+                        vy < -350f -> true
+                        vy > 350f -> false
+                        else -> fraction >= 0.5f
+                    }
+                    settleShelf(shouldExpand, velFraction)
+                    return available
+                }
+                if (fraction >= 1f && available.y > 600f && !shelfGridState.canScrollBackward) {
+                    val velFraction = -available.y / currentShelfRangePx
+                    settleShelf(false, velFraction)
+                    return available
+                }
+                return Velocity.Zero
+            }
+        }
+    }
+
+    BackHandler(enabled = isEditMode) {
+        if (vibrationsEnabled) {
+            haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+        }
+        if (isShelfExpanded || shelfExpansionFraction.value > 0.05f) {
+            settleShelf(false)
+        } else {
+            cancelEdits()
         }
     }
 
@@ -432,8 +530,7 @@ fun StatisticScreen(
                     .padding(
                         top = paddingValues.calculateTopPadding(),
                         bottom = 0.dp
-                    )
-                    .nestedScroll(nestedScrollConnection),
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 if (habits.isEmpty()) {
@@ -520,16 +617,46 @@ fun StatisticScreen(
                         )
                     }
 
-                    if (isEditMode && isShelfExpanded) {
+                    if (isEditMode && shelfExpansionFraction.value > 0.01f) {
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .background(Color.Black.copy(alpha = 0.4f))
-                                .clickable {
-                                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    isShelfExpanded = false
-                                }
+                                .background(Color.Black.copy(alpha = 0.4f * shelfExpansionFraction.value))
+                                .then(
+                                    if (shelfExpansionFraction.value > 0.15f) {
+                                        Modifier.clickable(
+                                            interactionSource = remember { MutableInteractionSource() },
+                                            indication = null
+                                        ) {
+                                            if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            settleShelf(false)
+                                        }
+                                    } else Modifier
+                                )
                         )
+                    }
+
+                    val shelfDraggableState = rememberDraggableState { delta ->
+                        val deltaFraction = -delta / currentShelfRangePx
+                        val target = (shelfExpansionFraction.value + deltaFraction).coerceIn(0f, 1f)
+                        coroutineScope.launch {
+                            shelfExpansionFraction.snapTo(target)
+                        }
+                        isShelfExpanded = target > 0.5f
+                    }
+
+                    val onShelfDragStopped: suspend kotlinx.coroutines.CoroutineScope.(Float) -> Unit = { velocity ->
+                        val velFraction = -velocity / currentShelfRangePx
+                        val currentFraction = shelfExpansionFraction.value
+                        val shouldExpand = when {
+                            velocity < -350f -> true
+                            velocity > 350f -> false
+                            else -> currentFraction >= 0.5f
+                        }
+                        if (vibrationsEnabled && shouldExpand != (currentFraction > 0.5f)) {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        }
+                        settleShelf(shouldExpand, velFraction)
                     }
 
                     AnimatedVisibility(
@@ -547,7 +674,13 @@ fun StatisticScreen(
                         Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(animatedShelfHeight),
+                                .height(currentShelfHeightDp)
+                                .nestedScroll(shelfNestedScrollConnection)
+                                .draggable(
+                                    orientation = Orientation.Vertical,
+                                    state = shelfDraggableState,
+                                    onDragStopped = onShelfDragStopped
+                                ),
                             shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
                             color = MaterialTheme.colorScheme.surfaceContainerLow,
                             tonalElevation = 0.dp,
@@ -564,111 +697,114 @@ fun StatisticScreen(
                                     .navigationBarsPadding(),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                var sheetDragAccumulator by remember { mutableFloatStateOf(0f) }
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .clickable {
+                                        .clickable(
+                                            interactionSource = remember { MutableInteractionSource() },
+                                            indication = null
+                                        ) {
                                             if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                            isShelfExpanded = !isShelfExpanded
+                                            settleShelf(shelfExpansionFraction.value < 0.5f)
                                         }
-                                        .draggable(
-                                            orientation = Orientation.Vertical,
-                                            state = rememberDraggableState { delta ->
-                                                sheetDragAccumulator += delta
-                                            },
-                                            onDragStopped = { velocity ->
-                                                if (sheetDragAccumulator < -30f || velocity < -300f) {
-                                                    isShelfExpanded = true
-                                                } else if (sheetDragAccumulator > 30f || velocity > 300f) {
-                                                    if (isShelfExpanded) {
-                                                        isShelfExpanded = false
-                                                    } else {
-                                                        cancelEdits()
-                                                    }
-                                                }
-                                                sheetDragAccumulator = 0f
-                                            }
-                                        )
-                                         .padding(top = 14.dp, bottom = 14.dp),
+                                        .padding(top = 10.dp, bottom = 10.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .width(56.dp)
-                                            .height(6.dp)
-                                            .background(
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
-                                                    alpha = 0.4f
-                                                ),
-                                                shape = CircleShape
-                                            )
-                                    )
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .width(56.dp)
+                                                .height(5.dp)
+                                                .background(
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                                        alpha = 0.4f
+                                                    ),
+                                                    shape = CircleShape
+                                                )
+                                        )
+                                        Text(
+                                            text = if (inactiveModules.isNotEmpty()) {
+                                                "Add Modules (${inactiveModules.size})"
+                                            } else {
+                                                "All Modules Added"
+                                            },
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.Medium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
                                 }
 
-                                AnimatedVisibility(
-                                     visible = isShelfExpanded && currentHabit != null,
-                                     enter = fadeIn(animationSpec = tween(300, delayMillis = 100)),
-                                     exit = fadeOut(animationSpec = tween(200)),
-                                     modifier = Modifier.weight(1f)
-                                 ) {
-                                     if (inactiveModules.isEmpty()) {
-                                         Box(
-                                             modifier = Modifier.fillMaxSize(),
-                                             contentAlignment = Alignment.Center
-                                         ) {
-                                             Text(
-                                                 text = "All modules are active",
-                                                 style = MaterialTheme.typography.bodyMedium,
-                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
-                                             )
-                                         }
-                                     } else {
-                                         LazyVerticalGrid(
-                                             columns = GridCells.Fixed(2),
-                                             modifier = Modifier.fillMaxWidth(),
-                                             contentPadding = PaddingValues(
-                                                 start = 12.dp,
-                                                 end = 12.dp,
-                                                 top = 8.dp,
-                                                 bottom = 48.dp
-                                             ),
-                                             horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                             verticalArrangement = Arrangement.spacedBy(8.dp)
-                                         ) {
-                                             itemsIndexed(
-                                                 items = inactiveModules,
-                                                 key = { _, item -> item },
-                                                 span = { _, item ->
-                                                     GridItemSpan(if (item == "monthly_chart") 2 else 1)
-                                                 }
-                                             ) { _, moduleId ->
-                                                 Box(
-                                                     modifier = Modifier.animateItem(
-                                                         placementSpec = spring(
-                                                             dampingRatio = Spring.DampingRatioMediumBouncy,
-                                                             stiffness = Spring.StiffnessMediumLow
-                                                         ),
-                                                         fadeInSpec = tween(200),
-                                                         fadeOutSpec = tween(200)
-                                                     )
-                                                 ) {
-                                                     InactiveModuleCard(
-                                                         moduleId = moduleId,
-                                                         habit = currentHabit!!,
-                                                         accentColor = currentHabitColor,
-                                                         vibrationsEnabled = vibrationsEnabled,
-                                                         borderContrast = borderContrast,
-                                                         useHabitColorForCard = useHabitColor,
-                                                         firstDayOfWeek = firstDayOfWeek,
-                                                         showYearDivider = showYearDivider,
-                                                         onAdd = { onAddModule(moduleId) }
-                                                     )
-                                                 }
-                                             }
-                                         }
-                                     }
-                                 }
+                                if (shelfExpansionFraction.value > 0.02f && currentHabit != null) {
+                                    val contentAlpha = ((shelfExpansionFraction.value - 0.05f) / 0.35f).coerceIn(0f, 1f)
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .fillMaxWidth()
+                                            .graphicsLayer { alpha = contentAlpha }
+                                    ) {
+                                        if (inactiveModules.isEmpty()) {
+                                            Box(
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = "All modules are active",
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                        } else {
+                                            LazyVerticalGrid(
+                                                state = shelfGridState,
+                                                columns = GridCells.Fixed(2),
+                                                modifier = Modifier.fillMaxWidth(),
+                                                contentPadding = PaddingValues(
+                                                    start = 12.dp,
+                                                    end = 12.dp,
+                                                    top = 8.dp,
+                                                    bottom = 48.dp
+                                                ),
+                                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                itemsIndexed(
+                                                    items = inactiveModules,
+                                                    key = { _, item -> item },
+                                                    span = { _, item ->
+                                                        GridItemSpan(if (item == "monthly_chart") 2 else 1)
+                                                    }
+                                                ) { _, moduleId ->
+                                                    Box(
+                                                        modifier = Modifier.animateItem(
+                                                            placementSpec = spring(
+                                                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                                                stiffness = Spring.StiffnessMediumLow
+                                                            ),
+                                                            fadeInSpec = tween(200),
+                                                            fadeOutSpec = tween(200)
+                                                        )
+                                                    ) {
+                                                        InactiveModuleCard(
+                                                            moduleId = moduleId,
+                                                            habit = currentHabit,
+                                                            accentColor = currentHabitColor,
+                                                            vibrationsEnabled = vibrationsEnabled,
+                                                            borderContrast = borderContrast,
+                                                            useHabitColorForCard = useHabitColor,
+                                                            firstDayOfWeek = firstDayOfWeek,
+                                                            showYearDivider = showYearDivider,
+                                                            onAdd = { onAddModule(moduleId) }
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -690,7 +826,7 @@ fun StatisticScreen(
                             .offset {
                                 IntOffset(
                                     x = (-16.dp).roundToPx(),
-                                    y = (-(animatedShelfHeight + 16.dp)).roundToPx()
+                                    y = (-(currentShelfHeightDp + 16.dp)).roundToPx()
                                 )
                             }
                     ) {
