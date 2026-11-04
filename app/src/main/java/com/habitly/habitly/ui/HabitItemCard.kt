@@ -5,12 +5,9 @@
 package com.habitly.habitly.ui
 
 import android.annotation.SuppressLint
-import kotlin.math.roundToInt
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -18,28 +15,17 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.MarqueeSpacing
 import androidx.compose.foundation.basicMarquee
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -54,25 +40,31 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.asAndroidPath
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
@@ -84,11 +76,15 @@ import androidx.graphics.shapes.toPath
 import com.habitly.habitly.data.Database.Completion
 import com.habitly.habitly.data.Database.Habit
 import com.habitly.habitly.data.Database.getDailyTarget
+import com.habitly.habitly.data.settings.LocalAppSettings
 import com.habitly.habitly.ui.colors.isBright
 import com.habitly.habitly.ui.colors.toThemeHabitColor
 import com.habitly.habitly.ui.components.RotatingHabitIcon
-import com.habitly.habitly.data.settings.LocalAppSettings
-import java.util.Calendar
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 val circleToSquareMorph = Morph(MaterialShapes.Circle, MaterialShapes.Square)
 
@@ -115,9 +111,15 @@ fun HabitTitleAndDescription(
     ) {
         Text(
             text = habit.name,
-            style = if (isDetailView) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.titleLarge,
+            style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onBackground,
-            fontWeight = FontWeight.Bold,
+            wght = 760f,
+            wdth = 112f,
+            opsz = 24f,
+            grad = 25f,
+            xtra = 495f,
+            yopq = 86f,
+            ytlc = 528f,
             maxLines = 1,
             overflow = if (shouldAutoScrollTitle) TextOverflow.Clip else TextOverflow.Ellipsis,
             modifier = if (shouldAutoScrollTitle) {
@@ -132,7 +134,6 @@ fun HabitTitleAndDescription(
         )
         if (habit.description.isNotBlank()) {
             if (isDetailView) {
-                Spacer(modifier = Modifier.height(4.dp))
                 if (shouldAutoScrollDescription) {
                     Text(
                         text = habit.description,
@@ -149,8 +150,8 @@ fun HabitTitleAndDescription(
                 } else {
                     var isExpanded by remember { mutableStateOf(false) }
                     var isOverflowing by remember { mutableStateOf(false) }
-
                     val isClickable = (isOverflowing || isExpanded)
+
                     Column(
                         modifier = Modifier
                             .animateContentSize(animationSpec = tween(durationMillis = 300)) // Animate the size change of the Column
@@ -183,7 +184,6 @@ fun HabitTitleAndDescription(
                     }
                 }
             } else {
-                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = habit.description,
                     style = MaterialTheme.typography.bodyMedium,
