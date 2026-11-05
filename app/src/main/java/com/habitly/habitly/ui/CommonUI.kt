@@ -22,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
@@ -246,6 +247,99 @@ fun Text(
         maxLines = maxLines,
         minLines = minLines,
         onTextLayout = onTextLayout,
+        style = style
+    )
+}
+
+@Composable
+fun Text(
+    text: AnnotatedString,
+    modifier: Modifier = Modifier,
+    color: Color = Color.Unspecified,
+    fontSize: TextUnit = TextUnit.Unspecified,
+    fontStyle: FontStyle? = null,
+    fontWeight: FontWeight? = null,
+    fontFamily: FontFamily? = null,
+    letterSpacing: TextUnit = TextUnit.Unspecified,
+    textDecoration: TextDecoration? = null,
+    textAlign: TextAlign? = null,
+    lineHeight: TextUnit = TextUnit.Unspecified,
+    overflow: TextOverflow = TextOverflow.Clip,
+    softWrap: Boolean = true,
+    maxLines: Int = Int.MAX_VALUE,
+    minLines: Int = 1,
+    onTextLayout: ((TextLayoutResult) -> Unit)? = null,
+    style: TextStyle = LocalTextStyle.current,
+    useRobotoFlex: Boolean = false,
+    wght: Float? = null,
+    wdth: Float? = null,
+    opsz: Float? = null,
+    grad: Float? = null,
+    slnt: Float? = null,
+    xtra: Float? = null,
+    xopq: Float? = null,
+    yopq: Float? = null,
+    ytlc: Float? = null,
+    ytuc: Float? = null,
+    ytas: Float? = null,
+    ytde: Float? = null,
+    ytfi: Float? = null,
+    rond: Float? = null,
+    axes: RobotoFlexAxes? = null,
+    @FontRes fontRes: Int = R.font.roboto_flex
+) {
+    val hasAxisOverrides = useRobotoFlex || axes != null ||
+        wght != null || wdth != null || opsz != null || grad != null ||
+        slnt != null || xtra != null || xopq != null || yopq != null ||
+        ytlc != null || ytuc != null || ytas != null || ytde != null ||
+        ytfi != null || rond != null
+
+    val resolvedFontFamily = if (fontFamily != null) {
+        fontFamily
+    } else if (hasAxisOverrides) {
+        val resolvedFontSize = if (fontSize != TextUnit.Unspecified) fontSize else style.fontSize
+        val autoOpsz = if (resolvedFontSize != TextUnit.Unspecified) resolvedFontSize.value else null
+        val resolvedWght = wght ?: axes?.wght ?: (fontWeight ?: style.fontWeight)?.weight?.toFloat()
+        val effectiveAxes = RobotoFlexAxes(
+            wght = resolvedWght,
+            wdth = wdth ?: axes?.wdth,
+            opsz = opsz ?: axes?.opsz ?: autoOpsz,
+            grad = grad ?: axes?.grad,
+            slnt = slnt ?: axes?.slnt,
+            xtra = xtra ?: axes?.xtra,
+            xopq = xopq ?: axes?.xopq,
+            yopq = yopq ?: axes?.yopq,
+            ytlc = ytlc ?: axes?.ytlc,
+            ytuc = ytuc ?: axes?.ytuc,
+            ytas = ytas ?: axes?.ytas,
+            ytde = ytde ?: axes?.ytde,
+            ytfi = ytfi ?: axes?.ytfi,
+            rond = rond ?: axes?.rond
+        )
+        remember(effectiveAxes, fontRes) {
+            effectiveAxes.toFontFamily(fontRes)
+        }
+    } else {
+        null
+    }
+
+    MaterialText(
+        text = text,
+        modifier = modifier,
+        color = color,
+        fontSize = fontSize,
+        fontStyle = fontStyle,
+        fontWeight = fontWeight,
+        fontFamily = resolvedFontFamily,
+        letterSpacing = letterSpacing,
+        textDecoration = textDecoration,
+        textAlign = textAlign,
+        lineHeight = lineHeight,
+        overflow = overflow,
+        softWrap = softWrap,
+        maxLines = maxLines,
+        minLines = minLines,
+        onTextLayout = onTextLayout ?: {},
         style = style
     )
 }

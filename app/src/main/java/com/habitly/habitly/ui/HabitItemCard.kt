@@ -65,8 +65,11 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -138,7 +141,14 @@ fun HabitTitleAndDescription(
                     Text(
                         text = habit.description,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                        color = MaterialTheme.colorScheme.onBackground,
+                        wght = 420f,
+                        wdth = 104f,
+                        opsz = 14f,
+                        grad = -20f,
+                        xtra = 478f,
+                        yopq = 78f,
+                        ytlc = 524f,
                         maxLines = 1,
                         overflow = TextOverflow.Clip,
                         modifier = Modifier.basicMarquee(
@@ -161,25 +171,77 @@ fun HabitTitleAndDescription(
                                 enabled = isClickable
                             ) { isExpanded = !isExpanded }
                     ) {
-                        Text(
-                            text = habit.description,
-                            style = MaterialTheme.typography.bodyMedium,
-                            maxLines = if (isExpanded) Int.MAX_VALUE else 1,
-                            overflow = TextOverflow.Ellipsis,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                            onTextLayout = { textLayoutResult ->
-                                if (!isOverflowing && !isExpanded) {
-                                    isOverflowing = textLayoutResult.hasVisualOverflow
+                        if (isExpanded) {
+                            val readLessFontFamily = rememberRobotoFlexFontFamily(
+                                wght = 620f,
+                                wdth = 104f,
+                                opsz = 14f,
+                                grad = 0f,
+                                xtra = 478f,
+                                yopq = 78f,
+                                ytlc = 524f
+                            )
+                            val readLessColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            val expandedText = remember(habit.description, readLessFontFamily, readLessColor) {
+                                buildAnnotatedString {
+                                    append(habit.description.trimEnd())
+                                    append("  ")
+                                    withStyle(
+                                        SpanStyle(
+                                            color = readLessColor,
+                                            fontWeight = FontWeight.Bold,
+                                            fontFamily = readLessFontFamily
+                                        )
+                                    ) {
+                                        append("Read\u00A0less")
+                                    }
                                 }
                             }
-                        )
-                        if (isClickable) {
                             Text(
-                                text = if (isExpanded) "Read less" else "Read more",
+                                text = expandedText,
                                 style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onBackground,
+                                wght = 420f,
+                                wdth = 104f,
+                                opsz = 14f,
+                                grad = -20f,
+                                xtra = 478f,
+                                yopq = 78f,
+                                ytlc = 524f
                             )
+                        } else {
+                            Text(
+                                text = habit.description,
+                                style = MaterialTheme.typography.bodyMedium,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                color = MaterialTheme.colorScheme.onBackground,
+                                wght = 420f,
+                                wdth = 104f,
+                                opsz = 14f,
+                                grad = -20f,
+                                xtra = 478f,
+                                yopq = 78f,
+                                ytlc = 524f,
+                                onTextLayout = { textLayoutResult ->
+                                    isOverflowing = textLayoutResult.hasVisualOverflow
+                                }
+                            )
+                            if (isOverflowing) {
+                                Text(
+                                    text = "Read more",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    wght = 620f,
+                                    wdth = 104f,
+                                    opsz = 14f,
+                                    grad = 0f,
+                                    xtra = 478f,
+                                    yopq = 78f,
+                                    ytlc = 524f
+                                )
+                            }
                         }
                     }
                 }
@@ -188,6 +250,13 @@ fun HabitTitleAndDescription(
                     text = habit.description,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onBackground,
+                    wght = 420f,
+                    wdth = 104f,
+                    opsz = 14f,
+                    grad = -20f,
+                    xtra = 478f,
+                    yopq = 78f,
+                    ytlc = 524f,
                     maxLines = 1,
                     overflow = if (shouldAutoScrollDescription) TextOverflow.Clip else TextOverflow.Ellipsis,
                     modifier = if (shouldAutoScrollDescription) {
