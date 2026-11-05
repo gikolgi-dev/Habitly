@@ -17,7 +17,6 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.MarqueeSpacing
-import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -126,7 +125,8 @@ fun HabitTitleAndDescription(
             maxLines = 1,
             overflow = if (shouldAutoScrollTitle) TextOverflow.Clip else TextOverflow.Ellipsis,
             modifier = if (shouldAutoScrollTitle) {
-                Modifier.basicMarquee(
+                Modifier.syncedMarquee(
+                    syncKey = "title-${habit.id}-${habit.name}",
                     iterations = Int.MAX_VALUE,
                     spacing = MarqueeSpacing(24.dp),
                     velocity = 30.dp
@@ -151,7 +151,8 @@ fun HabitTitleAndDescription(
                         ytlc = 524f,
                         maxLines = 1,
                         overflow = TextOverflow.Clip,
-                        modifier = Modifier.basicMarquee(
+                        modifier = Modifier.syncedMarquee(
+                            syncKey = "desc-${habit.id}-${habit.description}",
                             iterations = Int.MAX_VALUE,
                             spacing = MarqueeSpacing(24.dp),
                             velocity = 30.dp
@@ -260,7 +261,8 @@ fun HabitTitleAndDescription(
                     maxLines = 1,
                     overflow = if (shouldAutoScrollDescription) TextOverflow.Clip else TextOverflow.Ellipsis,
                     modifier = if (shouldAutoScrollDescription) {
-                        Modifier.basicMarquee(
+                        Modifier.syncedMarquee(
+                            syncKey = "desc-${habit.id}-${habit.description}",
                             iterations = Int.MAX_VALUE,
                             spacing = MarqueeSpacing(24.dp),
                             velocity = 30.dp
