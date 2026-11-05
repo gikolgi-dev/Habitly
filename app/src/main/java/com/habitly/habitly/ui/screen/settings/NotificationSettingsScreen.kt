@@ -58,13 +58,15 @@ import com.habitly.habitly.ui.components.NotificationTimeSelectors
 import com.habitly.habitly.ui.components.rememberNotificationPermissionHandler
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import com.habitly.habitly.data.settings.LocalAppSettings
+import com.habitly.habitly.data.settings.LocalSettingsDataStore
 import java.util.Calendar
 
 @Composable
 fun NotificationSettingsScreen(
-    settingsDataStore: SettingsDataStore,
-    is24Hour: Boolean,
-    borderContrast: Float,
+    settingsDataStore: SettingsDataStore = LocalSettingsDataStore.current,
+    is24Hour: Boolean = LocalAppSettings.current.is24Hour,
+    borderContrast: Float = LocalAppSettings.current.borders,
     onNavigateToDailyNotification: () -> Unit,
     onNavigateToWelcomeCardNotification: () -> Unit,
     modifier: Modifier = Modifier
@@ -74,30 +76,18 @@ fun NotificationSettingsScreen(
     val haptic = LocalHapticFeedback.current
     val notificationScheduler = remember { NotificationScheduler(context) }
 
-    val vibrationsEnabledState = settingsDataStore.vibrations.collectAsState(initial = null)
-    val skipCompletedState = settingsDataStore.skipCompletedHabitNotifications.collectAsState(initial = null)
-    val snoozeEnabledState = settingsDataStore.snoozeEnabled.collectAsState(initial = null)
-    val snoozeDurationMinutesState = settingsDataStore.snoozeDurationMinutes.collectAsState(initial = null)
-    val globalNotificationsEnabledState = settingsDataStore.globalNotificationsEnabled.collectAsState(initial = null)
-    val globalNotificationTimeState = settingsDataStore.globalNotificationTime.collectAsState(initial = null)
-    val globalNotificationDaysState = settingsDataStore.globalNotificationDays.collectAsState(initial = null)
-    val welcomeCardNotificationEnabledState = settingsDataStore.welcomeCardNotificationEnabled.collectAsState(initial = null)
-    val welcomeCardNotificationTimeState = settingsDataStore.welcomeCardNotificationTime.collectAsState(initial = null)
-    val welcomeCardNotificationDaysState = settingsDataStore.welcomeCardNotificationDays.collectAsState(initial = null)
-
-    val exactAlarmsState = settingsDataStore.exactAlarms.collectAsState(initial = null)
-    val vibrationsEnabled = vibrationsEnabledState.value ?: return
-    val skipCompleted = skipCompletedState.value ?: return
-    val snoozeEnabled = snoozeEnabledState.value ?: return
-    val snoozeDurationMinutes = snoozeDurationMinutesState.value ?: return
-    val globalNotificationsEnabled = globalNotificationsEnabledState.value ?: return
-    val globalNotificationTime = globalNotificationTimeState.value ?: return
-    val globalNotificationDays = globalNotificationDaysState.value ?: return
-    val welcomeCardNotificationEnabled = welcomeCardNotificationEnabledState.value ?: return
-    val welcomeCardNotificationTime = welcomeCardNotificationTimeState.value ?: return
-    val welcomeCardNotificationDays = welcomeCardNotificationDaysState.value ?: return
-
-    val exactAlarms = exactAlarmsState.value ?: return
+    val settings = LocalAppSettings.current
+    val vibrationsEnabled = settings.vibrations
+    val skipCompleted = settings.skipCompletedHabitNotifications
+    val snoozeEnabled = settings.snoozeEnabled
+    val snoozeDurationMinutes = settings.snoozeDurationMinutes
+    val globalNotificationsEnabled = settings.globalNotificationsEnabled
+    val globalNotificationTime = settings.globalNotificationTime
+    val globalNotificationDays = settings.globalNotificationDays
+    val welcomeCardNotificationEnabled = settings.welcomeCardNotificationEnabled
+    val welcomeCardNotificationTime = settings.welcomeCardNotificationTime
+    val welcomeCardNotificationDays = settings.welcomeCardNotificationDays
+    val exactAlarms = settings.exactAlarms
 
     val lifecycleOwner = LocalLifecycleOwner.current
     val alarmManager = remember { context.getSystemService(Context.ALARM_SERVICE) as AlarmManager }
@@ -417,7 +407,7 @@ fun NotificationSettingsScreen(
         }
 
         Spacer(modifier = Modifier.height(8.dp))
-
+        /*
         SettingsGroup(
             title = "Welcome Card Notification",
             settingsDataStore = settingsDataStore
@@ -433,6 +423,8 @@ fun NotificationSettingsScreen(
             )
         }
 
+        Spacer(modifier = Modifier.height(8.dp))
+        */
         Spacer(modifier = Modifier.height(8.dp))
 
         if (BuildConfig.IS_DEVELOPER_MODE) {
@@ -587,23 +579,21 @@ fun NotificationScheduleSubScreen(
 
 @Composable
 fun DailyNotificationSubScreen(
-    settingsDataStore: SettingsDataStore,
-    is24Hour: Boolean,
-    borderContrast: Float,
+    settingsDataStore: SettingsDataStore = LocalSettingsDataStore.current,
+    is24Hour: Boolean = LocalAppSettings.current.is24Hour,
+    borderContrast: Float = LocalAppSettings.current.borders,
     modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     val notificationScheduler = remember { NotificationScheduler(context) }
-    val firstDayOfWeekCalendar by settingsDataStore.firstDayOfWeekCalendar.collectAsState(initial = Calendar.MONDAY)
-    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
-
-    val globalNotificationsEnabled by settingsDataStore.globalNotificationsEnabled.collectAsState(initial = false)
-    val globalNotificationTime by settingsDataStore.globalNotificationTime.collectAsState(initial = DefaultSettings.GLOBAL_NOTIFICATION_TIME)
-    val globalNotificationDays by settingsDataStore.globalNotificationDays.collectAsState(
-        initial = DefaultSettings.GLOBAL_NOTIFICATION_DAYS.split(',').filter { it.isNotEmpty() }.toSet()
-    )
+    val settings = LocalAppSettings.current
+    val firstDayOfWeekCalendar = settings.firstDayOfWeekCalendar
+    val vibrationsEnabled = settings.vibrations
+    val globalNotificationsEnabled = settings.globalNotificationsEnabled
+    val globalNotificationTime = settings.globalNotificationTime
+    val globalNotificationDays = settings.globalNotificationDays
 
     val notificationPermissionHandler = rememberNotificationPermissionHandler {
         scope.launch {
@@ -670,23 +660,21 @@ fun DailyNotificationSubScreen(
 
 @Composable
 fun WelcomeCardNotificationSubScreen(
-    settingsDataStore: SettingsDataStore,
-    is24Hour: Boolean,
-    borderContrast: Float,
+    settingsDataStore: SettingsDataStore = LocalSettingsDataStore.current,
+    is24Hour: Boolean = LocalAppSettings.current.is24Hour,
+    borderContrast: Float = LocalAppSettings.current.borders,
     modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     val notificationScheduler = remember { NotificationScheduler(context) }
-    val firstDayOfWeekCalendar by settingsDataStore.firstDayOfWeekCalendar.collectAsState(initial = Calendar.MONDAY)
-    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
-
-    val welcomeCardNotificationEnabled by settingsDataStore.welcomeCardNotificationEnabled.collectAsState(initial = DefaultSettings.WELCOME_CARD_NOTIFICATION_ENABLED)
-    val welcomeCardNotificationTime by settingsDataStore.welcomeCardNotificationTime.collectAsState(initial = DefaultSettings.WELCOME_CARD_NOTIFICATION_TIME)
-    val welcomeCardNotificationDays by settingsDataStore.welcomeCardNotificationDays.collectAsState(
-        initial = DefaultSettings.WELCOME_CARD_NOTIFICATION_DAYS.split(',').filter { it.isNotEmpty() }.toSet()
-    )
+    val settings = LocalAppSettings.current
+    val firstDayOfWeekCalendar = settings.firstDayOfWeekCalendar
+    val vibrationsEnabled = settings.vibrations
+    val welcomeCardNotificationEnabled = settings.welcomeCardNotificationEnabled
+    val welcomeCardNotificationTime = settings.welcomeCardNotificationTime
+    val welcomeCardNotificationDays = settings.welcomeCardNotificationDays
 
     val notificationPermissionHandler = rememberNotificationPermissionHandler {
         scope.launch {

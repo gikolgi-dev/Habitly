@@ -3,7 +3,6 @@
 package com.habitly.habitly.ui.screen.settings
 
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,15 +10,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.Label
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
-import androidx.compose.material3.SliderState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberSliderState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -28,51 +30,46 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
+import com.habitly.habitly.data.settings.LocalAppSettings
+import com.habitly.habitly.data.settings.LocalSettingsDataStore
 import com.habitly.habitly.data.settings.DefaultSettings
 import com.habitly.habitly.data.settings.SettingsDataStore
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AccessibilityScreen(
     modifier: Modifier = Modifier,
-    settingsDataStore: SettingsDataStore,
-    onNavigateToScrollBlur: () -> Unit,
+    settingsDataStore: SettingsDataStore = LocalSettingsDataStore.current,
     onNavigateToReduceMovement: () -> Unit,
     onNavigateToAutoScroll: () -> Unit
 ) {
-    val currentBorderContrast by settingsDataStore.borders.collectAsState(initial = DefaultSettings.BORDERS)
-    val currentShowScrollBlur by settingsDataStore.showScrollBlur.collectAsState(initial = DefaultSettings.SHOW_SCROLL_BLUR)
-    val currentReduceMovement by settingsDataStore.reduceMovement.collectAsState(initial = DefaultSettings.REDUCE_MOVEMENT)
-    val currentAutoScrollText by settingsDataStore.autoScrollText.collectAsState(initial = DefaultSettings.AUTO_SCROLL_TEXT)
-    val vibr by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
+    val settings = LocalAppSettings.current
+    val currentBorderContrast = settings.borders
+    val currentReduceMovement = settings.reduceMovement
+    val currentAutoScrollText = settings.autoScrollText
+    val vibrationsEnabled = settings.vibrations
 
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
     val (scrollState, scrollEnabled) = rememberSettingsScrollState()
 
     val interactionSource = remember { MutableInteractionSource() }
-    val isDragged = interactionSource.collectIsDraggedAsState().value
 
-    val sliderState = remember {
-        SliderState(
-            value = currentBorderContrast,
-            steps = 19,
-            trackRange = 0f..1f
-        )
-    }
+    val sliderState = rememberSliderState(
+        value = currentBorderContrast,
+        steps = 19,
+        trackRange = 0f..1f
+    )
 
     LaunchedEffect(currentBorderContrast) {
-        if (!isDragged) {
+        if (!sliderState.isDragging) {
             sliderState.value = currentBorderContrast
         }
     }
-
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -94,78 +91,44 @@ fun AccessibilityScreen(
                     Slider(
                         state = sliderState,
                         onValueChange = { newValue ->
+                            if (newValue != sliderState.value && vibrationsEnabled) {
+                                haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                            }
                             sliderState.value = newValue
                             scope.launch {
                                 settingsDataStore.setBorders(newValue)
                             }
                         },
                         interactionSource = interactionSource,
-                        colors = SliderDefaults.colors(
-                            activeTickColor = MaterialTheme.colorScheme.onSurface.copy(alpha = .5f),
-                            inactiveTickColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
-                        ),
-                        thumb = { thumbState ->
-                            Layout(
-                                content = {
-                                    if (isDragged) {
-                                        Surface(
-                                            shape = RoundedCornerShape(4.dp),
-                                            color = MaterialTheme.colorScheme.primary,
-                                        ) {
-                                            Text(
-                                                text = "%.2f".format(thumbState.value),
-                                                modifier = Modifier.padding(4.dp),
-                                                color = MaterialTheme.colorScheme.onPrimary,
-                                                style = MaterialTheme.typography.bodySmall
-                                            )
-                                        }
+                        thumb = {
+                            Label(
+                                label = {
+                                    PlainTooltip(
+                                        modifier = Modifier
+                                            .sizeIn(45.dp, 25.dp)
+                                            .wrapContentWidth()
+                                    ) {
+                                        Text("%.2f".format(sliderState.value))
                                     }
-                                    SliderDefaults.Thumb(
-                                        interactionSource = interactionSource,
-                                        colors = SliderDefaults.colors(),
-                                        enabled = true
-                                    )
-                                }
-                            ) { measurables, constraints ->
-                                val thumbPlaceable = measurables.last().measure(constraints)
-                                val indicatorPlaceable = if (isDragged) {
-                                    measurables.first().measure(constraints.copy(minWidth = 0, minHeight = 0))
-                                } else {
-                                    null
-                                }
-
-                                layout(thumbPlaceable.width, thumbPlaceable.height) {
-                                    thumbPlaceable.placeRelative(0, 0)
-                                    indicatorPlaceable?.let {
-                                        val indicatorY = (thumbPlaceable.height - it.height) / 2
-                                        val indicatorX = if (thumbState.value > 0.5f) {
-                                            -it.width - 8.dp.roundToPx()
-                                        } else {
-                                            thumbPlaceable.width + 8.dp.roundToPx()
-                                        }
-                                        it.placeRelative(indicatorX, indicatorY)
-                                    }
-                                }
+                                },
+                                interactionSource = interactionSource
+                            ) {
+                                SliderDefaults.Thumb(
+                                    interactionSource = interactionSource,
+                                    enabled = true
+                                )
                             }
+                        },
+                        track = { state ->
+                            SliderDefaults.Track(
+                                sliderState = state,
+                                trackCornerSize = 8.dp,
+                                enabled = true
+                            )
                         }
                     )
                 }
             }
-
-            SettingsSwitchNavigationItem(
-                text = "Scroll blur",
-                description = "Apply a blur effect to the top and bottom of scrolling lists",
-                checked = currentShowScrollBlur,
-                settingsDataStore = settingsDataStore,
-                position = SettingsItemPosition.Middle,
-                onCheckedChange = {
-                    scope.launch { settingsDataStore.setshowScrollBlur(it) }
-                    if (vibr) {
-                        haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
-                    }
-                },
-                onClick = onNavigateToScrollBlur
-            )
 
             SettingsSwitchNavigationItem(
                 text = "Reduce movement",
@@ -175,7 +138,7 @@ fun AccessibilityScreen(
                 position = SettingsItemPosition.Middle,
                 onCheckedChange = {
                     scope.launch { settingsDataStore.setReduceMovement(it) }
-                    if (vibr) {
+                    if (vibrationsEnabled) {
                         haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
                     }
                 },
@@ -190,7 +153,7 @@ fun AccessibilityScreen(
                 position = SettingsItemPosition.Bottom,
                 onCheckedChange = {
                     scope.launch { settingsDataStore.setAutoScrollText(it) }
-                    if (vibr) {
+                    if (vibrationsEnabled) {
                         haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
                     }
                 },
@@ -204,15 +167,15 @@ fun AccessibilityScreen(
 
 @Composable
 fun ScrollBlurSubScreen(
-    settingsDataStore: SettingsDataStore,
+    settingsDataStore: SettingsDataStore = LocalSettingsDataStore.current,
     modifier: Modifier = Modifier
 ) {
+    val settings = LocalAppSettings.current
     val scope = rememberCoroutineScope()
-    val showScrollBlur by settingsDataStore.showScrollBlur.collectAsState(initial = DefaultSettings.SHOW_SCROLL_BLUR)
-    val scrollBlurTargets by settingsDataStore.scrollBlurTargets.collectAsState(
-        initial = DefaultSettings.SCROLL_BLUR_TARGETS.split(',').filter { it.isNotEmpty() }.toSet()
-    )
-    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
+    val showScrollBlur = settings.showScrollBlur
+    val scrollBlurTargets = settings.scrollBlurTargets
+    val scrollBlurDetailOnly = settings.scrollBlurDetailOnly
+    val vibrationsEnabled = settings.vibrations
     val haptic = LocalHapticFeedback.current
 
     SettingsSubScreenContainer(modifier = modifier) {
@@ -243,20 +206,37 @@ fun ScrollBlurSubScreen(
                 if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
             }
         )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        SettingsGroup(settingsDataStore = settingsDataStore) {
+            SettingsSwitchItem(
+                text = "Only show on detail screen",
+                checked = scrollBlurDetailOnly,
+                enabled = showScrollBlur && "Heatmap" in scrollBlurTargets,
+                settingsDataStore = settingsDataStore,
+                position = SettingsItemPosition.Alone,
+                onCheckedChange = { isChecked ->
+                    scope.launch { settingsDataStore.setScrollBlurDetailOnly(isChecked) }
+                    if (vibrationsEnabled) {
+                        haptic.performHapticFeedback(if (isChecked) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+                    }
+                }
+            )
+        }
     }
 }
 
 @Composable
 fun ReduceMovementSubScreen(
-    settingsDataStore: SettingsDataStore,
+    settingsDataStore: SettingsDataStore = LocalSettingsDataStore.current,
     modifier: Modifier = Modifier
 ) {
+    val settings = LocalAppSettings.current
     val scope = rememberCoroutineScope()
-    val reduceMovement by settingsDataStore.reduceMovement.collectAsState(initial = DefaultSettings.REDUCE_MOVEMENT)
-    val reduceMovementTargets by settingsDataStore.reduceMovementTargets.collectAsState(
-        initial = DefaultSettings.REDUCE_MOVEMENT_TARGETS.split(',').filter { it.isNotEmpty() }.toSet()
-    )
-    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
+    val reduceMovement = settings.reduceMovement
+    val reduceMovementTargets = settings.reduceMovementTargets
+    val vibrationsEnabled = settings.vibrations
     val haptic = LocalHapticFeedback.current
 
     SettingsSubScreenContainer(modifier = modifier) {
@@ -292,18 +272,15 @@ fun ReduceMovementSubScreen(
 
 @Composable
 fun AutoScrollSubScreen(
-    settingsDataStore: SettingsDataStore,
+    settingsDataStore: SettingsDataStore = LocalSettingsDataStore.current,
     modifier: Modifier = Modifier
 ) {
+    val settings = LocalAppSettings.current
     val scope = rememberCoroutineScope()
-    val autoScrollText by settingsDataStore.autoScrollText.collectAsState(initial = DefaultSettings.AUTO_SCROLL_TEXT)
-    val autoScrollTextElements by settingsDataStore.autoScrollTextElements.collectAsState(
-        initial = DefaultSettings.AUTO_SCROLL_TEXT_ELEMENTS.split(',').filter { it.isNotEmpty() }.toSet()
-    )
-    val autoScrollTextScreens by settingsDataStore.autoScrollTextScreens.collectAsState(
-        initial = DefaultSettings.AUTO_SCROLL_TEXT_SCREENS.split(',').filter { it.isNotEmpty() }.toSet()
-    )
-    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
+    val autoScrollText = settings.autoScrollText
+    val autoScrollTextElements = settings.autoScrollTextElements
+    val autoScrollTextScreens = settings.autoScrollTextScreens
+    val vibrationsEnabled = settings.vibrations
     val haptic = LocalHapticFeedback.current
 
     SettingsSubScreenContainer(modifier = modifier) {
@@ -351,4 +328,3 @@ fun AutoScrollSubScreen(
         )
     }
 }
-

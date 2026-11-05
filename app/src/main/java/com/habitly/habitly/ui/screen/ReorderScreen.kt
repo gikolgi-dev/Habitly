@@ -59,16 +59,18 @@ import com.habitly.habitly.data.Database.HabitViewModel
 import com.habitly.habitly.data.Database.HabitsUiState
 import com.habitly.habitly.ui.AppBackButton
 import com.habitly.habitly.ui.components.RotatingHabitIcon
+import com.habitly.habitly.data.settings.LocalAppSettings
 
 @Composable
 fun ReorderScreen(
     habitViewModel: HabitViewModel,
-    onBack: () -> Unit,
-    borderContrast: Float,
-    vibrationsEnabled: Boolean,
-    useHabitColor: Boolean,
-    disableAnimations: Boolean
+    onBack: () -> Unit
 ) {
+    val settings = LocalAppSettings.current
+    val vibrationsEnabled = settings.vibrations
+    val borderContrast = settings.borders
+    val useHabitColor = settings.useHabitColorForItemCards
+    val disableAnimations = settings.disableRotationAnimations
     val habitsUiState by habitViewModel.habitsUiState.collectAsState()
     val haptic = LocalHapticFeedback.current
 
@@ -225,13 +227,13 @@ fun ReorderHabitItem(
     val isDark = !MaterialTheme.colorScheme.surface.isBright()
     val habitThemeColor = Color(habit.color).toThemeHabitColor(isDark)
     val cardBackgroundColor = if (useHabitColor) {
-        lerp(habitThemeColor, MaterialTheme.colorScheme.surface, if (isDark) 0.85f else 0.82f)
+        lerp(habitThemeColor, MaterialTheme.colorScheme.surfaceContainerHigh, if (isDark) 0.85f else 0.82f)
     } else {
-        MaterialTheme.colorScheme.surfaceVariant
+        MaterialTheme.colorScheme.surfaceContainerHigh
     }
 
     val cardBorderColor = if (useHabitColor) {
-        lerp(habitThemeColor, MaterialTheme.colorScheme.surface, 1f - borderContrast)
+        lerp(habitThemeColor, MaterialTheme.colorScheme.outline, 0.5f).copy(alpha = borderContrast)
     } else {
         MaterialTheme.colorScheme.outline.copy(alpha = borderContrast)
     }
@@ -258,11 +260,7 @@ fun ReorderHabitItem(
             modifier = Modifier.padding(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            RotatingHabitIcon(
-                habit = habit, 
-                borderContrast = borderContrast,
-                shouldAnimate = !disableAnimations
-            )
+            RotatingHabitIcon(habit = habit)
             Spacer(modifier = Modifier.size(16.dp))
 
             Column(

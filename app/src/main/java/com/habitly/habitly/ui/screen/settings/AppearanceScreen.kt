@@ -18,6 +18,8 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import com.habitly.habitly.data.settings.LocalAppSettings
+import com.habitly.habitly.data.settings.LocalSettingsDataStore
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -32,16 +34,16 @@ import kotlinx.coroutines.launch
 @Composable
 fun AppearanceScreen(
     modifier: Modifier = Modifier,
-    settingsDataStore: SettingsDataStore,
+    settingsDataStore: SettingsDataStore = LocalSettingsDataStore.current,
     onNavigateToHabitColor: () -> Unit,
     onNavigateToHeatmap: () -> Unit
 ) {
-    val currentTheme by settingsDataStore.theme.collectAsState(initial = DefaultSettings.THEME)
-    val useMaterialTheming by settingsDataStore.useMaterialTheming.collectAsState(initial = DefaultSettings.USE_MATERIAL_THEMING)
-    val useHabitColorForCard by settingsDataStore.useHabitColorForCard.collectAsState(initial = DefaultSettings.USE_HABIT_COLOR_FOR_CARD)
-    val lineChartYearDivider by settingsDataStore.lineChartYearDivider.collectAsState(initial = DefaultSettings.LINE_CHART_YEAR_DIVIDER)
-    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
-
+    val settings = LocalAppSettings.current
+    val currentTheme = settings.theme
+    val useMaterialTheming = settings.useMaterialTheming
+    val useHabitColorForCard = settings.useHabitColorForCard
+    val lineChartYearDivider = settings.lineChartYearDivider
+    val vibrationsEnabled = settings.vibrations
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
     val (scrollState, scrollEnabled) = rememberSettingsScrollState()
@@ -164,18 +166,16 @@ fun AppearanceScreen(
         }
     }
 }
-
 @Composable
 fun HabitColorSubScreen(
-    settingsDataStore: SettingsDataStore,
+    settingsDataStore: SettingsDataStore = LocalSettingsDataStore.current,
     modifier: Modifier = Modifier
 ) {
+    val settings = LocalAppSettings.current
     val scope = rememberCoroutineScope()
-    val useHabitColor by settingsDataStore.useHabitColorForCard.collectAsState(initial = DefaultSettings.USE_HABIT_COLOR_FOR_CARD)
-    val habitColorTargets by settingsDataStore.habitColorTargets.collectAsState(
-        initial = DefaultSettings.HABIT_COLOR_TARGETS.split(',').filter { it.isNotEmpty() }.toSet()
-    )
-    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
+    val useHabitColor = settings.useHabitColorForCard
+    val habitColorTargets = settings.habitColorTargets
+    val vibrationsEnabled = settings.vibrations
     val haptic = LocalHapticFeedback.current
 
     SettingsSubScreenContainer(modifier = modifier) {

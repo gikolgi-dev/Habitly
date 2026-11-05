@@ -5,12 +5,9 @@
 package com.habitly.habitly.ui
 
 import android.annotation.SuppressLint
-import kotlin.math.roundToInt
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -18,28 +15,16 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.MarqueeSpacing
-import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.border
+import androidx.compose.foundation.MarqueeSpacing
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -54,27 +39,36 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.asAndroidPath
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -84,10 +78,15 @@ import androidx.graphics.shapes.toPath
 import com.habitly.habitly.data.Database.Completion
 import com.habitly.habitly.data.Database.Habit
 import com.habitly.habitly.data.Database.getDailyTarget
+import com.habitly.habitly.data.settings.LocalAppSettings
 import com.habitly.habitly.ui.colors.isBright
 import com.habitly.habitly.ui.colors.toThemeHabitColor
 import com.habitly.habitly.ui.components.RotatingHabitIcon
-import java.util.Calendar
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 val circleToSquareMorph = Morph(MaterialShapes.Circle, MaterialShapes.Square)
 
@@ -102,9 +101,9 @@ fun HabitTitleAndDescription(
     habit: Habit,
     isDetailView: Boolean,
     modifier: Modifier = Modifier,
-    autoScrollText: Boolean = false,
-    autoScrollTextElements: Set<String> = emptySet(),
-    autoScrollTextScreens: Set<String> = emptySet()
+    autoScrollText: Boolean = LocalAppSettings.current.autoScrollText,
+    autoScrollTextElements: Set<String> = LocalAppSettings.current.autoScrollTextElements,
+    autoScrollTextScreens: Set<String> = LocalAppSettings.current.autoScrollTextScreens
 ) {
     val isScreenEnabled = if (isDetailView) "Detail Screen" in autoScrollTextScreens else "Main Screen" in autoScrollTextScreens
     val shouldAutoScrollTitle = autoScrollText && isScreenEnabled && "Title" in autoScrollTextElements
@@ -114,13 +113,20 @@ fun HabitTitleAndDescription(
     ) {
         Text(
             text = habit.name,
-            style = if (isDetailView) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.titleLarge,
+            style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onBackground,
-            fontWeight = FontWeight.Bold,
+            wght = 760f,
+            wdth = 112f,
+            opsz = 24f,
+            grad = 25f,
+            xtra = 495f,
+            yopq = 86f,
+            ytlc = 528f,
             maxLines = 1,
             overflow = if (shouldAutoScrollTitle) TextOverflow.Clip else TextOverflow.Ellipsis,
             modifier = if (shouldAutoScrollTitle) {
-                Modifier.basicMarquee(
+                Modifier.syncedMarquee(
+                    syncKey = "title-${habit.id}-${habit.name}",
                     iterations = Int.MAX_VALUE,
                     spacing = MarqueeSpacing(24.dp),
                     velocity = 30.dp
@@ -131,15 +137,22 @@ fun HabitTitleAndDescription(
         )
         if (habit.description.isNotBlank()) {
             if (isDetailView) {
-                Spacer(modifier = Modifier.height(4.dp))
                 if (shouldAutoScrollDescription) {
                     Text(
                         text = habit.description,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                        color = MaterialTheme.colorScheme.onBackground,
+                        wght = 420f,
+                        wdth = 104f,
+                        opsz = 14f,
+                        grad = -20f,
+                        xtra = 478f,
+                        yopq = 78f,
+                        ytlc = 524f,
                         maxLines = 1,
                         overflow = TextOverflow.Clip,
-                        modifier = Modifier.basicMarquee(
+                        modifier = Modifier.syncedMarquee(
+                            syncKey = "desc-${habit.id}-${habit.description}",
                             iterations = Int.MAX_VALUE,
                             spacing = MarqueeSpacing(24.dp),
                             velocity = 30.dp
@@ -148,8 +161,8 @@ fun HabitTitleAndDescription(
                 } else {
                     var isExpanded by remember { mutableStateOf(false) }
                     var isOverflowing by remember { mutableStateOf(false) }
-
                     val isClickable = (isOverflowing || isExpanded)
+
                     Column(
                         modifier = Modifier
                             .animateContentSize(animationSpec = tween(durationMillis = 300)) // Animate the size change of the Column
@@ -159,38 +172,97 @@ fun HabitTitleAndDescription(
                                 enabled = isClickable
                             ) { isExpanded = !isExpanded }
                     ) {
-                        Text(
-                            text = habit.description,
-                            style = MaterialTheme.typography.bodyMedium,
-                            maxLines = if (isExpanded) Int.MAX_VALUE else 1,
-                            overflow = TextOverflow.Ellipsis,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                            onTextLayout = { textLayoutResult ->
-                                if (!isOverflowing && !isExpanded) {
-                                    isOverflowing = textLayoutResult.hasVisualOverflow
+                        if (isExpanded) {
+                            val readLessFontFamily = rememberRobotoFlexFontFamily(
+                                wght = 620f,
+                                wdth = 104f,
+                                opsz = 14f,
+                                grad = 0f,
+                                xtra = 478f,
+                                yopq = 78f,
+                                ytlc = 524f
+                            )
+                            val readLessColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            val expandedText = remember(habit.description, readLessFontFamily, readLessColor) {
+                                buildAnnotatedString {
+                                    append(habit.description.trimEnd())
+                                    append("  ")
+                                    withStyle(
+                                        SpanStyle(
+                                            color = readLessColor,
+                                            fontWeight = FontWeight.Bold,
+                                            fontFamily = readLessFontFamily
+                                        )
+                                    ) {
+                                        append("Read\u00A0less")
+                                    }
                                 }
                             }
-                        )
-                        if (isClickable) {
                             Text(
-                                text = if (isExpanded) "Read less" else "Read more",
+                                text = expandedText,
                                 style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onBackground,
+                                wght = 420f,
+                                wdth = 104f,
+                                opsz = 14f,
+                                grad = -20f,
+                                xtra = 478f,
+                                yopq = 78f,
+                                ytlc = 524f
                             )
+                        } else {
+                            Text(
+                                text = habit.description,
+                                style = MaterialTheme.typography.bodyMedium,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                color = MaterialTheme.colorScheme.onBackground,
+                                wght = 420f,
+                                wdth = 104f,
+                                opsz = 14f,
+                                grad = -20f,
+                                xtra = 478f,
+                                yopq = 78f,
+                                ytlc = 524f,
+                                onTextLayout = { textLayoutResult ->
+                                    isOverflowing = textLayoutResult.hasVisualOverflow
+                                }
+                            )
+                            if (isOverflowing) {
+                                Text(
+                                    text = "Read more",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    wght = 620f,
+                                    wdth = 104f,
+                                    opsz = 14f,
+                                    grad = 0f,
+                                    xtra = 478f,
+                                    yopq = 78f,
+                                    ytlc = 524f
+                                )
+                            }
                         }
                     }
                 }
             } else {
-                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = habit.description,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onBackground,
+                    wght = 420f,
+                    wdth = 104f,
+                    opsz = 14f,
+                    grad = -20f,
+                    xtra = 478f,
+                    yopq = 78f,
+                    ytlc = 524f,
                     maxLines = 1,
                     overflow = if (shouldAutoScrollDescription) TextOverflow.Clip else TextOverflow.Ellipsis,
                     modifier = if (shouldAutoScrollDescription) {
-                        Modifier.basicMarquee(
+                        Modifier.syncedMarquee(
+                            syncKey = "desc-${habit.id}-${habit.description}",
                             iterations = Int.MAX_VALUE,
                             spacing = MarqueeSpacing(24.dp),
                             velocity = 30.dp
@@ -228,13 +300,9 @@ fun HabitCompletionButton(
     val currentCompletionsState by rememberUpdatedState(currentCompletions)
     val currentHabitState by rememberUpdatedState(habit)
 
-    val useDarkTheme = when (theme) {
-        "light" -> false
-        "dark" -> true
-        else -> androidx.compose.foundation.isSystemInDarkTheme()
-    }
+    val useDarkTheme = !MaterialTheme.colorScheme.surface.isBright()
     val target = habit.getDailyTarget()
-    val color = Color(habit.color)
+    val color = Color(habit.color).toThemeHabitColor(useDarkTheme)
     val targetProgress = if (isCompleted) 1f else 0f
     val progressState = animateFloatAsState(
         targetValue = targetProgress,
@@ -249,10 +317,10 @@ fun HabitCompletionButton(
     )
 
     val animatedHabitColorState =
-        animateColorAsState(targetValue = color, animationSpec = tween(300), label = "habitColor")
+        animateColorAsState(targetValue = color, label = "habitColor")
 
 
-    val rotationAnimationSpec = tween<Float>(durationMillis = 400, easing = FastOutSlowInEasing)
+    val rotationAnimationSpec = tween<Float>(durationMillis = 300, easing = FastOutSlowInEasing)
     val rotationState = animateFloatAsState(
         if (isCompleted) 180f else 0f,
         label = "fab_icon_rotation",
@@ -309,7 +377,7 @@ fun HabitCompletionButton(
 
                 val bgAlpha = lerp(if (useDarkTheme) 0.1f else 0.22f, 1f, p)
                 val strokeAlpha = lerp(borderContrast, 1f, p)
-                val currentColor = animatedHabitColorState.value.toThemeHabitColor(useDarkTheme)
+                val currentColor = animatedHabitColorState.value
 
                 val itemBgColor = currentColor.copy(alpha = bgAlpha)
                 val itemStrokeColor = currentColor.copy(alpha = strokeAlpha)
@@ -426,12 +494,8 @@ fun HabitCompletionButton(
             ),
         contentAlignment = Alignment.Center
     ) {
-        val animatedHabitColor = animatedHabitColorState.value.toThemeHabitColor(useDarkTheme)
-        val iconTintColor = if (isCompleted) {
-            if (animatedHabitColor.isBright()) Color.Black else Color.White
-        } else {
-            animatedHabitColor
-        }
+        val animatedHabitColor = animatedHabitColorState.value
+        val completedIconColor = if (animatedHabitColor.isBright()) Color.Black else Color.White
         val tp = transitionProgressProvider()
         val baseIconSize = 32.dp
         val targetIconSize = if (target > 1) baseIconSize + (32.dp - baseIconSize) * progressState.value else 32.dp
@@ -448,12 +512,12 @@ fun HabitCompletionButton(
             Icon(
                 imageVector = if (completed) Icons.Default.Close else Icons.Default.Check,
                 contentDescription = if (completed) "Completed" else "Complete",
-                tint = iconTintColor,
+                tint = if (completed) completedIconColor else animatedHabitColor,
                 modifier = Modifier
                     .size(iconSize)
                     .graphicsLayer {
                         rotationZ = rotationState.value
-                        alpha = if (isCompleted) 1f else iconAlpha
+                        alpha = lerp(iconAlpha, 1f, progressState.value)
                     }
             )
         }
@@ -467,69 +531,63 @@ fun HabitItemCard(
     isCompleted: Boolean,
     completions: List<Completion>,
     showCheckbox: Boolean,
-    showMonthLabels: Boolean,
-    visibleDayLabels: Set<String>,
-    dayOfWeekLabelsOnRight: Boolean,
-    showYearDivider: Boolean,
-    showYearLabels: Boolean,
-    heatmapNotificationDot: Boolean,
-    heatmapNotificationDotRange: String,
-    showScrollBlur: Boolean = true,
-    borderContrast: Float,
-    useHabitColor: Boolean,
-    disableAnimations: Boolean,
+    showMonthLabels: Boolean = LocalAppSettings.current.monthLabels,
+    visibleDayLabels: Set<String> = LocalAppSettings.current.heatmapVisibleDays,
+    dayOfWeekLabelsOnRight: Boolean = LocalAppSettings.current.dayOfWeekLabelsOnRight,
+    showYearDivider: Boolean = LocalAppSettings.current.yearDivider,
+    showYearLabels: Boolean = LocalAppSettings.current.yearLabels,
+    heatmapNotificationDot: Boolean = LocalAppSettings.current.let { it.heatmapNotificationDot && !it.heatmapNotificationDotDetailOnly },
+    heatmapNotificationDotRange: String = LocalAppSettings.current.heatmapNotificationDotRange,
+    showScrollBlur: Boolean = LocalAppSettings.current.let { it.showScrollBlur && "Heatmap" in it.scrollBlurTargets && !it.scrollBlurDetailOnly },
+    borderContrast: Float = LocalAppSettings.current.borders,
+    useHabitColor: Boolean = LocalAppSettings.current.useHabitColorForItemCards,
+    disableAnimations: Boolean = LocalAppSettings.current.disableRotationAnimations,
     onComplete: () -> Unit,
     onDecrement: (() -> Unit)? = null,
     onClick: () -> Unit,
     onUnarchive: (() -> Unit)? = null,
     onDelete: (() -> Unit)? = null,
-    heatmapScrollEnabled: Boolean = false,
-    heatmapWeeks: Int = 0,
-    heatmapInfinite: Boolean = false,
+    heatmapScrollEnabled: Boolean = LocalAppSettings.current.heatmapScrolling,
+    heatmapWeeks: Int = LocalAppSettings.current.heatmapWeeks,
+    heatmapInfinite: Boolean = LocalAppSettings.current.heatmapInfinite,
     isPreview: Boolean = false,
     currentDateMillis: Long = System.currentTimeMillis(),
     @SuppressLint("ModifierParameter") modifier: Modifier = Modifier,
     sharedTransitionScope: SharedTransitionScope? = null,
     visible: Boolean = true,
     transitionProgressProvider: () -> Float = { 0f },
-    theme: String = "system",
+    theme: String = LocalAppSettings.current.theme,
     detailBgColor: Color = Color.Unspecified,
     animateTileChanges: Boolean = false,
-    firstDayOfWeek: Int = Calendar.MONDAY,
-    autoScrollText: Boolean = false,
-    autoScrollTextElements: Set<String> = emptySet(),
-    autoScrollTextScreens: Set<String> = emptySet(),
-    vibrationsEnabled: Boolean = true
+    firstDayOfWeek: Int = LocalAppSettings.current.firstDayOfWeekCalendar,
+    autoScrollText: Boolean = LocalAppSettings.current.autoScrollText,
+    autoScrollTextElements: Set<String> = LocalAppSettings.current.autoScrollTextElements,
+    autoScrollTextScreens: Set<String> = LocalAppSettings.current.autoScrollTextScreens,
+    vibrationsEnabled: Boolean = LocalAppSettings.current.vibrations
 ) {
     val haptic = LocalHapticFeedback.current
-    val useDarkTheme = when (theme) {
-        "light" -> false
-        "dark" -> true
-        else -> androidx.compose.foundation.isSystemInDarkTheme()
-    }
+    val useDarkTheme = !MaterialTheme.colorScheme.surface.isBright()
 
     val habitThemeColor = Color(habit.color).toThemeHabitColor(useDarkTheme)
     val targetCardBackgroundColor = if (useHabitColor) {
-        lerp(habitThemeColor, MaterialTheme.colorScheme.surfaceVariant, if (useDarkTheme) 0.85f else 0.82f)
+        lerp(habitThemeColor, MaterialTheme.colorScheme.surfaceContainerHigh, if (useDarkTheme) 0.85f else 0.82f)
     } else {
-        MaterialTheme.colorScheme.surfaceVariant
+        MaterialTheme.colorScheme.surfaceContainerHigh
     }
 
     val cardBackgroundColor by animateColorAsState(
         targetValue = targetCardBackgroundColor,
-        animationSpec = tween(300),
         label = "cardBackgroundColor"
     )
 
     val targetBorderColor = if (useHabitColor) {
-        lerp(habitThemeColor, MaterialTheme.colorScheme.outline, borderContrast)
+        lerp(habitThemeColor, MaterialTheme.colorScheme.outline, 0.5f).copy(alpha = borderContrast)
     } else {
         MaterialTheme.colorScheme.outline.copy(alpha = borderContrast)
     }
 
     val cardBorderColor by animateColorAsState(
         targetValue = targetBorderColor,
-        animationSpec = tween(300),
         label = "cardBorderColor"
     )
 
@@ -592,7 +650,7 @@ fun HabitItemCard(
                     modifier = Modifier.weight(1f),
                     autoScrollText = autoScrollText,
                     autoScrollTextElements = autoScrollTextElements,
-                    autoScrollTextScreens = autoScrollTextScreens,
+                    autoScrollTextScreens = autoScrollTextScreens
                 )
 
                 Spacer(modifier = Modifier.size(16.dp))

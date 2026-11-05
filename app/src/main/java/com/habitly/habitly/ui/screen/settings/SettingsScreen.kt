@@ -78,6 +78,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import com.habitly.habitly.data.settings.DefaultSettings
+import com.habitly.habitly.data.settings.LocalAppSettings
+import com.habitly.habitly.data.settings.LocalSettingsDataStore
 import java.util.Calendar
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -106,6 +108,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -165,11 +168,7 @@ fun settingsExitTransition() =
 fun SettingsScreen(
     onDismiss: () -> Unit,
     db: HabitDatabase,
-    settingsDataStore: SettingsDataStore,
-    vibrationsEnabled: Boolean,
-    borderContrast: Float,
-    is24Hour: Boolean,
-    theme: String
+    settingsDataStore: SettingsDataStore = LocalSettingsDataStore.current
 ) {
     val navController = rememberNavController()
     val scope = rememberCoroutineScope()
@@ -177,6 +176,11 @@ fun SettingsScreen(
 
     val haptic = LocalHapticFeedback.current
     val uriHandler = LocalUriHandler.current
+    val settings = LocalAppSettings.current
+    val theme = settings.theme
+    val vibrationsEnabled = settings.vibrations
+    val borderContrast = settings.borders
+    val is24Hour = settings.is24Hour
     val useDarkTheme = when (theme) {
         "light" -> false
         "dark" -> true
@@ -197,34 +201,20 @@ fun SettingsScreen(
         }
     }
 
-    val showMonthLabels by settingsDataStore.monthLabels.collectAsState(initial = DefaultSettings.MONTH_LABELS)
-    val showYearDivider by settingsDataStore.yearDivider.collectAsState(initial = DefaultSettings.YEAR_DIVIDER)
-    val showYearLabels by settingsDataStore.yearLabels.collectAsState(initial = DefaultSettings.YEAR_LABELS)
-    val heatmapNotificationDot by settingsDataStore.heatmapNotificationDot.collectAsState(initial = DefaultSettings.HEATMAP_NOTIFICATION_DOT)
-    val heatmapNotificationDotRange by settingsDataStore.heatmapNotificationDotRange.collectAsState(initial = DefaultSettings.HEATMAP_NOTIFICATION_DOT_RANGE)
-    val heatmapScrolling by settingsDataStore.heatmapScrolling.collectAsState(initial = DefaultSettings.HEATMAP_SCROLLING)
-    val heatmapVisibleDays by settingsDataStore.heatmapVisibleDays.collectAsState(initial = emptySet())
-    val dayOfWeekLabelsOnRight by settingsDataStore.dayOfWeekLabelsOnRight.collectAsState(initial = false)
-    val firstDayOfWeekCalendar by settingsDataStore.firstDayOfWeekCalendar.collectAsState(initial = Calendar.MONDAY)
-    val heatmapWeeks by settingsDataStore.heatmapWeeks.collectAsState(initial = DefaultSettings.HEATMAP_WEEKS)
-    val heatmapInfinite by settingsDataStore.heatmapInfinite.collectAsState(initial = DefaultSettings.HEATMAP_INFINITE)
-    val useHabitColorForCard by settingsDataStore.useHabitColorForCard.collectAsState(initial = DefaultSettings.USE_HABIT_COLOR_FOR_CARD)
-    val habitColorTargets by settingsDataStore.habitColorTargets.collectAsState(
-        initial = DefaultSettings.HABIT_COLOR_TARGETS.split(',').filter { it.isNotEmpty() }.toSet()
-    )
-    val reduceMovement by settingsDataStore.reduceMovement.collectAsState(initial = DefaultSettings.REDUCE_MOVEMENT)
-    val reduceMovementTargets by settingsDataStore.reduceMovementTargets.collectAsState(
-        initial = DefaultSettings.REDUCE_MOVEMENT_TARGETS.split(',').filter { it.isNotEmpty() }.toSet()
-    )
-    val autoScrollText by settingsDataStore.autoScrollText.collectAsState(initial = DefaultSettings.AUTO_SCROLL_TEXT)
-    val autoScrollTextElements by settingsDataStore.autoScrollTextElements.collectAsState(
-        initial = DefaultSettings.AUTO_SCROLL_TEXT_ELEMENTS.split(',').filter { it.isNotEmpty() }.toSet()
-    )
-    val autoScrollTextScreens by settingsDataStore.autoScrollTextScreens.collectAsState(
-        initial = DefaultSettings.AUTO_SCROLL_TEXT_SCREENS.split(',').filter { it.isNotEmpty() }.toSet()
-    )
-
     val blurModifier = Modifier
+
+    val navigateBack: () -> Unit = {
+        if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
+        if (!navController.popBackStack()) {
+            onDismiss()
+        }
+    }
+
+    fun navigateTo(route: String) {
+        if (navController.currentBackStackEntry?.lifecycle?.currentState == Lifecycle.State.RESUMED) {
+            navController.navigate(route) { launchSingleTop = true }
+        }
+    }
 
     NavHost(
         navController = navController,
@@ -236,7 +226,9 @@ fun SettingsScreen(
         enterTransition = { settingsEnterTransition() },
         exitTransition = { settingsExitTransition() },
         popEnterTransition = { settingsPopEnterTransition() },
-        popExitTransition = { settingsPopExitTransition() }
+        popExitTransition = { settingsPopExitTransition() },
+        predictivePopEnterTransition = { settingsPopEnterTransition() },
+        predictivePopExitTransition = { settingsPopExitTransition() }
     ) {
         // Main Screen
         composable(
@@ -251,6 +243,17 @@ fun SettingsScreen(
                 },
                 borderContrast = borderContrast,
                 isRoot = true,
+                actions = {
+                    IconButton(onClick = {
+                        if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        scope.launch {
+                            settingsDataStore.resetToDefault()
+                            NotificationScheduler(context).rescheduleAll()
+                        }
+                    }) {
+                        Icon(painter = painterResource(id = R.drawable.resetwrench), contentDescription = "Reset All Settings", tint = MaterialTheme.colorScheme.onSurface)
+                    }
+                },
             ) { paddingValues ->
                 val listState = rememberLazyListState()
                 val isTopBarCollapsed = LocalSettingsTopBarCollapsed.current
@@ -275,7 +278,7 @@ fun SettingsScreen(
                                 iconColor = MaterialTheme.colorScheme.onPrimaryContainer,
                                 settingsDataStore = settingsDataStore,
                                 position = SettingsItemPosition.Top
-                            ) { navController.navigate("general") { launchSingleTop = true } }
+                            ) { navigateTo("general") }
                             GroupedSettingsItem(
                                 title = "Appearance",
                                 subtitle = "Change the look and feel of the app",
@@ -284,7 +287,7 @@ fun SettingsScreen(
                                 iconColor = MaterialTheme.colorScheme.onSecondaryContainer,
                                 settingsDataStore = settingsDataStore,
                                 position = SettingsItemPosition.Middle
-                            ) { navController.navigate("appearance") { launchSingleTop = true } }
+                            ) { navigateTo("appearance") }
                             GroupedSettingsItem(
                                 title = "Accessibility",
                                 subtitle = "Configure accessibility features",
@@ -293,7 +296,7 @@ fun SettingsScreen(
                                 iconColor = MaterialTheme.colorScheme.onPrimaryContainer,
                                 settingsDataStore = settingsDataStore,
                                 position = SettingsItemPosition.Middle
-                            ) { navController.navigate("accessibility") { launchSingleTop = true } }
+                            ) { navigateTo("accessibility") }
                             GroupedSettingsItem(
                                 title = "Notifications",
                                 subtitle = "Manage daily and habit notifications",
@@ -302,7 +305,7 @@ fun SettingsScreen(
                                 iconColor = MaterialTheme.colorScheme.onTertiary,
                                 settingsDataStore = settingsDataStore,
                                 position = SettingsItemPosition.Bottom
-                            ) { navController.navigate("notifications") { launchSingleTop = true } }
+                            ) { navigateTo("notifications") }
                         }
                     }
                     item {
@@ -315,7 +318,7 @@ fun SettingsScreen(
                                 iconColor = Color(0xFF246D29),
                                 settingsDataStore = settingsDataStore,
                                 position = SettingsItemPosition.Top
-                            ) { navController.navigate("import") { launchSingleTop = true } }
+                            ) { navigateTo("import") }
                             HoldToClearSettingsItem(
                                 title = "Clear all data",
                                 subtitle = "Delete all habits and their completions",
@@ -403,18 +406,22 @@ fun SettingsScreen(
         ) {
             SettingsScaffold(
                 title = "Accessibility",
-                onBack = {
-                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
-                    navController.popBackStack()
-                },
+                onBack = navigateBack,
                 borderContrast = borderContrast,
+                actions = {
+                    IconButton(onClick = {
+                        if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        scope.launch { settingsDataStore.resetAccessibilityToDefault() }
+                    }) {
+                        Icon(painter = painterResource(id = R.drawable.resetwrench), contentDescription = "Reset Settings", tint = MaterialTheme.colorScheme.onSurface)
+                    }
+                },
             ) { paddingValues ->
                 AccessibilityScreen(
                     modifier = Modifier.padding(top = paddingValues.calculateTopPadding()),
                     settingsDataStore = settingsDataStore,
-                    onNavigateToScrollBlur = { navController.navigate("scroll_blur") { launchSingleTop = true } },
-                    onNavigateToReduceMovement = { navController.navigate("reduce_movement") { launchSingleTop = true } },
-                    onNavigateToAutoScroll = { navController.navigate("auto_scroll") { launchSingleTop = true } }
+                    onNavigateToReduceMovement = { navigateTo("reduce_movement") },
+                    onNavigateToAutoScroll = { navigateTo("auto_scroll") }
                 )
             }
         }
@@ -424,15 +431,12 @@ fun SettingsScreen(
         ) {
             SettingsScaffold(
                 title = "Appearance",
-                onBack = {
-                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
-                    navController.popBackStack()
-                },
+                onBack = navigateBack,
                 borderContrast = borderContrast,
                 actions = {
                     IconButton(onClick = {
                         if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        scope.launch { settingsDataStore.resetToDefault() }
+                        scope.launch { settingsDataStore.resetAppearanceToDefault() }
                     }) {
                         Icon(painter = painterResource(id = R.drawable.resetwrench), contentDescription = "Reset Settings", tint = MaterialTheme.colorScheme.onSurface)
                     }
@@ -441,8 +445,8 @@ fun SettingsScreen(
                 AppearanceScreen(
                     modifier = Modifier.padding(top = paddingValues.calculateTopPadding()),
                     settingsDataStore = settingsDataStore,
-                    onNavigateToHabitColor = { navController.navigate("habit_color") { launchSingleTop = true } },
-                    onNavigateToHeatmap = { navController.navigate("heatmap") { launchSingleTop = true } }
+                    onNavigateToHabitColor = { navigateTo("habit_color") },
+                    onNavigateToHeatmap = { navigateTo("heatmap") }
                 )
             }
         }
@@ -452,38 +456,14 @@ fun SettingsScreen(
         ) {
             SettingsScaffold(
                 title = "Heatmap",
-                onBack = {
-                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
-                    navController.popBackStack()
-                },
+                onBack = navigateBack,
                 borderContrast = borderContrast,
             ) { paddingValues ->
                 HeatmapSubScreen(
-                    settingsDataStore = settingsDataStore,
                     db = db,
-                    showMonthLabels = showMonthLabels,
-                    showYearDivider = showYearDivider,
-                    showYearLabels = showYearLabels,
-                    heatmapNotificationDot = heatmapNotificationDot,
-                    heatmapNotificationDotRange = heatmapNotificationDotRange,
-                    heatmapScrolling = heatmapScrolling,
-                    heatmapVisibleDays = heatmapVisibleDays,
-                    dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight,
-                    borderContrast = borderContrast,
-                    vibrationsEnabled = vibrationsEnabled,
-                    firstDayOfWeekCalendar = firstDayOfWeekCalendar,
-                    heatmapWeeks = heatmapWeeks,
-                    heatmapInfinite = heatmapInfinite,
-                    useHabitColorForCard = useHabitColorForCard,
-                    habitColorTargets = habitColorTargets,
-                    reduceMovement = reduceMovement,
-                    reduceMovementTargets = reduceMovementTargets,
-                    autoScrollText = autoScrollText,
-                    autoScrollTextElements = autoScrollTextElements,
-                    autoScrollTextScreens = autoScrollTextScreens,
-                    theme = theme,
-                    onNavigateToHeatmapNotificationDot = { navController.navigate("heatmap_notification_dot") { launchSingleTop = true } },
-                    onNavigateToHabitColor = { navController.navigate("habit_color") { launchSingleTop = true } },
+                    onNavigateToHeatmapNotificationDot = { navigateTo("heatmap_notification_dot") },
+                    onNavigateToHabitColor = { navigateTo("habit_color") },
+                    onNavigateToScrollBlur = { navigateTo("scroll_blur") },
                     modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
                 )
             }
@@ -494,15 +474,20 @@ fun SettingsScreen(
         ) {
             SettingsScaffold(
                 title = "General",
-                onBack = {
-                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
-                    navController.popBackStack()
-                },
+                onBack = navigateBack,
                 borderContrast = borderContrast,
+                actions = {
+                    IconButton(onClick = {
+                        if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        scope.launch { settingsDataStore.resetGeneralToDefault() }
+                    }) {
+                        Icon(painter = painterResource(id = R.drawable.resetwrench), contentDescription = "Reset Settings", tint = MaterialTheme.colorScheme.onSurface)
+                    }
+                },
             ) { paddingValues ->
                 GeneralSettingsScreen(
                     settingsDataStore = settingsDataStore,
-                    onNavigateToHeatmapWeeks = { navController.navigate("heatmap_weeks") { launchSingleTop = true } },
+                    onNavigateToHeatmapWeeks = { navigateTo("heatmap_weeks") },
                     modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
                 )
             }
@@ -513,10 +498,7 @@ fun SettingsScreen(
         ) {
             SettingsScaffold(
                 title = "Week limit",
-                onBack = {
-                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
-                    navController.popBackStack()
-                },
+                onBack = navigateBack,
                 borderContrast = borderContrast,
             ) { paddingValues ->
                 HeatmapWeeksSubScreen(
@@ -531,10 +513,7 @@ fun SettingsScreen(
         ) {
             SettingsScaffold(
                 title = "Notification indicator",
-                onBack = {
-                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
-                    navController.popBackStack()
-                },
+                onBack = navigateBack,
                 borderContrast = borderContrast
             ) { paddingValues ->
                 HeatmapNotificationDotSubScreen(
@@ -549,10 +528,7 @@ fun SettingsScreen(
         ) {
             SettingsScaffold(
                 title = "Data Management",
-                onBack = {
-                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
-                    navController.popBackStack()
-                },
+                onBack = navigateBack,
                 borderContrast = borderContrast,
             ) { paddingValues ->
                 ImportExportScreen(
@@ -567,10 +543,7 @@ fun SettingsScreen(
         ) {
             SettingsScaffold(
                 title = "Scroll Blur",
-                onBack = {
-                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
-                    navController.popBackStack()
-                },
+                onBack = navigateBack,
                 borderContrast = borderContrast,
             ) { paddingValues ->
                 ScrollBlurSubScreen(
@@ -585,10 +558,7 @@ fun SettingsScreen(
         ) {
             SettingsScaffold(
                 title = "Habit Color",
-                onBack = {
-                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
-                    navController.popBackStack()
-                },
+                onBack = navigateBack,
                 borderContrast = borderContrast,
             ) { paddingValues ->
                 HabitColorSubScreen(
@@ -603,10 +573,7 @@ fun SettingsScreen(
         ) {
             SettingsScaffold(
                 title = "Reduce Movement",
-                onBack = {
-                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
-                    navController.popBackStack()
-                },
+                onBack = navigateBack,
                 borderContrast = borderContrast,
             ) { paddingValues ->
                 ReduceMovementSubScreen(
@@ -621,10 +588,7 @@ fun SettingsScreen(
         ) {
             SettingsScaffold(
                 title = "Auto-Scroll",
-                onBack = {
-                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
-                    navController.popBackStack()
-                },
+                onBack = navigateBack,
                 borderContrast = borderContrast,
             ) { paddingValues ->
                 AutoScrollSubScreen(
@@ -639,18 +603,23 @@ fun SettingsScreen(
         ) {
             SettingsScaffold(
                 title = "Notifications",
-                onBack = {
-                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
-                    navController.popBackStack()
-                },
+                onBack = navigateBack,
                 borderContrast = borderContrast,
+                actions = {
+                    IconButton(onClick = {
+                        if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        scope.launch {
+                            settingsDataStore.resetNotificationsToDefault()
+                            NotificationScheduler(context).rescheduleAll()
+                        }
+                    }) {
+                        Icon(painter = painterResource(id = R.drawable.resetwrench), contentDescription = "Reset Settings", tint = MaterialTheme.colorScheme.onSurface)
+                    }
+                },
             ) { paddingValues ->
                 NotificationSettingsScreen(
-                    settingsDataStore = settingsDataStore,
-                    is24Hour = is24Hour,
-                    borderContrast = borderContrast,
-                    onNavigateToDailyNotification = { navController.navigate("daily_notification") { launchSingleTop = true } },
-                    onNavigateToWelcomeCardNotification = { navController.navigate("welcome_card_notification") { launchSingleTop = true } },
+                    onNavigateToDailyNotification = { navigateTo("daily_notification") },
+                    onNavigateToWelcomeCardNotification = { navigateTo("welcome_card_notification") },
                     modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
                 )
             }
@@ -661,16 +630,10 @@ fun SettingsScreen(
         ) {
             SettingsScaffold(
                 title = "Daily reminder",
-                onBack = {
-                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
-                    navController.popBackStack()
-                },
+                onBack = navigateBack,
                 borderContrast = borderContrast,
             ) { paddingValues ->
                 DailyNotificationSubScreen(
-                    settingsDataStore = settingsDataStore,
-                    is24Hour = is24Hour,
-                    borderContrast = borderContrast,
                     modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
                 )
             }
@@ -681,16 +644,10 @@ fun SettingsScreen(
         ) {
             SettingsScaffold(
                 title = "Welcome Card",
-                onBack = {
-                    if (vibrationsEnabled) haptic.performHapticFeedback(HapticFeedbackType.ToggleOff)
-                    navController.popBackStack()
-                },
+                onBack = navigateBack,
                 borderContrast = borderContrast,
             ) { paddingValues ->
                 WelcomeCardNotificationSubScreen(
-                    settingsDataStore = settingsDataStore,
-                    is24Hour = is24Hour,
-                    borderContrast = borderContrast,
                     modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
                 )
             }
@@ -810,7 +767,15 @@ fun AnimatedVisibilityScope.SettingsScaffold(
                                 .padding(start = 4.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            AppBackButton(onBack = onBack, borderContrast = borderContrast, isRoot = isRoot)
+                            AppBackButton(
+                                onBack = {
+                                    if (transition.targetState == EnterExitState.Visible) {
+                                        onBack()
+                                    }
+                                },
+                                borderContrast = borderContrast,
+                                isRoot = isRoot
+                            )
                         }
 
                         // Actions stay at the top

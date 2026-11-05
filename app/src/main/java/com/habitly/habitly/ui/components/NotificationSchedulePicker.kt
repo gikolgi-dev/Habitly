@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import java.util.Calendar
+import com.habitly.habitly.data.settings.LocalAppSettings
 
 @Composable
 fun NotificationTimeSelectors(
@@ -156,9 +157,9 @@ fun CustomTimePickerDialog(
     onConfirm: (Int, Int) -> Unit,
     initialHour: Int = Calendar.getInstance().get(Calendar.HOUR_OF_DAY),
     initialMinute: Int = Calendar.getInstance().get(Calendar.MINUTE),
-    borderContrast: Float,
-    is24Hour: Boolean,
-    vibrationsEnabled: Boolean = true
+    borderContrast: Float = LocalAppSettings.current.borders,
+    is24Hour: Boolean = LocalAppSettings.current.is24Hour,
+    vibrationsEnabled: Boolean = LocalAppSettings.current.vibrations
 ) {
     val timePickerState = rememberTimePickerState(
         initialHour = initialHour,

@@ -23,8 +23,8 @@ import java.util.Locale
 class NotificationTest {
 
     @Test
-    fun defaultSettings_exactAlarmsIsFalse() {
-        assertEquals(false, DefaultSettings.EXACT_ALARMS)
+    fun defaultSettings_exactAlarmsIsTrue() {
+        assertEquals(true, DefaultSettings.EXACT_ALARMS)
     }
 
     @Test

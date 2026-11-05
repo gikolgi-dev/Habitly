@@ -36,6 +36,8 @@ import com.habitly.habitly.data.Database.HabitDatabase
 import com.habitly.habitly.data.Database.isDayCompleted
 import com.habitly.habitly.data.settings.DefaultSettings
 import com.habitly.habitly.data.settings.SettingsDataStore
+import com.habitly.habitly.data.settings.LocalAppSettings
+import com.habitly.habitly.data.settings.LocalSettingsDataStore
 import com.habitly.habitly.ui.HabitItemCard
 import com.habitly.habitly.ui.colors.habitColors
 import com.habitly.habitly.ui.defaultHabitIconKey
@@ -43,35 +45,40 @@ import java.util.Calendar
 
 @Composable
 fun HeatmapSubScreen(
-    settingsDataStore: SettingsDataStore,
+    settingsDataStore: SettingsDataStore = LocalSettingsDataStore.current,
     onNavigateToHeatmapNotificationDot: () -> Unit,
     onNavigateToHabitColor: () -> Unit,
+    onNavigateToScrollBlur: () -> Unit,
     modifier: Modifier = Modifier,
-    db: HabitDatabase? = null,
-    showMonthLabels: Boolean = DefaultSettings.MONTH_LABELS,
-    showYearDivider: Boolean = DefaultSettings.YEAR_DIVIDER,
-    showYearLabels: Boolean = DefaultSettings.YEAR_LABELS,
-    heatmapNotificationDot: Boolean = DefaultSettings.HEATMAP_NOTIFICATION_DOT,
-    heatmapNotificationDotRange: String = DefaultSettings.HEATMAP_NOTIFICATION_DOT_RANGE,
-    heatmapScrolling: Boolean = DefaultSettings.HEATMAP_SCROLLING,
-    heatmapVisibleDays: Set<String> = emptySet(),
-    dayOfWeekLabelsOnRight: Boolean = false,
-    borderContrast: Float = DefaultSettings.BORDERS,
-    vibrationsEnabled: Boolean = DefaultSettings.VIBRATIONS,
-    firstDayOfWeekCalendar: Int = Calendar.MONDAY,
-    heatmapWeeks: Int = DefaultSettings.HEATMAP_WEEKS,
-    heatmapInfinite: Boolean = DefaultSettings.HEATMAP_INFINITE,
-    useHabitColorForCard: Boolean = DefaultSettings.USE_HABIT_COLOR_FOR_CARD,
-    habitColorTargets: Set<String> = DefaultSettings.HABIT_COLOR_TARGETS.split(',').filter { it.isNotEmpty() }.toSet(),
-    reduceMovement: Boolean = DefaultSettings.REDUCE_MOVEMENT,
-    reduceMovementTargets: Set<String> = DefaultSettings.REDUCE_MOVEMENT_TARGETS.split(',').filter { it.isNotEmpty() }.toSet(),
-    autoScrollText: Boolean = DefaultSettings.AUTO_SCROLL_TEXT,
-    autoScrollTextElements: Set<String> = DefaultSettings.AUTO_SCROLL_TEXT_ELEMENTS.split(',').filter { it.isNotEmpty() }.toSet(),
-    autoScrollTextScreens: Set<String> = DefaultSettings.AUTO_SCROLL_TEXT_SCREENS.split(',').filter { it.isNotEmpty() }.toSet(),
-    theme: String = DefaultSettings.THEME
+    db: HabitDatabase? = null
 ) {
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
+    val settings = LocalAppSettings.current
+    val showMonthLabels = settings.monthLabels
+    val showYearDivider = settings.yearDivider
+    val showYearLabels = settings.yearLabels
+    val heatmapNotificationDot = settings.heatmapNotificationDot
+    val heatmapNotificationDotRange = settings.heatmapNotificationDotRange
+    val heatmapScrolling = settings.heatmapScrolling
+    val heatmapVisibleDays = settings.heatmapVisibleDays
+    val dayOfWeekLabelsOnRight = settings.dayOfWeekLabelsOnRight
+    val borderContrast = settings.borders
+    val vibrationsEnabled = settings.vibrations
+    val firstDayOfWeekCalendar = settings.firstDayOfWeekCalendar
+    val heatmapWeeks = settings.heatmapWeeks
+    val heatmapInfinite = settings.heatmapInfinite
+    val useHabitColorForCard = settings.useHabitColorForCard
+    val habitColorTargets = settings.habitColorTargets
+    val reduceMovement = settings.reduceMovement
+    val reduceMovementTargets = settings.reduceMovementTargets
+    val autoScrollText = settings.autoScrollText
+    val autoScrollTextElements = settings.autoScrollTextElements
+    val autoScrollTextScreens = settings.autoScrollTextScreens
+    val currentShowScrollBlur = settings.showScrollBlur
+    val scrollBlurTargets = settings.scrollBlurTargets
+    val scrollBlurDetailOnly = settings.scrollBlurDetailOnly
+    val theme = settings.theme
 
     val useHabitColorForItemCards = useHabitColorForCard && "Habit Cards" in habitColorTargets
     val disableAnimations = reduceMovement && "Rotation" in reduceMovementTargets
@@ -169,20 +176,6 @@ fun HeatmapSubScreen(
                 isCompleted = isCompleted,
                 completions = imaginedCompletions,
                 showCheckbox = true,
-                showMonthLabels = showMonthLabels,
-                visibleDayLabels = heatmapVisibleDays,
-                dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight,
-                showYearDivider = showYearDivider,
-                showYearLabels = showYearLabels,
-                heatmapNotificationDot = heatmapNotificationDot,
-                heatmapNotificationDotRange = heatmapNotificationDotRange,
-                showScrollBlur = false,
-                borderContrast = borderContrast,
-                heatmapScrollEnabled = heatmapScrolling,
-                heatmapWeeks = heatmapWeeks,
-                heatmapInfinite = heatmapInfinite,
-                useHabitColor = useHabitColorForItemCards,
-                disableAnimations = disableAnimations,
                 isPreview = true,
                 onComplete = { },
                 onClick = { },
@@ -191,12 +184,7 @@ fun HeatmapSubScreen(
                 detailBgColor = Color(imaginedHabit.color).copy(alpha = 0.1f),
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 0.dp),
                 currentDateMillis = imaginedCurrentDateMillis,
-                animateTileChanges = true,
-                firstDayOfWeek = firstDayOfWeekCalendar,
-                autoScrollText = autoScrollText,
-                autoScrollTextElements = autoScrollTextElements,
-                autoScrollTextScreens = autoScrollTextScreens,
-                theme = theme
+                animateTileChanges = true
             )
         }
 
@@ -296,6 +284,21 @@ fun HeatmapSubScreen(
                     }
                 }
 
+                SettingsSwitchNavigationItem(
+                    text = "Scroll blur",
+                    description = "Apply a blur effect to the top and bottom of scrolling lists",
+                    checked = currentShowScrollBlur,
+                    settingsDataStore = settingsDataStore,
+                    position = SettingsItemPosition.Middle,
+                    onCheckedChange = {
+                        scope.launch { settingsDataStore.setshowScrollBlur(it) }
+                        if (vibrationsEnabled) {
+                            haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+                        }
+                    },
+                    onClick = onNavigateToScrollBlur
+                )
+
                 SettingsItemBox(settingsDataStore = settingsDataStore, position = SettingsItemPosition.Bottom) {
                     Column(
                         modifier = Modifier.padding(
@@ -339,14 +342,15 @@ fun HeatmapSubScreen(
 
 @Composable
 fun HeatmapNotificationDotSubScreen(
-    settingsDataStore: SettingsDataStore,
+    settingsDataStore: SettingsDataStore = LocalSettingsDataStore.current,
     modifier: Modifier = Modifier
 ) {
+    val settings = LocalAppSettings.current
     val scope = rememberCoroutineScope()
-    val heatmapNotificationDot by settingsDataStore.heatmapNotificationDot.collectAsState(initial = DefaultSettings.HEATMAP_NOTIFICATION_DOT)
-    val heatmapNotificationDotRange by settingsDataStore.heatmapNotificationDotRange.collectAsState(initial = DefaultSettings.HEATMAP_NOTIFICATION_DOT_RANGE)
-    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
-    val heatmapNotificationDotDetailOnly by settingsDataStore.heatmapNotificationDotDetailOnly.collectAsState(initial = DefaultSettings.HEATMAP_NOTIFICATION_DOT_DETAIL_ONLY)
+    val heatmapNotificationDot = settings.heatmapNotificationDot
+    val heatmapNotificationDotRange = settings.heatmapNotificationDotRange
+    val vibrationsEnabled = settings.vibrations
+    val heatmapNotificationDotDetailOnly = settings.heatmapNotificationDotDetailOnly
     val haptic = LocalHapticFeedback.current
 
     SettingsSubScreenContainer(modifier = modifier) {
@@ -414,4 +418,3 @@ fun HeatmapNotificationDotSubScreen(
         }
     }
 }
-

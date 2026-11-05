@@ -29,6 +29,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -125,6 +126,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.habitly.habitly.data.settings.SettingsDataStore
+import com.habitly.habitly.data.settings.LocalAppSettings
+import com.habitly.habitly.data.settings.LocalSettingsDataStore
 import com.habitly.habitly.ui.colors.habitColors
 import com.habitly.habitly.ui.colors.isBright
 import com.habitly.habitly.ui.colors.toThemeHabitColor
@@ -490,7 +493,7 @@ private fun CloseButton(
         animationSpec = if (isClosePressed) spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessLow) else spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "button_scale"
     )
-    val useDarkTheme = isSystemInDarkTheme()
+    val useDarkTheme = !MaterialTheme.colorScheme.surface.isBright()
     val secondaryContainerAlpha = if (useDarkTheme) 0.25f else 1f
 
     Box(
@@ -563,7 +566,7 @@ fun HabitSheetContent(
     onClearCustomColor: () -> Unit,
     livePreviewColor: Color?,
     scrollState: ScrollState,
-    settingsDataStore: SettingsDataStore,
+    settingsDataStore: SettingsDataStore = LocalSettingsDataStore.current,
     notificationsEnabled: Boolean,
     onNotificationsEnabledChanged: (Boolean) -> Unit,
     notificationTime: String?,
@@ -587,14 +590,15 @@ fun HabitSheetContent(
     ignoreInWelcomeCard: Boolean = false,
     onIgnoreInWelcomeCardChanged: (Boolean) -> Unit = {}
 ) {
-    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
+    val settings = LocalAppSettings.current
+    val vibrationsEnabled = settings.vibrations
     val haptic = LocalHapticFeedback.current
-    val borderContrast by settingsDataStore.borders.collectAsState(initial = 0.25f)
-    val is24Hour by settingsDataStore.is24Hour.collectAsState(initial = false)
-    val firstDayOfWeekCalendar by settingsDataStore.firstDayOfWeekCalendar.collectAsState(initial = Calendar.MONDAY)
-    val reduceMovement by settingsDataStore.reduceMovement.collectAsState(initial = false)
-    val reduceMovementTargets by settingsDataStore.reduceMovementTargets.collectAsState(initial = emptySet())
-    val reduceGridReactions by remember { derivedStateOf { reduceMovement && "Grid Reactions" in reduceMovementTargets } }
+    val borderContrast = settings.borders
+    val is24Hour = settings.is24Hour
+    val firstDayOfWeekCalendar = settings.firstDayOfWeekCalendar
+    val reduceGridReactions by remember(settings.reduceMovement, settings.reduceMovementTargets) {
+        derivedStateOf { settings.reduceMovement && "Grid Reactions" in settings.reduceMovementTargets }
+    }
 
     val isScrolled by remember { derivedStateOf { scrollState.value > 0 } }
     val dividerAlpha by animateFloatAsState(targetValue = if (isScrolled) 1f else 0f, label = "dividerAlpha")
@@ -665,7 +669,7 @@ fun HabitSheetContent(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                colors = cardColors(MaterialTheme.colorScheme.surfaceVariant)
+                colors = cardColors(MaterialTheme.colorScheme.surfaceContainerHigh)
             ) {
                 Column(modifier = Modifier.padding(horizontal = 12.dp,vertical = 4.dp)) {
                     OutlinedTextField(
@@ -702,7 +706,7 @@ fun HabitSheetContent(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                colors = cardColors(MaterialTheme.colorScheme.surfaceVariant)
+                colors = cardColors(MaterialTheme.colorScheme.surfaceContainerHigh)
             ) {
                 Column(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
@@ -823,7 +827,7 @@ fun HabitSheetContent(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                colors = cardColors(MaterialTheme.colorScheme.surfaceVariant)
+                colors = cardColors(MaterialTheme.colorScheme.surfaceContainerHigh)
             ) {
                 Column(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
@@ -1000,7 +1004,7 @@ fun HabitSheetContent(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                colors = cardColors(MaterialTheme.colorScheme.surfaceVariant)
+                colors = cardColors(MaterialTheme.colorScheme.surfaceContainerHigh)
             ) {
                 Column(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
@@ -1116,7 +1120,7 @@ fun HabitSheetContent(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                colors = cardColors(MaterialTheme.colorScheme.surfaceVariant)
+                colors = cardColors(MaterialTheme.colorScheme.surfaceContainerHigh)
             ) {
                 Column(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
@@ -1161,7 +1165,7 @@ fun HabitSheetContent(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                colors = cardColors(MaterialTheme.colorScheme.surfaceVariant)
+                colors = cardColors(MaterialTheme.colorScheme.surfaceContainerHigh)
             ) {
                 Column(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
@@ -1235,7 +1239,7 @@ fun HabitSheetContent(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                colors = cardColors(MaterialTheme.colorScheme.surfaceVariant)
+                colors = cardColors(MaterialTheme.colorScheme.surfaceContainerHigh)
             ) {
                 Column(
                     modifier = Modifier
@@ -1291,10 +1295,11 @@ fun HabitSheetContent(
                     }
                 }
             }
+            /*
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                colors = cardColors(MaterialTheme.colorScheme.surfaceVariant)
+                colors = cardColors(MaterialTheme.colorScheme.surfaceContainerHigh)
             ) {
                 Column(
                     modifier = Modifier
@@ -1334,6 +1339,7 @@ fun HabitSheetContent(
                     )
                 }
             }
+            */
             Spacer(modifier = Modifier.height(80.dp))
         }
     }
@@ -1343,13 +1349,13 @@ fun HabitSheetContent(
 fun SaveHabitButton(
     buttonText: String,
     isEnabled: Boolean,
-    settingsDataStore: SettingsDataStore,
+    settingsDataStore: SettingsDataStore = LocalSettingsDataStore.current,
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
     val haptic = LocalHapticFeedback.current
-    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
-    val isKeyboardOpen by rememberUpdatedState(WindowInsets.isImeVisible)
+    val vibrationsEnabled = LocalAppSettings.current.vibrations
+    @OptIn(ExperimentalLayoutApi::class) val isKeyboardOpen by rememberUpdatedState(WindowInsets.isImeVisible)
     val verticalPadding by animateDpAsState(targetValue = if (isKeyboardOpen) 4.dp else 6.dp, label = "buttonPadding")
 
     Button(

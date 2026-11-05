@@ -395,6 +395,8 @@ class HabitFeaturesTest {
         assertEquals(10, habit.completionsPerInterval)
         assertEquals("week", habit.intervalUnit)
 
+        val testNow = startOfWeek + (4 * 24 * 3600 * 1000L) + 5000L
+
         // 4 days with 2 completions each (8 total) -> weekly target not met yet (8 < 10)
         val fourDaysCompletions = (0..3).map { dayOffset ->
             Completion(
@@ -405,7 +407,7 @@ class HabitFeaturesTest {
                 amountOfCompletions = 2
             )
         }
-        assertEquals(8, getTotalEffectiveCompletions(habit, fourDaysCompletions, today))
+        assertEquals(8, getTotalEffectiveCompletions(habit, fourDaysCompletions, testNow))
 
         // 5 days with 2 completions each (10 total) -> weekly target met (10 >= 10)!
         val fiveDaysCompletions = (0..4).map { dayOffset ->
@@ -418,7 +420,6 @@ class HabitFeaturesTest {
             )
         }
         val hwc5 = HabitWithCompletions(habit, fiveDaysCompletions)
-        val testNow = startOfWeek + (4 * 24 * 3600 * 1000L) + 5000L
         val stats5 = calculateStatistics(hwc5, firstDay, testNow)
         // 5 days completed -> streak is 5 days, not 10 completions
         assertEquals(5, stats5.currentStreak)
@@ -452,6 +453,7 @@ class HabitFeaturesTest {
             autoScrollText = true,
             autoScrollTextElements = "Title",
             autoScrollTextScreens = "Main Screen",
+            scrollBlurDetailOnly = true,
             ignoreWelcomeEngine = true
         )
         val exportData = ExportData(
@@ -485,6 +487,7 @@ class HabitFeaturesTest {
         assertTrue(decoded.settings?.autoScrollText ?: false)
         assertEquals("Title", decoded.settings?.autoScrollTextElements)
         assertEquals("Main Screen", decoded.settings?.autoScrollTextScreens)
+        assertTrue(decoded.settings?.scrollBlurDetailOnly ?: false)
         assertTrue(decoded.settings?.ignoreWelcomeEngine ?: false)
     }
 
@@ -507,7 +510,7 @@ class HabitFeaturesTest {
 
         assertNotNull(decoded.settings)
         assertEquals("dark", decoded.settings?.theme)
-        assertFalse(decoded.settings?.ignoreWelcomeEngine ?: true)
+        assertTrue(decoded.settings?.ignoreWelcomeEngine ?: false)
     }
 
     @Test

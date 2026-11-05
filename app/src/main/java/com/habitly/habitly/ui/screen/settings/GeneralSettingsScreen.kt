@@ -32,20 +32,23 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.input.KeyboardType
 import com.habitly.habitly.data.settings.DefaultSettings
 import com.habitly.habitly.data.settings.SettingsDataStore
+import com.habitly.habitly.data.settings.LocalAppSettings
+import com.habitly.habitly.data.settings.LocalSettingsDataStore
 import kotlinx.coroutines.launch
 
 @Composable
 fun GeneralSettingsScreen(
-    settingsDataStore: SettingsDataStore,
+    settingsDataStore: SettingsDataStore = LocalSettingsDataStore.current,
     onNavigateToHeatmapWeeks: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val settings = LocalAppSettings.current
     val scope = rememberCoroutineScope()
-    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
-    val is24Hour by settingsDataStore.is24Hour.collectAsState(initial = DefaultSettings.IS_24_HOUR)
-    val heroCardVisible by settingsDataStore.heroCardVisible.collectAsState(initial = DefaultSettings.HERO_CARD_VISIBLE)
-    val firstDayOfWeek by settingsDataStore.firstDayOfWeek.collectAsState(initial = DefaultSettings.FIRST_DAY_OF_WEEK)
-    val ignoreWelcomeEngine by settingsDataStore.ignoreWelcomeEngine.collectAsState(initial = DefaultSettings.IGNORE_WELCOME_ENGINE)
+    val vibrationsEnabled = settings.vibrations
+    val is24Hour = settings.is24Hour
+    val heroCardVisible = settings.heroCardVisible
+    val firstDayOfWeek = settings.firstDayOfWeek
+    val ignoreWelcomeEngine = settings.ignoreWelcomeEngine
 
     val haptic = LocalHapticFeedback.current
     val (scrollState, scrollEnabled) = rememberSettingsScrollState()
@@ -84,6 +87,7 @@ fun GeneralSettingsScreen(
                 }
                 if (vibrationsEnabled) haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
             }
+            /*
             SettingsSwitchItem(
                 text = "Simple welcome descriptions",
                 description = "Ignore the welcome engine and use the original simple descriptions",
@@ -96,6 +100,7 @@ fun GeneralSettingsScreen(
                 }
                 if (vibrationsEnabled) haptic.performHapticFeedback(if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
             }
+            */
             SettingsNavigationItem(
                 text = "Week limit",
                 description = "Limit the amount of weeks shown in the heatmap. High values may impact performance.",
@@ -170,13 +175,14 @@ fun GeneralSettingsScreen(
 
 @Composable
 fun HeatmapWeeksSubScreen(
-    settingsDataStore: SettingsDataStore,
+    settingsDataStore: SettingsDataStore = LocalSettingsDataStore.current,
     modifier: Modifier = Modifier
 ) {
+    val settings = LocalAppSettings.current
     val scope = rememberCoroutineScope()
-    val heatmapWeeks by settingsDataStore.heatmapWeeks.collectAsState(initial = DefaultSettings.HEATMAP_WEEKS)
-    val heatmapInfinite by settingsDataStore.heatmapInfinite.collectAsState(initial = DefaultSettings.HEATMAP_INFINITE)
-    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = DefaultSettings.VIBRATIONS)
+    val heatmapWeeks = settings.heatmapWeeks
+    val heatmapInfinite = settings.heatmapInfinite
+    val vibrationsEnabled = settings.vibrations
     val haptic = LocalHapticFeedback.current
 
     var textValue by remember(heatmapWeeks) { mutableStateOf(heatmapWeeks.toString()) }

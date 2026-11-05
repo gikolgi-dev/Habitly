@@ -18,6 +18,11 @@ import com.habitly.habitly.data.Database.HabitDatabase
 import com.habitly.habitly.data.Database.HabitViewModel
 import com.habitly.habitly.data.Database.HabitViewModelFactory
 import com.habitly.habitly.data.settings.SettingsDataStore
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import com.habitly.habitly.data.settings.LocalAppSettings
+import com.habitly.habitly.data.settings.LocalSettingsDataStore
 import com.habitly.habitly.ui.colors.Attempt3Theme
 import com.habitly.habitly.ui.screen.ExpressiveMainScreen
 import kotlinx.coroutines.flow.first
@@ -51,17 +56,23 @@ class MainActivity : ComponentActivity() {
         splashScreen.setKeepOnScreenCondition { !isReady }
 
         lifecycleScope.launch {
-            // Wait for settings to load so colors are correct from the very first frame
-            val initialTheme = settingsDataStore.theme.first()
-            val initialMaterial = settingsDataStore.useMaterialTheming.first()
+            // Wait for settings to load so colors and values are correct from the very first frame
+            val initialSettings = settingsDataStore.getInitialAppSettings()
 
             setContent {
-                Attempt3Theme(
-                    settingsDataStore = settingsDataStore,
-                    initialTheme = initialTheme,
-                    initialUseMaterialTheming = initialMaterial
+                val appSettings by settingsDataStore.appSettingsFlow.collectAsState(initial = initialSettings)
+
+                CompositionLocalProvider(
+                    LocalAppSettings provides appSettings,
+                    LocalSettingsDataStore provides settingsDataStore
                 ) {
-                    ExpressiveMainScreen(viewModel, habitDao, db, settingsDataStore)
+                    Attempt3Theme(
+                        settingsDataStore = settingsDataStore,
+                        initialTheme = appSettings.theme,
+                        initialUseMaterialTheming = appSettings.useMaterialTheming
+                    ) {
+                        ExpressiveMainScreen(viewModel, habitDao, db, settingsDataStore)
+                    }
                 }
             }
             

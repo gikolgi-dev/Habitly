@@ -48,6 +48,7 @@ import com.habitly.habitly.data.Database.HabitsUiState
 import com.habitly.habitly.notifications.NotificationScheduler
 import com.habitly.habitly.ui.AppBackButton
 import com.habitly.habitly.ui.HabitItemCard
+import com.habitly.habitly.data.settings.LocalAppSettings
 import kotlinx.coroutines.launch
 
 @Composable
@@ -55,25 +56,11 @@ fun ArchiveScreen(
     uiState: HabitsUiState,
     habitDao: HabitDao,
     onBack: () -> Unit,
-    borderContrast: Float,
-    showMonthLabels: Boolean,
-    showYearDivider: Boolean,
-    showYearLabels: Boolean,
-    heatmapNotificationDot: Boolean,
-    heatmapNotificationDotRange: String,
-    heatmapNotificationDotDetailOnly: Boolean,
-    heatmapVisibleDays: Set<String>,
-    dayOfWeekLabelsOnRight: Boolean,
-    vibrationsEnabled: Boolean,
-    useHabitColor: Boolean,
-    disableAnimations: Boolean,
-    heatmapWeeks: Int = 0,
-    heatmapInfinite: Boolean = false,
-    currentDateMillis: Long = System.currentTimeMillis(),
-    autoScrollText: Boolean = false,
-    autoScrollTextElements: Set<String> = emptySet(),
-    autoScrollTextScreens: Set<String> = emptySet()
+    currentDateMillis: Long = System.currentTimeMillis()
 ) {
+    val settings = LocalAppSettings.current
+    val vibrationsEnabled = settings.vibrations
+    val borderContrast = settings.borders
     val scope = rememberCoroutineScope()
     var habitToDelete by remember { mutableStateOf<Habit?>(null) }
     
@@ -194,23 +181,7 @@ fun ArchiveScreen(
                                     isCompleted = false, // Not relevant for archived habits
                                     completions = habitWithCompletions.completions,
                                     showCheckbox = false,
-                                    showMonthLabels = showMonthLabels,
-                                    visibleDayLabels = heatmapVisibleDays,
-                                    dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight,
-                                    showYearDivider = showYearDivider,
-                                    showYearLabels = showYearLabels,
-                                    heatmapNotificationDot = heatmapNotificationDot && !heatmapNotificationDotDetailOnly,
-                                    heatmapNotificationDotRange = heatmapNotificationDotRange,
-                                    borderContrast = borderContrast,
-                                    useHabitColor = useHabitColor,
-                                    disableAnimations = disableAnimations,
-                                    heatmapWeeks = heatmapWeeks,
-                                    heatmapInfinite = heatmapInfinite,
                                     currentDateMillis = currentDateMillis,
-                                    autoScrollText = autoScrollText,
-                                    autoScrollTextElements = autoScrollTextElements,
-                                    autoScrollTextScreens = autoScrollTextScreens,
-                                    vibrationsEnabled = vibrationsEnabled,
                                     onComplete = { },
                                     onClick = { },
                                     onUnarchive = {

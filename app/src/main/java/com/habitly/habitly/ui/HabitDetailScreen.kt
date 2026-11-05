@@ -45,6 +45,7 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.habitly.habitly.ui.colors.isBright
 import com.habitly.habitly.ui.colors.toThemeHabitColor
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -62,6 +63,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -100,12 +103,13 @@ import com.habitly.habitly.data.Database.isQuit
 import com.habitly.habitly.data.Database.HabitWithCompletions
 import com.habitly.habitly.notifications.NotificationScheduler
 import com.habitly.habitly.ui.components.RotatingHabitIcon
+import com.habitly.habitly.data.settings.LocalAppSettings
 import java.util.Calendar
 import java.text.SimpleDateFormat
 import java.util.Locale
 
 
-@OptIn(ExperimentalSharedTransitionApi::class)
+@OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SharedTransitionScope.HabitDetailScreen(
     habitWithCompletions: HabitWithCompletions,
@@ -115,31 +119,33 @@ fun SharedTransitionScope.HabitDetailScreen(
     onDismiss: () -> Unit,
     onEditHabit: (Habit) -> Unit,
     onShowStatistics: (Habit) -> Unit,
-    borderContrast: Float,
-    showScrollBlur: Boolean,
-    showYearLabels: Boolean,
-    heatmapNotificationDot: Boolean,
-    heatmapNotificationDotRange: String,
-    heatmapNotificationDotDetailOnly: Boolean,
-    showYearDivider: Boolean,
-    vibrationsEnabled: Boolean,
-    showMonthLabels: Boolean,
-    dayOfWeekLabelsOnRight: Boolean,
-    heatmapVisibleDays: Set<String>,
-    disableAnimations: Boolean,
-    useHabitColor: Boolean,
-    theme: String,
-    heatmapWeeks: Int = 0,
-    heatmapInfinite: Boolean = false,
     currentDateMillis: Long = System.currentTimeMillis(),
     isEditSheetOpen: Boolean = false,
     transitionProgressProvider: () -> Float = { 1f },
-    firstDayOfWeek: Int = Calendar.MONDAY,
-    is24Hour: Boolean = false,
-    autoScrollText: Boolean = false,
-    autoScrollTextElements: Set<String> = emptySet(),
-    autoScrollTextScreens: Set<String> = emptySet()
+    // Settings are read directly from LocalAppSettings
 ) {
+    val settings = LocalAppSettings.current
+    val borderContrast = settings.borders
+    val showScrollBlur = settings.showScrollBlur && "Heatmap" in settings.scrollBlurTargets
+    val showYearLabels = settings.yearLabels
+    val heatmapNotificationDot = settings.heatmapNotificationDot
+    val heatmapNotificationDotRange = settings.heatmapNotificationDotRange
+    val heatmapNotificationDotDetailOnly = settings.heatmapNotificationDotDetailOnly
+    val showYearDivider = settings.yearDivider
+    val vibrationsEnabled = settings.vibrations
+    val showMonthLabels = settings.monthLabels
+    val dayOfWeekLabelsOnRight = settings.dayOfWeekLabelsOnRight
+    val heatmapVisibleDays = settings.heatmapVisibleDays
+    val disableAnimations = settings.disableRotationAnimations
+    val useHabitColor = settings.useHabitColorForItemCards
+    val theme = settings.theme
+    val heatmapWeeks = settings.heatmapWeeks
+    val heatmapInfinite = settings.heatmapInfinite
+    val firstDayOfWeek = settings.firstDayOfWeekCalendar
+    val is24Hour = settings.is24Hour
+    val autoScrollText = settings.autoScrollText
+    val autoScrollTextElements = settings.autoScrollTextElements
+    val autoScrollTextScreens = settings.autoScrollTextScreens
     val haptic = LocalHapticFeedback.current
     val context = LocalContext.current
     val notificationScheduler = remember { NotificationScheduler(context) }
@@ -165,24 +171,20 @@ fun SharedTransitionScope.HabitDetailScreen(
     val streak =
         remember(habit, completions, currentDateMillis, firstDayOfWeek) { calculateStreak(habit, completions, currentDateMillis, firstDayOfWeek) }
 
-    val useDarkTheme = when (theme) {
-        "light" -> false
-        "dark" -> true
-        else -> isSystemInDarkTheme()
-    }
+    val useDarkTheme = !MaterialTheme.colorScheme.surface.isBright()
     val secondaryContainerAlpha = if (useDarkTheme) 0.25f else 1f
 
     val habitThemeColor = Color(habit.color).toThemeHabitColor(useDarkTheme)
     val cardBackgroundColor = if (useHabitColor) {
-        lerp(habitThemeColor, MaterialTheme.colorScheme.surfaceVariant, if (useDarkTheme) 0.85f else 0.82f)
+        lerp(habitThemeColor, MaterialTheme.colorScheme.surfaceContainerHigh, if (useDarkTheme) 0.85f else 0.82f)
     } else {
-        MaterialTheme.colorScheme.surfaceVariant
+        MaterialTheme.colorScheme.surfaceContainerHigh
     }
 
     val cardBorderColor = if (useHabitColor) {
         lerp(
             habitThemeColor,
-            lerp(habitThemeColor, MaterialTheme.colorScheme.surfaceVariant, if (useDarkTheme) 0.85f else 0.82f),
+            lerp(habitThemeColor, MaterialTheme.colorScheme.surfaceContainerHigh, if (useDarkTheme) 0.85f else 0.82f),
             1f - borderContrast
         )
     } else {
@@ -316,19 +318,12 @@ fun SharedTransitionScope.HabitDetailScreen(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    RotatingHabitIcon(
-                        habit = habit,
-                        borderContrast = borderContrast,
-                        shouldAnimate = !disableAnimations
-                    )
+                    RotatingHabitIcon(habit = habit)
                     Spacer(modifier = Modifier.size(16.dp))
                     HabitTitleAndDescription(
                         habit = habit,
                         isDetailView = true,
-                        modifier = Modifier.weight(1f),
-                        autoScrollText = autoScrollText,
-                        autoScrollTextElements = autoScrollTextElements,
-                        autoScrollTextScreens = autoScrollTextScreens
+                        modifier = Modifier.weight(1f)
                     )
                     Box(
                         modifier = Modifier.size(64.dp),
@@ -464,20 +459,11 @@ fun SharedTransitionScope.HabitDetailScreen(
                     completions = completions,
                     habitColor = animatedColorState.value,
                     modifier = Modifier.fillMaxWidth(),
-                    showMonthLabels = showMonthLabels,
-                    visibleDayLabels = heatmapVisibleDays,
-                    dayOfWeekLabelsOnRight = dayOfWeekLabelsOnRight,
-                    showYearDivider = showYearDivider,
-                    showYearLabels = showYearLabels,
-                    showScrollBlur = showScrollBlur,
                     minWeeks = maxOf(30, heatmapWeeks), // Display a bit more heatmap columns even if they are empty
                     isInfinite = heatmapInfinite,
                     currentDateMillis = currentDateMillis,
                     habit = habit,
-                    showNotificationDot = heatmapNotificationDot,
-                    notificationDotRange = heatmapNotificationDotRange,
-                    notificationDotAlpha = notificationDotAlpha,
-                    firstDayOfWeek = firstDayOfWeek
+                    notificationDotAlpha = notificationDotAlpha
                 )
 
                 //Spacer(modifier = Modifier.height(4.dp))
@@ -669,6 +655,10 @@ fun SharedTransitionScope.HabitDetailScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                val actionButtonShapes = ButtonDefaults.shapes(
+                    shape = IconButtonDefaults.mediumSquareShape,
+                    pressedShape = IconButtonDefaults.smallPressedShape
+                )
                 // Edit button
                 Button(
                     onClick = {
@@ -678,7 +668,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                         onEditHabit(habit)
                     },
                     modifier = Modifier.weight(1f).height(48.dp),
-                    shape = RoundedCornerShape(16.dp),
+                    shapes = actionButtonShapes,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = cardBackgroundColor,
                         contentColor = MaterialTheme.colorScheme.onSurface
@@ -706,7 +696,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                         onShowStatistics(habit)
                     },
                     modifier = Modifier.weight(1f).height(48.dp),
-                    shape = RoundedCornerShape(16.dp),
+                    shapes = actionButtonShapes,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = cardBackgroundColor,
                         contentColor = MaterialTheme.colorScheme.onSurface
@@ -739,7 +729,7 @@ fun SharedTransitionScope.HabitDetailScreen(
                         onDismiss()
                     },
                     modifier = Modifier.weight(1f).height(48.dp),
-                    shape = RoundedCornerShape(16.dp),
+                    shapes = actionButtonShapes,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = cardBackgroundColor,
                         contentColor = MaterialTheme.colorScheme.onSurface

@@ -70,6 +70,8 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.habitly.habitly.data.settings.SettingsDataStore
+import com.habitly.habitly.data.settings.LocalAppSettings
+import com.habitly.habitly.data.settings.LocalSettingsDataStore
 
 val LocalSettingsTopBarCollapsed = compositionLocalOf { false }
 val LocalSettingsVibrations = compositionLocalOf { true }
@@ -104,20 +106,20 @@ fun getSettingsItemShape(position: SettingsItemPosition): Shape {
 
 @Composable
 fun SettingsItemBox(
-    settingsDataStore: SettingsDataStore,
+    settingsDataStore: SettingsDataStore = LocalSettingsDataStore.current,
     position: SettingsItemPosition,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
-    val borderContrast by settingsDataStore.borders.collectAsState(initial = 0f)
-    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
+    val borderContrast = LocalAppSettings.current.borders
+    val vibrationsEnabled = LocalAppSettings.current.vibrations
     val shape = getSettingsItemShape(position)
     
     Box(
         modifier = modifier
             .fillMaxWidth()
             .clip(shape)
-            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .border(
                 1.dp,
                 MaterialTheme.colorScheme.outline.copy(alpha = borderContrast),
@@ -134,10 +136,10 @@ fun SettingsItemBox(
 fun SettingsGroup(
     modifier: Modifier = Modifier,
     title: String? = null,
-    settingsDataStore: SettingsDataStore,
+    settingsDataStore: SettingsDataStore = LocalSettingsDataStore.current,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    val vibrationsEnabled by settingsDataStore.vibrations.collectAsState(initial = true)
+    val vibrationsEnabled = LocalAppSettings.current.vibrations
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -224,7 +226,7 @@ fun SettingsSwitchItemContent(
 fun SettingsSwitchItem(
     text: String,
     checked: Boolean,
-    settingsDataStore: SettingsDataStore,
+    settingsDataStore: SettingsDataStore = LocalSettingsDataStore.current,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     description: String? = null,
@@ -250,7 +252,7 @@ fun SettingsSwitchItem(
 fun SettingsSwitchNavigationItem(
     text: String,
     checked: Boolean,
-    settingsDataStore: SettingsDataStore,
+    settingsDataStore: SettingsDataStore = LocalSettingsDataStore.current,
     modifier: Modifier = Modifier,
     description: String? = null,
     position: SettingsItemPosition = SettingsItemPosition.Alone,
@@ -333,7 +335,7 @@ fun SettingsSwitchNavigationItem(
 @Composable
 fun SettingsNavigationItem(
     text: String,
-    settingsDataStore: SettingsDataStore,
+    settingsDataStore: SettingsDataStore = LocalSettingsDataStore.current,
     modifier: Modifier = Modifier,
     description: String? = null,
     position: SettingsItemPosition = SettingsItemPosition.Alone,
@@ -444,7 +446,7 @@ fun SettingsCheckboxItemContent(
 fun SettingsCheckboxItem(
     text: String,
     checked: Boolean,
-    settingsDataStore: SettingsDataStore,
+    settingsDataStore: SettingsDataStore = LocalSettingsDataStore.current,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     position: SettingsItemPosition = SettingsItemPosition.Alone,
@@ -516,7 +518,7 @@ fun SettingsRadioButtonItemContent(
 fun SettingsRadioButtonItem(
     text: String,
     selected: Boolean,
-    settingsDataStore: SettingsDataStore,
+    settingsDataStore: SettingsDataStore = LocalSettingsDataStore.current,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     position: SettingsItemPosition = SettingsItemPosition.Alone,
@@ -541,14 +543,12 @@ fun RotatingCookie(
     icon: ImageVector,
     iconBackgroundColor: Color,
     iconColor: Color,
-    settingsDataStore: SettingsDataStore,
+    settingsDataStore: SettingsDataStore = LocalSettingsDataStore.current,
     size: Dp = 46.dp,
     iconSize: Dp = 30.dp,
     contentDescription: String? = null
 ) {
-    val reduceMovement by settingsDataStore.reduceMovement.collectAsState(initial = false)
-    val reduceMovementTargets by settingsDataStore.reduceMovementTargets.collectAsState(initial = emptySet())
-    val disableAnimations = reduceMovement && "Rotation" in reduceMovementTargets
+    val disableAnimations = LocalAppSettings.current.disableRotationAnimations
     
     val rotation = if (!disableAnimations) {
         val infiniteTransition = rememberInfiniteTransition(label = "rotation")
@@ -590,14 +590,12 @@ fun RotatingCookie(
     painter: Painter,
     iconBackgroundColor: Color,
     iconColor: Color,
-    settingsDataStore: SettingsDataStore,
+    settingsDataStore: SettingsDataStore = LocalSettingsDataStore.current,
     size: Dp = 46.dp,
     iconSize: Dp = 30.dp,
     contentDescription: String? = null
 ) {
-    val reduceMovement by settingsDataStore.reduceMovement.collectAsState(initial = false)
-    val reduceMovementTargets by settingsDataStore.reduceMovementTargets.collectAsState(initial = emptySet())
-    val disableAnimations = reduceMovement && "Rotation" in reduceMovementTargets
+    val disableAnimations = LocalAppSettings.current.disableRotationAnimations
     
     val rotation = if (!disableAnimations) {
         val infiniteTransition = rememberInfiniteTransition(label = "rotation")
@@ -641,7 +639,7 @@ fun GroupedSettingsItem(
     icon: ImageVector,
     iconBackgroundColor: Color,
     iconColor: Color,
-    settingsDataStore: SettingsDataStore,
+    settingsDataStore: SettingsDataStore = LocalSettingsDataStore.current,
     position: SettingsItemPosition = SettingsItemPosition.Alone,
     showDivider: Boolean = false,
     onClick: () -> Unit
@@ -700,7 +698,7 @@ fun GroupedSettingsItem(
     painter: Painter,
     iconBackgroundColor: Color,
     iconColor: Color,
-    settingsDataStore: SettingsDataStore,
+    settingsDataStore: SettingsDataStore = LocalSettingsDataStore.current,
     position: SettingsItemPosition = SettingsItemPosition.Alone,
     onClick: () -> Unit
 ) {
@@ -856,7 +854,7 @@ fun SettingsSubScreenContainer(
 fun SettingsCheckboxGroup(
     items: List<String>,
     selectedItems: Set<String>,
-    settingsDataStore: SettingsDataStore,
+    settingsDataStore: SettingsDataStore = LocalSettingsDataStore.current,
     modifier: Modifier = Modifier,
     title: String? = "Targets",
     enabled: Boolean = true,

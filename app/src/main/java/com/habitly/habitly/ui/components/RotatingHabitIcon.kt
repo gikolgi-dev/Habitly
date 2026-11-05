@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import com.habitly.habitly.data.Database.Habit
 import com.habitly.habitly.ui.colors.isBright
 import com.habitly.habitly.ui.colors.toThemeHabitColor
+import com.habitly.habitly.data.settings.LocalAppSettings
 import com.habitly.habitly.ui.habitIconMap
 val LocalRotatingIconRotation = compositionLocalOf { { 0f } }
 
@@ -67,9 +68,9 @@ fun ProvideRotatingIconRotation(content: @Composable () -> Unit) {
 @Composable
 fun RotatingHabitIcon(
     habit: Habit,
-    borderContrast: Float,
     modifier: Modifier = Modifier,
-    shouldAnimate: Boolean = true
+    borderContrast: Float = LocalAppSettings.current.borders,
+    shouldAnimate: Boolean = !LocalAppSettings.current.disableRotationAnimations
 ) {
     val rotation = if (shouldAnimate) {
         LocalRotatingIconRotation.current()
@@ -78,7 +79,8 @@ fun RotatingHabitIcon(
     }
 
     val icon = habitIconMap[habit.icon] ?: Icons.Default.Refresh
-    val animatedColor by animateColorAsState(targetValue = Color(habit.color), label = "habitColor")
+    val isDark = !MaterialTheme.colorScheme.surface.isBright()
+    val effectiveColor by animateColorAsState(targetValue = Color(habit.color).toThemeHabitColor(isDark), label = "habitColor")
     val cookieShape = MaterialShapes.Cookie12Sided.toShape()
 
     // Springy pop when icon changes
@@ -92,8 +94,6 @@ fun RotatingHabitIcon(
         }
     }
 
-    val isDark = !MaterialTheme.colorScheme.surface.isBright()
-    val effectiveColor = animatedColor.toThemeHabitColor(isDark)
 
     Box(
         modifier = modifier
